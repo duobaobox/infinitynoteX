@@ -61,6 +61,23 @@
 .layout-panel.drag-area {
   height: 28px; /* 固定高度 */
   flex-shrink: 0; /* 不压缩 */
+  display: flex; /* 使用弹性布局 */
+  align-items: center; /* 垂直居中 */
+  justify-content: space-between; /* 左右分开 */
+  padding: 0 8px; /* 左右内边距 */
+}
+
+/* 拖拽区域内的按钮样式 */
+.layout-panel.drag-area button {
+  background: none; /* 无背景 */
+  border: none; /* 无边框 */
+  color: black; /* 黑色icon */
+  font-size: 16px; /* icon大小 */
+  cursor: pointer; /* 鼠标指针 */
+  padding: 0; /* 无内边距 */
+  display: flex; /* 弹性布局 */
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
 }
 
 /* 主内容区面板 - 填充剩余空间，横向布局 */
@@ -78,11 +95,10 @@
   flex: 0 0 160px; /* 明确不伸缩 */
 }
 
-/* 列表容器面板 - 固定宽度350px */
+/* 列表容器面板 - 默认flex1，显示编辑器时固定250px */
 .layout-panel.list-container {
-  width: 350px; /* 固定宽度 */
+  flex: 1; /* 默认占据剩余宽度 */
   flex-shrink: 0; /* 不压缩 */
-  flex: 0 0 350px; /* 明确不伸缩 */
 }
 
 /* 编辑容器面板 - 填充剩余宽度 */

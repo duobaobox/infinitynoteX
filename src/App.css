@@ -1,21 +1,29 @@
+/*
+  App.css
+  该文件为全局样式表，包含根容器、logo、卡片、文档提示、调试容器等常用样式，
+  用于统一管理和维护应用的主要样式。
+*/
+/* 让 #root 充满整个应用窗口 */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100vw; /* 宽度100%视口宽度 */
+  height: 100vh; /* 高度100%视口高度 */
+  max-width: 1280px; /* 最大宽度（如需限制可保留，否则可去掉） */
+  margin: 0 auto; /* 居中 */
+  padding: 8px; /* 内边距 */
+  text-align: center; /* 文字居中 */
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+  height: 6em; /* 高度 */
+  padding: 1.5em; /* 内边距 */
+  will-change: filter; /* 优化滤镜动画 */
+  transition: filter 300ms; /* 滤镜过渡 */
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #646cffaa); /* 鼠标悬停阴影 */
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #61dafbaa); /* React logo 阴影 */
 }
 
 @keyframes logo-spin {
@@ -39,4 +47,11 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* 调试容器样式 */
+.container-debug {
+  background: transparent; /* 透明背景 */
+  border: 1px solid red; /* 1px 红色实线边框 */
+  overflow: auto; /* 允许内容溢出时显示滚动条，可选 */
 }

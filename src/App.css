@@ -63,8 +63,30 @@
   flex-shrink: 0; /* 不压缩 */
 }
 
-/* 主内容区面板 - 填充剩余空间 */
+/* 主内容区面板 - 填充剩余空间，横向布局 */
 .layout-panel.main-content {
   flex: 1; /* 占据剩余空间 */
+  overflow: auto; /* 内容溢出时显示滚动条 */
+  display: flex; /* 使用弹性布局 */
+  flex-direction: row; /* 横向排列 */
+}
+
+/* 侧边栏面板 - 固定宽度160px */
+.layout-panel.sidebar {
+  width: 160px; /* 固定宽度 */
+  flex-shrink: 0; /* 不压缩 */
+  flex: 0 0 160px; /* 明确不伸缩 */
+}
+
+/* 列表容器面板 - 固定宽度350px */
+.layout-panel.list-container {
+  width: 350px; /* 固定宽度 */
+  flex-shrink: 0; /* 不压缩 */
+  flex: 0 0 350px; /* 明确不伸缩 */
+}
+
+/* 编辑容器面板 - 填充剩余宽度 */
+.layout-panel.editor-container {
+  flex: 1; /* 占据剩余宽度 */
   overflow: auto; /* 内容溢出时显示滚动条 */
 }

@@ -93,16 +93,19 @@
   width: 160px; /* 固定宽度 */
   flex-shrink: 0; /* 不压缩 */
   flex: 0 0 160px; /* 明确不伸缩 */
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 /* 列表容器面板 - 默认flex1，显示编辑器时固定250px */
 .layout-panel.list-container {
   flex: 1; /* 默认占据剩余宽度 */
   flex-shrink: 0; /* 不压缩 */
+  background-color: rgb(255, 255, 255, 0.8);
 }
 
 /* 编辑容器面板 - 填充剩余宽度 */
 .layout-panel.editor-container {
   flex: 1; /* 占据剩余宽度 */
   overflow: auto; /* 内容溢出时显示滚动条 */
+  background-color: rgb(255, 255, 255, 0.8);
 }

@@ -14,6 +14,8 @@ function App() {
       </div>
       <div className="layout-panel main-content">
         {showSidebar && <div className="layout-panel sidebar">侧边栏</div>}
+        {/* 第一个间隔容器 */}
+        <div className="gap-panel" />
         <div
           className="layout-panel list-container"
           style={{
@@ -24,6 +26,8 @@ function App() {
         >
           列表容器
         </div>
+        {/* 第二个间隔容器 */}
+        {showEditor && <div className="gap-panel" />}
         {showEditor && (
           <div className="layout-panel editor-container">编辑容器</div>
         )}

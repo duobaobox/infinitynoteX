@@ -1,3 +1,11 @@
+/* HTML 和 Body 全局基础样式 */
+html {
+  width: 100%; /* 宽度100% */
+  height: 100%; /* 高度100% */
+  margin: 0; /* 移除默认外边距 */
+  padding: 0; /* 移除默认内边距 */
+}
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -23,11 +31,10 @@ a:hover {
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  width: 100%; /* 宽度100% */
+  height: 100%; /* 高度100% */
+  margin: 0; /* 移除默认外边距 */
+  padding: 0; /* 移除默认内边距 */
   /* 渐变背景色：上下渐变 */
   background: linear-gradient(165deg, #fcf1bb 0%, #ffd2b7 100%);
 }

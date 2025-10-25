@@ -5,12 +5,13 @@
 */
 /* 让 #root 充满整个应用窗口 */
 #root {
-  width: 100vw; /* 宽度100%视口宽度 */
-  height: 100vh; /* 高度100%视口高度 */
-  max-width: 1280px; /* 最大宽度（如需限制可保留，否则可去掉） */
-  margin: 0 auto; /* 居中 */
-  padding: 8px; /* 内边距 */
-  text-align: center; /* 文字居中 */
+  width: 100%; /* 宽度100% */
+  height: 100%; /* 高度100% */
+  display: flex; /* 使用弹性布局 */
+  flex-direction: column; /* 竖向排列 */
+  margin: 0; /* 移除外边距 */
+  padding: 0; /* 移除内边距 */
+  box-sizing: border-box; /* 边界盒计算 */
 }
 
 .logo {
@@ -49,9 +50,21 @@
   color: #888;
 }
 
-/* 调试容器样式 */
-.container-debug {
+/* 布局面板基础样式 */
+.layout-panel {
   background: transparent; /* 透明背景 */
   border: 1px solid red; /* 1px 红色实线边框 */
-  overflow: auto; /* 允许内容溢出时显示滚动条，可选 */
+  box-sizing: border-box; /* 边界盒计算 */
+}
+
+/* 应用拖拽区域面板 - 固定高度 */
+.layout-panel.drag-area {
+  height: 28px; /* 固定高度 */
+  flex-shrink: 0; /* 不压缩 */
+}
+
+/* 主内容区面板 - 填充剩余空间 */
+.layout-panel.main-content {
+  flex: 1; /* 占据剩余空间 */
+  overflow: auto; /* 内容溢出时显示滚动条 */
 }

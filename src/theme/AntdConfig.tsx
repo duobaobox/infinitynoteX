@@ -1,6 +1,7 @@
 import { ConfigProvider, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import React from "react";
+import "./antd-custom.css";
 
 /**
  * Ant Design 全局配置组件

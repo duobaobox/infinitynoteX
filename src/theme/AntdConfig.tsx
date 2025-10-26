@@ -17,6 +17,7 @@ const AntdConfig: React.FC<{ children: React.ReactNode }> = ({ children }) => (
       },
       algorithm: theme.defaultAlgorithm,
     }}
+    componentSize="small"
   >
     {children}
   </ConfigProvider>

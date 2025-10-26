@@ -4,7 +4,7 @@ import Sidebar from "./components/Sidebar";
 import ListPanel from "./components/ListPanel";
 import EditorPanel from "./components/EditorPanel";
 import { Button } from "antd";
-import { MenuFoldOutlined } from "@ant-design/icons";
+import sidebarLeftSvg from "./assets/sidebar-left.svg";
 
 function App() {
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
@@ -19,7 +19,13 @@ function App() {
           <span className="macos-btn macos-full" />
           <Button
             type="text"
-            icon={<MenuFoldOutlined />}
+            icon={
+              <img
+                src={sidebarLeftSvg}
+                alt="sidebar"
+                style={{ width: 18, height: 18 }}
+              />
+            }
             onClick={() => setShowSidebar(!showSidebar)}
             style={{ padding: 0 }}
           />
@@ -27,7 +33,13 @@ function App() {
 
         <Button
           type="text"
-          icon={<MenuFoldOutlined />}
+          icon={
+            <img
+              src={sidebarLeftSvg}
+              alt="editor"
+              style={{ width: 18, height: 18, transform: 'scaleX(-1)' }}
+            />
+          }
           onClick={() => setShowEditor(!showEditor)}
           style={{ padding: 0 }}
         />

@@ -1,3 +1,7 @@
+/* 去除 antd 按钮 hover 态的蓝色边框 */
+.ant-btn:hover {
+  border-color: transparent !important;
+}
 /* 去除 antd 按钮 focus/active 态的蓝色边框和 outline */
 .ant-btn:focus,
 .ant-btn:focus-visible,

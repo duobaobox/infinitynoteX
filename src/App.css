@@ -124,6 +124,29 @@
   padding: 0;
 }
 
+/* 自定义美观滚动条样式 */
+.scrollable-list::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.scrollable-list::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.25);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.scrollable-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.45);
+}
+.scrollable-list::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+.scrollable-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
+}
+
 /* 列表容器面板 - 默认flex1，显示编辑器时固定250px */
 .layout-panel.list-container {
   flex: 1; /* 默认占据剩余宽度 */

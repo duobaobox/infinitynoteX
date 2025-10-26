@@ -12,7 +12,7 @@ const NOTE_COLOR = "#fa8c16"; // 便签主题色，与 colorPrimary 保持一致
 
 const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
   // 假数据
-  const fakeNotes = Array.from({ length: 18 }).map((_, i) => ({
+  const fakeNotes = Array.from({ length: 6 }).map((_, i) => ({
     title: `便签标题 ${i + 1}`,
     content: `这是第${
       i + 1

@@ -37,7 +37,7 @@ function App() {
             <img
               src={sidebarLeftSvg}
               alt="editor"
-              style={{ width: 18, height: 18, transform: 'scaleX(-1)' }}
+              style={{ width: 18, height: 18, transform: "scaleX(-1)" }}
             />
           }
           onClick={() => setShowEditor(!showEditor)}

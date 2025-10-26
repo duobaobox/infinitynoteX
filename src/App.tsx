@@ -8,13 +8,17 @@ function App() {
   return (
     <>
       <div className="layout-panel drag-area">
-        <button onClick={() => setShowSidebar(!showSidebar)}>☰</button>
-        应用拖拽区域
+        <div className="macos-window-buttons">
+          <span className="macos-btn macos-close" />
+          <span className="macos-btn macos-min" />
+          <span className="macos-btn macos-full" />
+          <button onClick={() => setShowSidebar(!showSidebar)}>☰</button>
+        </div>
+
         <button onClick={() => setShowEditor(!showEditor)}>☰</button>
       </div>
       <div className="layout-panel main-content">
-        {showSidebar && <div className="layout-panel sidebar">侧边栏</div>}
-        {/* 第一个间隔容器 */}
+        {showSidebar && <div className="layout-panel sidebar"></div>}
         <div className="gap-panel" />
         <div
           className="layout-panel list-container"
@@ -23,14 +27,10 @@ function App() {
               ? "0 0 250px"
               : 1 /* 显示编辑器时固定250px，否则flex1 */,
           }}
-        >
-          列表容器
-        </div>
+        ></div>
         {/* 第二个间隔容器 */}
         {showEditor && <div className="gap-panel" />}
-        {showEditor && (
-          <div className="layout-panel editor-container">编辑容器</div>
-        )}
+        {showEditor && <div className="layout-panel editor-container"></div>}
       </div>
     </>
   );

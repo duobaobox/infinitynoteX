@@ -10,7 +10,7 @@
   display: flex; /* 使用弹性布局 */
   flex-direction: column; /* 竖向排列 */
   margin: 0; /* 移除外边距 */
-  padding: 0; /* 移除内边距 */
+  padding: 0px; /* 增加内边距 */
   box-sizing: border-box; /* 边界盒计算 */
 }
 
@@ -53,7 +53,7 @@
 /* 布局面板基础样式 */
 .layout-panel {
   background: transparent; /* 透明背景 */
-  border: 1px solid red; /* 1px 红色实线边框 */
+  /* border: 1px solid red;  */
   box-sizing: border-box; /* 边界盒计算 */
 }
 
@@ -86,6 +86,7 @@
   overflow: auto; /* 内容溢出时显示滚动条 */
   display: flex; /* 使用弹性布局 */
   flex-direction: row; /* 横向排列 */
+  padding: 0px 8px 8px 8px;
 }
 
 /* 侧边栏面板 - 固定宽度160px */
@@ -94,6 +95,7 @@
   flex-shrink: 0; /* 不压缩 */
   flex: 0 0 160px; /* 明确不伸缩 */
   background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px; /* 圆角 */
 }
 
 /* 列表容器面板 - 默认flex1，显示编辑器时固定250px */
@@ -101,6 +103,7 @@
   flex: 1; /* 默认占据剩余宽度 */
   flex-shrink: 0; /* 不压缩 */
   background-color: rgb(255, 255, 255, 0.8);
+  border-radius: 8px; /* 圆角 */
 }
 
 /* 编辑容器面板 - 填充剩余宽度 */
@@ -108,4 +111,41 @@
   flex: 1; /* 占据剩余宽度 */
   overflow: auto; /* 内容溢出时显示滚动条 */
   background-color: rgb(255, 255, 255, 0.8);
+  border-radius: 8px; /* 圆角 */
+}
+
+/* 横向间隔容器样式 */
+.gap-panel {
+  width: 6px;
+  align-self: stretch; /* 拉伸高度填满父容器 */
+  background: transparent;
+  pointer-events: none;
+}
+
+/* macOS 窗口按钮组件样式 */
+.macos-window-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+.macos-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid #bbb;
+  box-sizing: border-box;
+}
+.macos-close {
+  background: #ff5f56;
+  border-color: #e0443e;
+}
+.macos-min {
+  background: #ffbd2e;
+  border-color: #dea123;
+}
+.macos-full {
+  background: #27c93f;
+  border-color: #13a10e;
 }

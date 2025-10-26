@@ -3,7 +3,7 @@ html {
   width: 100%; /* 宽度100% */
   height: 100%; /* 高度100% */
   margin: 0; /* 移除默认外边距 */
-  padding: 0; /* 移除默认内边距 */
+  padding: 0px; /* 移除默认内边距 */
 }
 
 :root {

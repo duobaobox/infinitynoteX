@@ -9,7 +9,7 @@ import {
 const Sidebar: React.FC = () => {
   return (
     <div className="layout-panel sidebar">
-      <div className="flex-vertical-equal">
+      <div className="flex-vertical-auto">
         <Segmented
           block
           options={[
@@ -41,6 +41,8 @@ const Sidebar: React.FC = () => {
         >
           添加
         </Button>
+      </div>
+      <div className="flex-vertical-equal">
         <div className="scrollable-list">
           <Menu
             mode="inline"

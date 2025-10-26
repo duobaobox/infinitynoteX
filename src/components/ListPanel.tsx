@@ -23,7 +23,7 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
   }));
   return (
     <div className="layout-panel list-container" style={{ flex }}>
-      <div className="flex-vertical-equal">
+      <div className="flex-vertical-auto">
         <div
           style={{
             display: "flex",
@@ -48,6 +48,8 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
             </span>
           }
         />
+      </div>
+      <div className="flex-vertical-equal">
         <div className="scrollable-list">
           {fakeNotes.map((note, idx) => (
             <NoteCard

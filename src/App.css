@@ -108,6 +108,7 @@
   border-radius: 8px; /* 圆角 */
   display: flex;
   flex-direction: column;
+  min-height: 0; /* 关键：让 flex 子元素正确计算高度 */
 }
 
 /* 竖向等分面板（可复用） */
@@ -120,6 +121,17 @@
   flex-direction: column;
   gap: 6px;
   min-height: 0; /* 关键：让 flex 子元素正确计算高度 */
+}
+
+/* 竖向自适应高度面板（高度适应内部元素） */
+.flex-vertical-auto {
+  background: transparent;
+  border: none;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* flex 默认不设置，高度由内容决定 */
 }
 
 /* 可滚动内容容器，适合放同类元素，支持上下滚动 */

@@ -1,6 +1,7 @@
 import React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+// Remix Icon 通过CDN全局引入，无需import
 import "./TipTapEditor.css";
 
 interface TipTapEditorProps {
@@ -39,7 +40,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("bold") ? "is-active" : ""}
           title="粗体 (Ctrl+B)"
         >
-          <strong>B</strong>
+          <i className="ri-bold" />
         </button>
 
         <button
@@ -48,7 +49,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("italic") ? "is-active" : ""}
           title="斜体 (Ctrl+I)"
         >
-          <em>I</em>
+          <i className="ri-italic" />
         </button>
 
         <button
@@ -57,7 +58,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("strike") ? "is-active" : ""}
           title="删除线"
         >
-          <s>S</s>
+          <i className="ri-strikethrough" />
         </button>
 
         <button
@@ -66,33 +67,43 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("code") ? "is-active" : ""}
           title="代码"
         >
-          <code>&lt;&gt;</code>
+          <i className="ri-code-line" />
         </button>
 
         <div className="toolbar-divider" />
 
         <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={editor.isActive("heading", { level: 1 }) ? "is-active" : ""}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          className={
+            editor.isActive("heading", { level: 1 }) ? "is-active" : ""
+          }
           title="标题 1"
         >
-          H1
+          <i className="ri-h-1" />
         </button>
-
         <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={editor.isActive("heading", { level: 2 }) ? "is-active" : ""}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          }
+          className={
+            editor.isActive("heading", { level: 2 }) ? "is-active" : ""
+          }
           title="标题 2"
         >
-          H2
+          <i className="ri-h-2" />
         </button>
-
         <button
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={editor.isActive("heading", { level: 3 }) ? "is-active" : ""}
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          }
+          className={
+            editor.isActive("heading", { level: 3 }) ? "is-active" : ""
+          }
           title="标题 3"
         >
-          H3
+          <i className="ri-h-3" />
         </button>
 
         <div className="toolbar-divider" />
@@ -102,23 +113,21 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("bulletList") ? "is-active" : ""}
           title="无序列表"
         >
-          • 列表
+          <i className="ri-list-unordered" />
         </button>
-
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={editor.isActive("orderedList") ? "is-active" : ""}
           title="有序列表"
         >
-          1. 列表
+          <i className="ri-list-ordered" />
         </button>
-
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={editor.isActive("codeBlock") ? "is-active" : ""}
           title="代码块"
         >
-          &lt;/&gt;
+          <i className="ri-code-s-slash-line" />
         </button>
 
         <div className="toolbar-divider" />
@@ -128,14 +137,13 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           className={editor.isActive("blockquote") ? "is-active" : ""}
           title="引用"
         >
-          ″
+          <i className="ri-double-quotes-l" />
         </button>
-
         <button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           title="分割线"
         >
-          ─
+          <i className="ri-separator" />
         </button>
 
         <div className="toolbar-divider" />
@@ -145,15 +153,14 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           disabled={!editor.can().chain().focus().undo().run()}
           title="撤销 (Ctrl+Z)"
         >
-          ↶
+          <i className="ri-arrow-go-back-line" />
         </button>
-
         <button
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().chain().focus().redo().run()}
           title="重做 (Ctrl+Y)"
         >
-          ↷
+          <i className="ri-arrow-go-forward-line" />
         </button>
       </div>
 

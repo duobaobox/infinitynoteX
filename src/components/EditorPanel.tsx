@@ -7,6 +7,7 @@ import {
   RobotOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
+import { Sender } from "@ant-design/x";
 
 const EditorPanel: React.FC = () => {
   const segmentOptions = [
@@ -46,10 +47,11 @@ const EditorPanel: React.FC = () => {
   return (
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">
-        <div style={{ display: "inline-block", marginBottom: 16 }}>
+        <div style={{ display: "inline-block" }}>
           <Segmented options={segmentOptions} defaultValue="edit" />
         </div>
-        {/* 编辑内容放这里 */}
+        <div className="scrollable-list">{/* 可滚动内容放这里 */}</div>
+        <Sender />
       </div>
     </div>
   );

@@ -21,8 +21,12 @@ function App() {
         <button onClick={() => setShowEditor(!showEditor)}>☰</button>
       </div>
       <div className="layout-panel main-content">
-        {showSidebar && <Sidebar />}
-        <div className="gap-panel" />
+        {showSidebar && (
+          <>
+            <Sidebar />
+            <div className="gap-panel" />
+          </>
+        )}
         <ListPanel flex={showEditor ? "0 0 250px" : 1} />
         <div className="drag-area-center" />
         {showEditor && <div className="gap-panel" />}

@@ -83,10 +83,10 @@
 /* 主内容区面板 - 填充剩余空间，横向布局 */
 .layout-panel.main-content {
   flex: 1; /* 占据剩余空间 */
-  overflow: auto; /* 内容溢出时显示滚动条 */
   display: flex; /* 使用弹性布局 */
   flex-direction: row; /* 横向排列 */
   padding: 0px 8px 8px 8px;
+  min-height: 0; /* 关键：让 flex 子元素正确计算高度 */
 }
 
 /* 侧边栏面板 - 固定宽度160px */
@@ -109,6 +109,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0; /* 关键：让 flex 子元素正确计算高度 */
 }
 
 /* 可滚动内容容器，适合放同类元素，支持上下滚动 */
@@ -129,6 +130,9 @@
   flex-shrink: 0; /* 不压缩 */
   background-color: rgb(255, 255, 255, 0.8);
   border-radius: 8px; /* 圆角 */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 关键：让 flex 子元素正确计算高度 */
 }
 
 /* 编辑容器面板 - 填充剩余宽度 */

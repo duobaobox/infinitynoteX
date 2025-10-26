@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +19,12 @@ function createWindow() {
     minHeight: 560,
     // 最小高度
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    frame: false,
+    // 隐藏默认标题栏
+    titleBarStyle: "hidden",
+    // 隐藏标题栏但保留拖拽区域
+    trafficLightPosition: { x: 12, y: 6 },
+    // macOS 红绿黄按钮位置（不会显示因为 frame: false）
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs")
     }
@@ -41,6 +47,37 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+ipcMain.on("window-minimize", () => {
+  if (win) {
+    win.minimize();
+  }
+});
+ipcMain.on("window-maximize", () => {
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+ipcMain.on("window-close", () => {
+  if (win) {
+    win.close();
+  }
+});
+ipcMain.handle("window-is-maximized", () => {
+  return (win == null ? void 0 : win.isMaximized()) ?? false;
+});
+ipcMain.on("window-double-click-titlebar", () => {
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
   }
 });
 app.whenReady().then(createWindow);

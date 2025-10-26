@@ -6,17 +6,34 @@ import EditorPanel from "./components/EditorPanel";
 import { Button } from "antd";
 import sidebarLeftSvg from "./assets/sidebar-left.svg";
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      minimize: () => void;
+      maximize: () => void;
+      close: () => void;
+      isMaximized: () => Promise<boolean>;
+      onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
+    };
+  }
+}
+
 function App() {
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
   const [showSidebar, setShowSidebar] = useState(true); /* 侧边栏显示状态 */
 
+  // 处理双击标题栏最大化
+  const handleDragAreaDoubleClick = () => {
+    window.electronAPI?.maximize();
+  };
+
   return (
     <>
-      <div className="layout-panel drag-area">
-        <div className="macos-window-buttons">
-          <span className="macos-btn macos-close" />
-          <span className="macos-btn macos-min" />
-          <span className="macos-btn macos-full" />
+      <div
+        className="layout-panel drag-area"
+        onDoubleClick={handleDragAreaDoubleClick}
+      >
+        <div className="drag-area-buttons">
           <Button
             type="text"
             icon={
@@ -28,21 +45,22 @@ function App() {
             }
             onClick={() => setShowSidebar(!showSidebar)}
             style={{ padding: 0 }}
+            title="切换侧边栏"
+          />
+          <Button
+            type="text"
+            icon={
+              <img
+                src={sidebarLeftSvg}
+                alt="editor"
+                style={{ width: 18, height: 18, transform: "scaleX(-1)" }}
+              />
+            }
+            onClick={() => setShowEditor(!showEditor)}
+            style={{ padding: 0 }}
+            title="切换编辑器"
           />
         </div>
-
-        <Button
-          type="text"
-          icon={
-            <img
-              src={sidebarLeftSvg}
-              alt="editor"
-              style={{ width: 18, height: 18, transform: "scaleX(-1)" }}
-            />
-          }
-          onClick={() => setShowEditor(!showEditor)}
-          style={{ padding: 0 }}
-        />
       </div>
       <div className="layout-panel main-content">
         {showSidebar && (

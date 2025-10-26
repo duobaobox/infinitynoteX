@@ -3,7 +3,10 @@ const electron = require("electron");
 electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args) {
     const [channel, listener] = args;
-    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
+    return electron.ipcRenderer.on(
+      channel,
+      (event, ...args2) => listener(event, ...args2)
+    );
   },
   off(...args) {
     const [channel, ...omit] = args;
@@ -19,4 +22,15 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   }
   // You can expose other APTs you need here.
   // ...
+});
+electron.contextBridge.exposeInMainWorld("electronAPI", {
+  minimize: () => electron.ipcRenderer.send("window-minimize"),
+  maximize: () => electron.ipcRenderer.send("window-maximize"),
+  close: () => electron.ipcRenderer.send("window-close"),
+  isMaximized: () => electron.ipcRenderer.invoke("window-is-maximized"),
+  onWindowStateChanged: (callback) => {
+    electron.ipcRenderer.on("window-state-changed", (_event, isMaximized) => {
+      callback(isMaximized);
+    });
+  }
 });

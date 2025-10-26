@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -33,6 +33,9 @@ function createWindow() {
     minWidth: 700, // 最小宽度
     minHeight: 560, // 最小高度
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    frame: false, // 隐藏默认标题栏
+    titleBarStyle: "hidden", // 隐藏标题栏但保留拖拽区域
+    trafficLightPosition: { x: 12, y: 6 }, // macOS 红绿黄按钮位置（不会显示因为 frame: false）
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
     },
@@ -66,6 +69,45 @@ app.on("activate", () => {
   // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+// 窗口控制 IPC 处理器
+ipcMain.on("window-minimize", () => {
+  if (win) {
+    win.minimize();
+  }
+});
+
+ipcMain.on("window-maximize", () => {
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
+  }
+});
+
+ipcMain.on("window-close", () => {
+  if (win) {
+    win.close();
+  }
+});
+
+// 获取窗口最大化状态
+ipcMain.handle("window-is-maximized", () => {
+  return win?.isMaximized() ?? false;
+});
+
+// 双击标题栏最大化行为
+ipcMain.on("window-double-click-titlebar", () => {
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize();
+    } else {
+      win.maximize();
+    }
   }
 });
 

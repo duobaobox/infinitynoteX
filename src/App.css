@@ -63,8 +63,17 @@
   flex-shrink: 0; /* 不压缩 */
   display: flex; /* 使用弹性布局 */
   align-items: center; /* 垂直居中 */
-  justify-content: space-between; /* 左右分开 */
+  justify-content: flex-end; /* 右对齐 */
   padding: 0 8px; /* 左右内边距 */
+  -webkit-app-region: drag; /* 启用拖拽 */
+}
+
+/* 拖拽区域内的按钮容器 */
+.drag-area-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag; /* 禁用按钮组拖拽 */
 }
 
 /* 拖拽区域内的按钮样式 */
@@ -78,6 +87,7 @@
   display: flex; /* 弹性布局 */
   align-items: center; /* 垂直居中 */
   justify-content: center; /* 水平居中 */
+  -webkit-app-region: no-drag; /* 禁用按钮拖拽 */
 }
 
 /* 主内容区面板 - 填充剩余空间，横向布局 */
@@ -175,32 +185,4 @@
   align-self: stretch; /* 拉伸高度填满父容器 */
   background: transparent;
   pointer-events: none;
-}
-
-/* macOS 窗口按钮组件样式 */
-.macos-window-buttons {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-right: 8px;
-}
-.macos-btn {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  border: 1px solid #bbb;
-  box-sizing: border-box;
-}
-.macos-close {
-  background: #ff5f56;
-  border-color: #e0443e;
-}
-.macos-min {
-  background: #ffbd2e;
-  border-color: #dea123;
-}
-.macos-full {
-  background: #27c93f;
-  border-color: #13a10e;
 }

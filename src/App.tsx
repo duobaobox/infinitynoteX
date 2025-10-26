@@ -28,6 +28,7 @@ function App() {
               : 1 /* 显示编辑器时固定250px，否则flex1 */,
           }}
         ></div>
+        <div className="drag-area-center" />
         {/* 第二个间隔容器 */}
         {showEditor && <div className="gap-panel" />}
         {showEditor && <div className="layout-panel editor-container"></div>}

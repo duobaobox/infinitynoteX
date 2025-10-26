@@ -1,3 +1,11 @@
+/* 去除 antd 按钮 focus/active 态的蓝色边框和 outline */
+.ant-btn:focus,
+.ant-btn:focus-visible,
+.ant-btn:active {
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
 /* antd Menu 自定义样式，去除背景、阴影、内边距，适合侧边栏导航 */
 .scrollable-list .ant-menu {
   background: transparent !important;

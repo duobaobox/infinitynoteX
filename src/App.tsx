@@ -3,6 +3,8 @@ import "./App.css";
 import Sidebar from "./components/Sidebar";
 import ListPanel from "./components/ListPanel";
 import EditorPanel from "./components/EditorPanel";
+import { Button } from "antd";
+import { MenuFoldOutlined } from "@ant-design/icons";
 
 function App() {
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
@@ -15,10 +17,20 @@ function App() {
           <span className="macos-btn macos-close" />
           <span className="macos-btn macos-min" />
           <span className="macos-btn macos-full" />
-          <button onClick={() => setShowSidebar(!showSidebar)}>☰</button>
+          <Button
+            type="text"
+            icon={<MenuFoldOutlined />}
+            onClick={() => setShowSidebar(!showSidebar)}
+            style={{ padding: 0 }}
+          />
         </div>
 
-        <button onClick={() => setShowEditor(!showEditor)}>☰</button>
+        <Button
+          type="text"
+          icon={<MenuFoldOutlined />}
+          onClick={() => setShowEditor(!showEditor)}
+          style={{ padding: 0 }}
+        />
       </div>
       <div className="layout-panel main-content">
         {showSidebar && (

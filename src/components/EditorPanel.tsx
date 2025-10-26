@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { Segmented } from "antd";
 import {
@@ -8,8 +8,12 @@ import {
   AppstoreOutlined,
 } from "@ant-design/icons";
 import { Sender } from "@ant-design/x";
+import { TipTapEditor } from "./TipTapEditor";
 
 const EditorPanel: React.FC = () => {
+  const [editorContent, setEditorContent] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string | number>("edit");
+
   const segmentOptions = [
     {
       label: (
@@ -44,13 +48,34 @@ const EditorPanel: React.FC = () => {
       value: "other",
     },
   ];
+
   return (
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">
         <div style={{ display: "inline-block" }}>
-          <Segmented options={segmentOptions} defaultValue="edit" />
+          <Segmented
+            options={segmentOptions}
+            value={activeTab}
+            onChange={setActiveTab}
+          />
         </div>
-        <div className="scrollable-list">{/* 可滚动内容放这里 */}</div>
+        <div className="scrollable-list">
+          {activeTab === "edit" && (
+            <TipTapEditor
+              initialContent={editorContent}
+              onContentChange={setEditorContent}
+            />
+          )}
+          {activeTab === "tools" && (
+            <div style={{ padding: "16px" }}>工具面板</div>
+          )}
+          {activeTab === "ai" && (
+            <div style={{ padding: "16px" }}>AI 工作台</div>
+          )}
+          {activeTab === "other" && (
+            <div style={{ padding: "16px" }}>其他面板</div>
+          )}
+        </div>
         <Sender />
       </div>
     </div>

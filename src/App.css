@@ -57,8 +57,8 @@
   box-sizing: border-box; /* 边界盒计算 */
 }
 
-/* 应用拖拽区域面板 - 固定高度 */
-.layout-panel.drag-area {
+/* 自定义窗口顶部栏- 固定高度 */
+.layout-panel.app-titlebar {
   height: 28px; /* 固定高度 */
   flex-shrink: 0; /* 不压缩 */
   display: flex; /* 使用弹性布局 */
@@ -68,16 +68,19 @@
   -webkit-app-region: drag; /* 启用拖拽 */
 }
 
-/* 拖拽区域内的按钮容器 */
-.drag-area-buttons {
+/* 顶部栏内的按钮容器 */
+.app-titlebar-buttons {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 8px;
   -webkit-app-region: no-drag; /* 禁用按钮组拖拽 */
+  justify-content: flex-start;
+  padding: 0 8px;
 }
 
-/* 拖拽区域内的按钮样式 */
-.layout-panel.drag-area button {
+/* 顶部栏内的按钮样式 */
+.layout-panel.app-titlebar button {
   background: none; /* 无背景 */
   border: none; /* 无边框 */
   color: black; /* 黑色icon */
@@ -88,6 +91,32 @@
   align-items: center; /* 垂直居中 */
   justify-content: center; /* 水平居中 */
   -webkit-app-region: no-drag; /* 禁用按钮拖拽 */
+}
+
+/* 顶部栏左侧透明容器（预留给 mac） */
+.app-titlebar-left {
+  width: 80px;
+  min-width: 60px;
+  max-width: 120px;
+  height: 100%;
+  background: transparent;
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* 顶部栏右侧透明容器（放置 win/linux 控制按钮） */
+.app-titlebar-right {
+  width: 120px;
+  min-width: 80px;
+  max-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  background: transparent;
+  -webkit-app-region: no-drag;
 }
 
 /* 主内容区面板 - 填充剩余空间，横向布局 */

@@ -30,10 +30,11 @@ function App() {
   return (
     <>
       <div
-        className="layout-panel drag-area"
+        className="layout-panel app-titlebar"
         onDoubleClick={handleDragAreaDoubleClick}
       >
-        <div className="drag-area-buttons">
+        <div className="app-titlebar-left" />
+        <div className="app-titlebar-buttons">
           <Button
             type="text"
             icon={
@@ -61,6 +62,9 @@ function App() {
             title="切换编辑器"
           />
         </div>
+        <div className="app-titlebar-right">
+          {/* 这里放置 Windows/Linux 的窗口控制按钮 */}
+        </div>
       </div>
       <div className="layout-panel main-content">
         {showSidebar && (
@@ -70,7 +74,7 @@ function App() {
           </>
         )}
         <ListPanel flex={showEditor ? "0 0 250px" : 1} />
-        <div className="drag-area-center" />
+  <div className="app-titlebar-center" />
         {showEditor && <div className="gap-panel" />}
         {showEditor && <EditorPanel />}
       </div>

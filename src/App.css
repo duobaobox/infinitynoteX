@@ -1,3 +1,14 @@
+/* 编辑器内部tab组件容器（用于 TipTap 父级） */
+.editor-inner-tab-container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: none;
+  padding: 0;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 /*
   App.css
   该文件为全局样式表，包含根容器、logo、卡片、文档提示、调试容器等常用样式，

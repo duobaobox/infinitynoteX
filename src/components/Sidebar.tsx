@@ -98,6 +98,14 @@ const Sidebar: React.FC = () => {
               { key: "folder2", label: "文件夹2" },
               { key: "folder3", label: "文件夹3" },
               { key: "folder4", label: "文件夹4" },
+              { key: "folder5", label: "文件夹5" },
+              { key: "folder6", label: "文件夹6" },
+              { key: "folder7", label: "文件夹7" },
+              { key: "folder8", label: "文件夹8" },
+              { key: "folder9", label: "文件夹9" },
+              { key: "folder10", label: "文件夹10" },
+              
+              
             ]}
             defaultSelectedKeys={["folder1"]}
           />

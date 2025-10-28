@@ -7,7 +7,6 @@ import {
   RobotOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import { Sender } from "@ant-design/x";
 import { TipTapEditor } from "./TipTapEditor";
 
 const EditorPanel: React.FC = () => {
@@ -59,7 +58,7 @@ const EditorPanel: React.FC = () => {
             onChange={setActiveTab}
           />
         </div>
-        <div className="scrollable-list">
+  <div className="editor-inner-tab-container">
           {activeTab === "edit" && (
             <TipTapEditor
               initialContent={editorContent}
@@ -76,7 +75,6 @@ const EditorPanel: React.FC = () => {
             <div style={{ padding: "16px" }}>其他面板</div>
           )}
         </div>
-        <Sender />
       </div>
     </div>
   );

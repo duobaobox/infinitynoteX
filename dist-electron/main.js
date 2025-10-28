@@ -1,6 +1,11 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { ipcMain, app, BrowserWindow } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+ipcMain.on("window-unmaximize", () => {
+  if (win) {
+    win.unmaximize();
+  }
+});
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];

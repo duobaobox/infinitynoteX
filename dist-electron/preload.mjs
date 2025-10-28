@@ -26,6 +26,7 @@ electron.contextBridge.exposeInMainWorld("ipcRenderer", {
 electron.contextBridge.exposeInMainWorld("electronAPI", {
   minimize: () => electron.ipcRenderer.send("window-minimize"),
   maximize: () => electron.ipcRenderer.send("window-maximize"),
+  unmaximize: () => electron.ipcRenderer.send("window-unmaximize"),
   close: () => electron.ipcRenderer.send("window-close"),
   isMaximized: () => electron.ipcRenderer.invoke("window-is-maximized"),
   onWindowStateChanged: (callback) => {

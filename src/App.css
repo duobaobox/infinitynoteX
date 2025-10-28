@@ -74,7 +74,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  -webkit-app-region: no-drag; /* 禁用按钮组拖拽 */
   justify-content: flex-start;
   padding: 0 8px;
 }
@@ -92,6 +91,7 @@
   justify-content: center; /* 水平居中 */
   -webkit-app-region: no-drag; /* 禁用按钮拖拽 */
 }
+
 
 /* 顶部栏左侧透明容器（预留给 mac） */
 .app-titlebar-left {
@@ -117,6 +117,53 @@
   height: 100%;
   background: transparent;
   -webkit-app-region: no-drag;
+}
+
+/* 移除窗口按钮的系统/浏览器层级 focus 边框 */
+.window-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Windows风格窗口控制按钮 */
+/* 参考折叠面板/编辑器按钮风格的窗口控制按钮 */
+.window-btn {
+  width: 32px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.65);
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.window-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.85);
+}
+.window-btn:active {
+  background: rgba(0,0,0,0.08);
+}
+.window-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.window-btn-close:hover:not(:disabled) {
+  background: #e81123;
+  color: #fff;
+}
+.window-btn-close:active {
+  background: #c50f1f;
+}
+.window-btn svg {
+  pointer-events: none;
 }
 
 /* 主内容区面板 - 填充剩余空间，横向布局 */

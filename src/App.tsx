@@ -11,6 +11,7 @@ declare global {
     electronAPI?: {
       minimize: () => void;
       maximize: () => void;
+      unmaximize: () => void;
       close: () => void;
       isMaximized: () => Promise<boolean>;
       onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
@@ -63,7 +64,36 @@ function App() {
           />
         </div>
         <div className="app-titlebar-right">
-          {/* 这里放置 Windows/Linux 的窗口控制按钮 */}
+          <button
+            className="window-btn window-btn-min"
+            title="最小化"
+            onClick={() => window.electronAPI?.minimize?.()}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="8" width="8" height="2" fill="currentColor"/></svg>
+          </button>
+          <button
+            className="window-btn window-btn-max"
+            title="最大化/还原"
+            onClick={async () => {
+              if (window.electronAPI?.isMaximized) {
+                const maximized = await window.electronAPI.isMaximized();
+                if (maximized) {
+                  window.electronAPI.unmaximize?.();
+                } else {
+                  window.electronAPI.maximize?.();
+                }
+              }
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+          </button>
+          <button
+            className="window-btn window-btn-close"
+            title="关闭"
+            onClick={() => window.electronAPI?.close?.()}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16"><line x1="4" y1="4" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5"/><line x1="12" y1="4" x2="4" y2="12" stroke="currentColor" strokeWidth="1.5"/></svg>
+          </button>
         </div>
       </div>
       <div className="layout-panel main-content">

@@ -34,7 +34,7 @@ function App() {
         onDoubleClick={handleDragAreaDoubleClick}
       >
         <div className="app-titlebar-left" />
-        <div className="app-titlebar-buttons">
+        <div className="app-titlebar-center">
           <Button
             type="text"
             icon={
@@ -73,9 +73,8 @@ function App() {
             <div className="gap-panel" />
           </>
         )}
-        <ListPanel flex={showEditor ? "0 0 250px" : 1} />
-  <div className="app-titlebar-center" />
-        {showEditor && <div className="gap-panel" />}
+    <ListPanel flex={showEditor ? "0 0 250px" : 1} />
+    {showEditor && <div className="gap-panel" />}
         {showEditor && <EditorPanel />}
       </div>
     </>

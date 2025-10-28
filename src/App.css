@@ -68,8 +68,8 @@
   -webkit-app-region: drag; /* 启用拖拽 */
 }
 
-/* 顶部栏内的按钮容器 */
-.app-titlebar-buttons {
+/* 顶部栏中间自适应容器 */
+.app-titlebar-center {
   flex: 1;
   display: flex;
   align-items: center;

@@ -233,24 +233,34 @@
 }
 
 /* 自定义美观滚动条样式 */
-.scrollable-list::-webkit-scrollbar {
+.scrollable-list::-webkit-scrollbar,
+.tiptap-editor-wrapper::-webkit-scrollbar,
+.tiptap-toolbar::-webkit-scrollbar {
   width: 8px;
   background: transparent;
 }
-.scrollable-list::-webkit-scrollbar-thumb {
+.scrollable-list::-webkit-scrollbar-thumb,
+.tiptap-editor-wrapper::-webkit-scrollbar-thumb,
+.tiptap-toolbar::-webkit-scrollbar-thumb {
   background: rgba(160, 160, 160, 0.25);
   border-radius: 6px;
   transition: background 0.2s;
 }
-.scrollable-list:hover::-webkit-scrollbar-thumb {
+.scrollable-list:hover::-webkit-scrollbar-thumb,
+.tiptap-editor-wrapper:hover::-webkit-scrollbar-thumb,
+.tiptap-toolbar:hover::-webkit-scrollbar-thumb {
   background: rgba(160, 160, 160, 0.45);
 }
-.scrollable-list::-webkit-scrollbar-corner {
+.scrollable-list::-webkit-scrollbar-corner,
+.tiptap-editor-wrapper::-webkit-scrollbar-corner,
+.tiptap-toolbar::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 /* Firefox */
-.scrollable-list {
+.scrollable-list,
+.tiptap-editor-wrapper,
+.tiptap-toolbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
 }

@@ -33,7 +33,19 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   return (
     <div className="tiptap-container">
-      <div className="tiptap-toolbar">
+      <div
+        className="tiptap-toolbar"
+        onWheel={(e) => {
+          // 将垂直滚动转换为水平滚动，不需要按 Shift
+          const target = e.currentTarget;
+          const delta =
+            Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+          if (delta !== 0) {
+            e.preventDefault();
+            target.scrollLeft += delta;
+          }
+        }}
+      >
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           disabled={!editor.can().chain().focus().toggleBold().run()}

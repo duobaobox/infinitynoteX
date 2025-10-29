@@ -14,9 +14,23 @@
   padding: 6px 8px;
   border-bottom: 1px solid #f0f0f0;
   background: transparent;
-  flex-wrap: wrap;
-  overflow-y: auto;
+  /* 单行横排 + 横向滚动 */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   max-height: 48px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 隐藏工具栏滚动条（不影响滚动） */
+.tiptap-container .tiptap-toolbar::-webkit-scrollbar {
+  height: 0 !important;
+  width: 0 !important;
+  display: none !important;
+}
+.tiptap-container .tiptap-toolbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
 }
 
 .tiptap-toolbar button {

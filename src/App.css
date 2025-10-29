@@ -103,7 +103,6 @@
   -webkit-app-region: no-drag; /* 禁用按钮拖拽 */
 }
 
-
 /* 顶部栏左侧透明容器（预留给 mac） */
 .app-titlebar-left {
   width: 80px;
@@ -160,7 +159,7 @@
   color: rgba(0, 0, 0, 0.85);
 }
 .window-btn:active {
-  background: rgba(0,0,0,0.08);
+  background: rgba(0, 0, 0, 0.08);
 }
 .window-btn:disabled {
   opacity: 0.45;

@@ -36,7 +36,7 @@ body {
   margin: 0; /* 移除默认外边距 */
   padding: 0; /* 移除默认内边距 */
   /* 渐变背景色：上下渐变 */
-  background: linear-gradient(165deg, #d5d5f8 0%, #ffd2b7 100%);
+  background: linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%);
 }
 
 h1 {

@@ -1,6 +1,8 @@
 import React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { TaskList, TaskItem } from "@tiptap/extension-list";
+import Image from "@tiptap/extension-image";
 // Remix Icon 通过CDN全局引入，无需import
 import "./TipTapEditor.css";
 
@@ -14,7 +16,12 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   onContentChange,
 }) => {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TaskList.configure({}),
+      TaskItem.configure({ nested: true }),
+      Image.configure({ allowBase64: true }),
+    ],
     content: initialContent,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
@@ -26,6 +33,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       },
     },
   });
+  // 图片上传 input 引用
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   if (!editor) {
     return null;
@@ -135,6 +144,13 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <i className="ri-list-ordered" />
         </button>
         <button
+          onClick={() => editor.chain().focus().toggleTaskList().run()}
+          className={editor.isActive("taskList") ? "is-active" : ""}
+          title="任务列表"
+        >
+          <i className="ri-checkbox-line" />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={editor.isActive("codeBlock") ? "is-active" : ""}
           title="代码块"
@@ -151,6 +167,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         >
           <i className="ri-double-quotes-l" />
         </button>
+
         <button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           title="分割线"
@@ -158,6 +175,28 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
           <i className="ri-separator" />
         </button>
 
+        {/* 图片按钮单独区域 */}
+        <div className="toolbar-divider" />
+        <button onClick={() => fileInputRef.current?.click()} title="插入图片">
+          <i className="ri-image-line" />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              const src = evt.target?.result as string;
+              editor?.chain().focus().setImage({ src }).run();
+            };
+            reader.readAsDataURL(file);
+            e.target.value = "";
+          }}
+        />
         <div className="toolbar-divider" />
 
         <button

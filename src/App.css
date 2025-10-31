@@ -1,3 +1,12 @@
+/* 顶部栏折叠按钮icon垂直居中优化 */
+.app-titlebar-center .ant-btn-icon {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.app-titlebar-center .ant-btn-icon img {
+  display: block;
+}
 /* 编辑器内部tab组件容器（用于 TipTap 父级） */
 .editor-inner-tab-container {
   background: #fff;
@@ -85,7 +94,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding: 0 8px;
 }
 
@@ -107,7 +116,7 @@
 .app-titlebar-left {
   width: 80px;
   min-width: 60px;
-  max-width: 120px;
+  max-width: 60px;
   height: 100%;
   background: transparent;
   -webkit-app-region: drag;

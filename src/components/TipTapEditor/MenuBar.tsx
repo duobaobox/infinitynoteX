@@ -144,6 +144,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           onMouseDown={(e) => {
             // 防止按钮点击导致编辑器失焦
             e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
           }}
         >
           {icon ? <i className={icon} /> : null}

@@ -22,6 +22,8 @@ declare global {
 function App() {
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
   const [showSidebar, setShowSidebar] = useState(true); /* 侧边栏显示状态 */
+  const [lastTitlebarClickTime, setLastTitlebarClickTime] =
+    useState(0); /* 用于防止快速点击触发窗口最大化 */
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(
@@ -29,9 +31,19 @@ function App() {
     []
   );
 
-  // 处理双击标题栏最大化
-  const handleDragAreaDoubleClick = () => {
-    window.electronAPI?.maximize();
+  // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发
+  const handleDragAreaDoubleClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    // 检查是否是真正的用户双击（而不是快速的两次单击）
+    if (now - lastTitlebarClickTime < 300) {
+      // 这可能是快速点击而非双击，忽略
+      return;
+    }
+    setLastTitlebarClickTime(now);
+    // 仅在titlebar空白区域双击时触发最大化
+    if (e.target === e.currentTarget) {
+      window.electronAPI?.maximize();
+    }
   };
 
   return (
@@ -82,7 +94,10 @@ function App() {
                 style={{ width: 18, height: 18 }}
               />
             }
-            onClick={() => setShowSidebar(!showSidebar)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSidebar(!showSidebar);
+            }}
             style={{ padding: 0 }}
             title="切换侧边栏"
           />
@@ -95,7 +110,10 @@ function App() {
                 style={{ width: 18, height: 18, transform: "scaleX(-1)" }}
               />
             }
-            onClick={() => setShowEditor(!showEditor)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowEditor(!showEditor);
+            }}
             style={{ padding: 0 }}
             title="切换编辑器"
           />

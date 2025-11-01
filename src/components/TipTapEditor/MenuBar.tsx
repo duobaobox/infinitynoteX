@@ -42,6 +42,13 @@ const ToolbarDivider: React.FC = () => {
  * 参考 TipTap 官方 MenuBar 示例
  */
 export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
+  // 关闭所有 antd Dropdown 菜单
+  const closeAllDropdown = () => {
+    // 触发全局 mousedown，关闭所有 Dropdown
+    document.body.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true })
+    );
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 用于强制刷新，以响应选区/内容变化，确保折叠触发器与菜单项实时更新
   const [refresh, setRefresh] = useState(0);
@@ -473,55 +480,55 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
         ),
       },
-      // 表头操作
-      {
-        key: "toggle-header-row",
-        node: (
-          <MenuItemRow
-            icon="ri-layout-top-2-line"
-            text="切换表头行"
-            active={
-              editor.isActive("table") &&
-              editor.can().chain().focus().toggleHeaderRow().run()
-            }
-            disabled={!editor.can().chain().focus().toggleHeaderRow().run()}
-            onClick={() => editor.commands.toggleHeaderRow()}
-          />
-        ),
-      },
-      {
-        key: "toggle-header-column",
-        node: (
-          <MenuItemRow
-            icon="ri-layout-left-2-line"
-            text="切换表头列"
-            active={
-              editor.isActive("table") &&
-              editor.can().chain().focus().toggleHeaderColumn().run()
-            }
-            disabled={!editor.can().chain().focus().toggleHeaderColumn().run()}
-            onClick={() => editor.commands.toggleHeaderColumn()}
-          />
-        ),
-      },
-      {
-        key: "toggle-header-cell",
-        node: (
-          <MenuItemRow
-            icon="ri-table-alt-line"
-            text="切换表头单元格"
-            disabled={!editor.can().chain().focus().toggleHeaderCell().run()}
-            onClick={() => editor.commands.toggleHeaderCell()}
-          />
-        ),
-      },
+      // （已屏蔽）表头操作相关按钮
+      // {
+      //   key: "toggle-header-row",
+      //   node: (
+      //     <MenuItemRow
+      //       icon="ri-layout-top-2-line"
+      //       text="切换表头行"
+      //       active={
+      //         editor.isActive("table") &&
+      //         editor.can().chain().focus().toggleHeaderRow().run()
+      //       }
+      //       disabled={!editor.can().chain().focus().toggleHeaderRow().run()}
+      //       onClick={() => editor.commands.toggleHeaderRow()}
+      //     />
+      //   ),
+      // },
+      // {
+      //   key: "toggle-header-column",
+      //   node: (
+      //     <MenuItemRow
+      //       icon="ri-layout-left-2-line"
+      //       text="切换表头列"
+      //       active={
+      //         editor.isActive("table") &&
+      //         editor.can().chain().focus().toggleHeaderColumn().run()
+      //       }
+      //       disabled={!editor.can().chain().focus().toggleHeaderColumn().run()}
+      //       onClick={() => editor.commands.toggleHeaderColumn()}
+      //     />
+      //   ),
+      // },
+      // {
+      //   key: "toggle-header-cell",
+      //   node: (
+      //     <MenuItemRow
+      //       icon="ri-table-alt-line"
+      //       text="切换表头单元格"
+      //       disabled={!editor.can().chain().focus().toggleHeaderCell().run()}
+      //       onClick={() => editor.commands.toggleHeaderCell()}
+      //     />
+      //   ),
+      // },
       // 分隔符
-      {
-        key: "divider-5",
-        node: (
-          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
-        ),
-      },
+      // {
+      //   key: "divider-5",
+      //   node: (
+      //     <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+      //   ),
+      // },
       // 删除表格
       {
         key: "delete-table",
@@ -541,6 +548,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     <div
       className="tiptap-toolbar"
       onWheel={(e) => {
+        // 工具栏滚动时自动关闭所有 Dropdown
+        closeAllDropdown();
         // 将垂直滚动转换为水平滚动
         const target = e.currentTarget;
         const delta =

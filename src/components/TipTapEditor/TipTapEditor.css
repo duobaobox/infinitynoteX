@@ -1,40 +1,10 @@
-/* Tiptap 任务列表 TaskList 官方推荐样式 */
-ul[data-type="taskList"] {
-  list-style: none;
-  margin-left: 0;
-  padding: 0;
-  margin: 1.25rem 1rem 1.25rem 0;
-}
-ul[data-type="taskList"] li {
-  align-items: flex-start;
-  display: flex;
-}
-ul[data-type="taskList"] li > label {
-  flex: 0 0 auto;
-  margin-right: 0.5rem;
-  user-select: none;
-  padding-top: 0.35em;
-}
-ul[data-type="taskList"] li > div {
-  flex: 1 1 auto;
-}
-ul[data-type="taskList"] input[type="checkbox"] {
-  cursor: pointer;
-}
-ul[data-type="taskList"] ul[data-type="taskList"] {
-  margin: 0;
-  padding-left: 0.1rem;
-}
-ul[data-type="taskList"] li p {
-  margin-top: 0.25em;
-  margin-bottom: 0.25em;
-  line-height: 1.5;
-}
-ul[data-type="taskList"] li[data-checked="true"] > div {
-  text-decoration: line-through;
-  opacity: 0.6;
-  color: #6a737d;
-}
+/**
+ * TipTap Editor 样式
+ * 按照官方规范和 ProseMirror 最佳实践编写
+ */
+
+/* ==================== 容器样式 ==================== */
+
 .tiptap-container {
   display: flex;
   flex-direction: column;
@@ -44,14 +14,17 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   border-radius: 8px;
 }
 
+/* ==================== 工具栏样式 ==================== */
+
 .tiptap-toolbar {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 1px;
+  padding: 6px 8px;
   margin: 0 8px;
   border-bottom: 1px solid #f0f0f0;
   background: transparent;
+
   /* 单行横排 + 横向滚动 */
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -60,17 +33,19 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 隐藏工具栏滚动条（不影响滚动） */
-.tiptap-container .tiptap-toolbar::-webkit-scrollbar {
+/* 隐藏工具栏滚动条 */
+.tiptap-toolbar::-webkit-scrollbar {
   height: 0 !important;
   width: 0 !important;
   display: none !important;
 }
-.tiptap-container .tiptap-toolbar {
+
+.tiptap-toolbar {
   scrollbar-width: none !important;
   -ms-overflow-style: none;
 }
 
+/* 工具栏按钮 */
 .tiptap-toolbar button {
   padding: 4px 8px;
   border: none;
@@ -86,6 +61,7 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   min-width: 28px;
   height: 28px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .tiptap-toolbar button:hover:not(:disabled) {
@@ -108,7 +84,10 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   height: 18px;
   background: #f0f0f0;
   margin: 0 4px;
+  flex-shrink: 0;
 }
+
+/* ==================== 编辑器区域 ==================== */
 
 .tiptap-editor-wrapper {
   flex: 1;
@@ -118,17 +97,20 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   border-radius: 0 0 6px 6px;
 }
 
-/* TipTap 编辑器样式 */
+/* ==================== ProseMirror 编辑器样式 ==================== */
+
 .tiptap-editor {
   outline: none;
   min-height: 200px;
 }
 
+/* 段落 */
 .tiptap-editor p {
   margin: 0.5em 0;
   line-height: 1.5;
 }
 
+/* 标题 */
 .tiptap-editor h1,
 .tiptap-editor h2,
 .tiptap-editor h3,
@@ -143,18 +125,26 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
 .tiptap-editor h1 {
   font-size: 2em;
 }
-
 .tiptap-editor h2 {
   font-size: 1.5em;
 }
-
 .tiptap-editor h3 {
   font-size: 1.25em;
 }
+.tiptap-editor h4 {
+  font-size: 1.1em;
+}
+.tiptap-editor h5 {
+  font-size: 1em;
+}
+.tiptap-editor h6 {
+  font-size: 0.9em;
+}
 
+/* 列表 */
 .tiptap-editor ul,
 .tiptap-editor ol {
-  padding-left: 1em;
+  padding-left: 1.5em;
   margin: 0.5em 0;
 }
 
@@ -162,30 +152,39 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   margin: 0.25em 0;
 }
 
+.tiptap-editor li p {
+  margin: 0.25em 0;
+}
+
+/* 行内代码 */
 .tiptap-editor code {
   background: #f5f5f5;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", Consolas, monospace;
   font-size: 0.9em;
+  color: #d63384;
 }
 
+/* 代码块 */
 .tiptap-editor pre {
   background: #f5f5f5;
   padding: 12px;
   border-radius: 4px;
-  overflow-x: visible;
+  overflow-x: auto;
   margin: 0.5em 0;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 .tiptap-editor pre code {
   background: transparent;
   padding: 0;
   font-size: 0.85em;
+  color: inherit;
+  white-space: pre;
+  display: block;
 }
 
+/* 引用 */
 .tiptap-editor blockquote {
   border-left: 3px solid #1890ff;
   padding-left: 12px;
@@ -194,12 +193,14 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   font-style: italic;
 }
 
+/* 分割线 */
 .tiptap-editor hr {
   border: none;
   border-top: 2px solid #e8e8e8;
   margin: 1em 0;
 }
 
+/* 文本样式 */
 .tiptap-editor strong {
   font-weight: 600;
 }
@@ -212,15 +213,127 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   text-decoration: line-through;
 }
 
-/* 光标样式 */
-.tiptap-editor:focus {
-  outline: none;
+.tiptap-editor u,
+.tiptap-editor .underline {
+  text-decoration: underline;
 }
 
-.tiptap-editor .is-editor-empty:first-child::before {
+/* 图片 */
+.tiptap-editor img,
+.tiptap-editor .editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5em 0;
+}
+
+/* 文本对齐 */
+.tiptap-editor [style*="text-align: left"] {
+  text-align: left;
+}
+
+.tiptap-editor [style*="text-align: center"] {
+  text-align: center;
+}
+
+.tiptap-editor [style*="text-align: right"] {
+  text-align: right;
+}
+
+.tiptap-editor [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* ==================== 任务列表样式（官方推荐） ==================== */
+
+/* 任务列表容器 */
+ul[data-type="taskList"] {
+  list-style: none;
+  margin: 1.25rem 0;
+  padding: 0;
+}
+
+/* 任务列表项 */
+ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* 任务列表 checkbox 标签 */
+ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+  padding-top: 0.35em;
+}
+
+/* 任务列表内容 */
+ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+
+/* 任务列表 checkbox */
+ul[data-type="taskList"] input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* 嵌套任务列表 */
+ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin: 0;
+  padding-left: 8px;
+}
+
+/* 任务列表段落 */
+ul[data-type="taskList"] li p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  line-height: 1.5;
+}
+
+/* 已完成任务样式 */
+ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through;
+  opacity: 0.6;
+  color: #6a737d;
+}
+
+/* ==================== Placeholder 样式 ==================== */
+
+.tiptap-editor.is-editor-empty::before {
   color: #adb5bd;
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+/* ==================== 选中样式 ==================== */
+
+.tiptap-editor ::selection {
+  background-color: rgba(24, 144, 255, 0.2);
+}
+
+/* ==================== 焦点样式 ==================== */
+
+.tiptap-editor:focus {
+  outline: none;
+}
+
+/* ==================== 响应式优化 ==================== */
+
+@media (max-width: 768px) {
+  .tiptap-toolbar {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+
+  .tiptap-toolbar button {
+    min-width: 24px;
+    height: 24px;
+    padding: 2px 6px;
+  }
+
+  .tiptap-editor-wrapper {
+    padding: 8px 12px;
+  }
 }

@@ -141,6 +141,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           type="button"
           title={label}
           className={active ? "is-active" : ""}
+          onMouseDown={(e) => {
+            // 防止按钮点击导致编辑器失焦
+            e.preventDefault();
+          }}
         >
           {icon ? <i className={icon} /> : null}
           <i className="ri-arrow-down-s-line" style={{ marginLeft: 4 }} />

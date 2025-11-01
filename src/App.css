@@ -264,6 +264,11 @@
   /* flex 默认不设置，高度由内容决定 */
 }
 
+/* 仅用于Sidebar底部设置按钮的flex-vertical-auto容器，去除上内边距 */
+.sidebar > .flex-vertical-auto:last-child {
+  padding-top: 0px;
+}
+
 /* 可滚动内容容器，适合放同类元素，支持上下滚动 */
 .scrollable-list {
   flex: 1;

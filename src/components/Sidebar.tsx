@@ -4,6 +4,7 @@ import {
   AppstoreOutlined,
   ToolOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 
 const Sidebar: React.FC = () => {
@@ -104,12 +105,20 @@ const Sidebar: React.FC = () => {
               { key: "folder8", label: "文件夹8" },
               { key: "folder9", label: "文件夹9" },
               { key: "folder10", label: "文件夹10" },
-              
-              
             ]}
             defaultSelectedKeys={["folder1"]}
           />
         </div>
+      </div>
+      <div className="flex-vertical-auto">
+        <Button
+          type="text"
+          block
+          icon={<SettingOutlined />}
+          style={{ justifyContent: "flex-start" }}
+        >
+          设置
+        </Button>
       </div>
     </div>
   );

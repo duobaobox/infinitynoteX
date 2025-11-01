@@ -93,6 +93,16 @@
   }
 }
 
+/* ==================== 表格模式样式 ==================== */
+
+.bubble-menu.table-mode {
+  max-width: 300px;
+}
+
+.bubble-menu.table-mode .bubble-menu-button {
+  min-width: 32px;
+}
+
 /* ==================== 暗色模式支持 ==================== */
 
 @media (prefers-color-scheme: dark) {

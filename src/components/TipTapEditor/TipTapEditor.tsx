@@ -11,6 +11,7 @@ import { MenuBar } from "./MenuBar";
 import { getExtensions } from "./extensions";
 import type { TipTapEditorProps } from "./types";
 import "./TipTapEditor.css";
+import "./table.css";
 
 /**
  * TipTap 编辑器组件

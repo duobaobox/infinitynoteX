@@ -10,6 +10,7 @@ import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
+import { TableKit } from "@tiptap/extension-table";
 
 /**
  * 获取编辑器扩展配置
@@ -63,6 +64,44 @@ export const getExtensions = (placeholder?: string) => {
     Underline.configure({
       HTMLAttributes: {
         class: "underline",
+      },
+    }),
+
+    // 表格扩展（使用官方推荐的 TableKit）
+    // @see https://tiptap.dev/docs/editor/extensions/nodes/table
+    TableKit.configure({
+      table: {
+        // 启用列宽调整
+        resizable: true,
+        // 调整手柄宽度（像素）
+        handleWidth: 5,
+        // 单元格最小宽度（像素）
+        cellMinWidth: 50,
+        // 允许调整最后一列宽度
+        lastColumnResizable: true,
+        // 是否允许选择整个表格节点
+        allowTableNodeSelection: true,
+        // 在不可编辑时也渲染包装器div，保持布局一致性
+        renderWrapper: true,
+        // 表格HTML属性
+        HTMLAttributes: {
+          class: "tiptap-table",
+        },
+      },
+      tableCell: {
+        HTMLAttributes: {
+          class: "tiptap-table-cell",
+        },
+      },
+      tableHeader: {
+        HTMLAttributes: {
+          class: "tiptap-table-header",
+        },
+      },
+      tableRow: {
+        HTMLAttributes: {
+          class: "tiptap-table-row",
+        },
       },
     }),
   ];

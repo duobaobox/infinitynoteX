@@ -278,6 +278,16 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     return { icon: "ri-align-justify", title: "对齐", active: false } as const;
   }, [editor, refresh]);
 
+  // 表格触发器状态计算
+  const tableTrigger = useMemo(() => {
+    const isInTable = editor.isActive("table");
+    return {
+      icon: "ri-table-2",
+      title: "表格",
+      active: isInTable,
+    } as const;
+  }, [editor, refresh]);
+
   // ========== 分组菜单：对齐 ==========
   const alignItems = useMemo(() => {
     const entries: Array<{
@@ -315,7 +325,209 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     }));
   }, [editor, refresh]);
 
-  // （无）
+  // ========== 分组菜单：表格 ==========
+  const tableItems = useMemo(() => {
+    return [
+      // 插入表格
+      {
+        key: "insert-table",
+        node: (
+          <MenuItemRow
+            icon="ri-table-2"
+            text="插入表格 (3×3)"
+            disabled={!editor.can().chain().focus().insertTable().run()}
+            onClick={() =>
+              editor.commands.insertTable({
+                rows: 3,
+                cols: 3,
+                withHeaderRow: true,
+              })
+            }
+          />
+        ),
+      },
+      // 分隔符（使用antd的menu divider）
+      {
+        key: "divider-1",
+        node: (
+          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+        ),
+      },
+      // 行操作
+      {
+        key: "add-row-before",
+        node: (
+          <MenuItemRow
+            icon="ri-insert-row-top"
+            text="在上方插入行"
+            disabled={!editor.can().chain().focus().addRowBefore().run()}
+            onClick={() => editor.commands.addRowBefore()}
+          />
+        ),
+      },
+      {
+        key: "add-row-after",
+        node: (
+          <MenuItemRow
+            icon="ri-insert-row-bottom"
+            text="在下方插入行"
+            disabled={!editor.can().chain().focus().addRowAfter().run()}
+            onClick={() => editor.commands.addRowAfter()}
+          />
+        ),
+      },
+      {
+        key: "delete-row",
+        node: (
+          <MenuItemRow
+            icon="ri-delete-row"
+            text="删除当前行"
+            disabled={!editor.can().chain().focus().deleteRow().run()}
+            onClick={() => editor.commands.deleteRow()}
+          />
+        ),
+      },
+      // 分隔符
+      {
+        key: "divider-2",
+        node: (
+          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+        ),
+      },
+      // 列操作
+      {
+        key: "add-column-before",
+        node: (
+          <MenuItemRow
+            icon="ri-insert-column-left"
+            text="在左侧插入列"
+            disabled={!editor.can().chain().focus().addColumnBefore().run()}
+            onClick={() => editor.commands.addColumnBefore()}
+          />
+        ),
+      },
+      {
+        key: "add-column-after",
+        node: (
+          <MenuItemRow
+            icon="ri-insert-column-right"
+            text="在右侧插入列"
+            disabled={!editor.can().chain().focus().addColumnAfter().run()}
+            onClick={() => editor.commands.addColumnAfter()}
+          />
+        ),
+      },
+      {
+        key: "delete-column",
+        node: (
+          <MenuItemRow
+            icon="ri-delete-column"
+            text="删除当前列"
+            disabled={!editor.can().chain().focus().deleteColumn().run()}
+            onClick={() => editor.commands.deleteColumn()}
+          />
+        ),
+      },
+      // 分隔符
+      {
+        key: "divider-3",
+        node: (
+          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+        ),
+      },
+      // 单元格操作
+      {
+        key: "merge-cells",
+        node: (
+          <MenuItemRow
+            icon="ri-merge-cells-horizontal"
+            text="合并单元格"
+            disabled={!editor.can().chain().focus().mergeCells().run()}
+            onClick={() => editor.commands.mergeCells()}
+          />
+        ),
+      },
+      {
+        key: "split-cell",
+        node: (
+          <MenuItemRow
+            icon="ri-split-cells-horizontal"
+            text="拆分单元格"
+            disabled={!editor.can().chain().focus().splitCell().run()}
+            onClick={() => editor.commands.splitCell()}
+          />
+        ),
+      },
+      // 分隔符
+      {
+        key: "divider-4",
+        node: (
+          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+        ),
+      },
+      // 表头操作
+      {
+        key: "toggle-header-row",
+        node: (
+          <MenuItemRow
+            icon="ri-layout-top-2-line"
+            text="切换表头行"
+            active={
+              editor.isActive("table") &&
+              editor.can().chain().focus().toggleHeaderRow().run()
+            }
+            disabled={!editor.can().chain().focus().toggleHeaderRow().run()}
+            onClick={() => editor.commands.toggleHeaderRow()}
+          />
+        ),
+      },
+      {
+        key: "toggle-header-column",
+        node: (
+          <MenuItemRow
+            icon="ri-layout-left-2-line"
+            text="切换表头列"
+            active={
+              editor.isActive("table") &&
+              editor.can().chain().focus().toggleHeaderColumn().run()
+            }
+            disabled={!editor.can().chain().focus().toggleHeaderColumn().run()}
+            onClick={() => editor.commands.toggleHeaderColumn()}
+          />
+        ),
+      },
+      {
+        key: "toggle-header-cell",
+        node: (
+          <MenuItemRow
+            icon="ri-table-alt-line"
+            text="切换表头单元格"
+            disabled={!editor.can().chain().focus().toggleHeaderCell().run()}
+            onClick={() => editor.commands.toggleHeaderCell()}
+          />
+        ),
+      },
+      // 分隔符
+      {
+        key: "divider-5",
+        node: (
+          <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
+        ),
+      },
+      // 删除表格
+      {
+        key: "delete-table",
+        node: (
+          <MenuItemRow
+            icon="ri-delete-bin-line"
+            text="删除整个表格"
+            disabled={!editor.can().chain().focus().deleteTable().run()}
+            onClick={() => editor.commands.deleteTable()}
+          />
+        ),
+      },
+    ];
+  }, [editor, refresh]);
 
   return (
     <div
@@ -400,7 +612,15 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
       <ToolbarDivider />
 
-      {/* 插入类 常驻 */}
+      {/* 分组：表格操作 */}
+      <GroupDropdown
+        label={tableTrigger.title}
+        icon={tableTrigger.icon}
+        active={tableTrigger.active}
+        items={tableItems}
+      />
+
+      <ToolbarDivider />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive("codeBlock")}

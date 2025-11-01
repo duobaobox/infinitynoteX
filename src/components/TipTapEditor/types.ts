@@ -20,6 +20,10 @@ export interface TipTapEditorProps {
   className?: string;
   /** 是否显示工具栏 */
   showMenuBar?: boolean;
+  /** 笔记标题 */
+  title?: string;
+  /** 标题变化回调 */
+  onTitleChange?: (title: string) => void;
 }
 
 export interface MenuBarProps {

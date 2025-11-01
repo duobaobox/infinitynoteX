@@ -10,6 +10,7 @@ import {
 import { TipTapEditor } from "./TipTapEditor";
 
 const EditorPanel: React.FC = () => {
+  const [noteTitle, setNoteTitle] = useState<string>("");
   const [editorContent, setEditorContent] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string | number>("edit");
 
@@ -51,6 +52,7 @@ const EditorPanel: React.FC = () => {
   return (
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">
+        {/* 标签栏 */}
         <div style={{ display: "inline-block" }}>
           <Segmented
             options={segmentOptions}
@@ -58,11 +60,13 @@ const EditorPanel: React.FC = () => {
             onChange={setActiveTab}
           />
         </div>
-  <div className="editor-inner-tab-container">
+        <div className="editor-inner-tab-container">
           {activeTab === "edit" && (
             <TipTapEditor
               initialContent={editorContent}
               onContentChange={setEditorContent}
+              title={noteTitle}
+              onTitleChange={setNoteTitle}
             />
           )}
           {activeTab === "tools" && (

@@ -7,6 +7,7 @@
 
 import React, { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { Input } from "antd";
 import { MenuBar } from "./MenuBar";
 import { BubbleMenu } from "./BubbleMenu";
 import { getExtensions } from "./extensions";
@@ -31,6 +32,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   autofocus = false,
   className = "",
   showMenuBar = true,
+  title = "",
+  onTitleChange,
 }) => {
   // 使用 useEditor Hook 创建编辑器实例
   const editor = useEditor({
@@ -64,6 +67,17 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   return (
     <div className="tiptap-container">
+      {/* 标题输入框 - 放在最上面 */}
+      <div className="editor-title-input">
+        <Input
+          placeholder="输入笔记标题..."
+          value={title}
+          onChange={(e) => onTitleChange?.(e.target.value)}
+          size="large"
+          bordered={false}
+        />
+      </div>
+
       {/* 可选的菜单栏 */}
       {showMenuBar && <MenuBar editor={editor} />}
 

@@ -7,7 +7,42 @@
 .app-titlebar-center .ant-btn-icon img {
   display: block;
 }
-/* 编辑器内部tab组件容器（用于 TipTap 父级） */
+/* 编辑器标题输入框样式 */
+.editor-title-input {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 4px 10px;
+  background: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.editor-title-input:hover {
+  border-bottom-color: #d9d9d9;
+}
+
+.editor-title-input:focus-within {
+  border-bottom-color: #1890ff;
+}
+
+.editor-title-input .ant-input {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 4px 0;
+  border: none;
+  box-shadow: none;
+  height: auto;
+}
+
+.editor-title-input .ant-input:focus {
+  box-shadow: none;
+  border: none;
+}
+
+.editor-title-input .ant-input::placeholder {
+  color: #bfbfbf;
+}
+
+/* 编辑内部tab组件容器（用于 TipTap 父级） */
 .editor-inner-tab-container {
   background: #fff;
   border-radius: 8px;

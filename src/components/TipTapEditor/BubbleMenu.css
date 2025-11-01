@@ -1,0 +1,122 @@
+/**
+ * TipTap 气泡菜单样式
+ * 选中文本时浮动显示的上下文菜单
+ */
+
+/* ==================== 气泡菜单容器 ==================== */
+
+.bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #f0f0f0;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==================== 气泡菜单按钮 ==================== */
+
+.bubble-menu-button {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.65);
+  min-width: 28px;
+  height: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.bubble-menu-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.bubble-menu-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bubble-menu-button.is-active {
+  background: rgba(24, 144, 255, 0.15);
+  color: #1890ff;
+}
+
+.bubble-menu-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+/* ==================== 气泡菜单分隔符 ==================== */
+
+.bubble-menu-divider {
+  width: 1px;
+  height: 18px;
+  background: #f0f0f0;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ==================== 响应式优化 ==================== */
+
+@media (max-width: 768px) {
+  .bubble-menu {
+    gap: 2px;
+    padding: 4px 6px;
+  }
+
+  .bubble-menu-button {
+    min-width: 24px;
+    height: 24px;
+    padding: 2px 6px;
+  }
+}
+
+/* ==================== 暗色模式支持 ==================== */
+
+@media (prefers-color-scheme: dark) {
+  .bubble-menu {
+    background: #1f1f1f;
+    border-color: #303030;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .bubble-menu-button {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .bubble-menu-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .bubble-menu-button.is-active {
+    background: rgba(24, 144, 255, 0.25);
+    color: #40a9ff;
+  }
+
+  .bubble-menu-divider {
+    background: #303030;
+  }
+}

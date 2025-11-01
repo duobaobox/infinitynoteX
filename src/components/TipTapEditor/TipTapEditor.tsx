@@ -8,6 +8,7 @@
 import React, { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { MenuBar } from "./MenuBar";
+import { BubbleMenu } from "./BubbleMenu";
 import { getExtensions } from "./extensions";
 import type { TipTapEditorProps } from "./types";
 import "./TipTapEditor.css";
@@ -65,6 +66,9 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     <div className="tiptap-container">
       {/* 可选的菜单栏 */}
       {showMenuBar && <MenuBar editor={editor} />}
+
+      {/* 气泡菜单 - 选中文本时浮动显示 */}
+      <BubbleMenu editor={editor} />
 
       {/* 编辑器内容区域 */}
       <div className="tiptap-editor-wrapper">

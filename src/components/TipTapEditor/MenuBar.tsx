@@ -3,7 +3,8 @@
  * 按照官方 Demo 规范，将工具栏独立为单独组件
  */
 
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Dropdown } from "antd";
 import type { MenuBarProps } from "./types";
 
 /**
@@ -42,6 +43,8 @@ const ToolbarDivider: React.FC = () => {
  */
 export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 用于强制刷新，以响应选区/内容变化，确保折叠触发器与菜单项实时更新
+  const [refresh, setRefresh] = useState(0);
 
   if (!editor) {
     return null;
@@ -65,6 +68,255 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     e.target.value = "";
   };
 
+  // 监听编辑器事件以触发重渲染
+  useEffect(() => {
+    if (!editor) return;
+    const update = () => setRefresh((x) => x + 1);
+    editor.on("selectionUpdate", update);
+    editor.on("transaction", update);
+    editor.on("update", update);
+    return () => {
+      editor.off("selectionUpdate", update);
+      editor.off("transaction", update);
+      editor.off("update", update);
+    };
+  }, [editor]);
+
+  /**
+   * 下拉菜单单项行（用于 antd Dropdown 渲染）
+   */
+  const MenuItemRow: React.FC<{
+    icon?: string;
+    text: string;
+    active?: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+  }> = ({ icon, text, active, disabled, onClick }) => {
+    return (
+      <div
+        onMouseDown={(e) => {
+          // 提前触发以避免编辑器失焦
+          e.preventDefault();
+          if (!disabled) onClick();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          opacity: disabled ? 0.45 : 1,
+          color: active ? "#1890ff" : undefined,
+        }}
+      >
+        {icon ? <i className={icon} /> : null}
+        <span style={{ flex: 1 }}>{text}</span>
+        {active ? <i className="ri-check-line" /> : null}
+      </div>
+    );
+  };
+
+  /**
+   * 组合分组下拉触发按钮（沿用工具栏按钮视觉）
+   */
+  const GroupDropdown: React.FC<{
+    label: string;
+    icon?: string;
+    active?: boolean;
+    items: { key: string; node: React.ReactNode; disabled?: boolean }[];
+  }> = ({ label, icon, active, items }) => {
+    return (
+      <Dropdown
+        trigger={["click"]}
+        menu={{
+          items: items.map((it) => ({
+            key: it.key,
+            label: it.node,
+            disabled: it.disabled,
+          })),
+        }}
+      >
+        <button
+          type="button"
+          title={label}
+          className={active ? "is-active" : ""}
+        >
+          {icon ? <i className={icon} /> : null}
+          <i className="ri-arrow-down-s-line" style={{ marginLeft: 4 }} />
+        </button>
+      </Dropdown>
+    );
+  };
+
+  // 仅保留：标题、列表、对齐 采用下拉；其他按钮常驻
+
+  // ========== 分组菜单：标题 ==========
+  const headingItems = useMemo(() => {
+    return [1, 2, 3].map((lv) => ({
+      key: `h${lv}`,
+      node: (
+        <MenuItemRow
+          icon={`ri-h-${lv}`}
+          text={`标题 ${lv}`}
+          active={editor.isActive("heading", { level: lv })}
+          disabled={
+            !editor
+              .can()
+              .chain()
+              .focus()
+              .toggleHeading({ level: lv as 1 | 2 | 3 })
+              .run()
+          }
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .toggleHeading({ level: lv as 1 | 2 | 3 })
+              .run()
+          }
+        />
+      ),
+    }));
+  }, [editor, refresh]);
+
+  // ========== 分组菜单：列表 ==========
+  const listItems = useMemo(() => {
+    return [
+      {
+        key: "bullet",
+        node: (
+          <MenuItemRow
+            icon="ri-list-unordered"
+            text="无序列表"
+            active={editor.isActive("bulletList")}
+            disabled={!editor.can().chain().focus().toggleBulletList().run()}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+          />
+        ),
+      },
+      {
+        key: "ordered",
+        node: (
+          <MenuItemRow
+            icon="ri-list-ordered"
+            text="有序列表"
+            active={editor.isActive("orderedList")}
+            disabled={!editor.can().chain().focus().toggleOrderedList().run()}
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          />
+        ),
+      },
+      {
+        key: "task",
+        node: (
+          <MenuItemRow
+            icon="ri-checkbox-line"
+            text="任务列表"
+            active={editor.isActive("taskList")}
+            disabled={!editor.can().chain().focus().toggleTaskList().run()}
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+          />
+        ),
+      },
+    ];
+  }, [editor, refresh]);
+
+  // ========== 分组触发器：标题 / 列表 / 对齐 的动态图标与激活态 ==========
+  const headingTrigger = useMemo(() => {
+    const states = [1, 2, 3].map((lv) =>
+      editor.isActive("heading", { level: lv })
+    );
+    if (states[0])
+      return { icon: "ri-h-1", title: "标题 1", active: true } as const;
+    if (states[1])
+      return { icon: "ri-h-2", title: "标题 2", active: true } as const;
+    if (states[2])
+      return { icon: "ri-h-3", title: "标题 3", active: true } as const;
+    return { icon: "ri-heading", title: "标题", active: false } as const;
+  }, [editor, refresh]);
+
+  const listTrigger = useMemo(() => {
+    if (editor.isActive("bulletList"))
+      return {
+        icon: "ri-list-unordered",
+        title: "无序列表",
+        active: true,
+      } as const;
+    if (editor.isActive("orderedList"))
+      return {
+        icon: "ri-list-ordered",
+        title: "有序列表",
+        active: true,
+      } as const;
+    if (editor.isActive("taskList"))
+      return {
+        icon: "ri-checkbox-line",
+        title: "任务列表",
+        active: true,
+      } as const;
+    return { icon: "ri-list-check", title: "列表", active: false } as const;
+  }, [editor, refresh]);
+
+  const alignTrigger = useMemo(() => {
+    if (editor.isActive({ textAlign: "left" }))
+      return { icon: "ri-align-left", title: "左对齐", active: true } as const;
+    if (editor.isActive({ textAlign: "center" }))
+      return {
+        icon: "ri-align-center",
+        title: "居中对齐",
+        active: true,
+      } as const;
+    if (editor.isActive({ textAlign: "right" }))
+      return { icon: "ri-align-right", title: "右对齐", active: true } as const;
+    if (editor.isActive({ textAlign: "justify" }))
+      return {
+        icon: "ri-align-justify",
+        title: "两端对齐",
+        active: true,
+      } as const;
+    return { icon: "ri-align-justify", title: "对齐", active: false } as const;
+  }, [editor, refresh]);
+
+  // ========== 分组菜单：对齐 ==========
+  const alignItems = useMemo(() => {
+    const entries: Array<{
+      key: string;
+      label: string;
+      value: "left" | "center" | "right" | "justify";
+      icon: string;
+    }> = [
+      { key: "left", label: "左对齐", value: "left", icon: "ri-align-left" },
+      {
+        key: "center",
+        label: "居中对齐",
+        value: "center",
+        icon: "ri-align-center",
+      },
+      { key: "right", label: "右对齐", value: "right", icon: "ri-align-right" },
+      {
+        key: "justify",
+        label: "两端对齐",
+        value: "justify",
+        icon: "ri-align-justify",
+      },
+    ];
+    return entries.map((it) => ({
+      key: it.key,
+      node: (
+        <MenuItemRow
+          icon={it.icon}
+          text={it.label}
+          active={editor.isActive({ textAlign: it.value })}
+          disabled={!editor.can().chain().focus().setTextAlign(it.value).run()}
+          onClick={() => editor.chain().focus().setTextAlign(it.value).run()}
+        />
+      ),
+    }));
+  }, [editor, refresh]);
+
+  // （无）
+
   return (
     <div
       className="tiptap-toolbar"
@@ -79,7 +331,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         }
       }}
     >
-      {/* 文本格式 */}
+      {/* 文本格式 常驻 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         disabled={!editor.can().chain().focus().toggleBold().run()}
@@ -118,88 +370,48 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
       <ToolbarDivider />
 
-      {/* 标题 */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        isActive={editor.isActive("heading", { level: 1 })}
-        title="标题 1"
-        icon="ri-h-1"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive("heading", { level: 2 })}
-        title="标题 2"
-        icon="ri-h-2"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        isActive={editor.isActive("heading", { level: 3 })}
-        title="标题 3"
-        icon="ri-h-3"
+      {/* 分组：标题（动态） */}
+      <GroupDropdown
+        label={headingTrigger.title}
+        icon={headingTrigger.icon}
+        active={headingTrigger.active}
+        items={headingItems}
       />
 
       <ToolbarDivider />
 
-      {/* 列表 */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        isActive={editor.isActive("bulletList")}
-        title="无序列表"
-        icon="ri-list-unordered"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive("orderedList")}
-        title="有序列表"
-        icon="ri-list-ordered"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleTaskList().run()}
-        isActive={editor.isActive("taskList")}
-        title="任务列表"
-        icon="ri-checkbox-line"
+      {/* 分组：列表（动态） */}
+      <GroupDropdown
+        label={listTrigger.title}
+        icon={listTrigger.icon}
+        active={listTrigger.active}
+        items={listItems}
       />
 
       <ToolbarDivider />
 
-      {/* 对齐方式 */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        isActive={editor.isActive({ textAlign: "left" })}
-        title="左对齐"
-        icon="ri-align-left"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        isActive={editor.isActive({ textAlign: "center" })}
-        title="居中对齐"
-        icon="ri-align-center"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        isActive={editor.isActive({ textAlign: "right" })}
-        title="右对齐"
-        icon="ri-align-right"
-      />
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-        isActive={editor.isActive({ textAlign: "justify" })}
-        title="两端对齐"
-        icon="ri-align-justify"
+      {/* 分组：对齐（动态） */}
+      <GroupDropdown
+        label={alignTrigger.title}
+        icon={alignTrigger.icon}
+        active={alignTrigger.active}
+        items={alignItems}
       />
 
       <ToolbarDivider />
 
-      {/* 代码块和引用 */}
+      {/* 插入类 常驻 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive("codeBlock")}
+        disabled={!editor.can().chain().focus().toggleCodeBlock().run()}
         title="代码块"
         icon="ri-code-s-slash-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive("blockquote")}
+        disabled={!editor.can().chain().focus().toggleBlockquote().run()}
         title="引用"
         icon="ri-double-quotes-l"
       />
@@ -208,15 +420,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         title="分割线"
         icon="ri-separator"
       />
-
-      <ToolbarDivider />
-
-      {/* 图片 */}
       <ToolbarButton
         onClick={() => fileInputRef.current?.click()}
         title="插入图片"
         icon="ri-image-line"
       />
+
+      {/* 隐藏的文件输入 */}
       <input
         ref={fileInputRef}
         type="file"

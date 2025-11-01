@@ -1,0 +1,97 @@
+/* 设置弹窗容器样式 */
+.settings-modal .ant-modal-body {
+  padding: 16px;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: row;
+  height: 400px;
+  gap: 0;
+}
+
+/* 设置弹窗左侧菜单栏 */
+.settings-sidebar {
+  width: 140px;
+  flex-shrink: 0;
+  border-right: 1px solid #f0f0f0;
+  overflow-y: auto;
+}
+
+.settings-menu {
+  border: none;
+  background: transparent;
+}
+
+.settings-menu .ant-menu-item {
+  padding-left: 12px !important;
+  height: 40px;
+  line-height: 40px;
+  font-size: 14px;
+}
+
+.settings-menu .ant-menu-item-selected {
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+/* 设置弹窗右侧内容区 */
+.settings-content {
+  flex: 1;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-panel h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-content p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.about-content p strong {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* 自定义滚动条 */
+.settings-sidebar::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.settings-sidebar::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.25);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.settings-sidebar:hover::-webkit-scrollbar-thumb,
+.settings-content:hover::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.45);
+}
+
+/* Firefox */
+.settings-sidebar,
+.settings-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
+}

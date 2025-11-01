@@ -6,11 +6,13 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
+import SettingsModal from "./SettingsModal";
 
 const Sidebar: React.FC = () => {
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // 检测滚动条是否出现
   useEffect(() => {
@@ -115,11 +117,16 @@ const Sidebar: React.FC = () => {
           type="text"
           block
           icon={<SettingOutlined />}
+          onClick={() => setIsSettingsOpen(true)}
           style={{ justifyContent: "flex-start" }}
         >
           设置
         </Button>
       </div>
+      <SettingsModal
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };

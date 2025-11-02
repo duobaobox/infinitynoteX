@@ -38,7 +38,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ title, content, onClick, actions, i
       onClick={onClick}
       style={{
         // 只改变边框色：选中或悬浮时用主题色，默认用浅灰
-        borderColor: isSelected || hovered ? themeColor : 'rgba(0,0,0,0.1)',
+        borderColor: isSelected || hovered ? themeColor : 'var(--border-color)',
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

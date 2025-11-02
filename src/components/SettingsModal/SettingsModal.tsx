@@ -5,6 +5,7 @@ import {
   Form,
   Input,
   Switch,
+  Segmented,
   Select,
   Divider,
   Button,
@@ -17,7 +18,13 @@ import {
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
 import './SettingsModal.css';
-import { getThemeColor, setThemeColor } from '../../theme/theme';
+import {
+  getThemeColor,
+  setThemeColor,
+  getThemeMode,
+  setThemeMode,
+  ThemeMode,
+} from '../../theme/theme';
 
 const { Text, Paragraph } = Typography;
 
@@ -34,6 +41,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>(getThemeColor());
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode());
 
   // 加载存储信息
   useEffect(() => {
@@ -57,7 +65,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const menuItems = [
     { key: 'general', label: '常规' },
     { key: 'appearance', label: '外观' },
-    { key: 'editor', label: '编辑器' },
     { key: 'shortcuts', label: '快捷键' },
     { key: 'data', label: '数据管理' },
     { key: 'about', label: '关于' },
@@ -137,13 +144,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                 </Space>
               </Form.Item>
               <Form.Item label="主题">
-                <Select
+                <Segmented
                   options={[
                     { label: '亮色', value: 'light' },
                     { label: '暗色', value: 'dark' },
-                    { label: '自动', value: 'auto' },
+                    { label: '自动（跟随系统）', value: 'auto' },
                   ]}
-                  defaultValue="light"
+                  value={themeMode}
+                  onChange={(v) => {
+                    const next = v as ThemeMode;
+                    setThemeModeState(next);
+                    setThemeMode(next);
+                    message.success('主题模式已更新');
+                  }}
+                  block
                 />
               </Form.Item>
               <Form.Item label="字体大小">
@@ -162,29 +176,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case 'editor':
-        return (
-          <div className="settings-panel">
-            <h3>编辑器设置</h3>
-            <Form layout="vertical">
-              <Form.Item label="制表符大小">
-                <Input type="number" defaultValue={2} />
-              </Form.Item>
-              <Form.Item label="使用空格代替制表符">
-                <Switch defaultChecked />
-              </Form.Item>
-              <Form.Item label="自动换行">
-                <Switch defaultChecked />
-              </Form.Item>
-              <Form.Item label="显示行号">
-                <Switch defaultChecked />
-              </Form.Item>
-              <Form.Item label="显示缩进线">
-                <Switch defaultChecked />
-              </Form.Item>
-            </Form>
-          </div>
-        );
+
       case 'shortcuts':
         return (
           <div className="settings-panel">

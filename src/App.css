@@ -9,9 +9,9 @@
 }
 /* 编辑器标题输入框样式 */
 .editor-title-input {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--toolbar-divider);
   padding: 4px 10px;
-  background: #fff;
+  background: var(--panel-bg);
   transition: border-color 0.3s ease;
 }
 
@@ -39,12 +39,12 @@
 }
 
 .editor-title-input .ant-input::placeholder {
-  color: #bfbfbf;
+  color: var(--placeholder);
 }
 
 /* 编辑内部tab组件容器（用于 TipTap 父级） */
 .editor-inner-tab-container {
-  background: #fff;
+  background: var(--panel-bg);
   border-radius: 8px;
   box-shadow: none;
   padding: 0;
@@ -137,7 +137,7 @@
 .layout-panel.app-titlebar button {
   background: none; /* 无背景 */
   border: none; /* 无边框 */
-  color: black; /* 黑色icon */
+  color: var(--titlebar-icon); /* 跟随主题的icon色 */
   font-size: 16px; /* icon大小 */
   cursor: pointer; /* 鼠标指针 */
   padding: 0; /* 无内边距 */
@@ -194,16 +194,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--titlebar-icon);
   user-select: none;
   -webkit-app-region: no-drag;
 }
 .window-btn:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.04);
-  color: rgba(0, 0, 0, 0.85);
+  background: var(--control-hover-bg);
+  color: var(--titlebar-icon-hover);
 }
 .window-btn:active {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--control-active-bg);
 }
 .window-btn:disabled {
   opacity: 0.45;
@@ -234,7 +234,7 @@
   width: 160px; /* 固定宽度 */
   flex-shrink: 0; /* 不压缩 */
   flex: 0 0 160px; /* 明确不伸缩 */
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--panel-bg);
   border-radius: 8px; /* 圆角 */
   display: flex;
   flex-direction: column;
@@ -291,14 +291,14 @@
 .scrollable-list::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper::-webkit-scrollbar-thumb,
 .tiptap-toolbar::-webkit-scrollbar-thumb {
-  background: rgba(160, 160, 160, 0.25);
+  background: var(--scrollbar-thumb);
   border-radius: 6px;
   transition: background 0.2s;
 }
 .scrollable-list:hover::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper:hover::-webkit-scrollbar-thumb,
 .tiptap-toolbar:hover::-webkit-scrollbar-thumb {
-  background: rgba(160, 160, 160, 0.45);
+  background: var(--scrollbar-thumb-hover);
 }
 .scrollable-list::-webkit-scrollbar-corner,
 .tiptap-editor-wrapper::-webkit-scrollbar-corner,
@@ -318,7 +318,7 @@
 .layout-panel.list-container {
   flex: 1; /* 默认占据剩余宽度 */
   flex-shrink: 0; /* 不压缩 */
-  background-color: rgb(255, 255, 255, 0.8);
+  background-color: var(--panel-bg);
   border-radius: 8px; /* 圆角 */
   display: flex;
   flex-direction: column;
@@ -332,7 +332,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: auto; /* 内容溢出时显示滚动条 */
-  background-color: rgb(255, 255, 255, 0.8);
+  background-color: var(--panel-bg);
   border-radius: 8px; /* 圆角 */
 }
 

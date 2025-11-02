@@ -2,38 +2,12 @@
   background: #fff;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); */
   padding: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   position: relative;
-}
-
-/* 预设颜色样式 */
-.note-card-color-bae0ff {
-  background: #bae0ff;
-}
-.note-card-color-d9f7be {
-  background: #d9f7be;
-}
-.note-card-color-ffd6e7 {
-  background: #ffd6e7;
-}
-.note-card-color-d6e4ff {
-  background: #d6e4ff;
-}
-.note-card-color-ffd666 {
-  background: #ffd666;
-}
-.note-card-color-ffffff {
-  background: #ffffff;
-}
-
-.note-card:hover {
-  /* box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); */
-  border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .note-card-title {

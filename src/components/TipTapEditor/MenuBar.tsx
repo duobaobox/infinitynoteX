@@ -3,9 +3,10 @@
  * 按照官方 Demo 规范，将工具栏独立为单独组件
  */
 
-import React, { useEffect, useRef, useState } from "react";
-import { Dropdown } from "antd";
-import type { MenuBarProps } from "./types";
+import React, { useEffect, useRef, useState } from 'react';
+import { Dropdown } from 'antd';
+import type { MenuBarProps } from './types';
+import { getThemeColor } from '../../theme/theme';
 
 /**
  * 工具栏按钮组件
@@ -21,7 +22,7 @@ const ToolbarButton: React.FC<{
     <button
       onClick={onClick}
       disabled={disabled}
-      className={isActive ? "is-active" : ""}
+      className={isActive ? 'is-active' : ''}
       title={title}
       type="button"
     >
@@ -42,12 +43,11 @@ const ToolbarDivider: React.FC = () => {
  * 参考 TipTap 官方 MenuBar 示例
  */
 export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
+  const themeColor = getThemeColor();
   // 关闭所有 antd Dropdown 菜单
   const closeAllDropdown = () => {
     // 触发全局 mousedown，关闭所有 Dropdown
-    document.body.dispatchEvent(
-      new MouseEvent("mousedown", { bubbles: true, cancelable: true })
-    );
+    document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
   };
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 用于强制刷新，以响应选区/内容变化，确保折叠触发器与菜单项实时更新
@@ -71,20 +71,20 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       }
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
+    e.target.value = '';
   };
 
   // 监听编辑器事件以触发重渲染
   useEffect(() => {
     if (!editor) return;
     const update = () => forceRefresh((x) => x + 1);
-    editor.on("selectionUpdate", update);
-    editor.on("transaction", update);
-    editor.on("update", update);
+    editor.on('selectionUpdate', update);
+    editor.on('transaction', update);
+    editor.on('update', update);
     return () => {
-      editor.off("selectionUpdate", update);
-      editor.off("transaction", update);
-      editor.off("update", update);
+      editor.off('selectionUpdate', update);
+      editor.off('transaction', update);
+      editor.off('update', update);
     };
   }, [editor]);
 
@@ -109,11 +109,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           e.stopPropagation();
         }}
         style={{
-          display: "flex",
-          alignItems: "center",
+          display: 'flex',
+          alignItems: 'center',
           gap: 8,
           opacity: disabled ? 0.45 : 1,
-          color: active ? "#1890ff" : undefined,
+          color: active ? themeColor : undefined,
         }}
       >
         {icon ? <i className={icon} /> : null}
@@ -134,7 +134,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
   }> = ({ label, icon, active, items }) => {
     return (
       <Dropdown
-        trigger={["click"]}
+        trigger={['click']}
         menu={{
           items: items.map((it) => ({
             key: it.key,
@@ -146,7 +146,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         <button
           type="button"
           title={label}
-          className={active ? "is-active" : ""}
+          className={active ? 'is-active' : ''}
           onMouseDown={(e) => {
             // 防止按钮点击导致编辑器失焦
             e.preventDefault();
@@ -174,7 +174,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           <MenuItemRow
             icon={`ri-h-${lv}`}
             text={`标题 ${lv}`}
-            active={editor.isActive("heading", { level: lv })}
+            active={editor.isActive('heading', { level: lv })}
             disabled={
               !editor
                 .can()
@@ -199,36 +199,36 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     ? ([] as { key: string; node: React.ReactNode }[])
     : [
         {
-          key: "bullet",
+          key: 'bullet',
           node: (
             <MenuItemRow
               icon="ri-list-unordered"
               text="无序列表"
-              active={editor.isActive("bulletList")}
+              active={editor.isActive('bulletList')}
               disabled={!editor.can().chain().focus().toggleBulletList().run()}
               onClick={() => editor.chain().focus().toggleBulletList().run()}
             />
           ),
         },
         {
-          key: "ordered",
+          key: 'ordered',
           node: (
             <MenuItemRow
               icon="ri-list-ordered"
               text="有序列表"
-              active={editor.isActive("orderedList")}
+              active={editor.isActive('orderedList')}
               disabled={!editor.can().chain().focus().toggleOrderedList().run()}
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
             />
           ),
         },
         {
-          key: "task",
+          key: 'task',
           node: (
             <MenuItemRow
               icon="ri-checkbox-line"
               text="任务列表"
-              active={editor.isActive("taskList")}
+              active={editor.isActive('taskList')}
               disabled={!editor.can().chain().focus().toggleTaskList().run()}
               onClick={() => editor.chain().focus().toggleTaskList().run()}
             />
@@ -238,74 +238,67 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
   // ========== 分组触发器：标题 / 列表 / 对齐 的动态图标与激活态 ==========
   const headingTrigger = (() => {
-    if (!editor)
-      return { icon: "ri-heading", title: "标题", active: false } as const;
-    const states = [1, 2, 3].map((lv) =>
-      editor.isActive("heading", { level: lv })
-    );
-    if (states[0])
-      return { icon: "ri-h-1", title: "标题 1", active: true } as const;
-    if (states[1])
-      return { icon: "ri-h-2", title: "标题 2", active: true } as const;
-    if (states[2])
-      return { icon: "ri-h-3", title: "标题 3", active: true } as const;
-    return { icon: "ri-heading", title: "标题", active: false } as const;
+    if (!editor) return { icon: 'ri-heading', title: '标题', active: false } as const;
+    const states = [1, 2, 3].map((lv) => editor.isActive('heading', { level: lv }));
+    if (states[0]) return { icon: 'ri-h-1', title: '标题 1', active: true } as const;
+    if (states[1]) return { icon: 'ri-h-2', title: '标题 2', active: true } as const;
+    if (states[2]) return { icon: 'ri-h-3', title: '标题 3', active: true } as const;
+    return { icon: 'ri-heading', title: '标题', active: false } as const;
   })();
 
   const listTrigger = (() => {
-    if (!editor)
-      return { icon: "ri-list-check", title: "列表", active: false } as const;
-    if (editor.isActive("bulletList"))
+    if (!editor) return { icon: 'ri-list-check', title: '列表', active: false } as const;
+    if (editor.isActive('bulletList'))
       return {
-        icon: "ri-list-unordered",
-        title: "无序列表",
+        icon: 'ri-list-unordered',
+        title: '无序列表',
         active: true,
       } as const;
-    if (editor.isActive("orderedList"))
+    if (editor.isActive('orderedList'))
       return {
-        icon: "ri-list-ordered",
-        title: "有序列表",
+        icon: 'ri-list-ordered',
+        title: '有序列表',
         active: true,
       } as const;
-    if (editor.isActive("taskList"))
+    if (editor.isActive('taskList'))
       return {
-        icon: "ri-checkbox-line",
-        title: "任务列表",
+        icon: 'ri-checkbox-line',
+        title: '任务列表',
         active: true,
       } as const;
-    return { icon: "ri-list-check", title: "列表", active: false } as const;
+    return { icon: 'ri-list-check', title: '列表', active: false } as const;
   })();
 
   const alignTrigger = (() => {
     if (!editor)
       return {
-        icon: "ri-align-justify",
-        title: "对齐",
+        icon: 'ri-align-justify',
+        title: '对齐',
         active: false,
       } as const;
-    if (editor.isActive({ textAlign: "left" }))
-      return { icon: "ri-align-left", title: "左对齐", active: true } as const;
-    if (editor.isActive({ textAlign: "center" }))
+    if (editor.isActive({ textAlign: 'left' }))
+      return { icon: 'ri-align-left', title: '左对齐', active: true } as const;
+    if (editor.isActive({ textAlign: 'center' }))
       return {
-        icon: "ri-align-center",
-        title: "居中对齐",
+        icon: 'ri-align-center',
+        title: '居中对齐',
         active: true,
       } as const;
-    if (editor.isActive({ textAlign: "right" }))
-      return { icon: "ri-align-right", title: "右对齐", active: true } as const;
-    if (editor.isActive({ textAlign: "justify" }))
+    if (editor.isActive({ textAlign: 'right' }))
+      return { icon: 'ri-align-right', title: '右对齐', active: true } as const;
+    if (editor.isActive({ textAlign: 'justify' }))
       return {
-        icon: "ri-align-justify",
-        title: "两端对齐",
+        icon: 'ri-align-justify',
+        title: '两端对齐',
         active: true,
       } as const;
-    return { icon: "ri-align-justify", title: "对齐", active: false } as const;
+    return { icon: 'ri-align-justify', title: '对齐', active: false } as const;
   })();
 
   // 表格触发器状态计算
   const tableTrigger = (() => {
-    const isInTable = editor?.isActive("table") ?? false;
-    return { icon: "ri-table-2", title: "表格", active: isInTable } as const;
+    const isInTable = editor?.isActive('table') ?? false;
+    return { icon: 'ri-table-2', title: '表格', active: isInTable } as const;
   })();
 
   // ========== 分组菜单：对齐 ==========
@@ -315,32 +308,32 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         const entries: Array<{
           key: string;
           label: string;
-          value: "left" | "center" | "right" | "justify";
+          value: 'left' | 'center' | 'right' | 'justify';
           icon: string;
         }> = [
           {
-            key: "left",
-            label: "左对齐",
-            value: "left",
-            icon: "ri-align-left",
+            key: 'left',
+            label: '左对齐',
+            value: 'left',
+            icon: 'ri-align-left',
           },
           {
-            key: "center",
-            label: "居中对齐",
-            value: "center",
-            icon: "ri-align-center",
+            key: 'center',
+            label: '居中对齐',
+            value: 'center',
+            icon: 'ri-align-center',
           },
           {
-            key: "right",
-            label: "右对齐",
-            value: "right",
-            icon: "ri-align-right",
+            key: 'right',
+            label: '右对齐',
+            value: 'right',
+            icon: 'ri-align-right',
           },
           {
-            key: "justify",
-            label: "两端对齐",
-            value: "justify",
-            icon: "ri-align-justify",
+            key: 'justify',
+            label: '两端对齐',
+            value: 'justify',
+            icon: 'ri-align-justify',
           },
         ];
         return entries.map((it) => ({
@@ -350,12 +343,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
               icon={it.icon}
               text={it.label}
               active={editor.isActive({ textAlign: it.value })}
-              disabled={
-                !editor.can().chain().focus().setTextAlign(it.value).run()
-              }
-              onClick={() =>
-                editor.chain().focus().setTextAlign(it.value).run()
-              }
+              disabled={!editor.can().chain().focus().setTextAlign(it.value).run()}
+              onClick={() => editor.chain().focus().setTextAlign(it.value).run()}
             />
           ),
         }));
@@ -367,7 +356,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     : [
         // 插入表格
         {
-          key: "insert-table",
+          key: 'insert-table',
           node: (
             <MenuItemRow
               icon="ri-table-2"
@@ -385,14 +374,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         },
         // 分隔符（使用antd的menu divider）
         {
-          key: "divider-1",
-          node: (
-            <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
-          ),
+          key: 'divider-1',
+          node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
         },
         // 行操作
         {
-          key: "add-row-before",
+          key: 'add-row-before',
           node: (
             <MenuItemRow
               icon="ri-insert-row-top"
@@ -403,7 +390,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           ),
         },
         {
-          key: "add-row-after",
+          key: 'add-row-after',
           node: (
             <MenuItemRow
               icon="ri-insert-row-bottom"
@@ -414,7 +401,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           ),
         },
         {
-          key: "delete-row",
+          key: 'delete-row',
           node: (
             <MenuItemRow
               icon="ri-delete-row"
@@ -426,14 +413,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         },
         // 分隔符
         {
-          key: "divider-2",
-          node: (
-            <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
-          ),
+          key: 'divider-2',
+          node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
         },
         // 列操作
         {
-          key: "add-column-before",
+          key: 'add-column-before',
           node: (
             <MenuItemRow
               icon="ri-insert-column-left"
@@ -444,7 +429,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           ),
         },
         {
-          key: "add-column-after",
+          key: 'add-column-after',
           node: (
             <MenuItemRow
               icon="ri-insert-column-right"
@@ -455,7 +440,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           ),
         },
         {
-          key: "delete-column",
+          key: 'delete-column',
           node: (
             <MenuItemRow
               icon="ri-delete-column"
@@ -467,14 +452,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         },
         // 分隔符
         {
-          key: "divider-3",
-          node: (
-            <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
-          ),
+          key: 'divider-3',
+          node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
         },
         // 单元格操作
         {
-          key: "merge-cells",
+          key: 'merge-cells',
           node: (
             <MenuItemRow
               icon="ri-merge-cells-horizontal"
@@ -485,7 +468,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           ),
         },
         {
-          key: "split-cell",
+          key: 'split-cell',
           node: (
             <MenuItemRow
               icon="ri-split-cells-horizontal"
@@ -497,10 +480,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         },
         // 分隔符
         {
-          key: "divider-4",
-          node: (
-            <div style={{ borderTop: "1px solid #f0f0f0", margin: "4px 0" }} />
-          ),
+          key: 'divider-4',
+          node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
         },
         // （已屏蔽）表头操作相关按钮
         // {
@@ -553,7 +534,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         // },
         // 删除表格
         {
-          key: "delete-table",
+          key: 'delete-table',
           node: (
             <MenuItemRow
               icon="ri-delete-bin-line"
@@ -578,8 +559,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         closeAllDropdown();
         // 将垂直滚动转换为水平滚动
         const target = e.currentTarget;
-        const delta =
-          Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
         if (delta !== 0) {
           e.preventDefault();
           target.scrollLeft += delta;
@@ -590,35 +570,35 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         disabled={!editor.can().chain().focus().toggleBold().run()}
-        isActive={editor.isActive("bold")}
+        isActive={editor.isActive('bold')}
         title="粗体 (Ctrl+B)"
         icon="ri-bold"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         disabled={!editor.can().chain().focus().toggleItalic().run()}
-        isActive={editor.isActive("italic")}
+        isActive={editor.isActive('italic')}
         title="斜体 (Ctrl+I)"
         icon="ri-italic"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         disabled={!editor.can().chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive("underline")}
+        isActive={editor.isActive('underline')}
         title="下划线 (Ctrl+U)"
         icon="ri-underline"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         disabled={!editor.can().chain().focus().toggleStrike().run()}
-        isActive={editor.isActive("strike")}
+        isActive={editor.isActive('strike')}
         title="删除线"
         icon="ri-strikethrough"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
         disabled={!editor.can().chain().focus().toggleCode().run()}
-        isActive={editor.isActive("code")}
+        isActive={editor.isActive('code')}
         title="行内代码"
         icon="ri-code-line"
       />
@@ -666,14 +646,14 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       <ToolbarDivider />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        isActive={editor.isActive("codeBlock")}
+        isActive={editor.isActive('codeBlock')}
         disabled={!editor.can().chain().focus().toggleCodeBlock().run()}
         title="代码块"
         icon="ri-code-s-slash-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive("blockquote")}
+        isActive={editor.isActive('blockquote')}
         disabled={!editor.can().chain().focus().toggleBlockquote().run()}
         title="引用"
         icon="ri-double-quotes-l"
@@ -694,7 +674,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        style={{ display: "none" }}
+        style={{ display: 'none' }}
         onChange={handleImageUpload}
       />
 

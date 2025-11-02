@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { NoteIndex } from '../services/types';
-import NoteCard from './NoteCard/NoteCard';
+import NoteCard, { NoteCardListContext } from './NoteCard/NoteCard';
+import { getThemeColor } from '../theme/theme';
 import './ListPanel.css';
 
 interface ListPanelProps {
@@ -13,8 +14,6 @@ interface ListPanelProps {
   refreshTrigger?: number; // 刷新触发器
 }
 
-const NOTE_COLOR = '#fa8c16'; // 便签主题色，与 colorPrimary 保持一致
-
 const ListPanel: React.FC<ListPanelProps> = ({
   flex,
   folderId,
@@ -22,6 +21,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
   onSelectNote,
   refreshTrigger,
 }) => {
+  const themeColor = getThemeColor();
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
@@ -157,7 +157,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
             {folderName}
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Badge count={filteredNotes.length} showZero style={{ backgroundColor: NOTE_COLOR }} />
+            <Badge count={filteredNotes.length} showZero style={{ backgroundColor: themeColor }} />
             <Button
               type="text"
               size="small"
@@ -177,28 +177,32 @@ const ListPanel: React.FC<ListPanelProps> = ({
         />
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
-        <div className="scrollable-list" ref={scrollableListRef}>
-          {filteredNotes.map((note) => (
-            <NoteCard
-              key={note.id}
-              title={note.title}
-              content={note.excerpt}
-              color="ffffff"
-              onClick={() => onSelectNote(note.id)}
-              actions={
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteNote(note.id, note.title);
-                  }}
-                />
-              }
-            />
-          ))}
-        </div>
+        <NoteCardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
+          <div className="scrollable-list" ref={scrollableListRef}>
+            {filteredNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                title={note.title}
+                content={note.excerpt}
+                color="ffffff"
+                onClick={() => onSelectNote(note.id)}
+                actions={
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNote(note.id, note.title);
+                    }}
+                  />
+                }
+                // 传递当前卡片id给 context
+                id={note.id}
+              />
+            ))}
+          </div>
+        </NoteCardListContext.Provider>
       </div>
     </div>
   );

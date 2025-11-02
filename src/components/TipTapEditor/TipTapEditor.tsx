@@ -12,6 +12,7 @@ import { MenuBar } from './MenuBar';
 import { BubbleMenu } from './BubbleMenu';
 import { getExtensions } from './extensions';
 import type { TipTapEditorProps } from './types';
+import { getThemeColor } from '../../theme/theme';
 import './TipTapEditor.css';
 import './table.css';
 
@@ -35,6 +36,23 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   title = '',
   onTitleChange,
 }) => {
+  const themeColor = getThemeColor();
+  // 将十六进制颜色转为 RGB 格式
+  function hexToRgb(hex: string): string {
+    if (/^#([0-9a-fA-F]{6})$/.test(hex)) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `${r}, ${g}, ${b}`;
+    }
+    if (/^#([0-9a-fA-F]{3})$/.test(hex)) {
+      const r = parseInt(hex[1] + hex[1], 16);
+      const g = parseInt(hex[2] + hex[2], 16);
+      const b = parseInt(hex[3] + hex[3], 16);
+      return `${r}, ${g}, ${b}`;
+    }
+    return '24, 144, 255'; // 默认蓝色
+  }
   // 使用 useEditor Hook 创建编辑器实例
   const editor = useEditor({
     extensions: getExtensions(placeholder),
@@ -73,7 +91,15 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   }
 
   return (
-    <div className="tiptap-container">
+    <div
+      className="tiptap-container"
+      style={
+        {
+          '--theme-color': themeColor,
+          '--theme-color-rgb': hexToRgb(themeColor),
+        } as React.CSSProperties
+      }
+    >
       {/* 标题输入框 - 放在最上面 */}
       <div className="editor-title-input">
         <Input

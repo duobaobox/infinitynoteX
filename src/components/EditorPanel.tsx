@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-
-import { Segmented } from "antd";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Segmented, message } from "antd";
 import {
   EditOutlined,
   ToolOutlined,
@@ -9,10 +8,85 @@ import {
 } from "@ant-design/icons";
 import { TipTapEditor } from "./TipTapEditor";
 
-const EditorPanel: React.FC = () => {
+interface EditorPanelProps {
+  noteId: string | null;
+  onClose?: () => void;
+}
+
+const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
   const [noteTitle, setNoteTitle] = useState<string>("");
-  const [editorContent, setEditorContent] = useState<string>("");
+  const [editorContent, setEditorContent] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string | number>("edit");
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentNoteIdRef = useRef<string | null>(null);
+
+  // 加载便签内容
+  useEffect(() => {
+    if (!noteId) {
+      setNoteTitle("");
+      setEditorContent(null);
+      return;
+    }
+
+    loadNote(noteId);
+    currentNoteIdRef.current = noteId;
+  }, [noteId]);
+
+  const loadNote = async (id: string) => {
+    try {
+      const note = await window.storage.getNote(id);
+      setNoteTitle(note.title);
+      setEditorContent(note.content);
+    } catch (error) {
+      console.error("Failed to load note:", error);
+      message.error("加载便签失败");
+    }
+  };
+
+  // 节流保存函数 (800ms)
+  const debouncedSave = useCallback((title: string, content: any) => {
+    if (!currentNoteIdRef.current) return;
+
+    // 清除之前的定时器
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    // 设置新的定时器
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await window.storage.updateNote(currentNoteIdRef.current!, {
+          title,
+          content,
+        });
+        console.log("Note auto-saved");
+      } catch (error) {
+        console.error("Failed to save note:", error);
+        message.error("自动保存失败，请检查磁盘空间");
+      }
+    }, 800);
+  }, []);
+
+  // 标题变更处理
+  const handleTitleChange = (newTitle: string) => {
+    setNoteTitle(newTitle);
+    debouncedSave(newTitle, editorContent);
+  };
+
+  // 内容变更处理
+  const handleContentChange = (newContent: any) => {
+    setEditorContent(newContent);
+    debouncedSave(noteTitle, newContent);
+  };
+
+  // 组件卸载时清除定时器
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   const segmentOptions = [
     {
@@ -61,12 +135,13 @@ const EditorPanel: React.FC = () => {
           />
         </div>
         <div className="editor-inner-tab-container">
-          {activeTab === "edit" && (
+          {activeTab === "edit" && editorContent && (
             <TipTapEditor
+              key={noteId} // 添加 key 确保切换便签时重新创建编辑器
               initialContent={editorContent}
-              onContentChange={setEditorContent}
+              onContentChange={handleContentChange}
               title={noteTitle}
-              onTitleChange={setNoteTitle}
+              onTitleChange={handleTitleChange}
             />
           )}
           {activeTab === "tools" && (

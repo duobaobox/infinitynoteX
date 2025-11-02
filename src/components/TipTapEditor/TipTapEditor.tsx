@@ -54,6 +54,13 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     },
   });
 
+  // 当 initialContent 变化时更新编辑器内容
+  useEffect(() => {
+    if (editor && initialContent !== editor.getHTML()) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, initialContent]);
+
   // 组件卸载时销毁编辑器实例（官方推荐）
   useEffect(() => {
     return () => {

@@ -1,18 +1,97 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Segmented, Button, Menu } from "antd";
+import { Segmented, Button, Menu, message } from "antd";
 import {
   AppstoreOutlined,
   ToolOutlined,
   PlusOutlined,
   SettingOutlined,
+  FolderOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
+import type { Folder } from "../services/types";
 import SettingsModal from "./SettingsModal/SettingsModal";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  selectedFolderId: string | null;
+  onSelectFolder: (folderId: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({
+  selectedFolderId,
+  onSelectFolder,
+}) => {
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [folders, setFolders] = useState<Folder[]>([]);
+
+  // 加载文件夹列表
+  useEffect(() => {
+    loadFolders();
+  }, []);
+
+  const loadFolders = async () => {
+    try {
+      const folderList = await window.storage.listFolders();
+      setFolders(folderList);
+
+      // 默认选中第一个文件夹（默认文件夹）
+      if (folderList.length > 0 && !selectedFolderId) {
+        onSelectFolder(folderList[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load folders:", error);
+      message.error("加载文件夹失败");
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    const name = prompt("请输入文件夹名称:");
+    if (!name || !name.trim()) return;
+
+    try {
+      await window.storage.createFolder(name.trim());
+      message.success("创建成功");
+      await loadFolders();
+    } catch (error: any) {
+      console.error("Failed to create folder:", error);
+      if (error.message?.includes("already exists")) {
+        message.error("文件夹名称已存在");
+      } else {
+        message.error("创建文件夹失败");
+      }
+    }
+  };
+
+  const handleDeleteFolder = async (id: string) => {
+    const folder = folders.find((f) => f.id === id);
+    if (!folder) return;
+
+    if (folder.system) {
+      message.warning("默认文件夹不可删除");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `确定要删除文件夹"${folder.name}"吗？\n该文件夹下的所有便签将移动到默认文件夹。`
+    );
+    if (!confirmed) return;
+
+    try {
+      await window.storage.deleteFolder(id);
+      message.success("删除成功");
+      await loadFolders();
+
+      // 如果删除的是当前选中的文件夹，切换到默认文件夹
+      if (selectedFolderId === id) {
+        onSelectFolder(folders[0]?.id || "default");
+      }
+    } catch (error: any) {
+      console.error("Failed to delete folder:", error);
+      message.error("删除文件夹失败");
+    }
+  };
 
   // 检测滚动条是否出现
   useEffect(() => {
@@ -87,28 +166,34 @@ const Sidebar: React.FC = () => {
           type="text"
           block
           icon={<PlusOutlined />}
+          onClick={handleCreateFolder}
           style={{ justifyContent: "flex-start" }}
         >
-          添加
+          添加文件夹
         </Button>
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
         <div className="scrollable-list" ref={scrollableListRef}>
           <Menu
             mode="inline"
-            items={[
-              { key: "folder1", label: "默认" },
-              { key: "folder2", label: "文件夹2" },
-              { key: "folder3", label: "文件夹3" },
-              { key: "folder4", label: "文件夹4" },
-              { key: "folder5", label: "文件夹5" },
-              { key: "folder6", label: "文件夹6" },
-              { key: "folder7", label: "文件夹7" },
-              { key: "folder8", label: "文件夹8" },
-              { key: "folder9", label: "文件夹9" },
-              { key: "folder10", label: "文件夹10" },
-            ]}
-            defaultSelectedKeys={["folder1"]}
+            selectedKeys={selectedFolderId ? [selectedFolderId] : []}
+            onSelect={({ key }) => onSelectFolder(key)}
+            items={folders.map((folder) => ({
+              key: folder.id,
+              label: folder.name,
+              icon: <FolderOutlined />,
+              // 系统默认文件夹不显示删除按钮
+              ...(!folder.system && {
+                children: [
+                  {
+                    key: `${folder.id}-delete`,
+                    label: "删除",
+                    icon: <DeleteOutlined />,
+                    onClick: () => handleDeleteFolder(folder.id),
+                  },
+                ],
+              }),
+            }))}
           />
         </div>
       </div>

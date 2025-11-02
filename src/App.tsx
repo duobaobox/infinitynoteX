@@ -15,6 +15,10 @@ declare global {
       close: () => void;
       isMaximized: () => Promise<boolean>;
       onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
+      showOpenDialog: (options: any) => Promise<{
+        canceled: boolean;
+        filePaths: string[];
+      }>;
     };
   }
 }
@@ -24,6 +28,12 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(true); /* 侧边栏显示状态 */
   const [lastTitlebarClickTime, setLastTitlebarClickTime] =
     useState(0); /* 用于防止快速点击触发窗口最大化 */
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(
+    null
+  ); /* 当前选中的文件夹ID */
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
+    null
+  ); /* 当前选中的便签ID */
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(
@@ -185,13 +195,29 @@ function App() {
       <div className="layout-panel main-content">
         {showSidebar && (
           <>
-            <Sidebar />
+            <Sidebar
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={setSelectedFolderId}
+            />
             <div className="gap-panel" />
           </>
         )}
-        <ListPanel flex={showEditor ? "0 0 250px" : 1} />
+        <ListPanel
+          flex={showEditor ? "0 0 250px" : 1}
+          folderId={selectedFolderId}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={(noteId) => {
+            setSelectedNoteId(noteId);
+            setShowEditor(true);
+          }}
+        />
         {showEditor && <div className="gap-panel" />}
-        {showEditor && <EditorPanel />}
+        {showEditor && (
+          <EditorPanel
+            noteId={selectedNoteId}
+            onClose={() => setShowEditor(false)}
+          />
+        )}
       </div>
     </>
   );

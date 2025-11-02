@@ -37,4 +37,39 @@ contextBridge.exposeInMainWorld("electronAPI", {
       callback(isMaximized);
     });
   },
+  showOpenDialog: (options: any) =>
+    ipcRenderer.invoke("dialog:showOpenDialog", options),
+});
+
+// --------- Expose storage API ---------
+contextBridge.exposeInMainWorld("storage", {
+  // 路径管理
+  getDefaultPath: () => ipcRenderer.invoke("storage:getDefaultPath"),
+  getCurrentPath: () => ipcRenderer.invoke("storage:getCurrentPath"),
+  setStoragePath: (nextPath: string, options?: any) =>
+    ipcRenderer.invoke("storage:setStoragePath", nextPath, options),
+  healthCheck: () => ipcRenderer.invoke("storage:healthCheck"),
+  openInFinder: () => ipcRenderer.invoke("storage:openInFinder"),
+  getStats: () => ipcRenderer.invoke("storage:getStats"),
+  createBackup: () => ipcRenderer.invoke("storage:createBackup"),
+  exportData: (targetPath: string) =>
+    ipcRenderer.invoke("storage:exportData", targetPath),
+
+  // 文件夹操作
+  listFolders: () => ipcRenderer.invoke("storage:listFolders"),
+  createFolder: (name: string) =>
+    ipcRenderer.invoke("storage:createFolder", name),
+  renameFolder: (id: string, name: string) =>
+    ipcRenderer.invoke("storage:renameFolder", id, name),
+  deleteFolder: (id: string) => ipcRenderer.invoke("storage:deleteFolder", id),
+
+  // 便签操作
+  listNotes: (folderId?: string) =>
+    ipcRenderer.invoke("storage:listNotes", folderId),
+  createNote: (folderId: string, payload?: any) =>
+    ipcRenderer.invoke("storage:createNote", folderId, payload),
+  getNote: (id: string) => ipcRenderer.invoke("storage:getNote", id),
+  updateNote: (id: string, patch: any) =>
+    ipcRenderer.invoke("storage:updateNote", id, patch),
+  deleteNote: (id: string) => ipcRenderer.invoke("storage:deleteNote", id),
 });

@@ -1,12 +1,7 @@
-// 还原窗口
-ipcMain.on("window-unmaximize", () => {
-  if (win) {
-    win.unmaximize();
-  }
-});
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { storageManager } from "./storage";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -117,4 +112,95 @@ ipcMain.on("window-double-click-titlebar", () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  // 初始化存储
+  await storageManager.initialize();
+
+  createWindow();
+});
+
+// ============ 存储 IPC 处理器 ============
+
+// 路径管理
+ipcMain.handle("storage:getDefaultPath", () => {
+  return storageManager.getDefaultPath();
+});
+
+ipcMain.handle("storage:getCurrentPath", () => {
+  return storageManager.getCurrentPath();
+});
+
+ipcMain.handle(
+  "storage:setStoragePath",
+  async (_, nextPath: string, options?: any) => {
+    await storageManager.setStoragePath(nextPath, options);
+  }
+);
+
+ipcMain.handle("storage:healthCheck", async () => {
+  return await storageManager.healthCheck();
+});
+
+ipcMain.handle("storage:openInFinder", async () => {
+  await storageManager.openInFinder();
+});
+
+ipcMain.handle("storage:getStats", async () => {
+  return await storageManager.getStats();
+});
+
+ipcMain.handle("storage:createBackup", async () => {
+  return await storageManager.createBackup();
+});
+
+ipcMain.handle("storage:exportData", async (_, targetPath: string) => {
+  await storageManager.exportData(targetPath);
+});
+
+// 文件夹操作
+ipcMain.handle("storage:listFolders", async () => {
+  return await storageManager.listFolders();
+});
+
+ipcMain.handle("storage:createFolder", async (_, name: string) => {
+  return await storageManager.createFolder(name);
+});
+
+ipcMain.handle("storage:renameFolder", async (_, id: string, name: string) => {
+  return await storageManager.renameFolder(id, name);
+});
+
+ipcMain.handle("storage:deleteFolder", async (_, id: string) => {
+  await storageManager.deleteFolder(id);
+});
+
+// 便签操作
+ipcMain.handle("storage:listNotes", async (_, folderId?: string) => {
+  return await storageManager.listNotes(folderId);
+});
+
+ipcMain.handle(
+  "storage:createNote",
+  async (_, folderId: string, payload?: any) => {
+    return await storageManager.createNote(folderId, payload);
+  }
+);
+
+ipcMain.handle("storage:getNote", async (_, id: string) => {
+  return await storageManager.getNote(id);
+});
+
+ipcMain.handle("storage:updateNote", async (_, id: string, patch: any) => {
+  return await storageManager.updateNote(id, patch);
+});
+
+ipcMain.handle("storage:deleteNote", async (_, id: string) => {
+  await storageManager.deleteNote(id);
+});
+
+// ============ 系统对话框 IPC 处理器 ============
+
+ipcMain.handle("dialog:showOpenDialog", async (_, options: any) => {
+  const result = await dialog.showOpenDialog(options);
+  return result;
+});

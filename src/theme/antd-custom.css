@@ -1,11 +1,16 @@
-/* 去除 antd 按钮 hover 态的蓝色边框 */
-.ant-btn:hover {
-  border-color: transparent !important;
-}
-/* 去除 antd 按钮 focus/active 态的蓝色边框和 outline */
-.ant-btn:focus,
-.ant-btn:focus-visible,
-.ant-btn:active {
+/*
+  按钮样式微调：
+  仅对文本/链接类型按钮去除 hover/focus/active 的边框与阴影，
+  恢复普通按钮的默认边框与焦点样式（保持与 Ant Design 演示一致）。
+*/
+.ant-btn-text:hover,
+.ant-btn-text:focus,
+.ant-btn-text:focus-visible,
+.ant-btn-text:active,
+.ant-btn-link:hover,
+.ant-btn-link:focus,
+.ant-btn-link:focus-visible,
+.ant-btn-link:active {
   border-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;

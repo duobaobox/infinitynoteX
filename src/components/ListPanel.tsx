@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Input, Badge } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import NoteCard from "./NoteCard/NoteCard";
+import NoteCard, { type NoteCardProps } from "./NoteCard/NoteCard";
 
 interface ListPanelProps {
   flex: string | number;
@@ -59,14 +59,20 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
     }
   }, [isOverflow]);
   // 假数据
+  const COLORS: NonNullable<NoteCardProps["color"]>[] = [
+    "bae0ff",
+    "d9f7be",
+    "ffd6e7",
+    "d6e4ff",
+    "ffd666",
+    "ffffff",
+  ];
   const fakeNotes = Array.from({ length: 5 }).map((_, i) => ({
     title: `便签标题 ${i + 1}`,
     content: `这是第${
       i + 1
     }条便签的内容，内容可以很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长。`,
-    color: ["bae0ff", "d9f7be", "ffd6e7", "d6e4ff", "ffd666", "ffffff"][
-      i % 6
-    ] as any,
+    color: COLORS[i % COLORS.length],
   }));
   return (
     <div className="layout-panel list-container" style={{ flex }}>

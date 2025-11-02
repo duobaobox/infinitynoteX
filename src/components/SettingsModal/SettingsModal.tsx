@@ -145,18 +145,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       open={open}
       onCancel={onClose}
       footer={null}
-      width={700}
+      centered
+      width="80vw"
       className="settings-modal"
     >
       <div className="settings-container">
         <div className="settings-sidebar">
-          <Menu
-            mode="inline"
-            items={menuItems}
-            selectedKeys={[selectedMenu]}
-            onClick={(e) => setSelectedMenu(e.key)}
-            className="settings-menu"
-          />
+          <div className="flex-vertical-equal">
+            <div className="scrollable-list">
+              <Menu
+                mode="inline"
+                items={menuItems}
+                selectedKeys={[selectedMenu]}
+                onClick={(e) => setSelectedMenu(e.key)}
+                className="settings-menu"
+              />
+            </div>
+          </div>
         </div>
         <div className="settings-content">{renderSettingsPanel()}</div>
       </div>

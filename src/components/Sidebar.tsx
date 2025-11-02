@@ -6,7 +6,7 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
-import SettingsModal from "./SettingsModal";
+import SettingsModal from "./SettingsModal/SettingsModal";
 
 const Sidebar: React.FC = () => {
   const scrollableListRef = useRef<HTMLDivElement>(null);

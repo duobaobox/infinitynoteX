@@ -173,19 +173,16 @@ const TableMenu: React.FC<{ editor: Editor }> = ({ editor }) => (
 );
 
 export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
-  if (!editor) {
-    return null;
-  }
-
-  // 检测是否在表格中
+  // 检测是否在表格中（允许 editor 为空，避免条件调用 hooks）
   const isInTable = useMemo(() => {
-    return editor.isActive("table");
+    return editor?.isActive("table") ?? false;
   }, [editor]);
 
   /**
    * 复制选中文本到剪贴板
    */
   const handleCopy = useCallback(() => {
+    if (!editor) return;
     const text = editor.state.selection.$from.parent.textContent;
     if (text) {
       navigator.clipboard.writeText(text).catch((err) => {
@@ -209,7 +206,7 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
       editor: Editor;
       from: number;
       to: number;
-      [key: string]: any;
+      [key: string]: unknown;
     }) => {
       // 如果没有选中文本或选中文本为空，不显示
       const hasSelection = from < to;
@@ -226,6 +223,11 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
     },
     [isInTable]
   );
+
+  // 在 hooks 定义之后再进行空编辑器的短路返回，避免 hooks 条件调用
+  if (!editor) {
+    return null;
+  }
 
   return (
     <TipTapBubbleMenu

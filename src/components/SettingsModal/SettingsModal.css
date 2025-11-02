@@ -1,0 +1,123 @@
+/* 隐藏 antd Modal 的头部（header） */
+.settings-modal .ant-modal-header {
+  display: none !important;
+}
+
+/* 设置遮罩层 - 覆盖整个应用窗口 */
+.settings-modal .ant-modal-mask {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 使弹窗始终居中并使用视口尺寸（交由 Modal 的 centered 属性处理垂直/水平居中） */
+.settings-modal .ant-modal {
+  width: 80vw !important;
+  max-width: 80vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+/* 去除 antd Modal 默认内容区 padding，防止双重内边距 */
+.settings-modal .ant-modal-content {
+  padding: 0 !important;
+  width: 100% !important;
+  height: 80vh !important; /* 高度随窗口变化 */
+  max-width: none !important;
+  max-height: none !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 设置弹窗容器样式 */
+.settings-modal .ant-modal-body {
+  padding: 0px;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  gap: 0;
+}
+
+/* 设置弹窗左侧菜单栏 - 使用与 Sidebar 一致的 CSS 类 */
+.settings-sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 菜单样式 - 保持与 Sidebar 一致 */
+.settings-menu {
+  border: none;
+  background: transparent;
+}
+
+/* 设置弹窗右侧内容区 */
+.settings-content {
+  flex: 1;
+  padding: 24px 40px;
+  overflow-y: auto;
+}
+
+/* 右侧内容区滚动条，和全局 scrollable-list 保持一致 */
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.25);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.settings-content:hover::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.45);
+}
+.settings-content::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.settings-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-panel h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-content p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.about-content p strong {
+  color: rgba(0, 0, 0, 0.85);
+}

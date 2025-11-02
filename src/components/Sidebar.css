@@ -1,0 +1,33 @@
+/* Sidebar menu alignment with Settings sidebar */
+.sidebar .sidebar-menu {
+  border: none;
+  background: transparent;
+}
+
+.sidebar .menu-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar .menu-item-row .item-name {
+  display: inline-block;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar .menu-item-row .item-actions {
+  display: none;
+}
+
+.sidebar .ant-menu-item:hover .menu-item-row .item-actions {
+  display: inline-flex;
+}
+
+/* Selected state uses theme color */
+.sidebar .ant-menu-item-selected .menu-item-row .item-name,
+.sidebar .ant-menu-item-selected .anticon {
+  color: var(--ant-color-primary);
+}

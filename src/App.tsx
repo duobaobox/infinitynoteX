@@ -208,7 +208,7 @@ function App() {
           selectedNoteId={selectedNoteId}
           onSelectNote={(noteId) => {
             setSelectedNoteId(noteId);
-            setShowEditor(true);
+            setShowEditor(!!noteId);
           }}
         />
         {showEditor && <div className="gap-panel" />}

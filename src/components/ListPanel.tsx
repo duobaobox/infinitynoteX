@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Input, Badge, Button, message } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { Input, Badge, Button, message, Modal } from "antd";
+import {
+  SearchOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import type { NoteIndex } from "../services/types";
 import NoteCard from "./NoteCard/NoteCard";
 
@@ -8,7 +12,7 @@ interface ListPanelProps {
   flex: string | number;
   folderId: string | null;
   selectedNoteId: string | null;
-  onSelectNote: (noteId: string) => void;
+  onSelectNote: (noteId: string | null) => void;
 }
 
 const NOTE_COLOR = "#fa8c16"; // 便签主题色，与 colorPrimary 保持一致
@@ -16,6 +20,7 @@ const NOTE_COLOR = "#fa8c16"; // 便签主题色，与 colorPrimary 保持一致
 const ListPanel: React.FC<ListPanelProps> = ({
   flex,
   folderId,
+  selectedNoteId,
   onSelectNote,
 }) => {
   const scrollableListRef = useRef<HTMLDivElement>(null);
@@ -72,6 +77,30 @@ const ListPanel: React.FC<ListPanelProps> = ({
   const filteredNotes = notes.filter((note) =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleDeleteNote = async (id: string, title: string) => {
+    Modal.confirm({
+      title: "删除便签",
+      content: `确定删除便签“${title || "无标题"}”吗？`,
+      okText: "删除",
+      cancelText: "取消",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await window.storage.deleteNote(id);
+          message.success("删除成功");
+          await loadNotes();
+          if (selectedNoteId === id) {
+            onSelectNote(null);
+          }
+        } catch (error) {
+          console.error("Failed to delete note:", error);
+          message.error("删除失败");
+          throw error;
+        }
+      },
+    });
+  };
 
   // 检测滚动条是否出现
   useEffect(() => {
@@ -165,6 +194,17 @@ const ListPanel: React.FC<ListPanelProps> = ({
               content={note.excerpt}
               color="ffffff"
               onClick={() => onSelectNote(note.id)}
+              actions={
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteNote(note.id, note.title);
+                  }}
+                />
+              }
             />
           ))}
         </div>

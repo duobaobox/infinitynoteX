@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Segmented, Button, Menu, message } from "antd";
+import { Segmented, Button, message, Modal, Input, Menu } from "antd";
 import {
   AppstoreOutlined,
   ToolOutlined,
@@ -7,9 +7,11 @@ import {
   SettingOutlined,
   FolderOutlined,
   DeleteOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import type { Folder } from "../services/types";
 import SettingsModal from "./SettingsModal/SettingsModal";
+import "./Sidebar.css";
 
 interface SidebarProps {
   selectedFolderId: string | null;
@@ -25,13 +27,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isOverflow, setIsOverflow] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [renaming, setRenaming] = useState(false);
 
-  // 加载文件夹列表
-  useEffect(() => {
-    loadFolders();
-  }, []);
-
-  const loadFolders = async () => {
+  const loadFolders = React.useCallback(async () => {
     try {
       const folderList = await window.storage.listFolders();
       setFolders(folderList);
@@ -44,23 +47,47 @@ const Sidebar: React.FC<SidebarProps> = ({
       console.error("Failed to load folders:", error);
       message.error("加载文件夹失败");
     }
+  }, [onSelectFolder, selectedFolderId]);
+
+  // 加载文件夹列表
+  useEffect(() => {
+    loadFolders();
+  }, [loadFolders]);
+
+  const openCreateFolderModal = () => {
+    setNewFolderName("");
+    setIsCreateOpen(true);
   };
 
-  const handleCreateFolder = async () => {
-    const name = prompt("请输入文件夹名称:");
-    if (!name || !name.trim()) return;
+  const handleSubmitCreateFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) {
+      message.warning("请输入文件夹名称");
+      return;
+    }
+    // 前端简单重复校验，减少无效请求
+    if (folders.some((f) => f.name === name)) {
+      message.error("文件夹名称已存在");
+      return;
+    }
 
     try {
-      await window.storage.createFolder(name.trim());
+      setCreating(true);
+      await window.storage.createFolder(name);
       message.success("创建成功");
+      setIsCreateOpen(false);
+      setNewFolderName("");
       await loadFolders();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to create folder:", error);
-      if (error.message?.includes("already exists")) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("already exists")) {
         message.error("文件夹名称已存在");
       } else {
         message.error("创建文件夹失败");
       }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -73,23 +100,73 @@ const Sidebar: React.FC<SidebarProps> = ({
       return;
     }
 
-    const confirmed = window.confirm(
-      `确定要删除文件夹"${folder.name}"吗？\n该文件夹下的所有便签将移动到默认文件夹。`
-    );
-    if (!confirmed) return;
+    Modal.confirm({
+      title: "删除文件夹",
+      content: `确定要删除文件夹"${folder.name}"吗？该文件夹下的所有便签将移动到默认文件夹。`,
+      okText: "删除",
+      cancelText: "取消",
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await window.storage.deleteFolder(id);
+          message.success("删除成功");
+          const nextFolders = await window.storage.listFolders();
+          setFolders(nextFolders);
+          if (selectedFolderId === id) {
+            onSelectFolder(nextFolders[0]?.id || "default");
+          }
+        } catch (error) {
+          console.error("Failed to delete folder:", error);
+          message.error("删除文件夹失败");
+          throw error; // 让 Modal 维持 loading 状态直至结束
+        }
+      },
+    });
+  };
 
+  // 开始重命名
+  const startRename = (folder: Folder) => {
+    if (folder.system) {
+      message.warning("默认文件夹不可重命名");
+      return;
+    }
+    setEditingId(folder.id);
+    setEditName(folder.name);
+  };
+
+  const cancelRename = () => {
+    setEditingId(null);
+    setEditName("");
+  };
+
+  const submitRename = async () => {
+    const id = editingId;
+    const name = editName.trim();
+    if (!id) return;
+    if (!name) {
+      message.warning("请输入文件夹名称");
+      return;
+    }
+    if (folders.some((f) => f.id !== id && f.name === name)) {
+      message.error("文件夹名称已存在");
+      return;
+    }
     try {
-      await window.storage.deleteFolder(id);
-      message.success("删除成功");
+      setRenaming(true);
+      await window.storage.renameFolder(id, name);
+      message.success("重命名成功");
+      cancelRename();
       await loadFolders();
-
-      // 如果删除的是当前选中的文件夹，切换到默认文件夹
-      if (selectedFolderId === id) {
-        onSelectFolder(folders[0]?.id || "default");
+    } catch (error) {
+      console.error("Failed to rename folder:", error);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("already exists")) {
+        message.error("文件夹名称已存在");
+      } else {
+        message.error("重命名失败");
       }
-    } catch (error: any) {
-      console.error("Failed to delete folder:", error);
-      message.error("删除文件夹失败");
+    } finally {
+      setRenaming(false);
     }
   };
 
@@ -166,7 +243,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           type="text"
           block
           icon={<PlusOutlined />}
-          onClick={handleCreateFolder}
+          onClick={openCreateFolderModal}
           style={{ justifyContent: "flex-start" }}
         >
           添加文件夹
@@ -177,23 +254,53 @@ const Sidebar: React.FC<SidebarProps> = ({
           <Menu
             mode="inline"
             selectedKeys={selectedFolderId ? [selectedFolderId] : []}
-            onSelect={({ key }) => onSelectFolder(key)}
-            items={folders.map((folder) => ({
-              key: folder.id,
-              label: folder.name,
-              icon: <FolderOutlined />,
-              // 系统默认文件夹不显示删除按钮
-              ...(!folder.system && {
-                children: [
-                  {
-                    key: `${folder.id}-delete`,
-                    label: "删除",
-                    icon: <DeleteOutlined />,
-                    onClick: () => handleDeleteFolder(folder.id),
-                  },
-                ],
-              }),
-            }))}
+            onClick={(e) => onSelectFolder(String(e.key))}
+            className="sidebar-menu"
+            items={folders.map((folder) => {
+              const editing = editingId === folder.id;
+              return {
+                key: folder.id,
+                icon: <FolderOutlined />,
+                label: (
+                  <div className="menu-item-row" title={folder.name}>
+                    {!editing ? (
+                      <span className="item-name">{folder.name}</span>
+                    ) : (
+                      <Input
+                        size="small"
+                        value={editName}
+                        autoFocus
+                        disabled={renaming}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onPressEnter={submitRename}
+                        onBlur={submitRename}
+                        maxLength={30}
+                      />
+                    )}
+                    {!folder.system && !editing && (
+                      <span
+                        className="item-actions"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => startRename(folder)}
+                        />
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleDeleteFolder(folder.id)}
+                        />
+                      </span>
+                    )}
+                  </div>
+                ),
+              };
+            })}
           />
         </div>
       </div>
@@ -212,6 +319,25 @@ const Sidebar: React.FC<SidebarProps> = ({
         open={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
+      {/* 新建文件夹对话框 */}
+      <Modal
+        title="新建文件夹"
+        open={isCreateOpen}
+        okText="创建"
+        cancelText="取消"
+        confirmLoading={creating}
+        onOk={handleSubmitCreateFolder}
+        onCancel={() => setIsCreateOpen(false)}
+      >
+        <Input
+          placeholder="请输入文件夹名称"
+          value={newFolderName}
+          autoFocus
+          onChange={(e) => setNewFolderName(e.target.value)}
+          onPressEnter={handleSubmitCreateFolder}
+          maxLength={30}
+        />
+      </Modal>
     </div>
   );
 };

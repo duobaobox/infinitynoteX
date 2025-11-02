@@ -21,8 +21,17 @@ const ListPanel: React.FC<ListPanelProps> = ({
   onSelectNote,
   refreshTrigger,
 }) => {
-  const themeColor = getThemeColor();
+  const [themeColor, setThemeColor] = React.useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const color = (e as unknown as CustomEvent<string>).detail;
+      if (typeof color === 'string' && color) setThemeColor(color);
+    };
+    window.addEventListener('theme-color-change', handler as EventListener);
+    return () => window.removeEventListener('theme-color-change', handler as EventListener);
+  }, []);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
   const [notes, setNotes] = useState<NoteIndex[]>([]);

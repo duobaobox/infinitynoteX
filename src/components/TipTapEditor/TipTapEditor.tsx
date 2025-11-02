@@ -36,7 +36,17 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   title = '',
   onTitleChange,
 }) => {
-  const themeColor = getThemeColor();
+  const [themeColor, setThemeColor] = React.useState(getThemeColor());
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const color = (e as unknown as CustomEvent<string>).detail;
+      if (typeof color === 'string' && color) setThemeColor(color);
+    };
+    window.addEventListener('theme-color-change', handler as EventListener);
+    return () => window.removeEventListener('theme-color-change', handler as EventListener);
+  }, []);
+
   // 将十六进制颜色转为 RGB 格式
   function hexToRgb(hex: string): string {
     if (/^#([0-9a-fA-F]{6})$/.test(hex)) {

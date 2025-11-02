@@ -12,10 +12,19 @@ export interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ title, content, onClick, actions, id }) => {
-  // 不再需要 colorClass
-  const themeColor = getThemeColor();
-  // 选中态和悬浮态样式
+  // 监听主题色变化
+  const [themeColor, setThemeColor] = React.useState(getThemeColor());
   const [hovered, setHovered] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const color = (e as unknown as CustomEvent<string>).detail;
+      if (typeof color === 'string' && color) setThemeColor(color);
+    };
+    window.addEventListener('theme-color-change', handler as EventListener);
+    return () => window.removeEventListener('theme-color-change', handler as EventListener);
+  }, []);
+
   // 由父组件传递 selectedId，当前卡片是否选中
   const listContext = React.useContext(NoteCardListContext as any) as
     | { selectedId?: string }

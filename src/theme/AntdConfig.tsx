@@ -31,7 +31,7 @@ const AntdConfig: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         },
         algorithm: theme.defaultAlgorithm,
       }}
-      componentSize="small"
+      // 使用 antd 默认尺寸（middle），不指定 componentSize
     >
       {children}
     </ConfigProvider>

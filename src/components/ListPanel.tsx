@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
-import { SearchOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { NoteIndex } from '../services/types';
 import NoteCard from './NoteCard/NoteCard';
 import './ListPanel.css';
@@ -169,15 +169,11 @@ const ListPanel: React.FC<ListPanelProps> = ({
         </div>
         <Input
           allowClear
-          size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          prefix={
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <SearchOutlined style={{ fontSize: 12 }} />
-              <span style={{ fontSize: 12, color: '#999' }}>搜索</span>
-            </span>
-          }
+          placeholder="搜索"
+          prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
+          style={{ width: '100%' }}
         />
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>

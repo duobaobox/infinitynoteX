@@ -5,7 +5,7 @@
  * @see https://tiptap.dev/docs/editor/getting-started/overview
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Input } from 'antd';
 import { MenuBar } from './MenuBar';
@@ -72,6 +72,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     // 内容更新回调
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
+      // 记录最新内容，用于和外部传入内容做去抖比对，避免 setContent 导致光标跳动/换行
+      lastSyncedContentRef.current = JSON.stringify(json);
       onContentChange?.(json as unknown as import('../../services/types').TipTapJSONContent);
     },
     // 编辑器属性配置
@@ -82,10 +84,32 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     },
   });
 
-  // 当 initialContent 变化时更新编辑器内容
+  // 用于避免父组件每次 onUpdate 回传的内容再次触发 setContent，导致光标位置丢失/自动换行
+  const lastSyncedContentRef = useRef<string | null>(null);
+
+  // 编辑器就绪时初始化同步内容快照
   useEffect(() => {
     if (editor) {
-      editor.commands.setContent(initialContent);
+      lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
+    }
+  }, [editor]);
+
+  // 当外部 initialContent 确实与当前内容不同（例如切换笔记）时，才更新编辑器内容
+  useEffect(() => {
+    if (!editor) return;
+
+    try {
+      const incoming = JSON.stringify(initialContent ?? { type: 'doc', content: [] });
+      if (incoming !== lastSyncedContentRef.current) {
+        // 通过选项 emitUpdate: false，避免递归触发 onUpdate
+        editor.commands.setContent(initialContent as any, { emitUpdate: false });
+        // 更新快照，保持与编辑器内部一致
+        lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
+      }
+    } catch (e) {
+      // 如果序列化失败，兜底直接设置一次内容
+      editor.commands.setContent(initialContent as any, { emitUpdate: false });
+      lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
     }
   }, [editor, initialContent]);
 

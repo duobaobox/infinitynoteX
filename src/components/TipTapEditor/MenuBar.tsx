@@ -175,14 +175,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             icon={`ri-h-${lv}`}
             text={`标题 ${lv}`}
             active={editor.isActive('heading', { level: lv })}
-            disabled={
-              !editor
-                .can()
-                .chain()
-                .focus()
-                .toggleHeading({ level: lv as 1 | 2 | 3 })
-                .run()
-            }
             onClick={() =>
               editor
                 .chain()
@@ -205,7 +197,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
               icon="ri-list-unordered"
               text="无序列表"
               active={editor.isActive('bulletList')}
-              disabled={!editor.can().chain().focus().toggleBulletList().run()}
               onClick={() => editor.chain().focus().toggleBulletList().run()}
             />
           ),
@@ -217,7 +208,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
               icon="ri-list-ordered"
               text="有序列表"
               active={editor.isActive('orderedList')}
-              disabled={!editor.can().chain().focus().toggleOrderedList().run()}
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
             />
           ),
@@ -229,7 +219,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
               icon="ri-checkbox-line"
               text="任务列表"
               active={editor.isActive('taskList')}
-              disabled={!editor.can().chain().focus().toggleTaskList().run()}
               onClick={() => editor.chain().focus().toggleTaskList().run()}
             />
           ),
@@ -343,7 +332,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
               icon={it.icon}
               text={it.label}
               active={editor.isActive({ textAlign: it.value })}
-              disabled={!editor.can().chain().focus().setTextAlign(it.value).run()}
               onClick={() => editor.chain().focus().setTextAlign(it.value).run()}
             />
           ),
@@ -361,7 +349,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-table-2"
               text="插入表格 (3×3)"
-              disabled={!editor.can().chain().focus().insertTable().run()}
               onClick={() =>
                 editor.commands.insertTable({
                   rows: 3,
@@ -384,7 +371,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-insert-row-top"
               text="在上方插入行"
-              disabled={!editor.can().chain().focus().addRowBefore().run()}
               onClick={() => editor.commands.addRowBefore()}
             />
           ),
@@ -395,7 +381,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-insert-row-bottom"
               text="在下方插入行"
-              disabled={!editor.can().chain().focus().addRowAfter().run()}
               onClick={() => editor.commands.addRowAfter()}
             />
           ),
@@ -406,7 +391,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-delete-row"
               text="删除当前行"
-              disabled={!editor.can().chain().focus().deleteRow().run()}
               onClick={() => editor.commands.deleteRow()}
             />
           ),
@@ -423,7 +407,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-insert-column-left"
               text="在左侧插入列"
-              disabled={!editor.can().chain().focus().addColumnBefore().run()}
               onClick={() => editor.commands.addColumnBefore()}
             />
           ),
@@ -434,7 +417,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-insert-column-right"
               text="在右侧插入列"
-              disabled={!editor.can().chain().focus().addColumnAfter().run()}
               onClick={() => editor.commands.addColumnAfter()}
             />
           ),
@@ -445,7 +427,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-delete-column"
               text="删除当前列"
-              disabled={!editor.can().chain().focus().deleteColumn().run()}
               onClick={() => editor.commands.deleteColumn()}
             />
           ),
@@ -462,7 +443,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-merge-cells-horizontal"
               text="合并单元格"
-              disabled={!editor.can().chain().focus().mergeCells().run()}
               onClick={() => editor.commands.mergeCells()}
             />
           ),
@@ -473,7 +453,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-split-cells-horizontal"
               text="拆分单元格"
-              disabled={!editor.can().chain().focus().splitCell().run()}
               onClick={() => editor.commands.splitCell()}
             />
           ),
@@ -539,7 +518,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
             <MenuItemRow
               icon="ri-delete-bin-line"
               text="删除整个表格"
-              disabled={!editor.can().chain().focus().deleteTable().run()}
               onClick={() => editor.commands.deleteTable()}
             />
           ),
@@ -569,35 +547,30 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       {/* 文本格式 常驻 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
-        disabled={!editor.can().chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
         title="粗体 (Ctrl+B)"
         icon="ri-bold"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        disabled={!editor.can().chain().focus().toggleItalic().run()}
         isActive={editor.isActive('italic')}
         title="斜体 (Ctrl+I)"
         icon="ri-italic"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        disabled={!editor.can().chain().focus().toggleUnderline().run()}
         isActive={editor.isActive('underline')}
         title="下划线 (Ctrl+U)"
         icon="ri-underline"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        disabled={!editor.can().chain().focus().toggleStrike().run()}
         isActive={editor.isActive('strike')}
         title="删除线"
         icon="ri-strikethrough"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
-        disabled={!editor.can().chain().focus().toggleCode().run()}
         isActive={editor.isActive('code')}
         title="行内代码"
         icon="ri-code-line"
@@ -647,14 +620,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         isActive={editor.isActive('codeBlock')}
-        disabled={!editor.can().chain().focus().toggleCodeBlock().run()}
         title="代码块"
         icon="ri-code-s-slash-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         isActive={editor.isActive('blockquote')}
-        disabled={!editor.can().chain().focus().toggleBlockquote().run()}
         title="引用"
         icon="ri-double-quotes-l"
       />
@@ -683,13 +654,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       {/* 撤销/重做 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().chain().focus().undo().run()}
         title="撤销 (Ctrl+Z)"
         icon="ri-arrow-go-back-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().chain().focus().redo().run()}
         title="重做 (Ctrl+Y)"
         icon="ri-arrow-go-forward-line"
       />

@@ -9,10 +9,10 @@
  * - Floating UI 配置：自动躲避屏幕边界
  */
 
-import React, { useCallback, useMemo } from "react";
-import { BubbleMenu as TipTapBubbleMenu } from "@tiptap/react/menus";
-import type { Editor } from "@tiptap/core";
-import "./BubbleMenu.css";
+import React, { useCallback, useMemo } from 'react';
+import { BubbleMenu as TipTapBubbleMenu } from '@tiptap/react/menus';
+import type { Editor } from '@tiptap/core';
+import './BubbleMenu.css';
 
 interface BubbleMenuProps {
   editor: Editor | null;
@@ -32,7 +32,7 @@ const BubbleMenuButton: React.FC<{
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`bubble-menu-button ${isActive ? "is-active" : ""}`}
+      className={`bubble-menu-button ${isActive ? 'is-active' : ''}`}
       title={title}
       type="button"
     >
@@ -59,40 +59,35 @@ const TextFormatMenu: React.FC<{ editor: Editor; handleCopy: () => void }> = ({
     {/* 文本格式 */}
     <BubbleMenuButton
       onClick={() => editor.chain().focus().toggleBold().run()}
-      disabled={!editor.can().chain().focus().toggleBold().run()}
-      isActive={editor.isActive("bold")}
+      isActive={editor.isActive('bold')}
       title="粗体 (Ctrl+B)"
       icon="ri-bold"
     />
 
     <BubbleMenuButton
       onClick={() => editor.chain().focus().toggleItalic().run()}
-      disabled={!editor.can().chain().focus().toggleItalic().run()}
-      isActive={editor.isActive("italic")}
+      isActive={editor.isActive('italic')}
       title="斜体 (Ctrl+I)"
       icon="ri-italic"
     />
 
     <BubbleMenuButton
       onClick={() => editor.chain().focus().toggleUnderline().run()}
-      disabled={!editor.can().chain().focus().toggleUnderline().run()}
-      isActive={editor.isActive("underline")}
+      isActive={editor.isActive('underline')}
       title="下划线 (Ctrl+U)"
       icon="ri-underline"
     />
 
     <BubbleMenuButton
       onClick={() => editor.chain().focus().toggleStrike().run()}
-      disabled={!editor.can().chain().focus().toggleStrike().run()}
-      isActive={editor.isActive("strike")}
+      isActive={editor.isActive('strike')}
       title="删除线"
       icon="ri-strikethrough"
     />
 
     <BubbleMenuButton
       onClick={() => editor.chain().focus().toggleCode().run()}
-      disabled={!editor.can().chain().focus().toggleCode().run()}
-      isActive={editor.isActive("code")}
+      isActive={editor.isActive('code')}
       title="行内代码"
       icon="ri-code-line"
     />
@@ -100,11 +95,7 @@ const TextFormatMenu: React.FC<{ editor: Editor; handleCopy: () => void }> = ({
     <BubbleMenuDivider />
 
     {/* 快捷操作 */}
-    <BubbleMenuButton
-      onClick={handleCopy}
-      title="复制"
-      icon="ri-file-copy-line"
-    />
+    <BubbleMenuButton onClick={handleCopy} title="复制" icon="ri-file-copy-line" />
 
     <BubbleMenuButton
       onClick={() => {
@@ -175,7 +166,7 @@ const TableMenu: React.FC<{ editor: Editor }> = ({ editor }) => (
 export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
   // 检测是否在表格中（允许 editor 为空，避免条件调用 hooks）
   const isInTable = useMemo(() => {
-    return editor?.isActive("table") ?? false;
+    return editor?.isActive('table') ?? false;
   }, [editor]);
 
   /**
@@ -186,7 +177,7 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
     const text = editor.state.selection.$from.parent.textContent;
     if (text) {
       navigator.clipboard.writeText(text).catch((err) => {
-        console.error("复制失败:", err);
+        console.error('复制失败:', err);
       });
     }
   }, [editor]);
@@ -215,13 +206,13 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
       }
 
       // 不在代码块中显示
-      if (ed.isActive("codeBlock")) {
+      if (ed.isActive('codeBlock')) {
         return false;
       }
 
       return true;
     },
-    [isInTable]
+    [isInTable],
   );
 
   // 在 hooks 定义之后再进行空编辑器的短路返回，避免 hooks 条件调用
@@ -232,7 +223,7 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
   return (
     <TipTapBubbleMenu
       editor={editor}
-      className={`bubble-menu ${isInTable ? "table-mode" : ""}`}
+      className={`bubble-menu ${isInTable ? 'table-mode' : ''}`}
       shouldShow={shouldShow}
       updateDelay={250}
       resizeDelay={100}

@@ -12,10 +12,12 @@ import {
   Typography,
   message,
   Progress,
+  ColorPicker,
 } from 'antd';
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
 import './SettingsModal.css';
+import { getThemeColor, setThemeColor } from '../../theme/theme';
 
 const { Text, Paragraph } = Typography;
 
@@ -31,6 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [migrating, setMigrating] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState<string>(getThemeColor());
 
   // 加载存储信息
   useEffect(() => {
@@ -87,6 +90,52 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
           <div className="settings-panel">
             <h3>外观设置</h3>
             <Form layout="vertical">
+              <Form.Item label="主题色">
+                <Space align="center" size={16}>
+                  <ColorPicker
+                    value={primaryColor}
+                    onChange={(c) => {
+                      const hex = c.toHexString();
+                      setPrimaryColor(hex);
+                      setThemeColor(hex);
+                      message.success('主题色已更新');
+                    }}
+                    presets={[
+                      {
+                        label: '品牌色',
+                        colors: [
+                          '#1677ff',
+                          '#fa8c16',
+                          '#722ed1',
+                          '#13c2c2',
+                          '#eb2f96',
+                          '#52c41a',
+                          '#fa541c',
+                        ],
+                      },
+                    ]}
+                  />
+                  <Input
+                    style={{ width: 120 }}
+                    value={primaryColor}
+                    onChange={(e) => {
+                      const v = e.target.value.trim();
+                      setPrimaryColor(v);
+                    }}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) {
+                        setThemeColor(v);
+                        message.success('主题色已更新');
+                      } else {
+                        message.warning('请输入有效的十六进制颜色，如 #1677ff');
+                        setPrimaryColor(getThemeColor());
+                      }
+                    }}
+                    placeholder="#1677ff"
+                  />
+                </Space>
+              </Form.Item>
               <Form.Item label="主题">
                 <Select
                   options={[

@@ -3,11 +3,11 @@
  * 负责文件系统的读写、文件夹和便签的 CRUD 操作
  */
 
-import { app, shell } from "electron";
-import fs from "node:fs/promises";
-import fsSync from "node:fs";
-import path from "node:path";
-import { randomBytes } from "node:crypto";
+import { app, shell } from 'electron';
+import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
+import path from 'node:path';
+import { randomBytes } from 'node:crypto';
 
 // 类型定义
 interface Folder {
@@ -23,7 +23,7 @@ interface Note {
   id: string;
   folderId: string;
   title: string;
-  content: any;
+  content: import('../src/services/types').TipTapJSONContent;
   tags: string[];
   pinned: boolean;
   createdAt: number;
@@ -60,7 +60,7 @@ interface StorageStats {
 
 interface CreateNotePayload {
   title?: string;
-  content?: any;
+  content?: import('../src/services/types').TipTapJSONContent;
 }
 
 interface SetStoragePathOptions {
@@ -68,23 +68,23 @@ interface SetStoragePathOptions {
 }
 
 enum StorageErrorCode {
-  E_FOLDER_SYSTEM = "E_FOLDER_SYSTEM",
-  E_IO_READ = "E_IO_READ",
-  E_IO_WRITE = "E_IO_WRITE",
-  E_PATH_INVALID = "E_PATH_INVALID",
-  E_MIGRATE_FAIL = "E_MIGRATE_FAIL",
-  E_NOT_FOUND = "E_NOT_FOUND",
-  E_ALREADY_EXISTS = "E_ALREADY_EXISTS",
+  E_FOLDER_SYSTEM = 'E_FOLDER_SYSTEM',
+  E_IO_READ = 'E_IO_READ',
+  E_IO_WRITE = 'E_IO_WRITE',
+  E_PATH_INVALID = 'E_PATH_INVALID',
+  E_MIGRATE_FAIL = 'E_MIGRATE_FAIL',
+  E_NOT_FOUND = 'E_NOT_FOUND',
+  E_ALREADY_EXISTS = 'E_ALREADY_EXISTS',
 }
 
 class StorageError extends Error {
   constructor(
     public code: StorageErrorCode,
     message: string,
-    public details?: any
+    public details?: unknown,
   ) {
     super(message);
-    this.name = "StorageError";
+    this.name = 'StorageError';
   }
 }
 
@@ -99,7 +99,7 @@ export class StorageManager {
 
   constructor() {
     // 默认路径: app.getPath('userData')/data-v1
-    this.defaultPath = path.join(app.getPath("userData"), "data-v1");
+    this.defaultPath = path.join(app.getPath('userData'), 'data-v1');
     this.currentPath = this.defaultPath;
   }
 
@@ -113,12 +113,8 @@ export class StorageManager {
       await this.recoverFromCrash();
       console.log(`[Storage] Initialized at: ${this.currentPath}`);
     } catch (error) {
-      console.error("[Storage] Initialization failed:", error);
-      throw new StorageError(
-        StorageErrorCode.E_IO_WRITE,
-        "Failed to initialize storage",
-        error
-      );
+      console.error('[Storage] Initialization failed:', error);
+      throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to initialize storage', error);
     }
   }
 
@@ -127,7 +123,7 @@ export class StorageManager {
    */
   private async ensureStorageInitialized(storagePath: string): Promise<void> {
     // 检查 meta.json 是否存在来判断是否已初始化
-    const metaPath = path.join(storagePath, "meta.json");
+    const metaPath = path.join(storagePath, 'meta.json');
     const metaExists = await this.fileExists(metaPath);
 
     if (metaExists) {
@@ -141,9 +137,9 @@ export class StorageManager {
 
     // 创建目录结构
     await fs.mkdir(storagePath, { recursive: true });
-    await fs.mkdir(path.join(storagePath, "notes"), { recursive: true });
-    await fs.mkdir(path.join(storagePath, "temp"), { recursive: true });
-    await fs.mkdir(path.join(storagePath, "backups"), { recursive: true });
+    await fs.mkdir(path.join(storagePath, 'notes'), { recursive: true });
+    await fs.mkdir(path.join(storagePath, 'temp'), { recursive: true });
+    await fs.mkdir(path.join(storagePath, 'backups'), { recursive: true });
 
     // 创建 meta.json
     const meta: StorageMeta = {
@@ -155,18 +151,18 @@ export class StorageManager {
 
     // 创建默认文件夹
     const defaultFolder: Folder = {
-      id: "default",
-      name: "默认文件夹",
+      id: 'default',
+      name: '默认文件夹',
       system: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       order: 0,
     };
-    const foldersPath = path.join(storagePath, "folders.json");
+    const foldersPath = path.join(storagePath, 'folders.json');
     await this.writeJsonFile(foldersPath, [defaultFolder]);
 
     // 创建空的 notes.index.json
-    const indexPath = path.join(storagePath, "notes.index.json");
+    const indexPath = path.join(storagePath, 'notes.index.json');
     await this.writeJsonFile(indexPath, []);
 
     // 加载缓存
@@ -177,8 +173,8 @@ export class StorageManager {
    * 加载缓存
    */
   private async loadCaches(): Promise<void> {
-    const foldersPath = path.join(this.currentPath, "folders.json");
-    const indexPath = path.join(this.currentPath, "notes.index.json");
+    const foldersPath = path.join(this.currentPath, 'folders.json');
+    const indexPath = path.join(this.currentPath, 'notes.index.json');
 
     this.foldersCache = await this.readJsonFile<Folder[]>(foldersPath, []);
     this.notesIndexCache = await this.readJsonFile<NoteIndex[]>(indexPath, []);
@@ -198,7 +194,7 @@ export class StorageManager {
    */
   private async recoverFromCrash(): Promise<void> {
     try {
-      const tempDir = path.join(this.currentPath, "temp");
+      const tempDir = path.join(this.currentPath, 'temp');
       const tempExists = await this.fileExists(tempDir);
 
       if (!tempExists) {
@@ -209,19 +205,19 @@ export class StorageManager {
       let recoveredCount = 0;
 
       for (const tempFile of tempFiles) {
-        if (!tempFile.endsWith(".tmp")) {
+        if (!tempFile.endsWith('.tmp')) {
           continue;
         }
 
         const tempPath = path.join(tempDir, tempFile);
-        const originalName = tempFile.replace(".tmp", "");
+        const originalName = tempFile.replace('.tmp', '');
 
         // 判断目标位置
         let targetPath: string;
-        if (originalName.startsWith("note-")) {
+        if (originalName.startsWith('note-')) {
           // 便签文件恢复到 notes/ 目录
-          const noteId = originalName.replace("note-", "").replace(".json", "");
-          targetPath = path.join(this.currentPath, "notes", `${noteId}.json`);
+          const noteId = originalName.replace('note-', '').replace('.json', '');
+          targetPath = path.join(this.currentPath, 'notes', `${noteId}.json`);
         } else {
           // 其他文件恢复到根目录
           targetPath = path.join(this.currentPath, originalName);
@@ -229,7 +225,7 @@ export class StorageManager {
 
         try {
           // 尝试读取临时文件，验证其有效性
-          const content = await fs.readFile(tempPath, "utf-8");
+          const content = await fs.readFile(tempPath, 'utf-8');
           JSON.parse(content); // 验证是否为有效 JSON
 
           // 恢复文件
@@ -238,21 +234,16 @@ export class StorageManager {
           console.log(`[Storage] Recovered temp file: ${tempFile}`);
         } catch (error) {
           // 文件损坏，删除
-          console.warn(
-            `[Storage] Removing corrupted temp file: ${tempFile}`,
-            error
-          );
+          console.warn(`[Storage] Removing corrupted temp file: ${tempFile}`, error);
           await fs.unlink(tempPath);
         }
       }
 
       if (recoveredCount > 0) {
-        console.log(
-          `[Storage] Crash recovery completed: ${recoveredCount} file(s) recovered`
-        );
+        console.log(`[Storage] Crash recovery completed: ${recoveredCount} file(s) recovered`);
       }
     } catch (error) {
-      console.error("[Storage] Crash recovery failed:", error);
+      console.error('[Storage] Crash recovery failed:', error);
       // 不抛出错误，允许应用继续启动
     }
   }
@@ -276,10 +267,7 @@ export class StorageManager {
   /**
    * 设置存储路径
    */
-  async setStoragePath(
-    nextPath: string,
-    options?: SetStoragePathOptions
-  ): Promise<void> {
+  async setStoragePath(nextPath: string, options?: SetStoragePathOptions): Promise<void> {
     const migrate = options?.migrate ?? false;
 
     if (!migrate) {
@@ -305,7 +293,7 @@ export class StorageManager {
       await this.validateMigrationPath(toPath);
 
       // 2. 创建备份
-      const backupPath = path.join(fromPath, "backups", `backup-${Date.now()}`);
+      const backupPath = path.join(fromPath, 'backups', `backup-${Date.now()}`);
       await this.copyDirectory(fromPath, backupPath);
 
       // 3. 拷贝到新路径
@@ -321,12 +309,8 @@ export class StorageManager {
 
       console.log(`[Storage] Migration completed successfully`);
     } catch (error) {
-      console.error("[Storage] Migration failed:", error);
-      throw new StorageError(
-        StorageErrorCode.E_MIGRATE_FAIL,
-        "Data migration failed",
-        error
-      );
+      console.error('[Storage] Migration failed:', error);
+      throw new StorageError(StorageErrorCode.E_MIGRATE_FAIL, 'Data migration failed', error);
     }
   }
 
@@ -341,7 +325,7 @@ export class StorageManager {
         // 检查是否为空目录
         const files = await fs.readdir(targetPath);
         if (files.length > 0) {
-          throw new Error("Target directory is not empty");
+          throw new Error('Target directory is not empty');
         }
       } else {
         // 创建目录
@@ -351,11 +335,7 @@ export class StorageManager {
       // 检查是否可写
       await fs.access(targetPath, fsSync.constants.W_OK);
     } catch (error) {
-      throw new StorageError(
-        StorageErrorCode.E_PATH_INVALID,
-        "Invalid migration path",
-        error
-      );
+      throw new StorageError(StorageErrorCode.E_PATH_INVALID, 'Invalid migration path', error);
     }
   }
 
@@ -363,7 +343,7 @@ export class StorageManager {
    * 校验存储完整性
    */
   private async validateStorageIntegrity(storagePath: string): Promise<void> {
-    const requiredFiles = ["meta.json", "folders.json", "notes.index.json"];
+    const requiredFiles = ['meta.json', 'folders.json', 'notes.index.json'];
     for (const file of requiredFiles) {
       const filePath = path.join(storagePath, file);
       const exists = await this.fileExists(filePath);
@@ -386,7 +366,7 @@ export class StorageManager {
 
       if (entry.isDirectory()) {
         // 跳过 temp 和 backups 目录
-        if (entry.name === "temp" || entry.name === "backups") {
+        if (entry.name === 'temp' || entry.name === 'backups') {
           continue;
         }
         await this.copyDirectory(srcPath, destPath);
@@ -406,7 +386,7 @@ export class StorageManager {
     } catch (error) {
       return {
         ok: false,
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -440,7 +420,7 @@ export class StorageManager {
     try {
       const timestamp = Date.now();
       const backupName = `backup-${timestamp}`;
-      const backupPath = path.join(this.currentPath, "backups", backupName);
+      const backupPath = path.join(this.currentPath, 'backups', backupName);
 
       console.log(`[Storage] Creating backup: ${backupName}`);
 
@@ -450,12 +430,8 @@ export class StorageManager {
       console.log(`[Storage] Backup created successfully: ${backupPath}`);
       return backupPath;
     } catch (error) {
-      console.error("[Storage] Backup creation failed:", error);
-      throw new StorageError(
-        StorageErrorCode.E_IO_WRITE,
-        "Failed to create backup",
-        error
-      );
+      console.error('[Storage] Backup creation failed:', error);
+      throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to create backup', error);
     }
   }
 
@@ -474,12 +450,8 @@ export class StorageManager {
 
       console.log(`[Storage] Data exported successfully`);
     } catch (error) {
-      console.error("[Storage] Data export failed:", error);
-      throw new StorageError(
-        StorageErrorCode.E_IO_WRITE,
-        "Failed to export data",
-        error
-      );
+      console.error('[Storage] Data export failed:', error);
+      throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to export data', error);
     }
   }
 
@@ -525,10 +497,7 @@ export class StorageManager {
 
     // 检查名称是否已存在
     if (folders.some((f) => f.name === name)) {
-      throw new StorageError(
-        StorageErrorCode.E_ALREADY_EXISTS,
-        `Folder "${name}" already exists`
-      );
+      throw new StorageError(StorageErrorCode.E_ALREADY_EXISTS, `Folder "${name}" already exists`);
     }
 
     const now = Date.now();
@@ -555,25 +524,16 @@ export class StorageManager {
     const folder = folders.find((f) => f.id === id);
 
     if (!folder) {
-      throw new StorageError(
-        StorageErrorCode.E_NOT_FOUND,
-        `Folder not found: ${id}`
-      );
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Folder not found: ${id}`);
     }
 
     if (folder.system) {
-      throw new StorageError(
-        StorageErrorCode.E_FOLDER_SYSTEM,
-        "Cannot rename system folder"
-      );
+      throw new StorageError(StorageErrorCode.E_FOLDER_SYSTEM, 'Cannot rename system folder');
     }
 
     // 检查名称是否已存在
     if (folders.some((f) => f.id !== id && f.name === name)) {
-      throw new StorageError(
-        StorageErrorCode.E_ALREADY_EXISTS,
-        `Folder "${name}" already exists`
-      );
+      throw new StorageError(StorageErrorCode.E_ALREADY_EXISTS, `Folder "${name}" already exists`);
     }
 
     folder.name = name;
@@ -592,16 +552,13 @@ export class StorageManager {
     const folder = folders.find((f) => f.id === id);
 
     if (!folder) {
-      throw new StorageError(
-        StorageErrorCode.E_NOT_FOUND,
-        `Folder not found: ${id}`
-      );
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Folder not found: ${id}`);
     }
 
     if (folder.system) {
       throw new StorageError(
         StorageErrorCode.E_FOLDER_SYSTEM,
-        "Cannot delete system default folder"
+        'Cannot delete system default folder',
       );
     }
 
@@ -609,7 +566,7 @@ export class StorageManager {
     const notes = await this.listNotes(id);
     for (const note of notes) {
       const fullNote = await this.getNote(note.id);
-      fullNote.folderId = "default";
+      fullNote.folderId = 'default';
       fullNote.updatedAt = Date.now();
       await this.saveNote(fullNote);
     }
@@ -624,7 +581,7 @@ export class StorageManager {
    * 保存文件夹列表
    */
   private async saveFolders(folders: Folder[]): Promise<void> {
-    const foldersPath = path.join(this.currentPath, "folders.json");
+    const foldersPath = path.join(this.currentPath, 'folders.json');
     await this.writeJsonFile(foldersPath, folders);
     this.foldersCache = folders;
   }
@@ -651,25 +608,19 @@ export class StorageManager {
   /**
    * 创建便签
    */
-  async createNote(
-    folderId: string,
-    payload?: CreateNotePayload
-  ): Promise<Note> {
+  async createNote(folderId: string, payload?: CreateNotePayload): Promise<Note> {
     // 验证文件夹存在
     const folders = await this.listFolders();
     if (!folders.some((f) => f.id === folderId)) {
-      throw new StorageError(
-        StorageErrorCode.E_NOT_FOUND,
-        `Folder not found: ${folderId}`
-      );
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Folder not found: ${folderId}`);
     }
 
     const now = Date.now();
     const newNote: Note = {
       id: this.generateId(),
       folderId,
-      title: payload?.title || "无标题",
-      content: payload?.content || { type: "doc", content: [] },
+      title: payload?.title || '无标题',
+      content: payload?.content || { type: 'doc', content: [] },
       tags: [],
       pinned: false,
       createdAt: now,
@@ -686,14 +637,11 @@ export class StorageManager {
    * 获取便签完整内容
    */
   async getNote(id: string): Promise<Note> {
-    const notePath = path.join(this.currentPath, "notes", `${id}.json`);
+    const notePath = path.join(this.currentPath, 'notes', `${id}.json`);
     const exists = await this.fileExists(notePath);
 
     if (!exists) {
-      throw new StorageError(
-        StorageErrorCode.E_NOT_FOUND,
-        `Note not found: ${id}`
-      );
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Note not found: ${id}`);
     }
 
     return await this.readJsonFile<Note>(notePath);
@@ -719,14 +667,11 @@ export class StorageManager {
    * 删除便签
    */
   async deleteNote(id: string): Promise<void> {
-    const notePath = path.join(this.currentPath, "notes", `${id}.json`);
+    const notePath = path.join(this.currentPath, 'notes', `${id}.json`);
     const exists = await this.fileExists(notePath);
 
     if (!exists) {
-      throw new StorageError(
-        StorageErrorCode.E_NOT_FOUND,
-        `Note not found: ${id}`
-      );
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Note not found: ${id}`);
     }
 
     // 删除文件
@@ -747,7 +692,7 @@ export class StorageManager {
    */
   private async saveNote(note: Note): Promise<void> {
     // 1. 保存完整便签（原子写入）
-    const notePath = path.join(this.currentPath, "notes", `${note.id}.json`);
+    const notePath = path.join(this.currentPath, 'notes', `${note.id}.json`);
     await this.writeJsonFileAtomic(notePath, note);
 
     // 2. 更新索引
@@ -777,7 +722,7 @@ export class StorageManager {
    * 保存便签索引
    */
   private async saveNotesIndex(index: NoteIndex[]): Promise<void> {
-    const indexPath = path.join(this.currentPath, "notes.index.json");
+    const indexPath = path.join(this.currentPath, 'notes.index.json');
     await this.writeJsonFile(indexPath, index);
     this.notesIndexCache = index;
   }
@@ -785,15 +730,18 @@ export class StorageManager {
   /**
    * 生成摘要
    */
-  private generateExcerpt(content: any): string {
+  private generateExcerpt(content: unknown): string {
     try {
-      if (!content || !content.content) {
-        return "";
-      }
+      const isObj = (v: unknown): v is { [k: string]: unknown } =>
+        typeof v === 'object' && v !== null;
+      if (!isObj(content)) return '';
 
-      let text = "";
-      const extractText = (node: any) => {
-        if (node.type === "text") {
+      const root = content as import('../src/services/types').TipTapJSONContent;
+      if (!Array.isArray(root.content)) return '';
+
+      let text = '';
+      const extractText = (node: import('../src/services/types').TipTapJSONContent) => {
+        if (node.type === 'text' && typeof node.text === 'string') {
           text += node.text;
         }
         if (node.content && Array.isArray(node.content)) {
@@ -801,10 +749,10 @@ export class StorageManager {
         }
       };
 
-      extractText(content);
+      extractText(root);
       return text.slice(0, 100);
     } catch {
-      return "";
+      return '';
     }
   }
 
@@ -814,7 +762,7 @@ export class StorageManager {
    * 生成唯一 ID
    */
   private generateId(): string {
-    return randomBytes(8).toString("hex");
+    return randomBytes(8).toString('hex');
   }
 
   /**
@@ -832,37 +780,30 @@ export class StorageManager {
   /**
    * 读取 JSON 文件
    */
-  private async readJsonFile<T>(
-    filePath: string,
-    defaultValue?: T
-  ): Promise<T> {
+  private async readJsonFile<T>(filePath: string, defaultValue?: T): Promise<T> {
     try {
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await fs.readFile(filePath, 'utf-8');
       return JSON.parse(content);
     } catch (error) {
       if (defaultValue !== undefined) {
         return defaultValue;
       }
-      throw new StorageError(
-        StorageErrorCode.E_IO_READ,
-        `Failed to read file: ${filePath}`,
-        error
-      );
+      throw new StorageError(StorageErrorCode.E_IO_READ, `Failed to read file: ${filePath}`, error);
     }
   }
 
   /**
    * 写入 JSON 文件
    */
-  private async writeJsonFile(filePath: string, data: any): Promise<void> {
+  private async writeJsonFile(filePath: string, data: unknown): Promise<void> {
     try {
       const content = JSON.stringify(data, null, 2);
-      await fs.writeFile(filePath, content, "utf-8");
+      await fs.writeFile(filePath, content, 'utf-8');
     } catch (error) {
       throw new StorageError(
         StorageErrorCode.E_IO_WRITE,
         `Failed to write file: ${filePath}`,
-        error
+        error,
       );
     }
   }
@@ -871,22 +812,17 @@ export class StorageManager {
    * 原子写入 JSON 文件
    * 先写临时文件，再重命名
    */
-  private async writeJsonFileAtomic(
-    filePath: string,
-    data: any
-  ): Promise<void> {
+  private async writeJsonFileAtomic(filePath: string, data: unknown): Promise<void> {
     // 为便签文件添加特殊前缀，便于崩溃恢复时识别
-    const isNoteFile = filePath.includes("/notes/");
+    const isNoteFile = filePath.includes('/notes/');
     const baseName = path.basename(filePath);
-    const tempFileName = isNoteFile
-      ? `note-${baseName}.tmp`
-      : `${baseName}.tmp`;
-    const tempPath = path.join(this.currentPath, "temp", tempFileName);
+    const tempFileName = isNoteFile ? `note-${baseName}.tmp` : `${baseName}.tmp`;
+    const tempPath = path.join(this.currentPath, 'temp', tempFileName);
 
     try {
       // 写入临时文件
       const content = JSON.stringify(data, null, 2);
-      await fs.writeFile(tempPath, content, "utf-8");
+      await fs.writeFile(tempPath, content, 'utf-8');
 
       // 原子重命名
       await fs.rename(tempPath, filePath);
@@ -899,7 +835,7 @@ export class StorageManager {
       throw new StorageError(
         StorageErrorCode.E_IO_WRITE,
         `Failed to write file atomically: ${filePath}`,
-        error
+        error,
       );
     }
   }

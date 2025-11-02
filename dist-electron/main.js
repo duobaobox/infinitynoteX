@@ -35,11 +35,7 @@ class StorageManager {
       console.log(`[Storage] Initialized at: ${this.currentPath}`);
     } catch (error) {
       console.error("[Storage] Initialization failed:", error);
-      throw new StorageError(
-        "E_IO_WRITE",
-        "Failed to initialize storage",
-        error
-      );
+      throw new StorageError("E_IO_WRITE", "Failed to initialize storage", error);
     }
   }
   /**
@@ -126,17 +122,12 @@ class StorageManager {
           recoveredCount++;
           console.log(`[Storage] Recovered temp file: ${tempFile}`);
         } catch (error) {
-          console.warn(
-            `[Storage] Removing corrupted temp file: ${tempFile}`,
-            error
-          );
+          console.warn(`[Storage] Removing corrupted temp file: ${tempFile}`, error);
           await fs.unlink(tempPath);
         }
       }
       if (recoveredCount > 0) {
-        console.log(
-          `[Storage] Crash recovery completed: ${recoveredCount} file(s) recovered`
-        );
+        console.log(`[Storage] Crash recovery completed: ${recoveredCount} file(s) recovered`);
       }
     } catch (error) {
       console.error("[Storage] Crash recovery failed:", error);
@@ -185,11 +176,7 @@ class StorageManager {
       console.log(`[Storage] Migration completed successfully`);
     } catch (error) {
       console.error("[Storage] Migration failed:", error);
-      throw new StorageError(
-        "E_MIGRATE_FAIL",
-        "Data migration failed",
-        error
-      );
+      throw new StorageError("E_MIGRATE_FAIL", "Data migration failed", error);
     }
   }
   /**
@@ -208,11 +195,7 @@ class StorageManager {
       }
       await fs.access(targetPath, fsSync.constants.W_OK);
     } catch (error) {
-      throw new StorageError(
-        "E_PATH_INVALID",
-        "Invalid migration path",
-        error
-      );
+      throw new StorageError("E_PATH_INVALID", "Invalid migration path", error);
     }
   }
   /**
@@ -294,11 +277,7 @@ class StorageManager {
       return backupPath;
     } catch (error) {
       console.error("[Storage] Backup creation failed:", error);
-      throw new StorageError(
-        "E_IO_WRITE",
-        "Failed to create backup",
-        error
-      );
+      throw new StorageError("E_IO_WRITE", "Failed to create backup", error);
     }
   }
   /**
@@ -312,11 +291,7 @@ class StorageManager {
       console.log(`[Storage] Data exported successfully`);
     } catch (error) {
       console.error("[Storage] Data export failed:", error);
-      throw new StorageError(
-        "E_IO_WRITE",
-        "Failed to export data",
-        error
-      );
+      throw new StorageError("E_IO_WRITE", "Failed to export data", error);
     }
   }
   /**
@@ -356,10 +331,7 @@ class StorageManager {
   async createFolder(name) {
     const folders = await this.listFolders();
     if (folders.some((f) => f.name === name)) {
-      throw new StorageError(
-        "E_ALREADY_EXISTS",
-        `Folder "${name}" already exists`
-      );
+      throw new StorageError("E_ALREADY_EXISTS", `Folder "${name}" already exists`);
     }
     const now = Date.now();
     const newFolder = {
@@ -381,22 +353,13 @@ class StorageManager {
     const folders = await this.listFolders();
     const folder = folders.find((f) => f.id === id);
     if (!folder) {
-      throw new StorageError(
-        "E_NOT_FOUND",
-        `Folder not found: ${id}`
-      );
+      throw new StorageError("E_NOT_FOUND", `Folder not found: ${id}`);
     }
     if (folder.system) {
-      throw new StorageError(
-        "E_FOLDER_SYSTEM",
-        "Cannot rename system folder"
-      );
+      throw new StorageError("E_FOLDER_SYSTEM", "Cannot rename system folder");
     }
     if (folders.some((f) => f.id !== id && f.name === name)) {
-      throw new StorageError(
-        "E_ALREADY_EXISTS",
-        `Folder "${name}" already exists`
-      );
+      throw new StorageError("E_ALREADY_EXISTS", `Folder "${name}" already exists`);
     }
     folder.name = name;
     folder.updatedAt = Date.now();
@@ -410,10 +373,7 @@ class StorageManager {
     const folders = await this.listFolders();
     const folder = folders.find((f) => f.id === id);
     if (!folder) {
-      throw new StorageError(
-        "E_NOT_FOUND",
-        `Folder not found: ${id}`
-      );
+      throw new StorageError("E_NOT_FOUND", `Folder not found: ${id}`);
     }
     if (folder.system) {
       throw new StorageError(
@@ -460,10 +420,7 @@ class StorageManager {
   async createNote(folderId, payload) {
     const folders = await this.listFolders();
     if (!folders.some((f) => f.id === folderId)) {
-      throw new StorageError(
-        "E_NOT_FOUND",
-        `Folder not found: ${folderId}`
-      );
+      throw new StorageError("E_NOT_FOUND", `Folder not found: ${folderId}`);
     }
     const now = Date.now();
     const newNote = {
@@ -486,10 +443,7 @@ class StorageManager {
     const notePath = path.join(this.currentPath, "notes", `${id}.json`);
     const exists = await this.fileExists(notePath);
     if (!exists) {
-      throw new StorageError(
-        "E_NOT_FOUND",
-        `Note not found: ${id}`
-      );
+      throw new StorageError("E_NOT_FOUND", `Note not found: ${id}`);
     }
     return await this.readJsonFile(notePath);
   }
@@ -510,10 +464,7 @@ class StorageManager {
     const notePath = path.join(this.currentPath, "notes", `${id}.json`);
     const exists = await this.fileExists(notePath);
     if (!exists) {
-      throw new StorageError(
-        "E_NOT_FOUND",
-        `Note not found: ${id}`
-      );
+      throw new StorageError("E_NOT_FOUND", `Note not found: ${id}`);
     }
     await fs.unlink(notePath);
     const index = this.notesIndexCache || [];
@@ -561,19 +512,20 @@ class StorageManager {
    */
   generateExcerpt(content) {
     try {
-      if (!content || !content.content) {
-        return "";
-      }
+      const isObj = (v) => typeof v === "object" && v !== null;
+      if (!isObj(content)) return "";
+      const root = content;
+      if (!Array.isArray(root.content)) return "";
       let text = "";
       const extractText = (node) => {
-        if (node.type === "text") {
+        if (node.type === "text" && typeof node.text === "string") {
           text += node.text;
         }
         if (node.content && Array.isArray(node.content)) {
           node.content.forEach(extractText);
         }
       };
-      extractText(content);
+      extractText(root);
       return text.slice(0, 100);
     } catch {
       return "";
@@ -608,11 +560,7 @@ class StorageManager {
       if (defaultValue !== void 0) {
         return defaultValue;
       }
-      throw new StorageError(
-        "E_IO_READ",
-        `Failed to read file: ${filePath}`,
-        error
-      );
+      throw new StorageError("E_IO_READ", `Failed to read file: ${filePath}`, error);
     }
   }
   /**
@@ -782,12 +730,9 @@ ipcMain.handle("storage:deleteFolder", async (_, id) => {
 ipcMain.handle("storage:listNotes", async (_, folderId) => {
   return await storageManager.listNotes(folderId);
 });
-ipcMain.handle(
-  "storage:createNote",
-  async (_, folderId, payload) => {
-    return await storageManager.createNote(folderId, payload);
-  }
-);
+ipcMain.handle("storage:createNote", async (_, folderId, payload) => {
+  return await storageManager.createNote(folderId, payload);
+});
 ipcMain.handle("storage:getNote", async (_, id) => {
   return await storageManager.getNote(id);
 });

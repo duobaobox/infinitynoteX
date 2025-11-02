@@ -5,15 +5,15 @@
  * @see https://tiptap.dev/docs/editor/getting-started/overview
  */
 
-import React, { useEffect } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import { Input } from "antd";
-import { MenuBar } from "./MenuBar";
-import { BubbleMenu } from "./BubbleMenu";
-import { getExtensions } from "./extensions";
-import type { TipTapEditorProps } from "./types";
-import "./TipTapEditor.css";
-import "./table.css";
+import React, { useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { Input } from 'antd';
+import { MenuBar } from './MenuBar';
+import { BubbleMenu } from './BubbleMenu';
+import { getExtensions } from './extensions';
+import type { TipTapEditorProps } from './types';
+import './TipTapEditor.css';
+import './table.css';
 
 /**
  * TipTap 编辑器组件
@@ -25,14 +25,14 @@ import "./table.css";
  * - TypeScript 类型安全
  */
 const TipTapEditor: React.FC<TipTapEditorProps> = ({
-  initialContent = "<p>开始编写...</p>",
+  initialContent = { type: 'doc', content: [] },
   onContentChange,
-  placeholder = "开始输入...",
+  placeholder = '开始输入...',
   editable = true,
   autofocus = false,
-  className = "",
+  className = '',
   showMenuBar = true,
-  title = "",
+  title = '',
   onTitleChange,
 }) => {
   // 使用 useEditor Hook 创建编辑器实例
@@ -43,8 +43,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     autofocus,
     // 内容更新回调
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      onContentChange?.(html);
+      const json = editor.getJSON();
+      onContentChange?.(json as unknown as import('../../services/types').TipTapJSONContent);
     },
     // 编辑器属性配置
     editorProps: {
@@ -56,7 +56,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
   // 当 initialContent 变化时更新编辑器内容
   useEffect(() => {
-    if (editor && initialContent !== editor.getHTML()) {
+    if (editor) {
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);

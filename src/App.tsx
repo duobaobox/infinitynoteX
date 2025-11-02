@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
-import "./App.css";
-import Sidebar from "./components/Sidebar";
-import ListPanel from "./components/ListPanel";
-import EditorPanel from "./components/EditorPanel";
-import { Button } from "antd";
-import sidebarLeftSvg from "./assets/sidebar-left.svg";
+import { useMemo, useState } from 'react';
+import './App.css';
+import Sidebar from './components/Sidebar';
+import ListPanel from './components/ListPanel';
+import EditorPanel from './components/EditorPanel';
+import { Button } from 'antd';
+import sidebarLeftSvg from './assets/sidebar-left.svg';
 
 declare global {
   interface Window {
@@ -15,13 +15,14 @@ declare global {
       close: () => void;
       isMaximized: () => Promise<boolean>;
       onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
-      showOpenDialog: (options: any) => Promise<{
+      showOpenDialog: (options: OpenDialogOptions) => Promise<{
         canceled: boolean;
         filePaths: string[];
       }>;
     };
   }
 }
+import type { OpenDialogOptions } from './services/types';
 
 function App() {
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
@@ -29,17 +30,12 @@ function App() {
   const [lastTitlebarClickTime, setLastTitlebarClickTime] =
     useState(0); /* 用于防止快速点击触发窗口最大化 */
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(
-    null
+    null,
   ); /* 当前选中的文件夹ID */
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
-    null
-  ); /* 当前选中的便签ID */
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); /* 当前选中的便签ID */
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
-  const isMac = useMemo(
-    () => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent),
-    []
-  );
+  const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
 
   // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发
   const handleDragAreaDoubleClick = (e: React.MouseEvent) => {
@@ -58,17 +54,10 @@ function App() {
 
   return (
     <>
-      <div
-        className="layout-panel app-titlebar"
-        onDoubleClick={handleDragAreaDoubleClick}
-      >
+      <div className="layout-panel app-titlebar" onDoubleClick={handleDragAreaDoubleClick}>
         <div className="app-titlebar-left">
           {isMac && (
-            <div
-              className="mac-traffic-lights"
-              role="group"
-              aria-label="窗口控制"
-            >
+            <div className="mac-traffic-lights" role="group" aria-label="窗口控制">
               <button
                 className="mac-traffic-light mac-close"
                 title="关闭"
@@ -85,9 +74,7 @@ function App() {
                 onClick={async () => {
                   if (window.electronAPI?.isMaximized) {
                     const maximized = await window.electronAPI.isMaximized();
-                    maximized
-                      ? window.electronAPI.unmaximize?.()
-                      : window.electronAPI.maximize?.();
+                    maximized ? window.electronAPI.unmaximize?.() : window.electronAPI.maximize?.();
                   }
                 }}
               />
@@ -97,13 +84,7 @@ function App() {
         <div className="app-titlebar-center">
           <Button
             type="text"
-            icon={
-              <img
-                src={sidebarLeftSvg}
-                alt="sidebar"
-                style={{ width: 18, height: 18 }}
-              />
-            }
+            icon={<img src={sidebarLeftSvg} alt="sidebar" style={{ width: 18, height: 18 }} />}
             onClick={(e) => {
               e.stopPropagation();
               setShowSidebar(!showSidebar);
@@ -117,7 +98,7 @@ function App() {
               <img
                 src={sidebarLeftSvg}
                 alt="editor"
-                style={{ width: 18, height: 18, transform: "scaleX(-1)" }}
+                style={{ width: 18, height: 18, transform: 'scaleX(-1)' }}
               />
             }
             onClick={(e) => {
@@ -171,22 +152,8 @@ function App() {
               onClick={() => window.electronAPI?.close?.()}
             >
               <svg width="16" height="16" viewBox="0 0 16 16">
-                <line
-                  x1="4"
-                  y1="4"
-                  x2="12"
-                  y2="12"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <line
-                  x1="12"
-                  y1="4"
-                  x2="4"
-                  y2="12"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
+                <line x1="4" y1="4" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="12" y1="4" x2="4" y2="12" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
           </div>
@@ -195,15 +162,12 @@ function App() {
       <div className="layout-panel main-content">
         {showSidebar && (
           <>
-            <Sidebar
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={setSelectedFolderId}
-            />
+            <Sidebar selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
             <div className="gap-panel" />
           </>
         )}
         <ListPanel
-          flex={showEditor ? "0 0 250px" : 1}
+          flex={showEditor ? '0 0 250px' : 1}
           folderId={selectedFolderId}
           selectedNoteId={selectedNoteId}
           onSelectNote={(noteId) => {
@@ -212,12 +176,7 @@ function App() {
           }}
         />
         {showEditor && <div className="gap-panel" />}
-        {showEditor && (
-          <EditorPanel
-            noteId={selectedNoteId}
-            onClose={() => setShowEditor(false)}
-          />
-        )}
+        {showEditor && <EditorPanel noteId={selectedNoteId} onClose={() => setShowEditor(false)} />}
       </div>
     </>
   );

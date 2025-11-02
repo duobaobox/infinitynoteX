@@ -23,7 +23,7 @@ export interface Note {
   id: string;
   folderId: string;
   title: string;
-  content: any; // TipTap JSON 格式
+  content: TipTapJSONContent; // TipTap JSON 格式
   tags: string[];
   pinned: boolean;
   createdAt: number;
@@ -73,13 +73,13 @@ export interface StorageStats {
 // ============ 错误码 ============
 
 export enum StorageErrorCode {
-  E_FOLDER_SYSTEM = "E_FOLDER_SYSTEM", // 试图删除系统默认文件夹
-  E_IO_READ = "E_IO_READ", // 文件读取错误
-  E_IO_WRITE = "E_IO_WRITE", // 文件写入错误
-  E_PATH_INVALID = "E_PATH_INVALID", // 路径不可用或权限不足
-  E_MIGRATE_FAIL = "E_MIGRATE_FAIL", // 迁移失败
-  E_NOT_FOUND = "E_NOT_FOUND", // 资源不存在
-  E_ALREADY_EXISTS = "E_ALREADY_EXISTS", // 资源已存在
+  E_FOLDER_SYSTEM = 'E_FOLDER_SYSTEM', // 试图删除系统默认文件夹
+  E_IO_READ = 'E_IO_READ', // 文件读取错误
+  E_IO_WRITE = 'E_IO_WRITE', // 文件写入错误
+  E_PATH_INVALID = 'E_PATH_INVALID', // 路径不可用或权限不足
+  E_MIGRATE_FAIL = 'E_MIGRATE_FAIL', // 迁移失败
+  E_NOT_FOUND = 'E_NOT_FOUND', // 资源不存在
+  E_ALREADY_EXISTS = 'E_ALREADY_EXISTS', // 资源已存在
 }
 
 /**
@@ -89,10 +89,10 @@ export class StorageError extends Error {
   constructor(
     public code: StorageErrorCode,
     message: string,
-    public details?: any
+    public details?: unknown,
   ) {
     super(message);
-    this.name = "StorageError";
+    this.name = 'StorageError';
   }
 }
 
@@ -100,16 +100,54 @@ export class StorageError extends Error {
 
 export interface CreateNotePayload {
   title?: string;
-  content?: any;
+  content?: TipTapJSONContent;
 }
 
 export interface UpdateNotePayload {
   title?: string;
-  content?: any;
+  content?: TipTapJSONContent;
   tags?: string[];
   pinned?: boolean;
 }
 
 export interface SetStoragePathOptions {
   migrate?: boolean;
+}
+
+// ============ 对话框选项（精简） ============
+export type OpenDialogOptions = {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  properties?: (
+    | 'openFile'
+    | 'openDirectory'
+    | 'multiSelections'
+    | 'showHiddenFiles'
+    | 'createDirectory'
+    | 'promptToCreate'
+    | 'noResolveAliases'
+    | 'treatPackageAsDirectory'
+    | 'dontAddToRecent'
+  )[];
+  filters?: { name: string; extensions: string[] }[];
+  message?: string;
+  securityScopedBookmarks?: boolean;
+};
+
+// ============ TipTap JSON 类型（最小必要结构） ============
+
+export type JSONObject = { [key: string]: unknown };
+
+export interface TipTapMark {
+  type: string;
+  attrs?: JSONObject;
+}
+
+export interface TipTapJSONContent {
+  type?: string;
+  attrs?: JSONObject;
+  content?: TipTapJSONContent[];
+  marks?: TipTapMark[];
+  text?: string;
 }

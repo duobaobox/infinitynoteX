@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Menu,
@@ -12,14 +12,10 @@ import {
   Typography,
   message,
   Progress,
-} from "antd";
-import {
-  FolderOpenOutlined,
-  CopyOutlined,
-  SyncOutlined,
-} from "@ant-design/icons";
-import type { StorageStats } from "../../services/types";
-import "./SettingsModal.css";
+} from 'antd';
+import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
+import type { StorageStats } from '../../services/types';
+import './SettingsModal.css';
 
 const { Text, Paragraph } = Typography;
 
@@ -29,14 +25,16 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
-  const [selectedMenu, setSelectedMenu] = useState("general");
-  const [currentPath, setCurrentPath] = useState<string>("");
+  const getErrMsg = (e: unknown) =>
+    e instanceof Error ? e.message : typeof e === 'string' ? e : '未知错误';
+  const [selectedMenu, setSelectedMenu] = useState('general');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [migrating, setMigrating] = useState(false);
 
   // 加载存储信息
   useEffect(() => {
-    if (open && selectedMenu === "data") {
+    if (open && selectedMenu === 'data') {
       loadStorageInfo();
     }
   }, [open, selectedMenu]);
@@ -48,23 +46,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       setCurrentPath(path);
       setStats(storageStats);
     } catch (error) {
-      console.error("Failed to load storage info:", error);
-      message.error("加载存储信息失败");
+      console.error('Failed to load storage info:', error);
+      message.error('加载存储信息失败');
     }
   };
 
   const menuItems = [
-    { key: "general", label: "常规" },
-    { key: "appearance", label: "外观" },
-    { key: "editor", label: "编辑器" },
-    { key: "shortcuts", label: "快捷键" },
-    { key: "data", label: "数据管理" },
-    { key: "about", label: "关于" },
+    { key: 'general', label: '常规' },
+    { key: 'appearance', label: '外观' },
+    { key: 'editor', label: '编辑器' },
+    { key: 'shortcuts', label: '快捷键' },
+    { key: 'data', label: '数据管理' },
+    { key: 'about', label: '关于' },
   ];
 
   const renderSettingsPanel = () => {
     switch (selectedMenu) {
-      case "general":
+      case 'general':
         return (
           <div className="settings-panel">
             <h3>常规设置</h3>
@@ -84,7 +82,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case "appearance":
+      case 'appearance':
         return (
           <div className="settings-panel">
             <h3>外观设置</h3>
@@ -92,9 +90,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Form.Item label="主题">
                 <Select
                   options={[
-                    { label: "亮色", value: "light" },
-                    { label: "暗色", value: "dark" },
-                    { label: "自动", value: "auto" },
+                    { label: '亮色', value: 'light' },
+                    { label: '暗色', value: 'dark' },
+                    { label: '自动', value: 'auto' },
                   ]}
                   defaultValue="light"
                 />
@@ -102,9 +100,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Form.Item label="字体大小">
                 <Select
                   options={[
-                    { label: "小", value: "small" },
-                    { label: "中", value: "medium" },
-                    { label: "大", value: "large" },
+                    { label: '小', value: 'small' },
+                    { label: '中', value: 'medium' },
+                    { label: '大', value: 'large' },
                   ]}
                   defaultValue="medium"
                 />
@@ -115,7 +113,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case "editor":
+      case 'editor':
         return (
           <div className="settings-panel">
             <h3>编辑器设置</h3>
@@ -138,7 +136,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case "shortcuts":
+      case 'shortcuts':
         return (
           <div className="settings-panel">
             <h3>快捷键设置</h3>
@@ -155,7 +153,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case "about":
+      case 'about':
         return (
           <div className="settings-panel">
             <h3>关于</h3>
@@ -178,19 +176,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </div>
           </div>
         );
-      case "data":
+      case 'data':
         return (
           <div className="settings-panel">
             <h3>数据管理</h3>
             <Form layout="vertical">
               <Form.Item label="当前存储路径">
-                <Space.Compact style={{ width: "100%" }}>
+                <Space.Compact style={{ width: '100%' }}>
                   <Input value={currentPath} readOnly />
                   <Button
                     icon={<CopyOutlined />}
                     onClick={() => {
                       navigator.clipboard.writeText(currentPath);
-                      message.success("路径已复制到剪贴板");
+                      message.success('路径已复制到剪贴板');
                     }}
                   >
                     复制
@@ -201,8 +199,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                       try {
                         await window.storage.openInFinder();
                       } catch (error) {
-                        console.error("Failed to open folder:", error);
-                        message.error("打开文件夹失败");
+                        console.error('Failed to open folder:', error);
+                        message.error('打开文件夹失败');
                       }
                     }}
                   >
@@ -216,9 +214,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Form.Item label="存储统计">
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
                   }}
                 >
                   <Text>
@@ -228,13 +226,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     便签数量: <strong>{stats?.noteCount || 0}</strong>
                   </Text>
                   <Text>
-                    数据占用:{" "}
-                    <strong>
-                      {stats
-                        ? (stats.dataSize / 1024 / 1024).toFixed(2)
-                        : "0.00"}{" "}
-                      MB
-                    </strong>
+                    数据占用:{' '}
+                    <strong>{stats ? (stats.dataSize / 1024 / 1024).toFixed(2) : '0.00'} MB</strong>
                   </Text>
                 </div>
               </Form.Item>
@@ -242,7 +235,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Divider />
 
               <Form.Item label="更改存储路径">
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <Space direction="vertical" style={{ width: '100%' }}>
                   <Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     选择新的数据存储位置。您可以选择是否迁移现有数据。
                   </Paragraph>
@@ -252,15 +245,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                       onClick={async () => {
                         try {
                           if (!window.electronAPI?.showOpenDialog) {
-                            message.error("当前环境不支持文件选择");
+                            message.error('当前环境不支持文件选择');
                             return;
                           }
 
-                          const result =
-                            await window.electronAPI.showOpenDialog({
-                              properties: ["openDirectory", "createDirectory"],
-                              title: "选择数据存储目录",
-                            });
+                          const result = await window.electronAPI.showOpenDialog({
+                            properties: ['openDirectory', 'createDirectory'],
+                            title: '选择数据存储目录',
+                          });
 
                           if (result.canceled || !result.filePaths.length) {
                             return;
@@ -268,7 +260,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
 
                           const newPath = result.filePaths[0];
                           const confirmed = window.confirm(
-                            `确定要将数据目录更改为:\n${newPath}\n\n是否迁移现有数据?`
+                            `确定要将数据目录更改为:\n${newPath}\n\n是否迁移现有数据?`,
                           );
 
                           if (!confirmed) return;
@@ -277,13 +269,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                           await window.storage.setStoragePath(newPath, {
                             migrate: true,
                           });
-                          message.success("数据迁移成功");
+                          message.success('数据迁移成功');
                           await loadStorageInfo();
-                        } catch (error: any) {
-                          console.error("Failed to migrate data:", error);
-                          message.error(
-                            `迁移失败: ${error.message || "未知错误"}`
-                          );
+                        } catch (error: unknown) {
+                          console.error('Failed to migrate data:', error);
+                          message.error(`迁移失败: ${getErrMsg(error)}`);
                         } finally {
                           setMigrating(false);
                         }
@@ -293,16 +283,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                       选择新路径并迁移
                     </Button>
                   </Space>
-                  {migrating && (
-                    <Progress percent={100} status="active" showInfo={false} />
-                  )}
+                  {migrating && <Progress percent={100} status="active" showInfo={false} />}
                 </Space>
               </Form.Item>
 
               <Divider />
 
               <Form.Item label="备份与导出">
-                <Space direction="vertical" style={{ width: "100%" }}>
+                <Space direction="vertical" style={{ width: '100%' }}>
                   <Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     创建数据备份或导出到指定位置
                   </Paragraph>
@@ -310,14 +298,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     <Button
                       onClick={async () => {
                         try {
-                          const backupPath =
-                            await window.storage.createBackup();
+                          const backupPath = await window.storage.createBackup();
                           message.success(`备份创建成功: ${backupPath}`);
-                        } catch (error: any) {
-                          console.error("Backup failed:", error);
-                          message.error(
-                            `备份失败: ${error.message || "未知错误"}`
-                          );
+                        } catch (error: unknown) {
+                          console.error('Backup failed:', error);
+                          message.error(`备份失败: ${getErrMsg(error)}`);
                         }
                       }}
                     >
@@ -327,15 +312,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                       onClick={async () => {
                         try {
                           if (!window.electronAPI?.showOpenDialog) {
-                            message.error("当前环境不支持文件选择");
+                            message.error('当前环境不支持文件选择');
                             return;
                           }
 
-                          const result =
-                            await window.electronAPI.showOpenDialog({
-                              properties: ["openDirectory", "createDirectory"],
-                              title: "选择导出目录",
-                            });
+                          const result = await window.electronAPI.showOpenDialog({
+                            properties: ['openDirectory', 'createDirectory'],
+                            title: '选择导出目录',
+                          });
 
                           if (result.canceled || !result.filePaths.length) {
                             return;
@@ -344,11 +328,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                           const exportPath = result.filePaths[0];
                           await window.storage.exportData(exportPath);
                           message.success(`数据已导出到: ${exportPath}`);
-                        } catch (error: any) {
-                          console.error("Export failed:", error);
-                          message.error(
-                            `导出失败: ${error.message || "未知错误"}`
-                          );
+                        } catch (error: unknown) {
+                          console.error('Export failed:', error);
+                          message.error(`导出失败: ${getErrMsg(error)}`);
                         }
                       }}
                     >
@@ -366,15 +348,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     try {
                       const result = await window.storage.healthCheck();
                       if (result.ok) {
-                        message.success("数据完整性检查通过");
+                        message.success('数据完整性检查通过');
                       } else {
-                        message.error(
-                          `检查失败: ${result.details || "未知错误"}`
-                        );
+                        message.error(`检查失败: ${result.details || '未知错误'}`);
                       }
                     } catch (error) {
-                      console.error("Health check failed:", error);
-                      message.error("健康检查失败");
+                      console.error('Health check failed:', error);
+                      message.error('健康检查失败');
                     }
                   }}
                 >

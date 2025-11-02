@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Segmented, message } from "antd";
-import {
-  EditOutlined,
-  ToolOutlined,
-  RobotOutlined,
-  AppstoreOutlined,
-} from "@ant-design/icons";
-import { TipTapEditor } from "./TipTapEditor";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Segmented, message } from 'antd';
+import { EditOutlined, ToolOutlined, RobotOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { TipTapEditor } from './TipTapEditor';
+import type { TipTapJSONContent } from '../services/types';
 
 interface EditorPanelProps {
   noteId: string | null;
@@ -14,16 +10,16 @@ interface EditorPanelProps {
 }
 
 const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
-  const [noteTitle, setNoteTitle] = useState<string>("");
-  const [editorContent, setEditorContent] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string | number>("edit");
+  const [noteTitle, setNoteTitle] = useState<string>('');
+  const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
+  const [activeTab, setActiveTab] = useState<string | number>('edit');
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentNoteIdRef = useRef<string | null>(null);
 
   // 加载便签内容
   useEffect(() => {
     if (!noteId) {
-      setNoteTitle("");
+      setNoteTitle('');
       setEditorContent(null);
       return;
     }
@@ -38,13 +34,13 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
       setNoteTitle(note.title);
       setEditorContent(note.content);
     } catch (error) {
-      console.error("Failed to load note:", error);
-      message.error("加载便签失败");
+      console.error('Failed to load note:', error);
+      message.error('加载便签失败');
     }
   };
 
   // 节流保存函数 (800ms)
-  const debouncedSave = useCallback((title: string, content: any) => {
+  const debouncedSave = useCallback((title: string, content: TipTapJSONContent) => {
     if (!currentNoteIdRef.current) return;
 
     // 清除之前的定时器
@@ -59,10 +55,10 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
           title,
           content,
         });
-        console.log("Note auto-saved");
+        console.log('Note auto-saved');
       } catch (error) {
-        console.error("Failed to save note:", error);
-        message.error("自动保存失败，请检查磁盘空间");
+        console.error('Failed to save note:', error);
+        message.error('自动保存失败，请检查磁盘空间');
       }
     }, 800);
   }, []);
@@ -70,11 +66,13 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
   // 标题变更处理
   const handleTitleChange = (newTitle: string) => {
     setNoteTitle(newTitle);
-    debouncedSave(newTitle, editorContent);
+    if (editorContent && typeof editorContent !== 'string') {
+      debouncedSave(newTitle, editorContent);
+    }
   };
 
   // 内容变更处理
-  const handleContentChange = (newContent: any) => {
+  const handleContentChange = (newContent: TipTapJSONContent) => {
     setEditorContent(newContent);
     debouncedSave(noteTitle, newContent);
   };
@@ -95,7 +93,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
           <EditOutlined style={{ marginRight: 4 }} />
         </span>
       ),
-      value: "edit",
+      value: 'edit',
     },
     {
       label: (
@@ -103,7 +101,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
           <ToolOutlined style={{ marginRight: 4 }} />
         </span>
       ),
-      value: "tools",
+      value: 'tools',
     },
     {
       label: (
@@ -111,7 +109,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
           <RobotOutlined style={{ marginRight: 4 }} />
         </span>
       ),
-      value: "ai",
+      value: 'ai',
     },
     {
       label: (
@@ -119,7 +117,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
           <AppstoreOutlined style={{ marginRight: 4 }} />
         </span>
       ),
-      value: "other",
+      value: 'other',
     },
   ];
 
@@ -127,15 +125,11 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">
         {/* 标签栏 */}
-        <div style={{ display: "inline-block" }}>
-          <Segmented
-            options={segmentOptions}
-            value={activeTab}
-            onChange={setActiveTab}
-          />
+        <div style={{ display: 'inline-block' }}>
+          <Segmented options={segmentOptions} value={activeTab} onChange={setActiveTab} />
         </div>
         <div className="editor-inner-tab-container">
-          {activeTab === "edit" && editorContent && (
+          {activeTab === 'edit' && editorContent && (
             <TipTapEditor
               key={noteId} // 添加 key 确保切换便签时重新创建编辑器
               initialContent={editorContent}
@@ -144,15 +138,9 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
               onTitleChange={handleTitleChange}
             />
           )}
-          {activeTab === "tools" && (
-            <div style={{ padding: "16px" }}>工具面板</div>
-          )}
-          {activeTab === "ai" && (
-            <div style={{ padding: "16px" }}>AI 工作台</div>
-          )}
-          {activeTab === "other" && (
-            <div style={{ padding: "16px" }}>其他面板</div>
-          )}
+          {activeTab === 'tools' && <div style={{ padding: '16px' }}>工具面板</div>}
+          {activeTab === 'ai' && <div style={{ padding: '16px' }}>AI 工作台</div>}
+          {activeTab === 'other' && <div style={{ padding: '16px' }}>其他面板</div>}
         </div>
       </div>
     </div>

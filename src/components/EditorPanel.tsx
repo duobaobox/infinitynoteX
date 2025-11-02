@@ -7,9 +7,10 @@ import type { TipTapJSONContent } from '../services/types';
 interface EditorPanelProps {
   noteId: string | null;
   onClose?: () => void;
+  onSave?: () => void; // 保存完成时的回调
 }
 
-const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
+const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
   const [activeTab, setActiveTab] = useState<string | number>('edit');
@@ -40,28 +41,33 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId }) => {
   };
 
   // 节流保存函数 (800ms)
-  const debouncedSave = useCallback((title: string, content: TipTapJSONContent) => {
-    if (!currentNoteIdRef.current) return;
+  const debouncedSave = useCallback(
+    (title: string, content: TipTapJSONContent) => {
+      if (!currentNoteIdRef.current) return;
 
-    // 清除之前的定时器
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-    }
-
-    // 设置新的定时器
-    saveTimerRef.current = setTimeout(async () => {
-      try {
-        await window.storage.updateNote(currentNoteIdRef.current!, {
-          title,
-          content,
-        });
-        console.log('Note auto-saved');
-      } catch (error) {
-        console.error('Failed to save note:', error);
-        message.error('自动保存失败，请检查磁盘空间');
+      // 清除之前的定时器
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
       }
-    }, 800);
-  }, []);
+
+      // 设置新的定时器
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          await window.storage.updateNote(currentNoteIdRef.current!, {
+            title,
+            content,
+          });
+          console.log('Note auto-saved');
+          // 保存成功后调用回调，通知列表更新
+          onSave?.();
+        } catch (error) {
+          console.error('Failed to save note:', error);
+          message.error('自动保存失败，请检查磁盘空间');
+        }
+      }, 800);
+    },
+    [onSave],
+  );
 
   // 标题变更处理
   const handleTitleChange = (newTitle: string) => {

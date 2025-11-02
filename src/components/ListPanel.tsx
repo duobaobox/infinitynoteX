@@ -9,11 +9,18 @@ interface ListPanelProps {
   folderId: string | null;
   selectedNoteId: string | null;
   onSelectNote: (noteId: string | null) => void;
+  refreshTrigger?: number; // 刷新触发器
 }
 
 const NOTE_COLOR = '#fa8c16'; // 便签主题色，与 colorPrimary 保持一致
 
-const ListPanel: React.FC<ListPanelProps> = ({ flex, folderId, selectedNoteId, onSelectNote }) => {
+const ListPanel: React.FC<ListPanelProps> = ({
+  flex,
+  folderId,
+  selectedNoteId,
+  onSelectNote,
+  refreshTrigger,
+}) => {
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
@@ -43,7 +50,7 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex, folderId, selectedNoteId, o
   useEffect(() => {
     if (!folderId) return;
     loadNotes();
-  }, [folderId, loadNotes]);
+  }, [folderId, loadNotes, refreshTrigger]);
 
   const handleCreateNote = async () => {
     if (!folderId) {

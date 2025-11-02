@@ -33,6 +33,7 @@ function App() {
     null,
   ); /* 当前选中的文件夹ID */
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); /* 当前选中的便签ID */
+  const [refreshListTrigger, setRefreshListTrigger] = useState(0); /* 刷新列表的触发器 */
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
@@ -174,9 +175,16 @@ function App() {
             setSelectedNoteId(noteId);
             setShowEditor(!!noteId);
           }}
+          refreshTrigger={refreshListTrigger}
         />
         {showEditor && <div className="gap-panel" />}
-        {showEditor && <EditorPanel noteId={selectedNoteId} onClose={() => setShowEditor(false)} />}
+        {showEditor && (
+          <EditorPanel
+            noteId={selectedNoteId}
+            onClose={() => setShowEditor(false)}
+            onSave={() => setRefreshListTrigger((prev) => prev + 1)}
+          />
+        )}
       </div>
     </>
   );

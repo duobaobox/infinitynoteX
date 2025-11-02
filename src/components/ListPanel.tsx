@@ -3,6 +3,7 @@ import { Input, Badge, Button, message, Modal } from 'antd';
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { NoteIndex } from '../services/types';
 import NoteCard from './NoteCard/NoteCard';
+import './ListPanel.css';
 
 interface ListPanelProps {
   flex: string | number;
@@ -79,7 +80,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
   const handleDeleteNote = async (id: string, title: string) => {
     Modal.confirm({
       title: '删除便签',
-      content: `确定删除便签“${title || '无标题'}”吗？`,
+      content: `确定删除便签"${title || '无标题'}"吗？`,
       okText: '删除',
       cancelText: '取消',
       okButtonProps: { danger: true },
@@ -152,7 +153,9 @@ const ListPanel: React.FC<ListPanelProps> = ({
             alignItems: 'center',
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 500 }}>{folderName}</span>
+          <span className="folder-name" title={folderName}>
+            {folderName}
+          </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Badge count={filteredNotes.length} showZero style={{ backgroundColor: NOTE_COLOR }} />
             <Button

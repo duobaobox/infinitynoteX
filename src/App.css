@@ -114,7 +114,7 @@
 
 /* 自定义窗口顶部栏- 固定高度 */
 .layout-panel.app-titlebar {
-  height: 28px; /* 固定高度 */
+  height: 36px; /* 固定高度 */
   flex-shrink: 0; /* 不压缩 */
   display: flex; /* 使用弹性布局 */
   align-items: center; /* 垂直居中 */

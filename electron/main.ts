@@ -41,7 +41,7 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     frame: false, // 隐藏默认标题栏
     titleBarStyle: 'hidden', // 隐藏标题栏但保留拖拽区域
-    trafficLightPosition: { x: 12, y: 6 }, // macOS 红绿黄按钮位置（不会显示因为 frame: false）
+    trafficLightPosition: { x: 12, y: 10 }, // macOS 红绿黄按钮位置（不会显示因为 frame: false）
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },

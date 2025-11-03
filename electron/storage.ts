@@ -26,6 +26,7 @@ interface Note {
   content: import('../src/services/types').TipTapJSONContent;
   tags: string[];
   pinned: boolean;
+  color?: import('../src/services/types').NoteColor;
   createdAt: number;
   updatedAt: number;
 }
@@ -38,6 +39,7 @@ interface NoteIndex {
   updatedAt: number;
   pinned: boolean;
   tags: string[];
+  color?: import('../src/services/types').NoteColor;
 }
 
 interface StorageMeta {
@@ -623,6 +625,7 @@ export class StorageManager {
       content: payload?.content || { type: 'doc', content: [] },
       tags: [],
       pinned: false,
+      color: 'ffffff',
       createdAt: now,
       updatedAt: now,
     };
@@ -707,6 +710,7 @@ export class StorageManager {
       updatedAt: note.updatedAt,
       pinned: note.pinned,
       tags: note.tags,
+      color: note.color ?? 'ffffff',
     };
 
     if (existingIndex >= 0) {

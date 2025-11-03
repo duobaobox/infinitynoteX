@@ -430,6 +430,7 @@ class StorageManager {
       content: (payload == null ? void 0 : payload.content) || { type: "doc", content: [] },
       tags: [],
       pinned: false,
+      color: "ffffff",
       createdAt: now,
       updatedAt: now
     };
@@ -490,7 +491,8 @@ class StorageManager {
       excerpt: this.generateExcerpt(note.content),
       updatedAt: note.updatedAt,
       pinned: note.pinned,
-      tags: note.tags
+      tags: note.tags,
+      color: note.color ?? "ffffff"
     };
     if (existingIndex >= 0) {
       index[existingIndex] = noteIndex;

@@ -26,6 +26,8 @@ export interface Note {
   content: TipTapJSONContent; // TipTap JSON 格式
   tags: string[];
   pinned: boolean;
+  /** 便签颜色（6个预设） */
+  color?: NoteColor;
   createdAt: number;
   updatedAt: number;
 }
@@ -41,6 +43,8 @@ export interface NoteIndex {
   updatedAt: number;
   pinned: boolean;
   tags: string[];
+  /** 便签颜色（用于列表渲染） */
+  color?: NoteColor;
 }
 
 /**
@@ -108,6 +112,7 @@ export interface UpdateNotePayload {
   content?: TipTapJSONContent;
   tags?: string[];
   pinned?: boolean;
+  color?: NoteColor;
 }
 
 export interface SetStoragePathOptions {
@@ -151,3 +156,9 @@ export interface TipTapJSONContent {
   marks?: TipTapMark[];
   text?: string;
 }
+
+/**
+ * 便签颜色（预设 6 种）
+ * 使用不带 # 的十六进制字符串，便于直接存储
+ */
+export type NoteColor = 'bae0ff' | 'd9f7be' | 'ffd6e7' | 'd6e4ff' | 'ffd666' | 'ffffff';

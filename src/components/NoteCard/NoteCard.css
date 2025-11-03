@@ -8,6 +8,21 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  /* 防止内侧色条影响外层圆角/边框显示 */
+  overflow: hidden;
+}
+
+/* 左侧颜色标记条 */
+.note-card .note-card-color {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  /* 继承父容器圆角，避免出现缺边 */
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  pointer-events: none;
 }
 
 .note-card-title {

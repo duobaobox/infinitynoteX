@@ -193,7 +193,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                 key={note.id}
                 title={note.title}
                 content={note.excerpt}
-                color="ffffff"
+                color={note.color || 'ffffff'}
                 onClick={() => onSelectNote(note.id)}
                 actions={
                   <Button

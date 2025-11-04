@@ -33,9 +33,8 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react-vendor';
-            if (id.includes('antd') || id.includes('@ant-design')) return 'antd';
-            if (id.includes('@tiptap') || id.includes('prosemirror')) return 'tiptap';
+            // 统一 vendor chunk，避免 antd/react 拆分导致依赖注入异常
+            return 'vendor';
           }
         },
       },

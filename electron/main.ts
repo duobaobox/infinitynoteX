@@ -31,6 +31,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
 function createWindow() {
   win = new BrowserWindow({
@@ -42,6 +43,8 @@ function createWindow() {
     frame: false, // 隐藏默认标题栏
     titleBarStyle: 'hidden', // 隐藏标题栏但保留拖拽区域
     trafficLightPosition: { x: 12, y: 10 }, // macOS 红绿黄按钮位置（不会显示因为 frame: false）
+    show: false, // 等待渲染就绪再展示，避免白屏闪烁
+    backgroundColor: '#FFFFFF', // 统一背景色，提升初次展示观感
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -50,6 +53,21 @@ function createWindow() {
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', new Date().toLocaleString());
+  });
+
+  // 准备好再显示窗口，减少“半秒加载感”
+  win.once('ready-to-show', () => {
+    win?.show();
+  });
+
+  // 在 macOS 上，点击关闭按钮仅隐藏窗口，避免每次重新创建导致页面重载
+  win.on('close', (e) => {
+    if (process.platform === 'darwin' && !isQuitting) {
+      e.preventDefault();
+      win?.hide();
+      return;
+    }
+    win = null;
   });
 
   if (VITE_DEV_SERVER_URL) {
@@ -73,7 +91,9 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
+  if (win) {
+    win.show();
+  } else if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
@@ -96,7 +116,11 @@ ipcMain.on('window-maximize', () => {
 });
 
 ipcMain.on('window-close', () => {
-  if (win) {
+  if (!win) return;
+  if (process.platform === 'darwin') {
+    // macOS 习惯：关闭窗口但不退出应用
+    win.hide();
+  } else {
     win.close();
   }
 });
@@ -115,6 +139,24 @@ ipcMain.on('window-double-click-titlebar', () => {
       win.maximize();
     }
   }
+});
+
+// 单例锁，二次启动唤起现有窗口
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+  });
+}
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.whenReady().then(async () => {

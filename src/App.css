@@ -231,9 +231,9 @@
 
 /* 侧边栏面板 - 固定宽度160px */
 .layout-panel.sidebar {
-  width: 160px; /* 固定宽度 */
+  width: 180px; /* 固定宽度 */
   flex-shrink: 0; /* 不压缩 */
-  flex: 0 0 160px; /* 明确不伸缩 */
+  flex: 0 0 180px; /* 明确不伸缩 */
   background-color: var(--panel-bg);
   border-radius: 8px; /* 圆角 */
   display: flex;

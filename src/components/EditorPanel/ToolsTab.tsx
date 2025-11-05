@@ -32,7 +32,7 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
     try {
       await window.storage.updateNote(noteId, { color });
       onColorChange(color);
-      message.success('便签颜色已更新');
+      // 颜色更改成功不再弹窗提醒
     } catch (e) {
       console.error('Failed to update color:', e);
       message.error('更新颜色失败');

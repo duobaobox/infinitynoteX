@@ -199,17 +199,15 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
       to: number;
       [key: string]: unknown;
     }) => {
-      // 如果没有选中文本或选中文本为空，不显示
-      const hasSelection = from < to;
+      // 只在有明确选区（非初始聚焦）或在表格中时显示
+      const hasSelection = from < to && ed.state.doc.textBetween(from, to).trim().length > 0;
       if (!hasSelection && !isInTable) {
         return false;
       }
-
       // 不在代码块中显示
       if (ed.isActive('codeBlock')) {
         return false;
       }
-
       return true;
     },
     [isInTable],

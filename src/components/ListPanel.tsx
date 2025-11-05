@@ -74,7 +74,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
       });
       await loadNotes();
       onSelectNote(newNote.id);
-      message.success('创建成功');
+      // 创建成功不再弹窗提醒
     } catch (error) {
       console.error('Failed to create note:', error);
       message.error('创建便签失败');
@@ -96,7 +96,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
       async onOk() {
         try {
           await window.storage.deleteNote(id);
-          message.success('删除成功');
+          // 删除成功不再弹窗提醒
           await loadNotes();
           if (selectedNoteId === id) {
             onSelectNote(null);

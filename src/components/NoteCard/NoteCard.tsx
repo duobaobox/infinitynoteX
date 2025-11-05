@@ -1,11 +1,12 @@
 import React from 'react';
 import './NoteCard.css';
 import { getThemeColor } from '../../theme/theme';
+import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
 
 export interface NoteCardProps {
   title: string;
   content: string;
-  color?: 'bae0ff' | 'd9f7be' | 'ffd6e7' | 'd6e4ff' | 'ffd666' | 'ffffff';
+  color?: NoteCardColor;
   onClick?: () => void;
   actions?: React.ReactNode; // 右上角操作区（如删除、固定等）
   id?: string; // 用于选中高亮
@@ -39,20 +40,21 @@ const NoteCard: React.FC<NoteCardProps> = ({
   const isSelected =
     listContext && listContext.selectedId === (typeof id === 'string' ? id : undefined);
 
+  // 使用主题 hook 获取卡片的背景色和边框色
+  const isInteractive = isSelected || hovered;
+  const { bgColor, borderColor } = useNoteCardTheme(color, themeColor, isInteractive);
+
   return (
     <div
       className={'note-card' + (isSelected ? ' note-card-selected' : '')}
       onClick={onClick}
       style={{
-        // 只改变边框色：选中或悬浮时用主题色，默认用浅灰
-        borderColor: isSelected || hovered ? themeColor : 'var(--border-color)',
-        background: `#${color}`,
+        background: bgColor,
+        borderColor: borderColor,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* 左侧颜色标记条，增强在深色主题下的可视性 */}
-      <div className="note-card-color" style={{ backgroundColor: `#${color}` }} aria-hidden />
       <div className="note-card-title">{title}</div>
       <div className="note-card-content">{content}</div>
       {actions && <div className="note-card-actions">{actions}</div>}

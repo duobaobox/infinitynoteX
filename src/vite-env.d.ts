@@ -8,7 +8,7 @@ import type {
   StorageStats,
   CreateNotePayload,
   SetStoragePathOptions,
-} from "./services/types";
+} from './services/types';
 
 declare global {
   interface Window {
@@ -16,15 +16,15 @@ declare global {
       // 路径管理
       getDefaultPath(): Promise<string>;
       getCurrentPath(): Promise<string>;
-      setStoragePath(
-        nextPath: string,
-        options?: SetStoragePathOptions
-      ): Promise<void>;
+      isFirstLaunch(): Promise<boolean>;
+      markInitialized(): Promise<void>;
+      setStoragePath(nextPath: string, options?: SetStoragePathOptions): Promise<void>;
       healthCheck(): Promise<HealthCheckResult>;
       openInFinder(): Promise<void>;
       getStats(): Promise<StorageStats>;
       createBackup(): Promise<string>;
       exportData(targetPath: string): Promise<void>;
+      resetAllData(): Promise<void>;
 
       // 文件夹操作
       listFolders(): Promise<Folder[]>;

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import ListPanel from './components/ListPanel';
 import EditorPanel from './components/EditorPanel';
-import { Button } from 'antd';
+import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
+import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 
 declare global {
@@ -34,6 +35,22 @@ function App() {
   ); /* 当前选中的文件夹ID */
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); /* 当前选中的便签ID */
   const [refreshListTrigger, setRefreshListTrigger] = useState(0); /* 刷新列表的触发器 */
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null); /* 首次启动标志 */
+
+  // 初始化检测
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const isFirst = await window.storage.isFirstLaunch();
+        setIsFirstLaunch(isFirst);
+      } catch (error) {
+        console.error('Failed to check first launch:', error);
+        setIsFirstLaunch(false);
+      }
+    };
+
+    checkFirstLaunch();
+  }, []);
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
@@ -160,32 +177,56 @@ function App() {
           </div>
         )}
       </div>
-      <div className="layout-panel main-content">
-        {showSidebar && (
-          <>
-            <Sidebar selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
-            <div className="gap-panel" />
-          </>
-        )}
-        <ListPanel
-          flex={showEditor ? '0 0 250px' : 1}
-          folderId={selectedFolderId}
-          selectedNoteId={selectedNoteId}
-          onSelectNote={(noteId) => {
-            setSelectedNoteId(noteId);
-            setShowEditor(!!noteId);
+
+      {isFirstLaunch === null ? (
+        // 加载中
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--app-bg)',
           }}
-          refreshTrigger={refreshListTrigger}
+        >
+          <Spin size="large" />
+        </div>
+      ) : isFirstLaunch ? (
+        // 首次启动，显示欢迎屏幕
+        <WelcomeScreen
+          onInitializationComplete={() => {
+            setIsFirstLaunch(false);
+          }}
         />
-        {showEditor && <div className="gap-panel" />}
-        {showEditor && (
-          <EditorPanel
-            noteId={selectedNoteId}
-            onClose={() => setShowEditor(false)}
-            onSave={() => setRefreshListTrigger((prev) => prev + 1)}
+      ) : (
+        // 正常应用界面
+        <div className="layout-panel main-content">
+          {showSidebar && (
+            <>
+              <Sidebar selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
+              <div className="gap-panel" />
+            </>
+          )}
+          <ListPanel
+            flex={showEditor ? '0 0 250px' : 1}
+            folderId={selectedFolderId}
+            selectedNoteId={selectedNoteId}
+            onSelectNote={(noteId) => {
+              setSelectedNoteId(noteId);
+              setShowEditor(!!noteId);
+            }}
+            refreshTrigger={refreshListTrigger}
           />
-        )}
-      </div>
+          {showEditor && <div className="gap-panel" />}
+          {showEditor && (
+            <EditorPanel
+              noteId={selectedNoteId}
+              onClose={() => setShowEditor(false)}
+              onSave={() => setRefreshListTrigger((prev) => prev + 1)}
+            />
+          )}
+        </div>
+      )}
     </>
   );
 }

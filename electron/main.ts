@@ -177,6 +177,14 @@ ipcMain.handle('storage:getCurrentPath', () => {
   return storageManager.getCurrentPath();
 });
 
+ipcMain.handle('storage:isFirstLaunch', async () => {
+  return await storageManager.isFirstLaunch();
+});
+
+ipcMain.handle('storage:markInitialized', async () => {
+  await storageManager.markInitialized();
+});
+
 ipcMain.handle(
   'storage:setStoragePath',
   async (_, nextPath: string, options?: SetStoragePathOptions) => {
@@ -202,6 +210,10 @@ ipcMain.handle('storage:createBackup', async () => {
 
 ipcMain.handle('storage:exportData', async (_, targetPath: string) => {
   await storageManager.exportData(targetPath);
+});
+
+ipcMain.handle('storage:resetAllData', async () => {
+  await storageManager.resetAllData();
 });
 
 // 文件夹操作

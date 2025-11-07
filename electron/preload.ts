@@ -50,6 +50,8 @@ contextBridge.exposeInMainWorld('storage', {
   // 路径管理
   getDefaultPath: () => ipcRenderer.invoke('storage:getDefaultPath'),
   getCurrentPath: () => ipcRenderer.invoke('storage:getCurrentPath'),
+  isFirstLaunch: () => ipcRenderer.invoke('storage:isFirstLaunch'),
+  markInitialized: () => ipcRenderer.invoke('storage:markInitialized'),
   setStoragePath: (nextPath: string, options?: SetStoragePathOptions) =>
     ipcRenderer.invoke('storage:setStoragePath', nextPath, options),
   healthCheck: () => ipcRenderer.invoke('storage:healthCheck'),
@@ -57,6 +59,7 @@ contextBridge.exposeInMainWorld('storage', {
   getStats: () => ipcRenderer.invoke('storage:getStats'),
   createBackup: () => ipcRenderer.invoke('storage:createBackup'),
   exportData: (targetPath: string) => ipcRenderer.invoke('storage:exportData', targetPath),
+  resetAllData: () => ipcRenderer.invoke('storage:resetAllData'),
 
   // 文件夹操作
   listFolders: () => ipcRenderer.invoke('storage:listFolders'),

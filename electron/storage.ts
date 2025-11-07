@@ -46,6 +46,7 @@ interface StorageMeta {
   schemaVersion: number;
   storageId: string;
   createdAt: number;
+  initialized?: boolean;
 }
 
 interface HealthCheckResult {
@@ -118,6 +119,40 @@ export class StorageManager {
       console.error('[Storage] Initialization failed:', error);
       throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to initialize storage', error);
     }
+  }
+
+  /**
+   * 检查是否首次启动（未初始化）
+   */
+  async isFirstLaunch(): Promise<boolean> {
+    const metaPath = path.join(this.currentPath, 'meta.json');
+    const metaExists = await this.fileExists(metaPath);
+
+    if (!metaExists) {
+      return true;
+    }
+
+    try {
+      const meta = await this.readJsonFile<StorageMeta>(metaPath);
+      return !meta.initialized;
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * 标记为已初始化
+   */
+  async markInitialized(): Promise<void> {
+    const metaPath = path.join(this.currentPath, 'meta.json');
+    const meta = await this.readJsonFile<StorageMeta>(metaPath, {
+      schemaVersion: 1,
+      storageId: this.generateId(),
+      createdAt: Date.now(),
+    });
+
+    meta.initialized = true;
+    await this.writeJsonFile(metaPath, meta);
   }
 
   /**
@@ -454,6 +489,59 @@ export class StorageManager {
     } catch (error) {
       console.error('[Storage] Data export failed:', error);
       throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to export data', error);
+    }
+  }
+
+  /**
+   * 重置所有数据（清空并重新初始化）
+   * 用于开发环境或完全重置
+   */
+  async resetAllData(): Promise<void> {
+    try {
+      console.log(`[Storage] Resetting all data at: ${this.currentPath}`);
+
+      // 删除当前存储路径下的所有内容
+      const entries = await fs.readdir(this.currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(this.currentPath, entry.name);
+        if (entry.isDirectory()) {
+          await this.deleteDirectory(fullPath);
+        } else {
+          await fs.unlink(fullPath);
+        }
+      }
+
+      // 重新初始化存储
+      await this.ensureStorageInitialized(this.currentPath);
+
+      console.log(`[Storage] Data reset successfully`);
+    } catch (error) {
+      console.error('[Storage] Data reset failed:', error);
+      throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to reset data', error);
+    }
+  }
+
+  /**
+   * 递归删除目录
+   */
+  private async deleteDirectory(dirPath: string): Promise<void> {
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          await this.deleteDirectory(fullPath);
+        } else {
+          await fs.unlink(fullPath);
+        }
+      }
+
+      await fs.rmdir(dirPath);
+    } catch (error) {
+      console.error(`[Storage] Failed to delete directory ${dirPath}:`, error);
+      throw error;
     }
   }
 

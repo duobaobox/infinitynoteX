@@ -101,11 +101,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                 <Space align="center" size={16}>
                   <ColorPicker
                     value={primaryColor}
+                    // 拖动过程中仅更新本地显示，不提交主题与提示，避免频繁触发
                     onChange={(c) => {
                       const hex = c.toHexString();
                       setPrimaryColor(hex);
+                    }}
+                    // 操作完成后再统一提交主题色，并用同一个 key 覆盖提示，避免堆叠
+                    onChangeComplete={(c) => {
+                      const hex = c.toHexString();
+                      setPrimaryColor(hex);
                       setThemeColor(hex);
-                      message.success('主题色已更新');
+                      message.open({
+                        type: 'success',
+                        content: '主题色已更新',
+                        key: 'theme-color-updated',
+                        duration: 1.5,
+                      });
                     }}
                     presets={[
                       {
@@ -133,7 +144,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                       const v = e.target.value.trim();
                       if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) {
                         setThemeColor(v);
-                        message.success('主题色已更新');
+                        message.open({
+                          type: 'success',
+                          content: '主题色已更新',
+                          key: 'theme-color-updated',
+                          duration: 1.5,
+                        });
                       } else {
                         message.warning('请输入有效的十六进制颜色，如 #1677ff');
                         setPrimaryColor(getThemeColor());

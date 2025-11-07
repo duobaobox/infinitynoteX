@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Segmented, Button, message, Modal, Input, Menu } from 'antd';
+import { Segmented, Button, message, Modal, Input, Menu, Dropdown } from 'antd';
 import {
   AppstoreOutlined,
   ToolOutlined,
@@ -8,6 +8,7 @@ import {
   FolderOutlined,
   DeleteOutlined,
   EditOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import type { Folder } from '../services/types';
 import SettingsModal from './SettingsModal/SettingsModal';
@@ -253,6 +254,27 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) =
             className="sidebar-menu"
             items={folders.map((folder) => {
               const editing = editingId === folder.id;
+
+              // 为非系统文件夹创建更多菜单
+              const moreMenuItems =
+                !folder.system && !editing
+                  ? [
+                      {
+                        key: 'rename',
+                        icon: <EditOutlined />,
+                        label: '编辑',
+                        onClick: () => startRename(folder),
+                      },
+                      {
+                        key: 'delete',
+                        icon: <DeleteOutlined />,
+                        label: '删除',
+                        danger: true,
+                        onClick: () => handleDeleteFolder(folder.id),
+                      },
+                    ]
+                  : [];
+
               return {
                 key: folder.id,
                 icon: <FolderOutlined />,
@@ -275,18 +297,13 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) =
                     )}
                     {!folder.system && !editing && (
                       <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => startRename(folder)}
-                        />
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDeleteFolder(folder.id)}
-                        />
+                        <Dropdown
+                          menu={{ items: moreMenuItems }}
+                          placement="bottom"
+                          trigger={['click']}
+                        >
+                          <Button type="text" size="small" icon={<MoreOutlined />} />
+                        </Dropdown>
                       </span>
                     )}
                   </div>

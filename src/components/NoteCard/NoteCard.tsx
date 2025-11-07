@@ -1,4 +1,6 @@
 import React from 'react';
+import { PushpinOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import './NoteCard.css';
 import { getThemeColor } from '../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
@@ -9,6 +11,7 @@ export interface NoteCardProps {
   color?: NoteCardColor;
   onClick?: () => void;
   actions?: React.ReactNode; // 右上角操作区（如删除、固定等）
+  onPin?: () => void; // 钉住按钮回调（暂无功能，预留）
   id?: string; // 用于选中高亮
 }
 
@@ -18,6 +21,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   color = 'ffffff',
   onClick,
   actions,
+  onPin,
   id,
 }) => {
   // 监听主题色变化
@@ -46,7 +50,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
 
   return (
     <div
-      className={'note-card' + (isSelected ? ' note-card-selected' : '')}
+      className={'note-card group' + (isSelected ? ' note-card-selected' : '')}
       onClick={onClick}
       style={{
         background: bgColor,
@@ -55,9 +59,38 @@ const NoteCard: React.FC<NoteCardProps> = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="note-card-title">{title}</div>
-      <div className="note-card-content">{content}</div>
-      {actions && <div className="note-card-actions">{actions}</div>}
+      {/* 堆叠便签卡片背景图案 */}
+      <div className="note-card-pattern">
+        {/* 第一层卡片  */}
+        <div className="stacked-card stacked-card-1 stacked-blue">
+          <div className="stacked-card-shine" />
+          <div className="stacked-card-lines" />
+        </div>
+      </div>
+
+      {/* 卡片内容 */}
+      <div className="note-card-content-wrapper">
+        <div>
+          <div className="note-card-title">{title}</div>
+          <div className="note-card-content">{content}</div>
+        </div>
+      </div>
+
+      <div className="note-card-actions">
+        {/* 钉住按钮（使用 Ant Design Button 和 PushpinOutlined 图标，保持与删除按钮一致） */}
+        <Button
+          type="text"
+          size="small"
+          icon={<PushpinOutlined />}
+          title="钉住"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin?.();
+          }}
+        />
+        {/* 删除按钮（由父组件通过 actions 传入） */}
+        {actions}
+      </div>
     </div>
   );
 };

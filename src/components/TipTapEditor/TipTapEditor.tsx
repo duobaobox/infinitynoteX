@@ -35,6 +35,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   showMenuBar = true,
   title = '',
   onTitleChange,
+  showTitleInput = true,
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
 
@@ -102,13 +103,19 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       const incoming = JSON.stringify(initialContent ?? { type: 'doc', content: [] });
       if (incoming !== lastSyncedContentRef.current) {
         // 通过选项 emitUpdate: false，避免递归触发 onUpdate
-        editor.commands.setContent(initialContent as any, { emitUpdate: false });
+        editor.commands.setContent(
+          initialContent as import('@tiptap/pm/model').Node | Record<string, unknown>,
+          { emitUpdate: false },
+        );
         // 更新快照，保持与编辑器内部一致
         lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
       }
     } catch (e) {
       // 如果序列化失败，兜底直接设置一次内容
-      editor.commands.setContent(initialContent as any, { emitUpdate: false });
+      editor.commands.setContent(
+        initialContent as import('@tiptap/pm/model').Node | Record<string, unknown>,
+        { emitUpdate: false },
+      );
       lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
     }
   }, [editor, initialContent]);
@@ -134,16 +141,18 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         } as React.CSSProperties
       }
     >
-      {/* 标题输入框 - 放在最上面 */}
-      <div className="editor-title-input">
-        <Input
-          placeholder="输入笔记标题..."
-          value={title}
-          onChange={(e) => onTitleChange?.(e.target.value)}
-          size="large"
-          bordered={false}
-        />
-      </div>
+      {/* 标题输入框 - 可选显示 */}
+      {showTitleInput && (
+        <div className="editor-title-input">
+          <Input
+            placeholder="输入笔记标题..."
+            value={title}
+            onChange={(e) => onTitleChange?.(e.target.value)}
+            size="large"
+            bordered={false}
+          />
+        </div>
+      )}
 
       {/* 可选的菜单栏 */}
       {showMenuBar && <MenuBar editor={editor} />}

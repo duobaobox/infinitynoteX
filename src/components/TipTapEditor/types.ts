@@ -25,6 +25,8 @@ export interface TipTapEditorProps {
   title?: string;
   /** 标题变化回调 */
   onTitleChange?: (title: string) => void;
+  /** 是否显示标题输入框 */
+  showTitleInput?: boolean;
 }
 
 export interface MenuBarProps {

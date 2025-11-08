@@ -33,6 +33,9 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let win: BrowserWindow | null;
 let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
+// 悬浮窗口管理
+const floatingWindows = new Map<string, BrowserWindow>();
+
 function createWindow() {
   win = new BrowserWindow({
     width: 700, // 默认宽度
@@ -259,4 +262,85 @@ ipcMain.handle('storage:deleteNote', async (_, id: string) => {
 ipcMain.handle('dialog:showOpenDialog', async (_, options: Electron.OpenDialogOptions) => {
   const result = await dialog.showOpenDialog(options);
   return result;
+});
+
+// ============ 悬浮窗口 IPC 处理器 ============
+
+/**
+ * 创建悬浮便签窗口
+ */
+ipcMain.handle('floating:createWindow', async (_, noteId: string) => {
+  // 防止重复创建同一便签的悬浮窗口
+  if (floatingWindows.has(noteId)) {
+    const existingWindow = floatingWindows.get(noteId);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      existingWindow.focus();
+      return { success: true, message: '窗口已存在' };
+    }
+  }
+
+  // 创建悬浮窗口
+  const floatingWindow = new BrowserWindow({
+    width: 500,
+    height: 600,
+    minWidth: 300,
+    minHeight: 400,
+    frame: false, // 无边框窗口
+    transparent: false,
+    alwaysOnTop: true, // 始终置顶
+    resizable: true,
+    show: false,
+    backgroundColor: '#FFFFFF',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载悬浮窗口页面
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating/${noteId}`);
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/floating/${noteId}`,
+    });
+  }
+
+  // 准备好后显示
+  floatingWindow.once('ready-to-show', () => {
+    floatingWindow.show();
+  });
+
+  // 窗口关闭时清理
+  floatingWindow.on('closed', () => {
+    floatingWindows.delete(noteId);
+  });
+
+  // 保存到管理器
+  floatingWindows.set(noteId, floatingWindow);
+
+  return { success: true, message: '创建成功' };
+});
+
+/**
+ * 关闭悬浮便签窗口
+ */
+ipcMain.handle('floating:closeWindow', async (_, noteId: string) => {
+  const floatingWindow = floatingWindows.get(noteId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.close();
+    floatingWindows.delete(noteId);
+    return { success: true };
+  }
+  return { success: false, message: '窗口不存在' };
+});
+
+/**
+ * 获取所有悬浮窗口的 noteId 列表
+ */
+ipcMain.handle('floating:listWindows', async () => {
+  const noteIds = Array.from(floatingWindows.keys());
+  return noteIds.filter((noteId) => {
+    const window = floatingWindows.get(noteId);
+    return window && !window.isDestroyed();
+  });
 });

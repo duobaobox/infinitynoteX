@@ -11,7 +11,7 @@
   height: 100%;
   overflow: hidden;
   background: var(--panel-bg);
-  border-radius: 8px;
+  border-radius: 0px 0px 8px 8px;
 }
 
 /* ==================== 工具栏样式 ==================== */

@@ -86,6 +86,21 @@ const ListPanel: React.FC<ListPanelProps> = ({
     note.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // 处理钉住按钮 - 创建悬浮窗口
+  const handlePinNote = async (noteId: string) => {
+    try {
+      const result = await window.floatingWindow.createWindow(noteId);
+      if (result.success) {
+        message.success('已创建悬浮便签');
+      } else {
+        message.info(result.message || '窗口已存在');
+      }
+    } catch (error) {
+      console.error('Failed to create floating window:', error);
+      message.error('创建悬浮窗口失败');
+    }
+  };
+
   const handleDeleteNote = async (id: string, title: string) => {
     Modal.confirm({
       title: '删除便签',
@@ -195,6 +210,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                 content={note.excerpt}
                 color={note.color || 'ffffff'}
                 onClick={() => onSelectNote(note.id)}
+                onPin={() => handlePinNote(note.id)}
                 actions={
                   <Button
                     type="text"

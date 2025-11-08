@@ -76,3 +76,10 @@ contextBridge.exposeInMainWorld('storage', {
     ipcRenderer.invoke('storage:updateNote', id, patch),
   deleteNote: (id: string) => ipcRenderer.invoke('storage:deleteNote', id),
 });
+
+// --------- Expose floating window API ---------
+contextBridge.exposeInMainWorld('floatingWindow', {
+  createWindow: (noteId: string) => ipcRenderer.invoke('floating:createWindow', noteId),
+  closeWindow: (noteId: string) => ipcRenderer.invoke('floating:closeWindow', noteId),
+  listWindows: () => ipcRenderer.invoke('floating:listWindows'),
+});

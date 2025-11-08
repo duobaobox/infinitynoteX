@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import ListPanel from './components/ListPanel';
 import EditorPanel from './components/EditorPanel';
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
+import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 
@@ -26,6 +27,13 @@ declare global {
 import type { OpenDialogOptions } from './services/types';
 
 function App() {
+  // 检测是否为悬浮窗口模式（Hooks 必须在顶层调用，在条件之前）
+  const isFloatingMode = useMemo(() => {
+    const hash = window.location.hash;
+    return hash.startsWith('#/floating/');
+  }, []);
+
+  // 主窗口模式的 Hooks
   const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
   const [showSidebar, setShowSidebar] = useState(true); /* 侧边栏显示状态 */
   const [lastTitlebarClickTime, setLastTitlebarClickTime] =
@@ -54,6 +62,12 @@ function App() {
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
+
+  // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
+  if (isFloatingMode) {
+    const noteId = window.location.hash.replace('#/floating/', '');
+    return <FloatingNoteWindow noteId={noteId} />;
+  }
 
   // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发
   const handleDragAreaDoubleClick = (e: React.MouseEvent) => {

@@ -58,3 +58,8 @@ electron.contextBridge.exposeInMainWorld("storage", {
   updateNote: (id, patch) => electron.ipcRenderer.invoke("storage:updateNote", id, patch),
   deleteNote: (id) => electron.ipcRenderer.invoke("storage:deleteNote", id)
 });
+electron.contextBridge.exposeInMainWorld("floatingWindow", {
+  createWindow: (noteId) => electron.ipcRenderer.invoke("floating:createWindow", noteId),
+  closeWindow: (noteId) => electron.ipcRenderer.invoke("floating:closeWindow", noteId),
+  listWindows: () => electron.ipcRenderer.invoke("floating:listWindows")
+});

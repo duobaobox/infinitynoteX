@@ -687,6 +687,7 @@ const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win;
 let isQuitting = false;
+const floatingWindows = /* @__PURE__ */ new Map();
 function createWindow() {
   win = new BrowserWindow({
     width: 700,
@@ -864,6 +865,63 @@ ipcMain.handle("storage:deleteNote", async (_, id) => {
 ipcMain.handle("dialog:showOpenDialog", async (_, options) => {
   const result = await dialog.showOpenDialog(options);
   return result;
+});
+ipcMain.handle("floating:createWindow", async (_, noteId) => {
+  if (floatingWindows.has(noteId)) {
+    const existingWindow = floatingWindows.get(noteId);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      existingWindow.focus();
+      return { success: true, message: "窗口已存在" };
+    }
+  }
+  const floatingWindow = new BrowserWindow({
+    width: 500,
+    height: 600,
+    minWidth: 300,
+    minHeight: 400,
+    frame: false,
+    // 无边框窗口
+    transparent: false,
+    alwaysOnTop: true,
+    // 始终置顶
+    resizable: true,
+    show: false,
+    backgroundColor: "#FFFFFF",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.mjs")
+    }
+  });
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating/${noteId}`);
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, "index.html"), {
+      hash: `/floating/${noteId}`
+    });
+  }
+  floatingWindow.once("ready-to-show", () => {
+    floatingWindow.show();
+  });
+  floatingWindow.on("closed", () => {
+    floatingWindows.delete(noteId);
+  });
+  floatingWindows.set(noteId, floatingWindow);
+  return { success: true, message: "创建成功" };
+});
+ipcMain.handle("floating:closeWindow", async (_, noteId) => {
+  const floatingWindow = floatingWindows.get(noteId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.close();
+    floatingWindows.delete(noteId);
+    return { success: true };
+  }
+  return { success: false, message: "窗口不存在" };
+});
+ipcMain.handle("floating:listWindows", async () => {
+  const noteIds = Array.from(floatingWindows.keys());
+  return noteIds.filter((noteId) => {
+    const window = floatingWindows.get(noteId);
+    return window && !window.isDestroyed();
+  });
 });
 export {
   MAIN_DIST,

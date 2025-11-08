@@ -162,3 +162,16 @@ export interface TipTapJSONContent {
  * 使用不带 # 的十六进制字符串，便于直接存储
  */
 export type NoteColor = 'bae0ff' | 'd9f7be' | 'ffd6e7' | 'd6e4ff' | 'ffd666' | 'ffffff';
+
+// ============ 悬浮窗口相关 ============
+
+/**
+ * 悬浮窗口配置
+ */
+export interface FloatingWindowOptions {
+  noteId: string;
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+}

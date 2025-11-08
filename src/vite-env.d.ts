@@ -39,5 +39,11 @@ declare global {
       updateNote(id: string, patch: Partial<Note>): Promise<Note>;
       deleteNote(id: string): Promise<void>;
     };
+    floatingWindow: {
+      // 悬浮窗口操作
+      createWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
+      closeWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
+      listWindows(): Promise<string[]>;
+    };
   }
 }

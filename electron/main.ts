@@ -344,3 +344,23 @@ ipcMain.handle('floating:listWindows', async () => {
     return window && !window.isDestroyed();
   });
 });
+
+/**
+ * 处理便签数据变化，转发到相关悬浮窗口
+ */
+ipcMain.on('note:changed', (_event, noteId: string) => {
+  // 获取指定 noteId 的悬浮窗口，并发送更新通知
+  const floatingWindow = floatingWindows.get(noteId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('note:updated', noteId);
+  }
+});
+
+/**
+ * 处理悬浮窗口的数据变化，转发到主窗口
+ */
+ipcMain.on('floating-note:changed', (_event, noteId: string) => {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('floating-note:updated', noteId);
+  }
+});

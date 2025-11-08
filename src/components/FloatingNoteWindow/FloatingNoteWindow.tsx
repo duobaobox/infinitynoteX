@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { message } from 'antd';
-import { CloseOutlined, MinusOutlined } from '@ant-design/icons';
 import TipTapEditor from '../TipTapEditor/TipTapEditor';
 import { useNoteCardTheme } from '../NoteCard/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
@@ -49,6 +48,35 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     loadNote();
   }, [noteId]);
 
+  // 监听便签数据变化（主窗口编辑时同步更新）
+  useEffect(() => {
+    if (!noteId) return;
+
+    const handleNoteUpdate = async (_event: unknown, updatedNoteId: string) => {
+      if (updatedNoteId === noteId) {
+        try {
+          const note = await window.storage.getNote(noteId);
+          setNoteTitle(note.title);
+          setNoteColor(note.color || 'ffffff');
+          // 只有当编辑器已初始化时才更新内容
+          if (editorContent) {
+            setEditorContent(note.content);
+          }
+          // 不重新加载编辑器内容，避免光标跳动
+        } catch (error) {
+          console.error('Failed to reload note:', error);
+        }
+      }
+    };
+
+    // 监听主进程的数据更新通知
+    window.ipcRenderer?.on('note:updated', handleNoteUpdate);
+
+    return () => {
+      window.ipcRenderer?.off('note:updated', handleNoteUpdate);
+    };
+  }, [noteId, editorContent]);
+
   // 节流保存函数 (800ms)
   const debouncedSave = useCallback(
     (title: string, content: TipTapJSONContent) => {
@@ -67,6 +95,8 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
             content,
           });
           console.log('Floating note auto-saved');
+          // 通知主窗口该便签已更新
+          window.ipcRenderer?.send('floating-note:changed', noteId);
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');
@@ -84,12 +114,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
 
   // 关闭窗口
   const handleClose = () => {
-    window.electronAPI?.close();
-  };
-
-  // 最小化窗口
-  const handleMinimize = () => {
-    window.electronAPI?.minimize();
+    window.floatingWindow?.closeWindow(noteId);
   };
 
   // 容器获得焦点（编辑器或其内部元素获得焦点）
@@ -150,11 +175,13 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           <div className="floating-note-controls">
             <button
               className="floating-note-control-btn"
-              onClick={handleMinimize}
-              title="最小化"
+              onClick={() => {
+                // TODO: 实现更多功能
+              }}
+              title="更多选项"
               style={{ color: titlebarTextColor }}
             >
-              <MinusOutlined />
+              <i className="ri-more-2-line" />
             </button>
             <button
               className="floating-note-control-btn floating-note-close-btn"
@@ -162,7 +189,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
               title="关闭"
               style={{ color: titlebarTextColor }}
             >
-              <CloseOutlined />
+              <i className="ri-close-line" />
             </button>
           </div>
         )}

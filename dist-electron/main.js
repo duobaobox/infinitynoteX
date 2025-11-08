@@ -923,6 +923,17 @@ ipcMain.handle("floating:listWindows", async () => {
     return window && !window.isDestroyed();
   });
 });
+ipcMain.on("note:changed", (_event, noteId) => {
+  const floatingWindow = floatingWindows.get(noteId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send("note:updated", noteId);
+  }
+});
+ipcMain.on("floating-note:changed", (_event, noteId) => {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send("floating-note:updated", noteId);
+  }
+});
 export {
   MAIN_DIST,
   RENDERER_DIST,

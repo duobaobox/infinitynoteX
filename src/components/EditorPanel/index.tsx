@@ -41,6 +41,29 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
     currentNoteIdRef.current = noteId;
   }, [noteId]);
 
+  // 监听来自悬浮窗口的更新通知
+  useEffect(() => {
+    const handleFloatingNoteUpdate = async (_event: unknown, updatedNoteId: string) => {
+      if (updatedNoteId === currentNoteIdRef.current) {
+        try {
+          const note = await window.storage.getNote(updatedNoteId);
+          setNoteTitle(note.title);
+          setEditorContent(note.content);
+          setNoteColor(note.color || 'ffffff');
+        } catch (error) {
+          console.error('Failed to reload note from floating window:', error);
+        }
+      }
+    };
+
+    // 监听悬浮窗口的更新通知
+    window.ipcRenderer?.on('floating-note:updated', handleFloatingNoteUpdate);
+
+    return () => {
+      window.ipcRenderer?.off('floating-note:updated', handleFloatingNoteUpdate);
+    };
+  }, []);
+
   const loadNote = async (id: string) => {
     try {
       const note = await window.storage.getNote(id);
@@ -71,6 +94,8 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
             content,
           });
           console.log('Note auto-saved');
+          // 通知悬浮窗口便签已更新
+          window.ipcRenderer?.send('note:changed', currentNoteIdRef.current);
           // 保存成功后调用回调，通知列表更新
           onSave?.();
         } catch (error) {

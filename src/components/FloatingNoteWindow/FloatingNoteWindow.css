@@ -59,7 +59,7 @@
   width: 28px;
   height: 28px;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
+  background: transparent;
   border-radius: 4px;
   cursor: pointer;
   display: flex;

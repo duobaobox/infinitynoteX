@@ -688,6 +688,10 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, 
 let win;
 let isQuitting = false;
 const floatingWindows = /* @__PURE__ */ new Map();
+let defaultFloatingWindowSize = {
+  width: 400,
+  height: 400
+};
 function createWindow() {
   win = new BrowserWindow({
     width: 700,
@@ -875,10 +879,10 @@ ipcMain.handle("floating:createWindow", async (_, noteId) => {
     }
   }
   const floatingWindow = new BrowserWindow({
-    width: 500,
-    height: 600,
+    width: defaultFloatingWindowSize.width,
+    height: defaultFloatingWindowSize.height,
     minWidth: 300,
-    minHeight: 400,
+    minHeight: 300,
     frame: false,
     // 无边框窗口
     transparent: false,
@@ -934,6 +938,21 @@ ipcMain.on("floating-note:changed", (_event, noteId) => {
     win.webContents.send("floating-note:updated", noteId);
   }
 });
+ipcMain.handle("config:getDefaultFloatingWindowSize", async () => {
+  return defaultFloatingWindowSize;
+});
+ipcMain.handle(
+  "config:setDefaultFloatingWindowSize",
+  async (_, config) => {
+    if (config.width && config.height) {
+      defaultFloatingWindowSize = {
+        width: config.width,
+        height: config.height
+      };
+    }
+    return defaultFloatingWindowSize;
+  }
+);
 export {
   MAIN_DIST,
   RENDERER_DIST,

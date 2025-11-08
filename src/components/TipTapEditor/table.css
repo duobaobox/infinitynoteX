@@ -57,7 +57,7 @@ th {
 .tiptap-table-header::after,
 td::after,
 th::after {
-  content: "";
+  content: '';
   position: absolute;
   right: -2px;
   top: 0;
@@ -145,7 +145,7 @@ tr {
 .tiptap-table-header:empty::before,
 td:empty::before,
 th:empty::before {
-  content: "\00a0";
+  content: '\00a0';
 }
 
 /* ============ 表格内部的段落样式 ============ */
@@ -239,9 +239,55 @@ th p {
   }
 }
 
+/* ============ 应用暗色模式（data-theme="dark"）适配 ============ */
+[data-theme='dark'] .tiptap-table,
+[data-theme='dark'] table {
+  background: var(--panel-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .tiptap-table-cell,
+[data-theme='dark'] .tiptap-table-header,
+[data-theme='dark'] td,
+[data-theme='dark'] th {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  background: var(--panel-bg);
+}
+
+[data-theme='dark'] .tiptap-table-header,
+[data-theme='dark'] th {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .tiptap-table-header:hover,
+[data-theme='dark'] th:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme='dark'] .tiptap-table-cell:hover,
+[data-theme='dark'] td:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .selectedCell {
+  background-color: rgba(24, 144, 255, 0.15) !important;
+  border-color: var(--theme-color, #1890ff) !important;
+}
+
+[data-theme='dark'] .column-resize-handle {
+  background-color: var(--theme-color, #1890ff);
+}
+
+[data-theme='dark'] .ProseMirror-selectednode {
+  outline-color: var(--theme-color, #1890ff);
+}
+
 /* ============ 禁用状态 ============ */
-.tiptap-editor[contenteditable="false"] .tiptap-table-cell::after,
-.tiptap-editor[contenteditable="false"] .tiptap-table-header::after {
+.tiptap-editor[contenteditable='false'] .tiptap-table-cell::after,
+.tiptap-editor[contenteditable='false'] .tiptap-table-header::after {
   cursor: default;
   display: none;
 }

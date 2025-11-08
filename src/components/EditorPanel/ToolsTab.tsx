@@ -15,8 +15,8 @@ interface ToolsTabProps {
 }
 
 export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorChange }) => {
-  const [floatingWindowWidth, setFloatingWindowWidth] = useState<number>(400);
-  const [floatingWindowHeight, setFloatingWindowHeight] = useState<number>(600);
+  const [defaultFloatingWindowWidth, setDefaultFloatingWindowWidth] = useState<number>(400);
+  const [defaultFloatingWindowHeight, setDefaultFloatingWindowHeight] = useState<number>(400);
 
   // 预设 6 色（与 NoteCard 约定相同）- 仅此 Tab 使用，放在本地即可
   const PRESET_COLORS: Array<{ key: NoteColorType; label: string }> = [
@@ -28,55 +28,49 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
     { key: 'ffd6e7', label: '粉' },
   ];
 
-  // 从存储中加载悬浮便签大小设置
+  // 从存储中加载默认悬浮便签大小设置
   useEffect(() => {
-    const loadFloatingWindowSize = async () => {
+    const loadDefaultFloatingWindowSize = async () => {
       try {
-        const config = await window.ipcRenderer?.invoke('config:getFloatingWindowSize', noteId);
+        const config = await window.ipcRenderer?.invoke('config:getDefaultFloatingWindowSize');
         if (config) {
-          setFloatingWindowWidth(config.width || 400);
-          setFloatingWindowHeight(config.height || 600);
+          setDefaultFloatingWindowWidth(config.width || 400);
+          setDefaultFloatingWindowHeight(config.height || 400);
         }
       } catch (error) {
-        console.error('Failed to load floating window size:', error);
+        console.error('Failed to load default floating window size:', error);
       }
     };
 
-    if (noteId) {
-      loadFloatingWindowSize();
-    }
-  }, [noteId]);
+    loadDefaultFloatingWindowSize();
+  }, []);
 
-  // 保存悬浮便签宽度
-  const handleWidthChange = (value: number | number[]) => {
+  // 保存默认悬浮便签宽度
+  const handleDefaultWidthChange = (value: number | number[]) => {
     const newWidth = Array.isArray(value) ? value[0] : value;
-    setFloatingWindowWidth(newWidth);
-    if (noteId) {
-      window.ipcRenderer
-        ?.invoke('config:setFloatingWindowSize', noteId, {
-          width: newWidth,
-          height: floatingWindowHeight,
-        })
-        .catch((error) => {
-          console.error('Failed to save floating window width:', error);
-        });
-    }
+    setDefaultFloatingWindowWidth(newWidth);
+    window.ipcRenderer
+      ?.invoke('config:setDefaultFloatingWindowSize', {
+        width: newWidth,
+        height: defaultFloatingWindowHeight,
+      })
+      .catch((error) => {
+        console.error('Failed to save default floating window width:', error);
+      });
   };
 
-  // 保存悬浮便签高度
-  const handleHeightChange = (value: number | number[]) => {
+  // 保存默认悬浮便签高度
+  const handleDefaultHeightChange = (value: number | number[]) => {
     const newHeight = Array.isArray(value) ? value[0] : value;
-    setFloatingWindowHeight(newHeight);
-    if (noteId) {
-      window.ipcRenderer
-        ?.invoke('config:setFloatingWindowSize', noteId, {
-          width: floatingWindowWidth,
-          height: newHeight,
-        })
-        .catch((error) => {
-          console.error('Failed to save floating window height:', error);
-        });
-    }
+    setDefaultFloatingWindowHeight(newHeight);
+    window.ipcRenderer
+      ?.invoke('config:setDefaultFloatingWindowSize', {
+        width: defaultFloatingWindowWidth,
+        height: newHeight,
+      })
+      .catch((error) => {
+        console.error('Failed to save default floating window height:', error);
+      });
   };
 
   const handleChangeColor = async (color: NoteColorType) => {
@@ -131,33 +125,31 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
         </div>
       </div>
 
-      {/* 悬浮便签大小调整 */}
+      {/* 默认悬浮便签大小设置 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ marginBottom: 8, fontWeight: 600 }}>悬浮便签大小</div>
+        <div style={{ marginBottom: 8, fontWeight: 600 }}>默认悬浮便签大小</div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
-            宽度: {floatingWindowWidth}px
+            默认宽度: {defaultFloatingWindowWidth}px
           </div>
           <Slider
             min={300}
             max={800}
             step={10}
-            value={floatingWindowWidth}
-            onChange={handleWidthChange}
-            disabled={!noteId}
+            value={defaultFloatingWindowWidth}
+            onChange={handleDefaultWidthChange}
           />
         </div>
         <div>
           <div style={{ marginBottom: 8, fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
-            高度: {floatingWindowHeight}px
+            默认高度: {defaultFloatingWindowHeight}px
           </div>
           <Slider
             min={300}
             max={1000}
             step={10}
-            value={floatingWindowHeight}
-            onChange={handleHeightChange}
-            disabled={!noteId}
+            value={defaultFloatingWindowHeight}
+            onChange={handleDefaultHeightChange}
           />
         </div>
       </div>

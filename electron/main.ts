@@ -36,6 +36,12 @@ let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 // 悬浮窗口管理
 const floatingWindows = new Map<string, BrowserWindow>();
 
+// 默认悬浮窗口大小
+let defaultFloatingWindowSize = {
+  width: 400,
+  height: 400,
+};
+
 function createWindow() {
   win = new BrowserWindow({
     width: 700, // 默认宽度
@@ -279,12 +285,12 @@ ipcMain.handle('floating:createWindow', async (_, noteId: string) => {
     }
   }
 
-  // 创建悬浮窗口
+  // 创建悬浮窗口，使用默认大小
   const floatingWindow = new BrowserWindow({
-    width: 500,
-    height: 600,
+    width: defaultFloatingWindowSize.width,
+    height: defaultFloatingWindowSize.height,
     minWidth: 300,
-    minHeight: 400,
+    minHeight: 300,
     frame: false, // 无边框窗口
     transparent: false,
     alwaysOnTop: true, // 始终置顶
@@ -364,3 +370,28 @@ ipcMain.on('floating-note:changed', (_event, noteId: string) => {
     win.webContents.send('floating-note:updated', noteId);
   }
 });
+
+// ============ 配置 IPC 处理器 ============
+
+/**
+ * 获取默认悬浮窗口大小
+ */
+ipcMain.handle('config:getDefaultFloatingWindowSize', async () => {
+  return defaultFloatingWindowSize;
+});
+
+/**
+ * 设置默认悬浮窗口大小
+ */
+ipcMain.handle(
+  'config:setDefaultFloatingWindowSize',
+  async (_, config: { width: number; height: number }) => {
+    if (config.width && config.height) {
+      defaultFloatingWindowSize = {
+        width: config.width,
+        height: config.height,
+      };
+    }
+    return defaultFloatingWindowSize;
+  },
+);

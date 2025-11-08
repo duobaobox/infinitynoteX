@@ -24,6 +24,7 @@
   user-select: none;
   flex-shrink: 0;
   transition: background-color 0.3s ease;
+  cursor: default;
 }
 
 .floating-note-title {
@@ -40,6 +41,18 @@
   display: flex;
   gap: 8px;
   -webkit-app-region: no-drag; /* 按钮区域不可拖拽 */
+  animation: slideInControls 0.2s ease;
+}
+
+@keyframes slideInControls {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .floating-note-control-btn {
@@ -69,6 +82,7 @@
   flex: 1;
   overflow: auto;
   padding: 0;
+  transition: background 0.2s ease;
 }
 
 /* 覆盖编辑器内部样式，使其填满容器 */
@@ -81,4 +95,21 @@
 .floating-note-editor .tiptap-editor-wrapper {
   flex: 1;
   overflow: auto;
+}
+
+/* 失焦状态下隐藏菜单栏 */
+.floating-note-editor .tiptap-toolbar {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-height 0.2s ease,
+    opacity 0.2s ease;
+  border: none;
+}
+
+/* 聚焦状态下显示菜单栏 */
+.floating-note-editor.focused .tiptap-toolbar {
+  max-height: 48px;
+  opacity: 1;
 }

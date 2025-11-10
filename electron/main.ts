@@ -303,12 +303,12 @@ ipcMain.handle('floating:createWindow', async (_, noteId: string) => {
     minWidth: 300,
     minHeight: 300,
     frame: false, // 无边框窗口
-    transparent: true, // 透明窗口，便于实现药丸裁剪
+    transparent: false, // 设为 false 以支持圆角和阴影（圆角通过 CSS 实现）
     hasShadow: true,
     alwaysOnTop: true, // 始终置顶
     resizable: true,
     show: false,
-    backgroundColor: '#00000000', // 完全透明背景
+    backgroundColor: '#ffffff', // 设置为背景色而非透明，避免阴影失效
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -359,12 +359,12 @@ ipcMain.handle('floating:minimizeWindow', async (_, noteId: string) => {
     x: bounds.x,
     y: bounds.y,
     frame: false,
-    transparent: true,
+    transparent: false,
     hasShadow: true,
     alwaysOnTop: true,
     resizable: false,
     show: false,
-    backgroundColor: '#00000000',
+    backgroundColor: '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -420,12 +420,12 @@ ipcMain.handle('floating:restoreWindow', async (_, noteId: string) => {
     minWidth: 300,
     minHeight: 300,
     frame: false,
-    transparent: true,
+    transparent: false,
     hasShadow: true,
     alwaysOnTop: true,
     resizable: true,
     show: false,
-    backgroundColor: '#00000000',
+    backgroundColor: '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },

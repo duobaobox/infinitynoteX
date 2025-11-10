@@ -45,7 +45,7 @@ interface StoredBounds {
   y: number;
 }
 const minimizedBounds = new Map<string, StoredBounds>();
-const PILL_SIZE = { width: 200, height: 48 }; // 药丸窗口固定大小
+const PILL_SIZE = { width: 130, height: 48 }; // 药丸窗口固定大小
 
 // 默认悬浮窗口大小
 let defaultFloatingWindowSize = {
@@ -483,13 +483,24 @@ ipcMain.handle('floating:listWindows', async () => {
 });
 
 /**
- * 处理便签数据变化，转发到相关悬浮窗口
+ * 处理便签数据变化，转发到相关窗口（pill 窗口、悬浮窗口、主窗口）
  */
 ipcMain.on('note:changed', (_event, noteId: string) => {
+  // 获取指定 noteId 的 pill 窗口，并发送更新通知
+  const pillWindow = pillWindows.get(noteId);
+  if (pillWindow && !pillWindow.isDestroyed()) {
+    pillWindow.webContents.send('note:updated', noteId);
+  }
+
   // 获取指定 noteId 的悬浮窗口，并发送更新通知
   const floatingWindow = floatingWindows.get(noteId);
   if (floatingWindow && !floatingWindow.isDestroyed()) {
     floatingWindow.webContents.send('note:updated', noteId);
+  }
+
+  // 同时通知主窗口（用于更新列表等组件）
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('note:updated', noteId);
   }
 });
 

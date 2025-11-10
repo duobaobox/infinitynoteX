@@ -690,7 +690,7 @@ let isQuitting = false;
 const floatingWindows = /* @__PURE__ */ new Map();
 const pillWindows = /* @__PURE__ */ new Map();
 const minimizedBounds = /* @__PURE__ */ new Map();
-const PILL_SIZE = { width: 200, height: 48 };
+const PILL_SIZE = { width: 130, height: 48 };
 let defaultFloatingWindowSize = {
   width: 400,
   height: 400
@@ -1019,9 +1019,16 @@ ipcMain.handle("floating:listWindows", async () => {
   });
 });
 ipcMain.on("note:changed", (_event, noteId) => {
+  const pillWindow = pillWindows.get(noteId);
+  if (pillWindow && !pillWindow.isDestroyed()) {
+    pillWindow.webContents.send("note:updated", noteId);
+  }
   const floatingWindow = floatingWindows.get(noteId);
   if (floatingWindow && !floatingWindow.isDestroyed()) {
     floatingWindow.webContents.send("note:updated", noteId);
+  }
+  if (win && !win.isDestroyed()) {
+    win.webContents.send("note:updated", noteId);
   }
 });
 ipcMain.on("floating-note:changed", (_event, noteId) => {

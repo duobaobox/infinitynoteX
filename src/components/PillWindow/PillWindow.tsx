@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { message } from 'antd';
 import { useNoteCardTheme } from '../NoteCard/useNoteCardTheme';
+import CardBackground from '../CardBackground/CardBackground';
 import type { NoteColor } from '../../services/types';
 import './PillWindow.css';
 
@@ -23,17 +23,24 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
 
   // 加载便签基本信息（仅标题和颜色）
   useEffect(() => {
-    if (!noteId) return;
+    if (!noteId) {
+      setIsLoading(false);
+      return;
+    }
 
     const loadNoteInfo = async () => {
       try {
         const note = await window.storage.getNote(noteId);
+        if (!note) {
+          setIsLoading(false);
+          return;
+        }
         setNoteTitle(note.title);
         setNoteColor(note.color || 'ffffff');
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to load note info:', error);
-        message.error('加载便签失败');
+        setIsLoading(false);
       }
     };
 
@@ -77,6 +84,7 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
           color: isDark ? '#ffffff' : '#2d2d2d',
         }}
       >
+        <CardBackground className="pill-window-pattern" />
         <span className="pill-title">加载中...</span>
       </div>
     );
@@ -90,6 +98,7 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
         color: isDark ? '#ffffff' : '#2d2d2d',
       }}
     >
+      <CardBackground className="pill-window-pattern" />
       <span className="pill-title" title={noteTitle || '无标题'}>
         {noteTitle || '无标题'}
       </span>

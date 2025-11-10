@@ -4,6 +4,7 @@ import { Button } from 'antd';
 import './NoteCard.css';
 import { getThemeColor } from '../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
+import CardBackground from '../CardBackground/CardBackground';
 
 export interface NoteCardProps {
   title: string;
@@ -60,18 +61,14 @@ const NoteCard: React.FC<NoteCardProps> = ({
       onMouseLeave={() => setHovered(false)}
     >
       {/* 堆叠便签卡片背景图案 */}
-      <div className="note-card-pattern">
-        {/* 第一层卡片  */}
-        <div className="stacked-card stacked-card-1 stacked-blue">
-          <div className="stacked-card-shine" />
-          <div className="stacked-card-lines" />
-        </div>
-      </div>
+      <CardBackground className="note-card-pattern" />
 
       {/* 卡片内容 */}
       <div className="note-card-content-wrapper">
         <div>
-          <div className="note-card-title">{title}</div>
+          <div className="note-card-title" title={title}>
+            {title.length > 10 ? title.slice(0, 10) + '…' : title}
+          </div>
           <div className="note-card-content">{content}</div>
         </div>
       </div>

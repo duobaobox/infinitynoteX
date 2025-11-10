@@ -3,8 +3,11 @@
  * 药丸窗口样式
  */
 
+@import '../CardBackground/CardBackground.css';
+
+/* 固定宽度为 130px */
 .pill-window {
-  width: 100%;
+  width: 130px;
   height: 100%;
   display: flex;
   align-items: center;
@@ -17,10 +20,37 @@
   user-select: none;
   overflow: hidden;
   transition: box-shadow 0.2s ease;
+  position: relative; /* 为背景装饰定位 */
+}
+
+/* 药丸背景装饰 */
+.pill-window-pattern {
+  position: absolute !important;
+  bottom: -22px;
+  left: -22px;
+  z-index: 1;
+}
+
+/* 药丸内容置于背景装饰上层 */
+.pill-title,
+.pill-buttons {
+  position: relative;
+  z-index: 2;
 }
 
 .pill-window:hover {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+/* 药丸 hover 时背景装饰的效果 */
+.pill-window:hover .pill-window-pattern {
+  opacity: 0.95 !important;
+  transform: scale(1.12) translateY(-5px) !important;
+}
+
+.pill-window:hover .pill-window-pattern .stacked-card {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18) !important;
+  transform: rotate(-12deg) translateY(-2px) !important;
 }
 
 .pill-title {

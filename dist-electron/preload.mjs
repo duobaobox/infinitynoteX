@@ -61,5 +61,7 @@ electron.contextBridge.exposeInMainWorld("storage", {
 electron.contextBridge.exposeInMainWorld("floatingWindow", {
   createWindow: (noteId) => electron.ipcRenderer.invoke("floating:createWindow", noteId),
   closeWindow: (noteId) => electron.ipcRenderer.invoke("floating:closeWindow", noteId),
-  listWindows: () => electron.ipcRenderer.invoke("floating:listWindows")
+  listWindows: () => electron.ipcRenderer.invoke("floating:listWindows"),
+  minimizeWindow: (noteId) => electron.ipcRenderer.invoke("floating:minimizeWindow", noteId),
+  restoreWindow: (noteId) => electron.ipcRenderer.invoke("floating:restoreWindow", noteId)
 });

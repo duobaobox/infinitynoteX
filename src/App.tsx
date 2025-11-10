@@ -5,6 +5,7 @@ import ListPanel from './components/ListPanel';
 import EditorPanel from './components/EditorPanel';
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
+import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 
@@ -27,10 +28,12 @@ declare global {
 import type { OpenDialogOptions } from './services/types';
 
 function App() {
-  // 检测是否为悬浮窗口模式（Hooks 必须在顶层调用，在条件之前）
-  const isFloatingMode = useMemo(() => {
+  // 检测窗口类型（Hooks 必须在顶层调用，在条件之前）
+  const windowType = useMemo(() => {
     const hash = window.location.hash;
-    return hash.startsWith('#/floating/');
+    if (hash.startsWith('#/floating/')) return 'floating';
+    if (hash.startsWith('#/pill/')) return 'pill';
+    return 'main';
   }, []);
 
   // 主窗口模式的 Hooks
@@ -64,9 +67,15 @@ function App() {
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
 
   // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
-  if (isFloatingMode) {
+  if (windowType === 'floating') {
     const noteId = window.location.hash.replace('#/floating/', '');
     return <FloatingNoteWindow noteId={noteId} />;
+  }
+
+  // 如果是药丸窗口模式，提取 noteId 并渲染药丸组件
+  if (windowType === 'pill') {
+    const noteId = window.location.hash.replace('#/pill/', '');
+    return <PillWindow noteId={noteId} />;
   }
 
   // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发

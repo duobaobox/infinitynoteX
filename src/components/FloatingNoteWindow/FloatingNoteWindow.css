@@ -85,7 +85,7 @@
   overflow: auto;
 }
 
-/* 菜单栏常驻显示（移除聚焦/失焦切换逻辑） */
+/* 菜单栏常驻显示 */
 .floating-note-editor .tiptap-toolbar {
   max-height: 48px;
   opacity: 1;

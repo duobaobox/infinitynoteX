@@ -21,13 +21,11 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | null>(null);
   const [noteColor, setNoteColor] = useState<NoteColor>('ffffff');
   const [isLoading, setIsLoading] = useState(true);
-  // 移除聚焦显示 UI 功能：不再区分 focused/blur 状态，菜单栏与关闭按钮常驻
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 使用便签卡片主题 hook 获取颜色
   const { bgColor: headerBgColor, isDark } = useNoteCardTheme(noteColor, '#ffffff', false);
 
-  // 加载便签内容
   useEffect(() => {
     if (!noteId) return;
 
@@ -61,14 +59,12 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           if (editorContent) {
             setEditorContent(note.content);
           }
-          // 不重新加载编辑器内容，避免光标跳动
         } catch (error) {
           console.error('Failed to reload note:', error);
         }
       }
     };
 
-    // 监听主进程的数据更新通知
     window.ipcRenderer?.on('note:updated', handleNoteUpdate);
 
     return () => {
@@ -81,12 +77,10 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     (title: string, content: TipTapJSONContent) => {
       if (!noteId) return;
 
-      // 清除之前的定时器
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
 
-      // 设置新的定时器
       saveTimerRef.current = setTimeout(async () => {
         try {
           await window.storage.updateNote(noteId, {
@@ -94,7 +88,6 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
             content,
           });
           console.log('Floating note auto-saved');
-          // 通知主窗口该便签已更新
           window.ipcRenderer?.send('floating-note:changed', noteId);
         } catch (error) {
           console.error('Failed to save note:', error);
@@ -116,7 +109,10 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     window.floatingWindow?.closeWindow(noteId);
   };
 
-  // 已移除聚焦事件处理逻辑（handleContainerFocus / handleContainerBlur）
+  // 最小化为药丸窗口
+  const handleMinimize = async () => {
+    await window.floatingWindow?.minimizeWindow(noteId);
+  };
 
   // 组件卸载时清除定时器
   useEffect(() => {
@@ -153,6 +149,14 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           {noteTitle || '无标题'}
         </span>
         <div className="floating-note-controls">
+          <button
+            className="floating-note-control-btn"
+            onClick={handleMinimize}
+            title="最小化为药丸"
+            style={{ color: titlebarTextColor }}
+          >
+            <i className="ri-subtract-line" />
+          </button>
           <button
             className="floating-note-control-btn floating-note-close-btn"
             onClick={handleClose}

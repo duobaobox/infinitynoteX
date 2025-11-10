@@ -44,6 +44,8 @@ declare global {
       createWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
       closeWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
       listWindows(): Promise<string[]>;
+      minimizeWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
+      restoreWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
     };
   }
 }

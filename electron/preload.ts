@@ -82,4 +82,6 @@ contextBridge.exposeInMainWorld('floatingWindow', {
   createWindow: (noteId: string) => ipcRenderer.invoke('floating:createWindow', noteId),
   closeWindow: (noteId: string) => ipcRenderer.invoke('floating:closeWindow', noteId),
   listWindows: () => ipcRenderer.invoke('floating:listWindows'),
+  minimizeWindow: (noteId: string) => ipcRenderer.invoke('floating:minimizeWindow', noteId),
+  restoreWindow: (noteId: string) => ipcRenderer.invoke('floating:restoreWindow', noteId),
 });

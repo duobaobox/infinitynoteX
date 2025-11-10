@@ -35,6 +35,17 @@ let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
 // 悬浮窗口管理
 const floatingWindows = new Map<string, BrowserWindow>();
+// 药丸窗口管理
+const pillWindows = new Map<string, BrowserWindow>();
+// 悬浮窗口最小化前尺寸记录
+interface StoredBounds {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+}
+const minimizedBounds = new Map<string, StoredBounds>();
+const PILL_SIZE = { width: 200, height: 48 }; // 药丸窗口固定大小
 
 // 默认悬浮窗口大小
 let defaultFloatingWindowSize = {
@@ -292,11 +303,12 @@ ipcMain.handle('floating:createWindow', async (_, noteId: string) => {
     minWidth: 300,
     minHeight: 300,
     frame: false, // 无边框窗口
-    transparent: false,
+    transparent: true, // 透明窗口，便于实现药丸裁剪
+    hasShadow: true,
     alwaysOnTop: true, // 始终置顶
     resizable: true,
     show: false,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#00000000', // 完全透明背景
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
@@ -325,6 +337,125 @@ ipcMain.handle('floating:createWindow', async (_, noteId: string) => {
   floatingWindows.set(noteId, floatingWindow);
 
   return { success: true, message: '创建成功' };
+});
+
+/**
+ * 最小化悬浮便签窗口为"药丸"（实际是关闭正常窗口，打开药丸窗口）
+ */
+ipcMain.handle('floating:minimizeWindow', async (_, noteId: string) => {
+  const floatingWin = floatingWindows.get(noteId);
+  if (!floatingWin || floatingWin.isDestroyed()) {
+    return { success: false, message: '窗口不存在' };
+  }
+
+  // 记录当前窗口位置和尺寸
+  const bounds = floatingWin.getBounds();
+  minimizedBounds.set(noteId, bounds);
+
+  // 创建药丸窗口在相同位置
+  const pillWindow = new BrowserWindow({
+    width: PILL_SIZE.width,
+    height: PILL_SIZE.height,
+    x: bounds.x,
+    y: bounds.y,
+    frame: false,
+    transparent: true,
+    hasShadow: true,
+    alwaysOnTop: true,
+    resizable: false,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载药丸页面
+  if (VITE_DEV_SERVER_URL) {
+    pillWindow.loadURL(`${VITE_DEV_SERVER_URL}#/pill/${noteId}`);
+  } else {
+    pillWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/pill/${noteId}`,
+    });
+  }
+
+  // 准备好后显示药丸，同时关闭正常窗口
+  pillWindow.once('ready-to-show', () => {
+    pillWindow.show();
+    floatingWin.close();
+  });
+
+  // 药丸窗口关闭时清理
+  pillWindow.on('closed', () => {
+    pillWindows.delete(noteId);
+  });
+
+  // 保存到管理器
+  pillWindows.set(noteId, pillWindow);
+
+  return { success: true };
+});
+
+/**
+ * 还原悬浮便签窗口（实际是关闭药丸窗口，重新打开正常窗口）
+ */
+ipcMain.handle('floating:restoreWindow', async (_, noteId: string) => {
+  const pillWin = pillWindows.get(noteId);
+  if (!pillWin || pillWin.isDestroyed()) {
+    return { success: false, message: '药丸窗口不存在' };
+  }
+
+  // 获取记录的窗口位置和尺寸
+  const stored = minimizedBounds.get(noteId);
+  if (!stored) {
+    return { success: false, message: '未找到保存的窗口尺寸' };
+  }
+
+  // 创建正常悬浮窗口
+  const floatingWindow = new BrowserWindow({
+    width: stored.width,
+    height: stored.height,
+    x: stored.x,
+    y: stored.y,
+    minWidth: 300,
+    minHeight: 300,
+    frame: false,
+    transparent: true,
+    hasShadow: true,
+    alwaysOnTop: true,
+    resizable: true,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载悬浮窗口页面
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating/${noteId}`);
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/floating/${noteId}`,
+    });
+  }
+
+  // 准备好后显示正常窗口，同时关闭药丸
+  floatingWindow.once('ready-to-show', () => {
+    floatingWindow.show();
+    pillWin.close();
+  });
+
+  // 窗口关闭时清理
+  floatingWindow.on('closed', () => {
+    floatingWindows.delete(noteId);
+  });
+
+  // 保存到管理器并清理记录
+  floatingWindows.set(noteId, floatingWindow);
+  minimizedBounds.delete(noteId);
+
+  return { success: true };
 });
 
 /**

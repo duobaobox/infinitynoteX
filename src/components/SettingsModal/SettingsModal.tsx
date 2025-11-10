@@ -18,11 +18,16 @@ import {
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
 import './SettingsModal.css';
+import BackgroundEditor from '../BackgroundEditor';
 import {
   getThemeColor,
   setThemeColor,
   getThemeMode,
   setThemeMode,
+  getThemeBgLight,
+  setThemeBgLight,
+  getThemeBgDark,
+  setThemeBgDark,
   ThemeMode,
 } from '../../theme/theme';
 
@@ -42,6 +47,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [migrating, setMigrating] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>(getThemeColor());
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode());
+  const [bgLight, setBgLight] = useState<string>(getThemeBgLight());
+  const [bgDark, setBgDark] = useState<string>(getThemeBgDark());
 
   // 加载存储信息
   useEffect(() => {
@@ -189,10 +196,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Form.Item label="字体族">
                 <Input placeholder="输入字体名称" defaultValue="Segoe UI" />
               </Form.Item>
+              <Divider />
+              <Form.Item label="背景色 - 亮色主题">
+                <BackgroundEditor
+                  value={bgLight}
+                  onChange={(newBg: string) => {
+                    setBgLight(newBg);
+                    setThemeBgLight(newBg);
+                    message.open({
+                      type: 'success',
+                      content: '亮色主题背景已更新',
+                      key: 'theme-bg-updated',
+                      duration: 1.5,
+                    });
+                  }}
+                  mode="light"
+                />
+              </Form.Item>
+              <Divider />
+              <Form.Item label="背景色 - 暗色主题">
+                <BackgroundEditor
+                  value={bgDark}
+                  onChange={(newBg: string) => {
+                    setBgDark(newBg);
+                    setThemeBgDark(newBg);
+                    message.open({
+                      type: 'success',
+                      content: '暗色主题背景已更新',
+                      key: 'theme-bg-updated',
+                      duration: 1.5,
+                    });
+                  }}
+                  mode="dark"
+                />
+              </Form.Item>
             </Form>
           </div>
         );
-
       case 'shortcuts':
         return (
           <div className="settings-panel">

@@ -2,6 +2,8 @@
 
 :root {
   color-scheme: light;
+  --app-bg-light: linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%);
+  --app-bg-dark: linear-gradient(165deg, #111827 0%, #0b1220 100%);
   --app-bg: linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%);
   --panel-bg: rgba(255, 255, 255, 0.8);
   --text-primary: rgba(0, 0, 0, 0.88);
@@ -21,6 +23,8 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
+  --app-bg-light: linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%);
+  --app-bg-dark: linear-gradient(165deg, #111827 0%, #0b1220 100%);
   --app-bg: linear-gradient(165deg, #111827 0%, #0b1220 100%);
   --panel-bg: rgba(35, 35, 35, 0.88);
   --text-primary: rgba(255, 255, 255, 0.95);

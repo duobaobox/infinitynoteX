@@ -3,7 +3,7 @@ import zhCN from 'antd/locale/zh_CN';
 import React from 'react';
 import './antd-custom.css';
 import './modes.css';
-import { getThemeColor, getThemeMode, applyDataTheme, ThemeMode } from './theme';
+import { getThemeColor, getThemeMode, applyDataTheme, applyThemeBg, ThemeMode } from './theme';
 
 /**
  * Ant Design 全局配置组件
@@ -19,6 +19,8 @@ const AntdConfig: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Apply data-theme and listen to system changes when in auto
   React.useEffect(() => {
     const cleanup = applyDataTheme(mode);
+    // Also apply theme background colors
+    applyThemeBg();
     return cleanup;
   }, [mode]);
 

@@ -155,22 +155,25 @@
   height: 100%;
   background: transparent;
   -webkit-app-region: drag;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: flex-start;
 }
 
+/* macOS 显示左侧容器（红绿黄按钮）*/
+.mac-traffic-lights {
+  display: flex;
+}
+
 /* 顶部栏右侧透明容器（放置 win/linux 控制按钮） */
 .app-titlebar-right {
-  width: 120px;
-  min-width: 80px;
-  max-width: 160px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   height: 100%;
   background: transparent;
   -webkit-app-region: no-drag;
+  gap: 4px;
 }
 
 /* 移除窗口按钮的系统/浏览器层级 focus 边框 */

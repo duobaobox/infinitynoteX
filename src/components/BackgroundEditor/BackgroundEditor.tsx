@@ -6,7 +6,7 @@ import {
   Row,
   Col,
   Typography,
-  Radio,
+  Segmented,
   Slider,
   Card,
   Form,
@@ -118,14 +118,15 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
               <div className="custom-section">
                 <Form layout="vertical">
                   <Form.Item label="背景类型">
-                    <Radio.Group
+                    <Segmented
                       value={customType}
-                      onChange={(e) => setCustomType(e.target.value)}
-                      buttonStyle="solid"
-                    >
-                      <Radio.Button value="solid">纯色</Radio.Button>
-                      <Radio.Button value="gradient">渐变</Radio.Button>
-                    </Radio.Group>
+                      onChange={(value) => setCustomType(value as 'solid' | 'gradient')}
+                      options={[
+                        { label: '纯色', value: 'solid' },
+                        { label: '渐变', value: 'gradient' },
+                      ]}
+                      block
+                    />
                   </Form.Item>
 
                   {customType === 'solid' && (

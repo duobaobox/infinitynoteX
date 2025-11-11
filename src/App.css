@@ -148,6 +148,8 @@
 }
 
 /* 顶部栏左侧透明容器（预留给 mac） */
+
+/* 顶部栏左侧透明容器（预留给 mac） 默认隐藏，仅 mac 显示 */
 .app-titlebar-left {
   width: 80px;
   min-width: 60px;
@@ -158,6 +160,12 @@
   display: none;
   align-items: center;
   justify-content: flex-start;
+}
+.platform-mac .app-titlebar-left {
+  display: flex;
+}
+.platform-win .app-titlebar-left {
+  display: none;
 }
 
 /* macOS 显示左侧容器（红绿黄按钮）*/

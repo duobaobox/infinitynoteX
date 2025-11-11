@@ -95,7 +95,10 @@ function App() {
 
   return (
     <>
-      <div className="layout-panel app-titlebar" onDoubleClick={handleDragAreaDoubleClick}>
+      <div
+        className={`layout-panel app-titlebar ${isMac ? 'platform-mac' : 'platform-win'}`}
+        onDoubleClick={handleDragAreaDoubleClick}
+      >
         <div className="app-titlebar-left">
           {isMac && (
             <div className="mac-traffic-lights" role="group" aria-label="窗口控制">

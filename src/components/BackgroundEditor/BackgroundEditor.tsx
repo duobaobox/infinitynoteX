@@ -1,19 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Tabs,
-  ColorPicker,
-  Space,
-  Row,
-  Col,
-  Typography,
-  Segmented,
-  Slider,
-  Card,
-  Form,
-  InputNumber,
-} from 'antd';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Tabs, ColorPicker, Space, Row, Col, Typography, Segmented, Card, Form, Input } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import './BackgroundEditor.css';
+import { getThemeColor } from '../../theme/theme';
 
 const { Paragraph } = Typography;
 
@@ -50,11 +39,19 @@ interface BackgroundEditorProps {
 
 const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mode }) => {
   const [activeTab, setActiveTab] = useState<'preset' | 'custom'>('preset');
-  const [customType, setCustomType] = useState<'solid' | 'gradient'>('solid');
+  const [customType, setCustomType] = useState<'solid' | 'gradient'>('gradient');
   const [solidColor, setSolidColor] = useState<string>('#ffffff');
-  const [gradColor1, setGradColor1] = useState<string>('#667eea');
-  const [gradColor2, setGradColor2] = useState<string>('#764ba2');
+  const [gradColor1, setGradColor1] = useState<string>(getThemeColor());
+  const [gradColor2, setGradColor2] = useState<string>('#ffffff');
   const [gradAngle, setGradAngle] = useState<number>(135);
+
+  // 初始化渐变为系统主题色
+  useEffect(() => {
+    const themeColor = getThemeColor();
+    setGradColor1(themeColor);
+    const gradient = `linear-gradient(135deg, ${themeColor} 0%, #ffffff 100%)`;
+    onChange(gradient);
+  }, []);
 
   const presets = useMemo(() => {
     if (mode === 'dark') {
@@ -75,6 +72,16 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
 
   const handleGradientChange = () => {
     const gradient = `linear-gradient(${gradAngle}deg, ${gradColor1} 0%, ${gradColor2} 100%)`;
+    onChange(gradient);
+  };
+
+  const handleAngleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let angle = parseInt(e.target.value, 10);
+    if (isNaN(angle)) angle = 0;
+    if (angle < 0) angle = 0;
+    if (angle > 360) angle = 360;
+    setGradAngle(angle);
+    const gradient = `linear-gradient(${angle}deg, ${gradColor1} 0%, ${gradColor2} 100%)`;
     onChange(gradient);
   };
 
@@ -120,7 +127,14 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                   <Form.Item label="背景类型">
                     <Segmented
                       value={customType}
-                      onChange={(value) => setCustomType(value as 'solid' | 'gradient')}
+                      onChange={(val) => {
+                        setCustomType(val as 'solid' | 'gradient');
+                        if (val === 'solid') {
+                          onChange(solidColor);
+                        } else {
+                          handleGradientChange();
+                        }
+                      }}
                       options={[
                         { label: '纯色', value: 'solid' },
                         { label: '渐变', value: 'gradient' },
@@ -158,11 +172,13 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                             <ColorPicker
                               value={gradColor1}
                               onChange={(color) => {
-                                setGradColor1(color.toHexString());
+                                const hex = color.toHexString();
+                                setGradColor1(hex);
                                 handleGradientChange();
                               }}
                               onChangeComplete={(color) => {
-                                setGradColor1(color.toHexString());
+                                const hex = color.toHexString();
+                                setGradColor1(hex);
                                 handleGradientChange();
                               }}
                               showText
@@ -174,11 +190,13 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                             <ColorPicker
                               value={gradColor2}
                               onChange={(color) => {
-                                setGradColor2(color.toHexString());
+                                const hex = color.toHexString();
+                                setGradColor2(hex);
                                 handleGradientChange();
                               }}
                               onChangeComplete={(color) => {
-                                setGradColor2(color.toHexString());
+                                const hex = color.toHexString();
+                                setGradColor2(hex);
                                 handleGradientChange();
                               }}
                               showText
@@ -188,39 +206,15 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                       </Row>
 
                       <Form.Item label="渐变方向">
-                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                          <Slider
-                            min={0}
-                            max={360}
-                            step={1}
-                            value={gradAngle}
-                            onChange={(angle) => {
-                              setGradAngle(angle);
-                              handleGradientChange();
-                            }}
-                            marks={{
-                              0: '0°',
-                              90: '90°',
-                              180: '180°',
-                              270: '270°',
-                              360: '360°',
-                            }}
-                            style={{ flex: 1, margin: 0 }}
-                          />
-                          <InputNumber
-                            min={0}
-                            max={360}
-                            value={gradAngle}
-                            onChange={(val) => {
-                              if (val !== null) {
-                                setGradAngle(val);
-                                handleGradientChange();
-                              }
-                            }}
-                            style={{ width: 80, flexShrink: 0 }}
-                            addonAfter="°"
-                          />
-                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={360}
+                          value={gradAngle}
+                          onChange={handleAngleChange}
+                          addonAfter="°"
+                          placeholder="0-360"
+                        />
                       </Form.Item>
 
                       <Form.Item label="预览">

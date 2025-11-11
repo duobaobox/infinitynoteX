@@ -91,7 +91,19 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitializationComplete 
       <div className="welcome-card">
         <div className="welcome-header">
           <h1>欢迎使用 InfinityNoteX</h1>
-          <p>开始您的笔记之旅</p>
+          <div
+            style={{
+              fontSize: 18,
+              lineHeight: 1.7,
+              margin: '16px 0 0 0',
+              color: '#555',
+              textAlign: 'center',
+            }}
+          >
+            <span style={{ fontWeight: 600 }}>让灵感与效率，自由流动</span>
+            <br />
+            <span style={{ fontWeight: 400 }}>记录、管理、探索。你的多功能数字空间。</span>
+          </div>
         </div>
 
         <Form layout="vertical" style={{ flex: 1, marginBottom: 0 }}>

@@ -7,9 +7,9 @@ export const THEME_BG_LIGHT_KEY = 'theme.bgLight';
 export const THEME_BG_DARK_KEY = 'theme.bgDark';
 export type ThemeMode = 'light' | 'dark' | 'auto';
 
-export const DEFAULT_PRIMARY_COLOR = '#fa8c16'; // fallback consistent with previous default
+export const DEFAULT_PRIMARY_COLOR = '#8F5CFF'; // 相遇紫
 export const DEFAULT_THEME_MODE: ThemeMode = 'auto';
-export const DEFAULT_BG_LIGHT = 'linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%)';
+export const DEFAULT_BG_LIGHT = 'linear-gradient(135deg, #e9e6ff 0%, #c9d6ff 100%)'; // 相遇紫
 export const DEFAULT_BG_DARK = 'linear-gradient(165deg, #111827 0%, #0b1220 100%)';
 
 export function getThemeColor(): string {

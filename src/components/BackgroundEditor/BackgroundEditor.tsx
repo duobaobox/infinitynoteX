@@ -17,7 +17,7 @@ const PRESET_BACKGROUNDS = {
     { name: '蓝山语', value: 'linear-gradient(135deg, #e6f0ff 0%, #f0e6ff 100%)' },
   ],
   solids: [
-    { name: '晨雾灰', value: '#f5f7fa' },
+    { name: '吖灰灰', value: '#e7ecf3ff' },
     { name: '云水蓝', value: '#e6f7ff' },
     { name: '青苔绿', value: '#e8f8f2' },
     { name: '杏仁米', value: '#fdf6ec' },

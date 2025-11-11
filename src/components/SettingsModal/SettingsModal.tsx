@@ -126,7 +126,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     }}
                     presets={[
                       {
-                        label: '品牌色',
+                        label: '主题色',
                         colors: [
                           '#1677ff',
                           '#fa8c16',

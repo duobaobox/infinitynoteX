@@ -4,7 +4,6 @@ import {
   Menu,
   Form,
   Input,
-  Switch,
   Segmented,
   Divider,
   Button,
@@ -69,35 +68,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   };
 
   const menuItems = [
-    { key: 'general', label: '常规' },
     { key: 'appearance', label: '外观' },
-    { key: 'shortcuts', label: '快捷键' },
     { key: 'data', label: '数据管理' },
     { key: 'about', label: '关于' },
   ];
 
   const renderSettingsPanel = () => {
     switch (selectedMenu) {
-      case 'general':
-        return (
-          <div className="settings-panel">
-            <h3>常规设置</h3>
-            <Form layout="vertical">
-              <Form.Item label="应用标题">
-                <Input placeholder="输入应用标题" />
-              </Form.Item>
-              <Form.Item label="自动保存">
-                <Switch />
-              </Form.Item>
-              <Form.Item label="自动保存间隔（秒）">
-                <Input type="number" defaultValue={30} />
-              </Form.Item>
-              <Form.Item label="启动时恢复最后打开的文件">
-                <Switch defaultChecked />
-              </Form.Item>
-            </Form>
-          </div>
-        );
       case 'appearance':
         return (
           <div className="settings-panel">
@@ -207,43 +184,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case 'shortcuts':
-        return (
-          <div className="settings-panel">
-            <h3>快捷键设置</h3>
-            <Form layout="vertical">
-              <Form.Item label="新建笔记">
-                <Input placeholder="输入快捷键组合" defaultValue="Ctrl+N" />
-              </Form.Item>
-              <Form.Item label="保存">
-                <Input placeholder="输入快捷键组合" defaultValue="Ctrl+S" />
-              </Form.Item>
-              <Form.Item label="搜索">
-                <Input placeholder="输入快捷键组合" defaultValue="Ctrl+F" />
-              </Form.Item>
-            </Form>
-          </div>
-        );
       case 'about':
         return (
-          <div className="settings-panel">
-            <h3>关于</h3>
+          <div className="settings-panel about-panel">
             <div className="about-content">
-              <p>
-                <strong>应用名称：</strong> InfinityNoteX
-              </p>
-              <p>
-                <strong>版本：</strong> 0.0.0
-              </p>
-              <Divider />
-              <p>
-                <strong>构建信息：</strong>
-              </p>
-              <p>一款无限可能的笔记应用</p>
-              <Divider />
-              <p>
-                <strong>许可证：</strong> MIT
-              </p>
+              <div className="about-logo">
+                <img
+                  src={new URL('../../assets/logo.png', import.meta.url).href}
+                  alt="InfinityNoteX"
+                />
+              </div>
+              <h2>InfinityNoteX</h2>
+              <p className="about-version">版本 0.0.0</p>
+              <p className="about-description">一款无限可能的笔记应用</p>
             </div>
           </div>
         );

@@ -6,6 +6,7 @@ import type {
 } from '../src/services/types';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 import { storageManager } from './storage';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,15 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let win: BrowserWindow | null;
 let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
+// 窗口状态接口
+interface WindowState {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  isMaximized?: boolean;
+}
+
 // 悬浮窗口管理
 const floatingWindows = new Map<string, BrowserWindow>();
 // 药丸窗口管理
@@ -53,31 +63,90 @@ let defaultFloatingWindowSize = {
   height: 400,
 };
 
+/**
+ * 获取窗口状态文件路径
+ */
+function getWindowStateFilePath(): string {
+  return path.join(app.getPath('userData'), 'window-state.json');
+}
+
+/**
+ * 加载窗口状态
+ */
+function loadWindowState(): WindowState | null {
+  try {
+    const filePath = getWindowStateFilePath();
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(data) as WindowState;
+    }
+  } catch (error) {
+    console.error('[Window] Failed to load window state:', error);
+  }
+  return null;
+}
+
+/**
+ * 保存窗口状态
+ */
+function saveWindowState(): void {
+  if (!win || win.isDestroyed()) return;
+
+  try {
+    const state: WindowState = {
+      width: win.getSize()[0],
+      height: win.getSize()[1],
+      isMaximized: win.isMaximized(),
+    };
+
+    // 如果窗口未最大化，保存位置信息
+    if (!state.isMaximized) {
+      const [x, y] = win.getPosition();
+      state.x = x;
+      state.y = y;
+    }
+
+    const filePath = getWindowStateFilePath();
+    fs.writeFileSync(filePath, JSON.stringify(state), 'utf-8');
+  } catch (error) {
+    console.error('[Window] Failed to save window state:', error);
+  }
+}
+
 function createWindow() {
+  // 加载保存的窗口状态
+  const savedState = loadWindowState();
+
   win = new BrowserWindow({
-    width: 700, // 默认宽度
-    height: 560, // 默认高度
-    minWidth: 700, // 最小宽度
-    minHeight: 560, // 最小高度
+    width: savedState?.width ?? 700,
+    height: savedState?.height ?? 560,
+    x: savedState?.x,
+    y: savedState?.y,
+    minWidth: 700,
+    minHeight: 560,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    frame: false, // 隐藏默认标题栏
-    titleBarStyle: 'hidden', // 隐藏标题栏但保留拖拽区域
-    trafficLightPosition: { x: 12, y: 10 }, // macOS 红绿黄按钮位置（不会显示因为 frame: false）
-    show: false, // 等待渲染就绪再展示，避免白屏闪烁
-    backgroundColor: '#FFFFFF', // 统一背景色，提升初次展示观感
+    frame: false,
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 12, y: 10 },
+    show: false,
+    backgroundColor: '#FFFFFF',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
-  });
+  } as any);
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', new Date().toLocaleString());
   });
 
-  // 准备好再显示窗口，减少“半秒加载感”
+  // 准备好再显示窗口，减少"半秒加载感"
   win.once('ready-to-show', () => {
     win?.show();
+    // 如果之前窗口是最大化的，恢复最大化状态
+    if (savedState?.isMaximized) {
+      win?.maximize();
+    }
   });
 
   // 在 macOS 上，点击关闭按钮仅隐藏窗口，避免每次重新创建导致页面重载
@@ -87,6 +156,8 @@ function createWindow() {
       win?.hide();
       return;
     }
+    // 保存窗口状态在窗口关闭时
+    saveWindowState();
     win = null;
   });
 
@@ -177,6 +248,8 @@ if (!gotLock) {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  // 在应用完全退出前保存窗口状态
+  saveWindowState();
 });
 
 app.whenReady().then(async () => {

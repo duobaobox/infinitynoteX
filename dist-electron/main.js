@@ -4,8 +4,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs$1 from "node:fs";
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 import { randomBytes } from "node:crypto";
 class StorageError extends Error {
   constructor(code, message, details) {
@@ -222,7 +222,7 @@ class StorageManager {
       } else {
         await fs.mkdir(targetPath, { recursive: true });
       }
-      await fs.access(targetPath, fsSync.constants.W_OK);
+      await fs.access(targetPath, fs$1.constants.W_OK);
     } catch (error) {
       throw new StorageError("E_PATH_INVALID", "Invalid migration path", error);
     }
@@ -695,27 +695,55 @@ let defaultFloatingWindowSize = {
   width: 400,
   height: 400
 };
+function getWindowStateFilePath() {
+  return path.join(app.getPath("userData"), "window-state.json");
+}
+function loadWindowState() {
+  try {
+    const filePath = getWindowStateFilePath();
+    if (fs$1.existsSync(filePath)) {
+      const data = fs$1.readFileSync(filePath, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("[Window] Failed to load window state:", error);
+  }
+  return null;
+}
+function saveWindowState() {
+  if (!win || win.isDestroyed()) return;
+  try {
+    const state = {
+      width: win.getSize()[0],
+      height: win.getSize()[1],
+      isMaximized: win.isMaximized()
+    };
+    if (!state.isMaximized) {
+      const [x, y] = win.getPosition();
+      state.x = x;
+      state.y = y;
+    }
+    const filePath = getWindowStateFilePath();
+    fs$1.writeFileSync(filePath, JSON.stringify(state), "utf-8");
+  } catch (error) {
+    console.error("[Window] Failed to save window state:", error);
+  }
+}
 function createWindow() {
+  const savedState = loadWindowState();
   win = new BrowserWindow({
-    width: 700,
-    // 默认宽度
-    height: 560,
-    // 默认高度
+    width: (savedState == null ? void 0 : savedState.width) ?? 700,
+    height: (savedState == null ? void 0 : savedState.height) ?? 560,
+    x: savedState == null ? void 0 : savedState.x,
+    y: savedState == null ? void 0 : savedState.y,
     minWidth: 700,
-    // 最小宽度
     minHeight: 560,
-    // 最小高度
     icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     frame: false,
-    // 隐藏默认标题栏
     titleBarStyle: "hidden",
-    // 隐藏标题栏但保留拖拽区域
     trafficLightPosition: { x: 12, y: 10 },
-    // macOS 红绿黄按钮位置（不会显示因为 frame: false）
     show: false,
-    // 等待渲染就绪再展示，避免白屏闪烁
     backgroundColor: "#FFFFFF",
-    // 统一背景色，提升初次展示观感
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs")
     }
@@ -725,6 +753,9 @@ function createWindow() {
   });
   win.once("ready-to-show", () => {
     win == null ? void 0 : win.show();
+    if (savedState == null ? void 0 : savedState.isMaximized) {
+      win == null ? void 0 : win.maximize();
+    }
   });
   win.on("close", (e) => {
     if (process.platform === "darwin" && !isQuitting) {
@@ -732,6 +763,7 @@ function createWindow() {
       win == null ? void 0 : win.hide();
       return;
     }
+    saveWindowState();
     win = null;
   });
   if (VITE_DEV_SERVER_URL) {
@@ -801,6 +833,7 @@ if (!gotLock) {
 }
 app.on("before-quit", () => {
   isQuitting = true;
+  saveWindowState();
 });
 app.whenReady().then(async () => {
   await storageManager.initialize();

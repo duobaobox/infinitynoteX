@@ -97,9 +97,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitializationComplete 
         <Form layout="vertical" style={{ flex: 1, marginBottom: 0 }}>
           <Form.Item label="存储位置" style={{ marginBottom: 12 }}>
             <Space direction="vertical" style={{ width: '100%', gap: 8 }}>
-              <div style={{ fontSize: 13, color: 'rgba(0, 0, 0, 0.65)' }}>
-                选择您的笔记数据存储位置。默认路径：{defaultPath}
-              </div>
+              {/* 精简说明，去掉默认路径提示 */}
               <Space.Compact style={{ width: '100%' }}>
                 <Input value={selectedPath} readOnly />
                 <Button
@@ -107,7 +105,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitializationComplete 
                   onClick={handleSelectPath}
                   disabled={isSubmitting}
                 >
-                  更改
+                  选择位置
                 </Button>
               </Space.Compact>
             </Space>

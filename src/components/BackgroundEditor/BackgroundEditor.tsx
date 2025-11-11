@@ -9,25 +9,25 @@ const { Paragraph } = Typography;
 // 预设背景集合
 const PRESET_BACKGROUNDS = {
   gradients: [
-    { name: '紫蓝→橙粉', value: 'linear-gradient(165deg, #e2e2ff 0%, #ffd2b7 100%)' },
-    { name: '蓝→紫', value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-    { name: '绿→青', value: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' },
-    { name: '粉→黄', value: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
-    { name: '橙→红', value: 'linear-gradient(135deg, #fa8c16 0%, #eb2f96 100%)' },
-    { name: '天蓝→绿', value: 'linear-gradient(135deg, #13c2c2 0%, #52c41a 100%)' },
+    { name: '相遇紫', value: 'linear-gradient(135deg, #e9e6ff 0%, #c9d6ff 100%)' },
+    { name: '清晨蓝', value: 'linear-gradient(135deg, #e6f2ff 0%, #f0e6ff 100%)' },
+    { name: '薄荷梦', value: 'linear-gradient(135deg, #e0f7f4 0%, #f0f4ff 100%)' },
+    { name: '樱花淡', value: 'linear-gradient(135deg, #ffe6f0 0%, #fff0e6 100%)' },
+    { name: '晨曦金', value: 'linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%)' },
+    { name: '蓝山语', value: 'linear-gradient(135deg, #e6f0ff 0%, #f0e6ff 100%)' },
   ],
   solids: [
-    { name: '纯白', value: '#ffffff' },
-    { name: '浅灰', value: '#f5f5f5' },
-    { name: '深灰', value: '#e8e8e8' },
-    { name: '浅蓝', value: '#e6f7ff' },
-    { name: '浅绿', value: '#f6ffed' },
+    { name: '晨雾灰', value: '#f5f7fa' },
+    { name: '云水蓝', value: '#e6f7ff' },
+    { name: '青苔绿', value: '#e8f8f2' },
+    { name: '杏仁米', value: '#fdf6ec' },
+    { name: '雾霭紫', value: '#f3f0fa' },
   ],
   darkGradients: [
-    { name: '深灰→深蓝', value: 'linear-gradient(165deg, #111827 0%, #0b1220 100%)' },
-    { name: '深蓝→黑', value: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)' },
-    { name: '深紫→黑', value: 'linear-gradient(135deg, #1a0033 0%, #330066 100%)' },
-    { name: '深绿→黑', value: 'linear-gradient(135deg, #0d3b0d 0%, #1a1a1a 100%)' },
+    { name: '深夜蓝', value: 'linear-gradient(165deg, #0a0e27 0%, #1a1a2e 100%)' },
+    { name: '暮色紫', value: 'linear-gradient(135deg, #0f051a 0%, #1a0f2e 100%)' },
+    { name: '静谧黑', value: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%)' },
+    { name: '深邃靛', value: 'linear-gradient(135deg, #0a1428 0%, #1a2a4e 100%)' },
   ],
 };
 
@@ -45,12 +45,10 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
   const [gradColor2, setGradColor2] = useState<string>('#ffffff');
   const [gradAngle, setGradAngle] = useState<number>(135);
 
-  // 初始化渐变为系统主题色
+  // 初始化渐变为系统主题色（不自动触发 onChange，避免切换tab时重置）
   useEffect(() => {
     const themeColor = getThemeColor();
     setGradColor1(themeColor);
-    const gradient = `linear-gradient(135deg, ${themeColor} 0%, #ffffff 100%)`;
-    onChange(gradient);
   }, []);
 
   const presets = useMemo(() => {

@@ -6,7 +6,6 @@ import {
   Input,
   Switch,
   Segmented,
-  Select,
   Divider,
   Button,
   Space,
@@ -183,51 +182,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                   block
                 />
               </Form.Item>
-              <Form.Item label="字体大小">
-                <Select
-                  options={[
-                    { label: '小', value: 'small' },
-                    { label: '中', value: 'medium' },
-                    { label: '大', value: 'large' },
-                  ]}
-                  defaultValue="medium"
-                />
-              </Form.Item>
-              <Form.Item label="字体族">
-                <Input placeholder="输入字体名称" defaultValue="Segoe UI" />
-              </Form.Item>
               <Divider />
-              <Form.Item label="背景色 - 亮色主题">
+              <Form.Item label="背景">
                 <BackgroundEditor
-                  value={bgLight}
+                  value={themeMode === 'dark' ? bgDark : bgLight}
                   onChange={(newBg: string) => {
-                    setBgLight(newBg);
-                    setThemeBgLight(newBg);
+                    if (themeMode === 'dark') {
+                      setBgDark(newBg);
+                      setThemeBgDark(newBg);
+                    } else {
+                      setBgLight(newBg);
+                      setThemeBgLight(newBg);
+                    }
                     message.open({
                       type: 'success',
-                      content: '亮色主题背景已更新',
+                      content: '背景已更新',
                       key: 'theme-bg-updated',
                       duration: 1.5,
                     });
                   }}
-                  mode="light"
-                />
-              </Form.Item>
-              <Divider />
-              <Form.Item label="背景色 - 暗色主题">
-                <BackgroundEditor
-                  value={bgDark}
-                  onChange={(newBg: string) => {
-                    setBgDark(newBg);
-                    setThemeBgDark(newBg);
-                    message.open({
-                      type: 'success',
-                      content: '暗色主题背景已更新',
-                      key: 'theme-bg-updated',
-                      duration: 1.5,
-                    });
-                  }}
-                  mode="dark"
+                  mode={themeMode === 'dark' ? 'dark' : 'light'}
                 />
               </Form.Item>
             </Form>

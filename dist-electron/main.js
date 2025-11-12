@@ -1,28 +1,24 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import fs$1 from "node:fs";
-import fs from "node:fs/promises";
-import { randomBytes } from "node:crypto";
-class StorageError extends Error {
-  constructor(code, message, details) {
-    super(message);
-    this.code = code;
-    this.details = details;
-    this.name = "StorageError";
+var O = Object.defineProperty;
+var $ = (r, e, t) => e in r ? O(r, e, { enumerable: !0, configurable: !0, writable: !0, value: t }) : r[e] = t;
+var p = (r, e, t) => $(r, typeof e != "symbol" ? e + "" : e, t);
+import { app as g, shell as b, BrowserWindow as x, ipcMain as l, dialog as v } from "electron";
+import { fileURLToPath as W } from "node:url";
+import n from "node:path";
+import _ from "node:fs";
+import d from "node:fs/promises";
+import { randomBytes as A } from "node:crypto";
+class u extends Error {
+  constructor(e, t, a) {
+    super(t), this.code = e, this.details = a, this.name = "StorageError";
   }
 }
-class StorageManager {
+class T {
   constructor() {
-    __publicField(this, "currentPath");
-    __publicField(this, "foldersCache", null);
-    __publicField(this, "notesIndexCache", null);
-    __publicField(this, "defaultPath");
-    this.defaultPath = path.join(app.getPath("userData"), "data-v1");
-    this.currentPath = this.defaultPath;
+    p(this, "currentPath");
+    p(this, "foldersCache", null);
+    p(this, "notesIndexCache", null);
+    p(this, "defaultPath");
+    this.defaultPath = n.join(g.getPath("userData"), "data-v1"), this.currentPath = this.defaultPath;
   }
   /**
    * 初始化存储
@@ -30,93 +26,75 @@ class StorageManager {
    */
   async initialize() {
     try {
-      await this.ensureStorageInitialized(this.currentPath);
-      await this.recoverFromCrash();
-      console.log(`[Storage] Initialized at: ${this.currentPath}`);
-    } catch (error) {
-      console.error("[Storage] Initialization failed:", error);
-      throw new StorageError("E_IO_WRITE", "Failed to initialize storage", error);
+      await this.ensureStorageInitialized(this.currentPath), await this.recoverFromCrash(), console.log(`[Storage] Initialized at: ${this.currentPath}`);
+    } catch (e) {
+      throw console.error("[Storage] Initialization failed:", e), new u("E_IO_WRITE", "Failed to initialize storage", e);
     }
   }
   /**
    * 检查是否首次启动（未初始化）
    */
   async isFirstLaunch() {
-    const metaPath = path.join(this.currentPath, "meta.json");
-    const metaExists = await this.fileExists(metaPath);
-    if (!metaExists) {
-      return true;
-    }
+    const e = n.join(this.currentPath, "meta.json");
+    if (!await this.fileExists(e))
+      return !0;
     try {
-      const meta = await this.readJsonFile(metaPath);
-      return !meta.initialized;
+      return !(await this.readJsonFile(e)).initialized;
     } catch {
-      return true;
+      return !0;
     }
   }
   /**
    * 标记为已初始化
    */
   async markInitialized() {
-    const metaPath = path.join(this.currentPath, "meta.json");
-    const meta = await this.readJsonFile(metaPath, {
+    const e = n.join(this.currentPath, "meta.json"), t = await this.readJsonFile(e, {
       schemaVersion: 1,
       storageId: this.generateId(),
       createdAt: Date.now()
     });
-    meta.initialized = true;
-    await this.writeJsonFile(metaPath, meta);
+    t.initialized = !0, await this.writeJsonFile(e, t);
   }
   /**
    * 确保存储目录初始化
    */
-  async ensureStorageInitialized(storagePath) {
-    const metaPath = path.join(storagePath, "meta.json");
-    const metaExists = await this.fileExists(metaPath);
-    if (metaExists) {
+  async ensureStorageInitialized(e) {
+    const t = n.join(e, "meta.json");
+    if (await this.fileExists(t)) {
       await this.loadCaches();
       return;
     }
-    console.log(`[Storage] First-time initialization at: ${storagePath}`);
-    await fs.mkdir(storagePath, { recursive: true });
-    await fs.mkdir(path.join(storagePath, "notes"), { recursive: true });
-    await fs.mkdir(path.join(storagePath, "temp"), { recursive: true });
-    await fs.mkdir(path.join(storagePath, "backups"), { recursive: true });
-    const meta = {
+    console.log(`[Storage] First-time initialization at: ${e}`), await d.mkdir(e, { recursive: !0 }), await d.mkdir(n.join(e, "notes"), { recursive: !0 }), await d.mkdir(n.join(e, "temp"), { recursive: !0 }), await d.mkdir(n.join(e, "backups"), { recursive: !0 });
+    const i = {
       schemaVersion: 1,
       storageId: this.generateId(),
       createdAt: Date.now()
     };
-    await this.writeJsonFile(metaPath, meta);
-    const defaultFolder = {
+    await this.writeJsonFile(t, i);
+    const o = {
       id: "default",
       name: "默认文件夹",
-      system: true,
+      system: !0,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       order: 0
-    };
-    const foldersPath = path.join(storagePath, "folders.json");
-    await this.writeJsonFile(foldersPath, [defaultFolder]);
-    const indexPath = path.join(storagePath, "notes.index.json");
-    await this.writeJsonFile(indexPath, []);
-    await this.loadCaches();
+    }, c = n.join(e, "folders.json");
+    await this.writeJsonFile(c, [o]);
+    const w = n.join(e, "notes.index.json");
+    await this.writeJsonFile(w, []), await this.loadCaches();
   }
   /**
    * 加载缓存
    */
   async loadCaches() {
-    const foldersPath = path.join(this.currentPath, "folders.json");
-    const indexPath = path.join(this.currentPath, "notes.index.json");
-    this.foldersCache = await this.readJsonFile(foldersPath, []);
-    this.notesIndexCache = await this.readJsonFile(indexPath, []);
+    const e = n.join(this.currentPath, "folders.json"), t = n.join(this.currentPath, "notes.index.json");
+    this.foldersCache = await this.readJsonFile(e, []), this.notesIndexCache = await this.readJsonFile(t, []);
   }
   /**
    * 清空缓存
    */
   clearCaches() {
-    this.foldersCache = null;
-    this.notesIndexCache = null;
+    this.foldersCache = null, this.notesIndexCache = null;
   }
   /**
    * 崩溃恢复
@@ -124,42 +102,31 @@ class StorageManager {
    */
   async recoverFromCrash() {
     try {
-      const tempDir = path.join(this.currentPath, "temp");
-      const tempExists = await this.fileExists(tempDir);
-      if (!tempExists) {
+      const e = n.join(this.currentPath, "temp");
+      if (!await this.fileExists(e))
         return;
-      }
-      const tempFiles = await fs.readdir(tempDir);
-      let recoveredCount = 0;
-      for (const tempFile of tempFiles) {
-        if (!tempFile.endsWith(".tmp")) {
+      const a = await d.readdir(e);
+      let i = 0;
+      for (const o of a) {
+        if (!o.endsWith(".tmp"))
           continue;
-        }
-        const tempPath = path.join(tempDir, tempFile);
-        const originalName = tempFile.replace(".tmp", "");
-        let targetPath;
-        if (originalName.startsWith("note-")) {
-          const noteId = originalName.replace("note-", "").replace(".json", "");
-          targetPath = path.join(this.currentPath, "notes", `${noteId}.json`);
-        } else {
-          targetPath = path.join(this.currentPath, originalName);
-        }
+        const c = n.join(e, o), w = o.replace(".tmp", "");
+        let j;
+        if (w.startsWith("note-")) {
+          const y = w.replace("note-", "").replace(".json", "");
+          j = n.join(this.currentPath, "notes", `${y}.json`);
+        } else
+          j = n.join(this.currentPath, w);
         try {
-          const content = await fs.readFile(tempPath, "utf-8");
-          JSON.parse(content);
-          await fs.rename(tempPath, targetPath);
-          recoveredCount++;
-          console.log(`[Storage] Recovered temp file: ${tempFile}`);
-        } catch (error) {
-          console.warn(`[Storage] Removing corrupted temp file: ${tempFile}`, error);
-          await fs.unlink(tempPath);
+          const y = await d.readFile(c, "utf-8");
+          JSON.parse(y), await d.rename(c, j), i++, console.log(`[Storage] Recovered temp file: ${o}`);
+        } catch (y) {
+          console.warn(`[Storage] Removing corrupted temp file: ${o}`, y), await d.unlink(c);
         }
       }
-      if (recoveredCount > 0) {
-        console.log(`[Storage] Crash recovery completed: ${recoveredCount} file(s) recovered`);
-      }
-    } catch (error) {
-      console.error("[Storage] Crash recovery failed:", error);
+      i > 0 && console.log(`[Storage] Crash recovery completed: ${i} file(s) recovered`);
+    } catch (e) {
+      console.error("[Storage] Crash recovery failed:", e);
     }
   }
   // ============ 路径管理 ============
@@ -178,85 +145,65 @@ class StorageManager {
   /**
    * 设置存储路径
    */
-  async setStoragePath(nextPath, options) {
-    const migrate = (options == null ? void 0 : options.migrate) ?? false;
-    if (!migrate) {
-      this.currentPath = nextPath;
-      this.clearCaches();
-      await this.ensureStorageInitialized(nextPath);
+  async setStoragePath(e, t) {
+    if (!((t == null ? void 0 : t.migrate) ?? !1)) {
+      this.currentPath = e, this.clearCaches(), await this.ensureStorageInitialized(e);
       return;
     }
-    await this.migrateData(this.currentPath, nextPath);
+    await this.migrateData(this.currentPath, e);
   }
   /**
    * 迁移数据
    */
-  async migrateData(fromPath, toPath) {
+  async migrateData(e, t) {
     try {
-      console.log(`[Storage] Migrating from ${fromPath} to ${toPath}`);
-      await this.validateMigrationPath(toPath);
-      const backupPath = path.join(fromPath, "backups", `backup-${Date.now()}`);
-      await this.copyDirectory(fromPath, backupPath);
-      await this.copyDirectory(fromPath, toPath);
-      await this.validateStorageIntegrity(toPath);
-      this.currentPath = toPath;
-      this.clearCaches();
-      await this.loadCaches();
-      console.log(`[Storage] Migration completed successfully`);
-    } catch (error) {
-      console.error("[Storage] Migration failed:", error);
-      throw new StorageError("E_MIGRATE_FAIL", "Data migration failed", error);
+      console.log(`[Storage] Migrating from ${e} to ${t}`), await this.validateMigrationPath(t);
+      const a = n.join(e, "backups", `backup-${Date.now()}`);
+      await this.copyDirectory(e, a), await this.copyDirectory(e, t), await this.validateStorageIntegrity(t), this.currentPath = t, this.clearCaches(), await this.loadCaches(), console.log("[Storage] Migration completed successfully");
+    } catch (a) {
+      throw console.error("[Storage] Migration failed:", a), new u("E_MIGRATE_FAIL", "Data migration failed", a);
     }
   }
   /**
    * 校验迁移路径
    */
-  async validateMigrationPath(targetPath) {
+  async validateMigrationPath(e) {
     try {
-      const exists = await this.fileExists(targetPath);
-      if (exists) {
-        const files = await fs.readdir(targetPath);
-        if (files.length > 0) {
+      if (await this.fileExists(e)) {
+        if ((await d.readdir(e)).length > 0)
           throw new Error("Target directory is not empty");
-        }
-      } else {
-        await fs.mkdir(targetPath, { recursive: true });
-      }
-      await fs.access(targetPath, fs$1.constants.W_OK);
-    } catch (error) {
-      throw new StorageError("E_PATH_INVALID", "Invalid migration path", error);
+      } else
+        await d.mkdir(e, { recursive: !0 });
+      await d.access(e, _.constants.W_OK);
+    } catch (t) {
+      throw new u("E_PATH_INVALID", "Invalid migration path", t);
     }
   }
   /**
    * 校验存储完整性
    */
-  async validateStorageIntegrity(storagePath) {
-    const requiredFiles = ["meta.json", "folders.json", "notes.index.json"];
-    for (const file of requiredFiles) {
-      const filePath = path.join(storagePath, file);
-      const exists = await this.fileExists(filePath);
-      if (!exists) {
-        throw new Error(`Missing required file: ${file}`);
-      }
+  async validateStorageIntegrity(e) {
+    const t = ["meta.json", "folders.json", "notes.index.json"];
+    for (const a of t) {
+      const i = n.join(e, a);
+      if (!await this.fileExists(i))
+        throw new Error(`Missing required file: ${a}`);
     }
   }
   /**
    * 拷贝目录
    */
-  async copyDirectory(src, dest) {
-    await fs.mkdir(dest, { recursive: true });
-    const entries = await fs.readdir(src, { withFileTypes: true });
-    for (const entry of entries) {
-      const srcPath = path.join(src, entry.name);
-      const destPath = path.join(dest, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === "temp" || entry.name === "backups") {
+  async copyDirectory(e, t) {
+    await d.mkdir(t, { recursive: !0 });
+    const a = await d.readdir(e, { withFileTypes: !0 });
+    for (const i of a) {
+      const o = n.join(e, i.name), c = n.join(t, i.name);
+      if (i.isDirectory()) {
+        if (i.name === "temp" || i.name === "backups")
           continue;
-        }
-        await this.copyDirectory(srcPath, destPath);
-      } else {
-        await fs.copyFile(srcPath, destPath);
-      }
+        await this.copyDirectory(o, c);
+      } else
+        await d.copyFile(o, c);
     }
   }
   /**
@@ -264,12 +211,11 @@ class StorageManager {
    */
   async healthCheck() {
     try {
-      await this.validateStorageIntegrity(this.currentPath);
-      return { ok: true };
-    } catch (error) {
+      return await this.validateStorageIntegrity(this.currentPath), { ok: !0 };
+    } catch (e) {
       return {
-        ok: false,
-        details: error instanceof Error ? error.message : "Unknown error"
+        ok: !1,
+        details: e instanceof Error ? e.message : "Unknown error"
       };
     }
   }
@@ -277,19 +223,17 @@ class StorageManager {
    * 在 Finder/Explorer 中打开数据目录
    */
   async openInFinder() {
-    await shell.openPath(this.currentPath);
+    await b.openPath(this.currentPath);
   }
   /**
    * 获取存储统计信息
    */
   async getStats() {
-    const folders = this.foldersCache || [];
-    const notes = this.notesIndexCache || [];
-    const dataSize = await this.calculateDirectorySize(this.currentPath);
+    const e = this.foldersCache || [], t = this.notesIndexCache || [], a = await this.calculateDirectorySize(this.currentPath);
     return {
-      folderCount: folders.length,
-      noteCount: notes.length,
-      dataSize
+      folderCount: e.length,
+      noteCount: t.length,
+      dataSize: a
     };
   }
   /**
@@ -297,30 +241,20 @@ class StorageManager {
    */
   async createBackup() {
     try {
-      const timestamp = Date.now();
-      const backupName = `backup-${timestamp}`;
-      const backupPath = path.join(this.currentPath, "backups", backupName);
-      console.log(`[Storage] Creating backup: ${backupName}`);
-      await this.copyDirectory(this.currentPath, backupPath);
-      console.log(`[Storage] Backup created successfully: ${backupPath}`);
-      return backupPath;
-    } catch (error) {
-      console.error("[Storage] Backup creation failed:", error);
-      throw new StorageError("E_IO_WRITE", "Failed to create backup", error);
+      const t = `backup-${Date.now()}`, a = n.join(this.currentPath, "backups", t);
+      return console.log(`[Storage] Creating backup: ${t}`), await this.copyDirectory(this.currentPath, a), console.log(`[Storage] Backup created successfully: ${a}`), a;
+    } catch (e) {
+      throw console.error("[Storage] Backup creation failed:", e), new u("E_IO_WRITE", "Failed to create backup", e);
     }
   }
   /**
    * 导出数据到指定路径
    */
-  async exportData(targetPath) {
+  async exportData(e) {
     try {
-      console.log(`[Storage] Exporting data to: ${targetPath}`);
-      await fs.mkdir(targetPath, { recursive: true });
-      await this.copyDirectory(this.currentPath, targetPath);
-      console.log(`[Storage] Data exported successfully`);
-    } catch (error) {
-      console.error("[Storage] Data export failed:", error);
-      throw new StorageError("E_IO_WRITE", "Failed to export data", error);
+      console.log(`[Storage] Exporting data to: ${e}`), await d.mkdir(e, { recursive: !0 }), await this.copyDirectory(this.currentPath, e), console.log("[Storage] Data exported successfully");
+    } catch (t) {
+      throw console.error("[Storage] Data export failed:", t), new u("E_IO_WRITE", "Failed to export data", t);
     }
   }
   /**
@@ -330,277 +264,210 @@ class StorageManager {
   async resetAllData() {
     try {
       console.log(`[Storage] Resetting all data at: ${this.currentPath}`);
-      const entries = await fs.readdir(this.currentPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(this.currentPath, entry.name);
-        if (entry.isDirectory()) {
-          await this.deleteDirectory(fullPath);
-        } else {
-          await fs.unlink(fullPath);
-        }
+      const e = await d.readdir(this.currentPath, { withFileTypes: !0 });
+      for (const t of e) {
+        const a = n.join(this.currentPath, t.name);
+        t.isDirectory() ? await this.deleteDirectory(a) : await d.unlink(a);
       }
-      await this.ensureStorageInitialized(this.currentPath);
-      console.log(`[Storage] Data reset successfully`);
-    } catch (error) {
-      console.error("[Storage] Data reset failed:", error);
-      throw new StorageError("E_IO_WRITE", "Failed to reset data", error);
+      await this.ensureStorageInitialized(this.currentPath), console.log("[Storage] Data reset successfully");
+    } catch (e) {
+      throw console.error("[Storage] Data reset failed:", e), new u("E_IO_WRITE", "Failed to reset data", e);
     }
   }
   /**
    * 递归删除目录
    */
-  async deleteDirectory(dirPath) {
+  async deleteDirectory(e) {
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const fullPath = path.join(dirPath, entry.name);
-        if (entry.isDirectory()) {
-          await this.deleteDirectory(fullPath);
-        } else {
-          await fs.unlink(fullPath);
-        }
+      const t = await d.readdir(e, { withFileTypes: !0 });
+      for (const a of t) {
+        const i = n.join(e, a.name);
+        a.isDirectory() ? await this.deleteDirectory(i) : await d.unlink(i);
       }
-      await fs.rmdir(dirPath);
-    } catch (error) {
-      console.error(`[Storage] Failed to delete directory ${dirPath}:`, error);
-      throw error;
+      await d.rmdir(e);
+    } catch (t) {
+      throw console.error(`[Storage] Failed to delete directory ${e}:`, t), t;
     }
   }
   /**
    * 计算目录大小
    */
-  async calculateDirectorySize(dirPath) {
-    let totalSize = 0;
+  async calculateDirectorySize(e) {
+    let t = 0;
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const entryPath = path.join(dirPath, entry.name);
-        if (entry.isDirectory()) {
-          totalSize += await this.calculateDirectorySize(entryPath);
-        } else {
-          const stats = await fs.stat(entryPath);
-          totalSize += stats.size;
+      const a = await d.readdir(e, { withFileTypes: !0 });
+      for (const i of a) {
+        const o = n.join(e, i.name);
+        if (i.isDirectory())
+          t += await this.calculateDirectorySize(o);
+        else {
+          const c = await d.stat(o);
+          t += c.size;
         }
       }
-    } catch (error) {
-      console.error(`[Storage] Error calculating size for ${dirPath}:`, error);
+    } catch (a) {
+      console.error(`[Storage] Error calculating size for ${e}:`, a);
     }
-    return totalSize;
+    return t;
   }
   // ============ 文件夹操作 ============
   /**
    * 列出所有文件夹
    */
   async listFolders() {
-    if (!this.foldersCache) {
-      await this.loadCaches();
-    }
-    return this.foldersCache || [];
+    return this.foldersCache || await this.loadCaches(), this.foldersCache || [];
   }
   /**
    * 创建文件夹
    */
-  async createFolder(name) {
-    const folders = await this.listFolders();
-    if (folders.some((f) => f.name === name)) {
-      throw new StorageError("E_ALREADY_EXISTS", `Folder "${name}" already exists`);
-    }
-    const now = Date.now();
-    const newFolder = {
+  async createFolder(e) {
+    const t = await this.listFolders();
+    if (t.some((o) => o.name === e))
+      throw new u("E_ALREADY_EXISTS", `Folder "${e}" already exists`);
+    const a = Date.now(), i = {
       id: this.generateId(),
-      name,
-      createdAt: now,
-      updatedAt: now,
-      order: folders.length,
-      system: false
+      name: e,
+      createdAt: a,
+      updatedAt: a,
+      order: t.length,
+      system: !1
     };
-    folders.push(newFolder);
-    await this.saveFolders(folders);
-    return newFolder;
+    return t.push(i), await this.saveFolders(t), i;
   }
   /**
    * 重命名文件夹
    */
-  async renameFolder(id, name) {
-    const folders = await this.listFolders();
-    const folder = folders.find((f) => f.id === id);
-    if (!folder) {
-      throw new StorageError("E_NOT_FOUND", `Folder not found: ${id}`);
-    }
-    if (folder.system) {
-      throw new StorageError("E_FOLDER_SYSTEM", "Cannot rename system folder");
-    }
-    if (folders.some((f) => f.id !== id && f.name === name)) {
-      throw new StorageError("E_ALREADY_EXISTS", `Folder "${name}" already exists`);
-    }
-    folder.name = name;
-    folder.updatedAt = Date.now();
-    await this.saveFolders(folders);
-    return folder;
+  async renameFolder(e, t) {
+    const a = await this.listFolders(), i = a.find((o) => o.id === e);
+    if (!i)
+      throw new u("E_NOT_FOUND", `Folder not found: ${e}`);
+    if (i.system)
+      throw new u("E_FOLDER_SYSTEM", "Cannot rename system folder");
+    if (a.some((o) => o.id !== e && o.name === t))
+      throw new u("E_ALREADY_EXISTS", `Folder "${t}" already exists`);
+    return i.name = t, i.updatedAt = Date.now(), await this.saveFolders(a), i;
   }
   /**
    * 删除文件夹
    */
-  async deleteFolder(id) {
-    const folders = await this.listFolders();
-    const folder = folders.find((f) => f.id === id);
-    if (!folder) {
-      throw new StorageError("E_NOT_FOUND", `Folder not found: ${id}`);
-    }
-    if (folder.system) {
-      throw new StorageError(
+  async deleteFolder(e) {
+    const t = await this.listFolders(), a = t.find((c) => c.id === e);
+    if (!a)
+      throw new u("E_NOT_FOUND", `Folder not found: ${e}`);
+    if (a.system)
+      throw new u(
         "E_FOLDER_SYSTEM",
         "Cannot delete system default folder"
       );
+    const i = await this.listNotes(e);
+    for (const c of i) {
+      const w = await this.getNote(c.id);
+      w.folderId = "default", w.updatedAt = Date.now(), await this.saveNote(w);
     }
-    const notes = await this.listNotes(id);
-    for (const note of notes) {
-      const fullNote = await this.getNote(note.id);
-      fullNote.folderId = "default";
-      fullNote.updatedAt = Date.now();
-      await this.saveNote(fullNote);
-    }
-    const index = folders.findIndex((f) => f.id === id);
-    folders.splice(index, 1);
-    await this.saveFolders(folders);
+    const o = t.findIndex((c) => c.id === e);
+    t.splice(o, 1), await this.saveFolders(t);
   }
   /**
    * 保存文件夹列表
    */
-  async saveFolders(folders) {
-    const foldersPath = path.join(this.currentPath, "folders.json");
-    await this.writeJsonFile(foldersPath, folders);
-    this.foldersCache = folders;
+  async saveFolders(e) {
+    const t = n.join(this.currentPath, "folders.json");
+    await this.writeJsonFile(t, e), this.foldersCache = e;
   }
   // ============ 便签操作 ============
   /**
    * 列出便签索引
    */
-  async listNotes(folderId) {
-    if (!this.notesIndexCache) {
-      await this.loadCaches();
-    }
-    const allNotes = this.notesIndexCache || [];
-    if (folderId) {
-      return allNotes.filter((n) => n.folderId === folderId);
-    }
-    return allNotes;
+  async listNotes(e) {
+    this.notesIndexCache || await this.loadCaches();
+    const t = this.notesIndexCache || [];
+    return e ? t.filter((a) => a.folderId === e) : t;
   }
   /**
    * 创建便签
    */
-  async createNote(folderId, payload) {
-    const folders = await this.listFolders();
-    if (!folders.some((f) => f.id === folderId)) {
-      throw new StorageError("E_NOT_FOUND", `Folder not found: ${folderId}`);
-    }
-    const now = Date.now();
-    const newNote = {
+  async createNote(e, t) {
+    if (!(await this.listFolders()).some((c) => c.id === e))
+      throw new u("E_NOT_FOUND", `Folder not found: ${e}`);
+    const i = Date.now(), o = {
       id: this.generateId(),
-      folderId,
-      title: (payload == null ? void 0 : payload.title) || "无标题",
-      content: (payload == null ? void 0 : payload.content) || { type: "doc", content: [] },
+      folderId: e,
+      title: (t == null ? void 0 : t.title) || "无标题",
+      content: (t == null ? void 0 : t.content) || { type: "doc", content: [] },
       tags: [],
-      pinned: false,
+      pinned: !1,
       color: "ffffff",
-      createdAt: now,
-      updatedAt: now
+      createdAt: i,
+      updatedAt: i
     };
-    await this.saveNote(newNote);
-    return newNote;
+    return await this.saveNote(o), o;
   }
   /**
    * 获取便签完整内容
    */
-  async getNote(id) {
-    const notePath = path.join(this.currentPath, "notes", `${id}.json`);
-    const exists = await this.fileExists(notePath);
-    if (!exists) {
-      throw new StorageError("E_NOT_FOUND", `Note not found: ${id}`);
-    }
-    return await this.readJsonFile(notePath);
+  async getNote(e) {
+    const t = n.join(this.currentPath, "notes", `${e}.json`);
+    if (!await this.fileExists(t))
+      throw new u("E_NOT_FOUND", `Note not found: ${e}`);
+    return await this.readJsonFile(t);
   }
   /**
    * 更新便签
    */
-  async updateNote(id, patch) {
-    const note = await this.getNote(id);
-    Object.assign(note, patch);
-    note.updatedAt = Date.now();
-    await this.saveNote(note);
-    return note;
+  async updateNote(e, t) {
+    const a = await this.getNote(e);
+    return Object.assign(a, t), a.updatedAt = Date.now(), await this.saveNote(a), a;
   }
   /**
    * 删除便签
    */
-  async deleteNote(id) {
-    const notePath = path.join(this.currentPath, "notes", `${id}.json`);
-    const exists = await this.fileExists(notePath);
-    if (!exists) {
-      throw new StorageError("E_NOT_FOUND", `Note not found: ${id}`);
-    }
-    await fs.unlink(notePath);
-    const index = this.notesIndexCache || [];
-    const noteIndex = index.findIndex((n) => n.id === id);
-    if (noteIndex >= 0) {
-      index.splice(noteIndex, 1);
-      await this.saveNotesIndex(index);
-    }
+  async deleteNote(e) {
+    const t = n.join(this.currentPath, "notes", `${e}.json`);
+    if (!await this.fileExists(t))
+      throw new u("E_NOT_FOUND", `Note not found: ${e}`);
+    await d.unlink(t);
+    const i = this.notesIndexCache || [], o = i.findIndex((c) => c.id === e);
+    o >= 0 && (i.splice(o, 1), await this.saveNotesIndex(i));
   }
   /**
    * 保存便签
    * 先写正文，再更新索引
    */
-  async saveNote(note) {
-    const notePath = path.join(this.currentPath, "notes", `${note.id}.json`);
-    await this.writeJsonFileAtomic(notePath, note);
-    const index = this.notesIndexCache || [];
-    const existingIndex = index.findIndex((n) => n.id === note.id);
-    const noteIndex = {
-      id: note.id,
-      folderId: note.folderId,
-      title: note.title,
-      excerpt: this.generateExcerpt(note.content),
-      updatedAt: note.updatedAt,
-      pinned: note.pinned,
-      tags: note.tags,
-      color: note.color ?? "ffffff"
+  async saveNote(e) {
+    const t = n.join(this.currentPath, "notes", `${e.id}.json`);
+    await this.writeJsonFileAtomic(t, e);
+    const a = this.notesIndexCache || [], i = a.findIndex((c) => c.id === e.id), o = {
+      id: e.id,
+      folderId: e.folderId,
+      title: e.title,
+      excerpt: this.generateExcerpt(e.content),
+      updatedAt: e.updatedAt,
+      pinned: e.pinned,
+      tags: e.tags,
+      color: e.color ?? "ffffff"
     };
-    if (existingIndex >= 0) {
-      index[existingIndex] = noteIndex;
-    } else {
-      index.push(noteIndex);
-    }
-    await this.saveNotesIndex(index);
+    i >= 0 ? a[i] = o : a.push(o), await this.saveNotesIndex(a);
   }
   /**
    * 保存便签索引
    */
-  async saveNotesIndex(index) {
-    const indexPath = path.join(this.currentPath, "notes.index.json");
-    await this.writeJsonFile(indexPath, index);
-    this.notesIndexCache = index;
+  async saveNotesIndex(e) {
+    const t = n.join(this.currentPath, "notes.index.json");
+    await this.writeJsonFile(t, e), this.notesIndexCache = e;
   }
   /**
    * 生成摘要
    */
-  generateExcerpt(content) {
+  generateExcerpt(e) {
     try {
-      const isObj = (v) => typeof v === "object" && v !== null;
-      if (!isObj(content)) return "";
-      const root = content;
-      if (!Array.isArray(root.content)) return "";
-      let text = "";
-      const extractText = (node) => {
-        if (node.type === "text" && typeof node.text === "string") {
-          text += node.text;
-        }
-        if (node.content && Array.isArray(node.content)) {
-          node.content.forEach(extractText);
-        }
+      if (!((c) => typeof c == "object" && c !== null)(e)) return "";
+      const a = e;
+      if (!Array.isArray(a.content)) return "";
+      let i = "";
+      const o = (c) => {
+        c.type === "text" && typeof c.text == "string" && (i += c.text), c.content && Array.isArray(c.content) && c.content.forEach(o);
       };
-      extractText(root);
-      return text.slice(0, 100);
+      return o(a), i.slice(0, 100);
     } catch {
       return "";
     }
@@ -610,45 +477,43 @@ class StorageManager {
    * 生成唯一 ID
    */
   generateId() {
-    return randomBytes(8).toString("hex");
+    return A(8).toString("hex");
   }
   /**
    * 检查文件是否存在
    */
-  async fileExists(filePath) {
+  async fileExists(e) {
     try {
-      await fs.access(filePath);
-      return true;
+      return await d.access(e), !0;
     } catch {
-      return false;
+      return !1;
     }
   }
   /**
    * 读取 JSON 文件
    */
-  async readJsonFile(filePath, defaultValue) {
+  async readJsonFile(e, t) {
     try {
-      const content = await fs.readFile(filePath, "utf-8");
-      return JSON.parse(content);
-    } catch (error) {
-      if (defaultValue !== void 0) {
-        return defaultValue;
-      }
-      throw new StorageError("E_IO_READ", `Failed to read file: ${filePath}`, error);
+      const a = await d.readFile(e, "utf-8");
+      return JSON.parse(a);
+    } catch (a) {
+      if (t !== void 0)
+        return t;
+      throw new u("E_IO_READ", `Failed to read file: ${e}`, a);
     }
   }
   /**
    * 写入 JSON 文件
    */
-  async writeJsonFile(filePath, data) {
+  async writeJsonFile(e, t) {
     try {
-      const content = JSON.stringify(data, null, 2);
-      await fs.writeFile(filePath, content, "utf-8");
-    } catch (error) {
-      throw new StorageError(
+      const a = JSON.stringify(t, null, 2);
+      await d.writeFile(e, a, "utf-8");
+    } catch (a) {
+      throw new u(
         "E_IO_WRITE",
-        `Failed to write file: ${filePath}`,
-        error
+        `Failed to write file: ${e}`,
+        a
       );
     }
   }
@@ -656,436 +521,288 @@ class StorageManager {
    * 原子写入 JSON 文件
    * 先写临时文件，再重命名
    */
-  async writeJsonFileAtomic(filePath, data) {
-    const isNoteFile = filePath.includes("/notes/");
-    const baseName = path.basename(filePath);
-    const tempFileName = isNoteFile ? `note-${baseName}.tmp` : `${baseName}.tmp`;
-    const tempPath = path.join(this.currentPath, "temp", tempFileName);
+  async writeJsonFileAtomic(e, t) {
+    const a = e.includes("/notes/"), i = n.basename(e), o = a ? `note-${i}.tmp` : `${i}.tmp`, c = n.join(this.currentPath, "temp", o);
     try {
-      const content = JSON.stringify(data, null, 2);
-      await fs.writeFile(tempPath, content, "utf-8");
-      await fs.rename(tempPath, filePath);
-    } catch (error) {
+      const w = JSON.stringify(t, null, 2);
+      await d.writeFile(c, w, "utf-8"), await d.rename(c, e);
+    } catch (w) {
       try {
-        await fs.unlink(tempPath);
+        await d.unlink(c);
       } catch {
       }
-      throw new StorageError(
+      throw new u(
         "E_IO_WRITE",
-        `Failed to write file atomically: ${filePath}`,
-        error
+        `Failed to write file atomically: ${e}`,
+        w
       );
     }
   }
 }
-const storageManager = new StorageManager();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-let isQuitting = false;
-const floatingWindows = /* @__PURE__ */ new Map();
-const pillWindows = /* @__PURE__ */ new Map();
-const minimizedBounds = /* @__PURE__ */ new Map();
-const PILL_SIZE = { width: 130, height: 48 };
-let defaultFloatingWindowSize = {
+const h = new T(), D = n.dirname(W(import.meta.url));
+process.env.APP_ROOT = n.join(D, "..");
+const m = process.env.VITE_DEV_SERVER_URL, Y = n.join(process.env.APP_ROOT, "dist-electron"), E = n.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = m ? n.join(process.env.APP_ROOT, "public") : E;
+let s, N = !1;
+const f = /* @__PURE__ */ new Map(), S = /* @__PURE__ */ new Map(), P = /* @__PURE__ */ new Map(), I = { width: 130, height: 48 };
+let F = {
   width: 400,
   height: 400
 };
-function getWindowStateFilePath() {
-  return path.join(app.getPath("userData"), "window-state.json");
+function C() {
+  return n.join(g.getPath("userData"), "window-state.json");
 }
-function loadWindowState() {
+function R() {
   try {
-    const filePath = getWindowStateFilePath();
-    if (fs$1.existsSync(filePath)) {
-      const data = fs$1.readFileSync(filePath, "utf-8");
-      return JSON.parse(data);
+    const r = C();
+    if (_.existsSync(r)) {
+      const e = _.readFileSync(r, "utf-8");
+      return JSON.parse(e);
     }
-  } catch (error) {
-    console.error("[Window] Failed to load window state:", error);
+  } catch (r) {
+    console.error("[Window] Failed to load window state:", r);
   }
   return null;
 }
-function saveWindowState() {
-  if (!win || win.isDestroyed()) return;
-  try {
-    const state = {
-      width: win.getSize()[0],
-      height: win.getSize()[1],
-      isMaximized: win.isMaximized()
-    };
-    if (!state.isMaximized) {
-      const [x, y] = win.getPosition();
-      state.x = x;
-      state.y = y;
+function z() {
+  if (!(!s || s.isDestroyed()))
+    try {
+      const r = {
+        width: s.getSize()[0],
+        height: s.getSize()[1],
+        isMaximized: s.isMaximized()
+      };
+      if (!r.isMaximized) {
+        const [t, a] = s.getPosition();
+        r.x = t, r.y = a;
+      }
+      const e = C();
+      _.writeFileSync(e, JSON.stringify(r), "utf-8");
+    } catch (r) {
+      console.error("[Window] Failed to save window state:", r);
     }
-    const filePath = getWindowStateFilePath();
-    fs$1.writeFileSync(filePath, JSON.stringify(state), "utf-8");
-  } catch (error) {
-    console.error("[Window] Failed to save window state:", error);
-  }
 }
-function createWindow() {
-  const savedState = loadWindowState();
-  win = new BrowserWindow({
-    width: (savedState == null ? void 0 : savedState.width) ?? 700,
-    height: (savedState == null ? void 0 : savedState.height) ?? 560,
-    x: savedState == null ? void 0 : savedState.x,
-    y: savedState == null ? void 0 : savedState.y,
+function k() {
+  const r = R();
+  s = new x({
+    width: (r == null ? void 0 : r.width) ?? 700,
+    height: (r == null ? void 0 : r.height) ?? 560,
+    x: r == null ? void 0 : r.x,
+    y: r == null ? void 0 : r.y,
     minWidth: 700,
     minHeight: 560,
-    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
-    frame: false,
+    icon: n.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    frame: !1,
     titleBarStyle: "hidden",
     trafficLightPosition: { x: 12, y: 10 },
-    show: false,
+    show: !1,
     backgroundColor: "#FFFFFF",
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
+      preload: n.join(D, "preload.mjs")
     }
-  });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  win.once("ready-to-show", () => {
-    win == null ? void 0 : win.show();
-    if (savedState == null ? void 0 : savedState.isMaximized) {
-      win == null ? void 0 : win.maximize();
-    }
-  });
-  win.on("close", (e) => {
-    if (process.platform === "darwin" && !isQuitting) {
-      e.preventDefault();
-      win == null ? void 0 : win.hide();
+  }), s.webContents.on("did-finish-load", () => {
+    s == null || s.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), s.once("ready-to-show", () => {
+    s == null || s.show(), r != null && r.isMaximized && (s == null || s.maximize());
+  }), s.on("close", (e) => {
+    if (process.platform === "darwin" && !N) {
+      e.preventDefault(), s == null || s.hide();
       return;
     }
-    saveWindowState();
-    win = null;
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+    z(), s = null;
+  }), m ? s.loadURL(m) : s.loadFile(n.join(E, "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+g.on("window-all-closed", () => {
+  process.platform !== "darwin" && (g.quit(), s = null);
 });
-app.on("activate", () => {
-  if (win) {
-    win.show();
-  } else if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+g.on("activate", () => {
+  s ? s.show() : x.getAllWindows().length === 0 && k();
 });
-ipcMain.on("window-minimize", () => {
-  if (win) {
-    win.minimize();
-  }
+l.on("window-minimize", () => {
+  s && s.minimize();
 });
-ipcMain.on("window-maximize", () => {
-  if (win) {
-    if (win.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win.maximize();
-    }
-  }
+l.on("window-maximize", () => {
+  s && (s.isMaximized() ? s.unmaximize() : s.maximize());
 });
-ipcMain.on("window-close", () => {
-  if (!win) return;
-  if (process.platform === "darwin") {
-    win.hide();
-  } else {
-    win.close();
-  }
+l.on("window-close", () => {
+  s && (process.platform === "darwin" ? s.hide() : s.close());
 });
-ipcMain.handle("window-is-maximized", () => {
-  return (win == null ? void 0 : win.isMaximized()) ?? false;
+l.handle("window-is-maximized", () => (s == null ? void 0 : s.isMaximized()) ?? !1);
+l.on("window-double-click-titlebar", () => {
+  s && (s.isMaximized() ? s.unmaximize() : s.maximize());
 });
-ipcMain.on("window-double-click-titlebar", () => {
-  if (win) {
-    if (win.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win.maximize();
-    }
-  }
+const L = g.requestSingleInstanceLock();
+L ? g.on("second-instance", () => {
+  s && (s.isMinimized() && s.restore(), s.show(), s.focus());
+}) : g.quit();
+g.on("before-quit", () => {
+  N = !0, z();
 });
-const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
-  app.quit();
-} else {
-  app.on("second-instance", () => {
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.show();
-      win.focus();
-    }
-  });
-}
-app.on("before-quit", () => {
-  isQuitting = true;
-  saveWindowState();
+g.whenReady().then(async () => {
+  await h.initialize(), k();
 });
-app.whenReady().then(async () => {
-  await storageManager.initialize();
-  createWindow();
+l.handle("storage:getDefaultPath", () => h.getDefaultPath());
+l.handle("storage:getCurrentPath", () => h.getCurrentPath());
+l.handle("storage:isFirstLaunch", async () => await h.isFirstLaunch());
+l.handle("storage:markInitialized", async () => {
+  await h.markInitialized();
 });
-ipcMain.handle("storage:getDefaultPath", () => {
-  return storageManager.getDefaultPath();
-});
-ipcMain.handle("storage:getCurrentPath", () => {
-  return storageManager.getCurrentPath();
-});
-ipcMain.handle("storage:isFirstLaunch", async () => {
-  return await storageManager.isFirstLaunch();
-});
-ipcMain.handle("storage:markInitialized", async () => {
-  await storageManager.markInitialized();
-});
-ipcMain.handle(
+l.handle(
   "storage:setStoragePath",
-  async (_, nextPath, options) => {
-    await storageManager.setStoragePath(nextPath, options);
+  async (r, e, t) => {
+    await h.setStoragePath(e, t);
   }
 );
-ipcMain.handle("storage:healthCheck", async () => {
-  return await storageManager.healthCheck();
+l.handle("storage:healthCheck", async () => await h.healthCheck());
+l.handle("storage:openInFinder", async () => {
+  await h.openInFinder();
 });
-ipcMain.handle("storage:openInFinder", async () => {
-  await storageManager.openInFinder();
+l.handle("storage:getStats", async () => await h.getStats());
+l.handle("storage:createBackup", async () => await h.createBackup());
+l.handle("storage:exportData", async (r, e) => {
+  await h.exportData(e);
 });
-ipcMain.handle("storage:getStats", async () => {
-  return await storageManager.getStats();
+l.handle("storage:resetAllData", async () => {
+  await h.resetAllData();
 });
-ipcMain.handle("storage:createBackup", async () => {
-  return await storageManager.createBackup();
+l.handle("storage:listFolders", async () => await h.listFolders());
+l.handle("storage:createFolder", async (r, e) => await h.createFolder(e));
+l.handle("storage:renameFolder", async (r, e, t) => await h.renameFolder(e, t));
+l.handle("storage:deleteFolder", async (r, e) => {
+  await h.deleteFolder(e);
 });
-ipcMain.handle("storage:exportData", async (_, targetPath) => {
-  await storageManager.exportData(targetPath);
+l.handle("storage:listNotes", async (r, e) => await h.listNotes(e));
+l.handle("storage:createNote", async (r, e, t) => await h.createNote(e, t));
+l.handle("storage:getNote", async (r, e) => await h.getNote(e));
+l.handle("storage:updateNote", async (r, e, t) => await h.updateNote(e, t));
+l.handle("storage:deleteNote", async (r, e) => {
+  await h.deleteNote(e);
 });
-ipcMain.handle("storage:resetAllData", async () => {
-  await storageManager.resetAllData();
-});
-ipcMain.handle("storage:listFolders", async () => {
-  return await storageManager.listFolders();
-});
-ipcMain.handle("storage:createFolder", async (_, name) => {
-  return await storageManager.createFolder(name);
-});
-ipcMain.handle("storage:renameFolder", async (_, id, name) => {
-  return await storageManager.renameFolder(id, name);
-});
-ipcMain.handle("storage:deleteFolder", async (_, id) => {
-  await storageManager.deleteFolder(id);
-});
-ipcMain.handle("storage:listNotes", async (_, folderId) => {
-  return await storageManager.listNotes(folderId);
-});
-ipcMain.handle("storage:createNote", async (_, folderId, payload) => {
-  return await storageManager.createNote(folderId, payload);
-});
-ipcMain.handle("storage:getNote", async (_, id) => {
-  return await storageManager.getNote(id);
-});
-ipcMain.handle("storage:updateNote", async (_, id, patch) => {
-  return await storageManager.updateNote(id, patch);
-});
-ipcMain.handle("storage:deleteNote", async (_, id) => {
-  await storageManager.deleteNote(id);
-});
-ipcMain.handle("dialog:showOpenDialog", async (_, options) => {
-  const result = await dialog.showOpenDialog(options);
-  return result;
-});
-ipcMain.handle("floating:createWindow", async (_, noteId) => {
-  if (floatingWindows.has(noteId)) {
-    const existingWindow = floatingWindows.get(noteId);
-    if (existingWindow && !existingWindow.isDestroyed()) {
-      existingWindow.focus();
-      return { success: true, message: "窗口已存在" };
-    }
+l.handle("dialog:showOpenDialog", async (r, e) => await v.showOpenDialog(e));
+l.handle("floating:createWindow", async (r, e) => {
+  if (f.has(e)) {
+    const a = f.get(e);
+    if (a && !a.isDestroyed())
+      return a.focus(), { success: !0, message: "窗口已存在" };
   }
-  const floatingWindow = new BrowserWindow({
-    width: defaultFloatingWindowSize.width,
-    height: defaultFloatingWindowSize.height,
+  const t = new x({
+    width: F.width,
+    height: F.height,
     minWidth: 300,
     minHeight: 300,
-    frame: false,
+    frame: !1,
     // 无边框窗口
-    transparent: false,
+    transparent: !1,
     // 设为 false 以支持圆角和阴影（圆角通过 CSS 实现）
-    hasShadow: true,
-    alwaysOnTop: true,
+    hasShadow: !0,
+    alwaysOnTop: !0,
     // 始终置顶
-    resizable: true,
-    show: false,
+    resizable: !0,
+    show: !1,
     backgroundColor: "#ffffff",
     // 设置为背景色而非透明，避免阴影失效
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
+      preload: n.join(D, "preload.mjs")
     }
   });
-  if (VITE_DEV_SERVER_URL) {
-    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating/${noteId}`);
-  } else {
-    floatingWindow.loadFile(path.join(RENDERER_DIST, "index.html"), {
-      hash: `/floating/${noteId}`
-    });
-  }
-  floatingWindow.once("ready-to-show", () => {
-    floatingWindow.show();
-  });
-  floatingWindow.on("closed", () => {
-    floatingWindows.delete(noteId);
-  });
-  floatingWindows.set(noteId, floatingWindow);
-  return { success: true, message: "创建成功" };
+  return m ? t.loadURL(`${m}#/floating/${e}`) : t.loadFile(n.join(E, "index.html"), {
+    hash: `/floating/${e}`
+  }), t.once("ready-to-show", () => {
+    t.show();
+  }), t.on("closed", () => {
+    f.delete(e);
+  }), f.set(e, t), { success: !0, message: "创建成功" };
 });
-ipcMain.handle("floating:minimizeWindow", async (_, noteId) => {
-  const floatingWin = floatingWindows.get(noteId);
-  if (!floatingWin || floatingWin.isDestroyed()) {
-    return { success: false, message: "窗口不存在" };
-  }
-  const bounds = floatingWin.getBounds();
-  minimizedBounds.set(noteId, bounds);
-  const pillWindow = new BrowserWindow({
-    width: PILL_SIZE.width,
-    height: PILL_SIZE.height,
-    x: bounds.x,
-    y: bounds.y,
-    frame: false,
-    transparent: false,
-    hasShadow: true,
-    alwaysOnTop: true,
-    resizable: false,
-    show: false,
+l.handle("floating:minimizeWindow", async (r, e) => {
+  const t = f.get(e);
+  if (!t || t.isDestroyed())
+    return { success: !1, message: "窗口不存在" };
+  const a = t.getBounds();
+  P.set(e, a);
+  const i = new x({
+    width: I.width,
+    height: I.height,
+    x: a.x,
+    y: a.y,
+    frame: !1,
+    transparent: !1,
+    hasShadow: !0,
+    alwaysOnTop: !0,
+    resizable: !1,
+    show: !1,
     backgroundColor: "#ffffff",
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
+      preload: n.join(D, "preload.mjs")
     }
   });
-  if (VITE_DEV_SERVER_URL) {
-    pillWindow.loadURL(`${VITE_DEV_SERVER_URL}#/pill/${noteId}`);
-  } else {
-    pillWindow.loadFile(path.join(RENDERER_DIST, "index.html"), {
-      hash: `/pill/${noteId}`
-    });
-  }
-  pillWindow.once("ready-to-show", () => {
-    pillWindow.show();
-    floatingWin.close();
-  });
-  pillWindow.on("closed", () => {
-    pillWindows.delete(noteId);
-  });
-  pillWindows.set(noteId, pillWindow);
-  return { success: true };
+  return m ? i.loadURL(`${m}#/pill/${e}`) : i.loadFile(n.join(E, "index.html"), {
+    hash: `/pill/${e}`
+  }), i.once("ready-to-show", () => {
+    i.show(), t.close();
+  }), i.on("closed", () => {
+    S.delete(e);
+  }), S.set(e, i), { success: !0 };
 });
-ipcMain.handle("floating:restoreWindow", async (_, noteId) => {
-  const pillWin = pillWindows.get(noteId);
-  if (!pillWin || pillWin.isDestroyed()) {
-    return { success: false, message: "药丸窗口不存在" };
-  }
-  const stored = minimizedBounds.get(noteId);
-  if (!stored) {
-    return { success: false, message: "未找到保存的窗口尺寸" };
-  }
-  const floatingWindow = new BrowserWindow({
-    width: stored.width,
-    height: stored.height,
-    x: stored.x,
-    y: stored.y,
+l.handle("floating:restoreWindow", async (r, e) => {
+  const t = S.get(e);
+  if (!t || t.isDestroyed())
+    return { success: !1, message: "药丸窗口不存在" };
+  const a = P.get(e);
+  if (!a)
+    return { success: !1, message: "未找到保存的窗口尺寸" };
+  const i = new x({
+    width: a.width,
+    height: a.height,
+    x: a.x,
+    y: a.y,
     minWidth: 300,
     minHeight: 300,
-    frame: false,
-    transparent: false,
-    hasShadow: true,
-    alwaysOnTop: true,
-    resizable: true,
-    show: false,
+    frame: !1,
+    transparent: !1,
+    hasShadow: !0,
+    alwaysOnTop: !0,
+    resizable: !0,
+    show: !1,
     backgroundColor: "#ffffff",
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
+      preload: n.join(D, "preload.mjs")
     }
   });
-  if (VITE_DEV_SERVER_URL) {
-    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating/${noteId}`);
-  } else {
-    floatingWindow.loadFile(path.join(RENDERER_DIST, "index.html"), {
-      hash: `/floating/${noteId}`
-    });
-  }
-  floatingWindow.once("ready-to-show", () => {
-    floatingWindow.show();
-    pillWin.close();
-  });
-  floatingWindow.on("closed", () => {
-    floatingWindows.delete(noteId);
-  });
-  floatingWindows.set(noteId, floatingWindow);
-  minimizedBounds.delete(noteId);
-  return { success: true };
+  return m ? i.loadURL(`${m}#/floating/${e}`) : i.loadFile(n.join(E, "index.html"), {
+    hash: `/floating/${e}`
+  }), i.once("ready-to-show", () => {
+    i.show(), t.close();
+  }), i.on("closed", () => {
+    f.delete(e);
+  }), f.set(e, i), P.delete(e), { success: !0 };
 });
-ipcMain.handle("floating:closeWindow", async (_, noteId) => {
-  const floatingWindow = floatingWindows.get(noteId);
-  if (floatingWindow && !floatingWindow.isDestroyed()) {
-    floatingWindow.close();
-    floatingWindows.delete(noteId);
-    return { success: true };
-  }
-  return { success: false, message: "窗口不存在" };
+l.handle("floating:closeWindow", async (r, e) => {
+  const t = f.get(e);
+  return t && !t.isDestroyed() ? (t.close(), f.delete(e), { success: !0 }) : { success: !1, message: "窗口不存在" };
 });
-ipcMain.handle("floating:listWindows", async () => {
-  const noteIds = Array.from(floatingWindows.keys());
-  return noteIds.filter((noteId) => {
-    const window = floatingWindows.get(noteId);
-    return window && !window.isDestroyed();
-  });
+l.handle("floating:listWindows", async () => Array.from(f.keys()).filter((e) => {
+  const t = f.get(e);
+  return t && !t.isDestroyed();
+}));
+l.on("note:changed", (r, e) => {
+  const t = S.get(e);
+  t && !t.isDestroyed() && t.webContents.send("note:updated", e);
+  const a = f.get(e);
+  a && !a.isDestroyed() && a.webContents.send("note:updated", e), s && !s.isDestroyed() && s.webContents.send("note:updated", e);
 });
-ipcMain.on("note:changed", (_event, noteId) => {
-  const pillWindow = pillWindows.get(noteId);
-  if (pillWindow && !pillWindow.isDestroyed()) {
-    pillWindow.webContents.send("note:updated", noteId);
-  }
-  const floatingWindow = floatingWindows.get(noteId);
-  if (floatingWindow && !floatingWindow.isDestroyed()) {
-    floatingWindow.webContents.send("note:updated", noteId);
-  }
-  if (win && !win.isDestroyed()) {
-    win.webContents.send("note:updated", noteId);
-  }
+l.on("floating-note:changed", (r, e) => {
+  s && !s.isDestroyed() && s.webContents.send("floating-note:updated", e);
 });
-ipcMain.on("floating-note:changed", (_event, noteId) => {
-  if (win && !win.isDestroyed()) {
-    win.webContents.send("floating-note:updated", noteId);
-  }
-});
-ipcMain.handle("config:getDefaultFloatingWindowSize", async () => {
-  return defaultFloatingWindowSize;
-});
-ipcMain.handle(
+l.handle("config:getDefaultFloatingWindowSize", async () => F);
+l.handle(
   "config:setDefaultFloatingWindowSize",
-  async (_, config) => {
-    if (config.width && config.height) {
-      defaultFloatingWindowSize = {
-        width: config.width,
-        height: config.height
-      };
-    }
-    return defaultFloatingWindowSize;
-  }
+  async (r, e) => (e.width && e.height && (F = {
+    width: e.width,
+    height: e.height
+  }), F)
 );
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  Y as MAIN_DIST,
+  E as RENDERER_DIST,
+  m as VITE_DEV_SERVER_URL
 };

@@ -5,17 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run electron:build",
+    "web:build": "tsc && vite build",
     "electron:build:all": "bash scripts/build-all.sh --all",
-    "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:mac": "npm run web:build && electron-builder --mac",
+    "electron:build:win": "npm run web:build && electron-builder --win",
+    "electron:build:linux": "npm run web:build && electron-builder --linux",
+    "electron:build": "bash scripts/build-all.sh",
+    "build:all": "bash scripts/build-all.sh --all",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "prepare": "husky",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean:release": "zsh ./clean-release.sh"
   },
   "dependencies": {
     "@tiptap/core": "^3.8.0",

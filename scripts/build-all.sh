@@ -11,6 +11,9 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 cd "$REPO_ROOT"
 
+# Project version (for display)
+VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")
+
 COLOR_BLUE="\033[1;34m"
 COLOR_GREEN="\033[1;32m"
 COLOR_YELLOW="\033[1;33m"
@@ -67,18 +70,31 @@ while [[ $# -gt 0 ]]; do
 done
 
 prompt_mode() {
-  echo "Select targets to build:"
-  echo "  1) All (mac + win + linux)"
-  echo "  2) macOS"
-  echo "  3) Windows"
-  echo "  4) Linux"
-  read -r -p "Enter choice [1-4]: " choice
-  case "$choice" in
+  echo "============================================"
+  echo " InfinityNoteX Build Helper"
+  echo " Version: ${VERSION}"
+  echo "--------------------------------------------"
+  echo "请选择打包目标:"
+  echo "  1) 全平台 (mac + win + linux) [默认]"
+  echo "  2) 仅 macOS"
+  echo "  3) 仅 Windows"
+  echo "  4) 仅 Linux"
+  echo
+  echo "提示: 可在命令后追加 --skip-assets 或 --dry-run"
+  read -r -p "输入序号回车 [1-4，默认1]: " choice
+  case "${choice:-1}" in
     1) MODE="all" ;;
     2) MODE="mac" ;;
     3) MODE="win" ;;
     4) MODE="linux" ;;
-    *) err "Invalid choice"; exit 1 ;;
+    *) err "无效输入: $choice"; exit 1 ;;
+  esac
+
+  read -r -p "确认开始打包目标 \"${MODE}\" ? [Y/n]: " yn
+  case "${yn:-Y}" in
+    Y|y|"") ;;
+    N|n) info "已取消"; exit 0 ;;
+    *) info "已取消"; exit 0 ;;
   esac
 }
 

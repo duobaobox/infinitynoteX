@@ -28,7 +28,11 @@ export default {
 新增跨平台打包脚本与命令：
 
 ```bash
+# 交互式总入口（现在的默认 build）
+npm run build
+
 # 一键全平台 (mac + win + linux)
+npm run build:all
 npm run electron:build:all
 
 # 单平台
@@ -36,7 +40,8 @@ npm run electron:build:mac
 npm run electron:build:win
 npm run electron:build:linux
 
-# 脚本可交互模式：
+# 脚本可交互模式（等同于 npm run build）
+npm run electron:build           # 弹出选择菜单
 bash scripts/build-all.sh        # 弹出选择菜单
 bash scripts/build-all.sh --all  # 直接全部
 ```
@@ -61,6 +66,14 @@ BUILDER_EXTRA_FLAGS="--publish never" bash scripts/build-all.sh --all
 产物输出在 `release/<version>/` 目录（由 `electron-builder.json5` 的 `directories.output` 决定）。
 
 Windows 安装包构建若无 `wine`, 脚本自动 fallback 生成 portable/zip。
+
+### 仅构建前端/主进程（不打包）
+
+如需单独构建渲染与主进程产物（不进行 electron-builder 打包），可执行：
+
+```bash
+npm run web:build
+```
 
 ### 后续可优化方向
 

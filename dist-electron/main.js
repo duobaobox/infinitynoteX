@@ -14654,7 +14654,7 @@ function saveWindowState() {
 }
 function createWindow() {
   const savedState = loadWindowState();
-  win = new BrowserWindow({
+  const windowOptions = {
     width: (savedState == null ? void 0 : savedState.width) ?? 700,
     height: (savedState == null ? void 0 : savedState.height) ?? 560,
     x: savedState == null ? void 0 : savedState.x,
@@ -14670,7 +14670,8 @@ function createWindow() {
     webPreferences: {
       preload: path$m.join(__dirname, "preload.mjs")
     }
-  });
+  };
+  win = new BrowserWindow(windowOptions);
   win.webContents.on("did-finish-load", () => {
     win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
   });

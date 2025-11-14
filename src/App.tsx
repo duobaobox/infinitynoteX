@@ -6,7 +6,6 @@ import EditorPanel from './components/EditorPanel';
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import PillWindow from './components/PillWindow/PillWindow';
-import UpdateNotifier from './components/UpdateNotifier';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 
@@ -254,7 +253,6 @@ function App() {
           )}
         </div>
       )}
-      {windowType === 'main' && <UpdateNotifier />}
     </>
   );
 }

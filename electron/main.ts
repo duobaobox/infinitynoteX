@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import type { BrowserWindowConstructorOptions, OpenDialogOptions } from 'electron';
 import type {
   SetStoragePathOptions,
   CreateNotePayload,
@@ -8,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 import { storageManager } from './storage';
+import { initAutoUpdater } from './updater';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -117,7 +119,7 @@ function createWindow() {
   // 加载保存的窗口状态
   const savedState = loadWindowState();
 
-  win = new BrowserWindow({
+  const windowOptions: BrowserWindowConstructorOptions = {
     width: savedState?.width ?? 700,
     height: savedState?.height ?? 560,
     x: savedState?.x,
@@ -133,7 +135,9 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
-  } as any);
+  };
+
+  win = new BrowserWindow(windowOptions);
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -257,7 +261,10 @@ app.whenReady().then(async () => {
   await storageManager.initialize();
 
   createWindow();
+  initAutoUpdater(() => win ?? null);
 });
+
+ipcMain.handle('app:getVersion', () => app.getVersion());
 
 // ============ 存储 IPC 处理器 ============
 
@@ -349,7 +356,7 @@ ipcMain.handle('storage:deleteNote', async (_, id: string) => {
 
 // ============ 系统对话框 IPC 处理器 ============
 
-ipcMain.handle('dialog:showOpenDialog', async (_, options: Electron.OpenDialogOptions) => {
+ipcMain.handle('dialog:showOpenDialog', async (_, options: OpenDialogOptions) => {
   const result = await dialog.showOpenDialog(options);
   return result;
 });

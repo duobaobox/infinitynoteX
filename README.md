@@ -92,3 +92,17 @@ npm run web:build
 - Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
 - Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+
+## 自动更新（electron-updater）
+
+项目现已集成 [electron-updater](https://www.electron.build/auto-update) 与前端提示组件 `UpdateNotifier`，可在主窗口右下角查看更新状态、手动检查并在下载完成后点击“立即重启更新”。
+
+启用自动更新需要注意：
+
+1. **发布渠道**：`electron-builder.json5` 默认配置 GitHub Releases (`duobaobox/infinitynotex`) 作为 `publish` 目标，打包时设置 `GH_TOKEN=<your-token>` 即可自动上传并生成 `latest-*.yml`。如需自建服务器，设置 `INFINITY_UPDATER_URL=https://your-domain/path` 环境变量（generic provider）即可覆盖下载源。
+2. **版本号**：每次发版前务必更新 `package.json` 的 `version`，否则客户端不会检测到新版本。
+3. **签名与 notarize**：macOS / Windows 仍需按照脚本注释配置证书相关环境变量，保证自动更新包可被系统信任。
+4. **检查频率**：通过 `INFINITY_UPDATER_INITIAL_DELAY_MS`（默认 15s）和 `INFINITY_UPDATER_INTERVAL_MS`（默认 6h）调整开机延迟与轮询周期。
+5. **调试**：开发模式下自动更新被禁用（界面会提示），需要打包后的应用才能完整验证。可先发布 Draft Release，在另一台安装旧版本的机器上验证下载-安装流程。
+
+Build 脚本、UI、主进程的更改均已就绪，你只需准备发布凭据并上传安装包，即可让实际用户获得增量更新体验。

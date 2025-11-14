@@ -1,9 +1,17 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
-  appId: 'YourAppID',
+  appId: 'com.duobaobox.infinitynotex',
   asar: true,
-  productName: 'YourAppName',
+  productName: 'InfinityNoteX',
+  publish: [
+    {
+      provider: 'github',
+      owner: 'duobaobox',
+      repo: 'infinitynotex',
+      releaseType: 'draft',
+    },
+  ],
   directories: {
     output: 'release/${version}',
   },

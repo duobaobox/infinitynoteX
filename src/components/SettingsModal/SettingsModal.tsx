@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   Menu,
@@ -28,6 +28,7 @@ import {
   setThemeBgDark,
   ThemeMode,
 } from '../../theme/theme';
+import { useAutoUpdater } from '../../hooks/useAutoUpdater';
 
 const { Text, Paragraph } = Typography;
 
@@ -47,11 +48,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode());
   const [bgLight, setBgLight] = useState<string>(getThemeBgLight());
   const [bgDark, setBgDark] = useState<string>(getThemeBgDark());
+  const [appVersion, setAppVersion] = useState<string>('0.0.0');
+
+  const {
+    status: updaterStatus,
+    checking: updaterChecking,
+    installing: updaterInstalling,
+    supportsUpdater,
+    checkForUpdates: triggerUpdateCheck,
+    installUpdate: triggerInstallUpdate,
+  } = useAutoUpdater();
 
   // 加载存储信息
   useEffect(() => {
-    if (open && selectedMenu === 'data') {
-      loadStorageInfo();
+    if (open) {
+      if (selectedMenu === 'data') {
+        loadStorageInfo();
+      }
+      if (selectedMenu === 'about') {
+        loadAppInfo();
+      }
     }
   }, [open, selectedMenu]);
 
@@ -65,6 +81,66 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       console.error('Failed to load storage info:', error);
       message.error('加载存储信息失败');
     }
+  };
+
+  const loadAppInfo = async () => {
+    try {
+      const version = (await window.appInfo?.getVersion?.()) ?? '0.0.0';
+      setAppVersion(version);
+    } catch (error) {
+      console.error('Failed to load app info:', error);
+      setAppVersion('0.0.0');
+    }
+  };
+
+  const updaterStatusText = useMemo(() => {
+    const state = updaterStatus?.state;
+    if (!supportsUpdater) {
+      return '当前环境不支持自动更新（可能是开发模式）';
+    }
+    switch (state) {
+      case 'checking':
+        return '正在检查更新…';
+      case 'available':
+        return `发现新版本${updaterStatus?.version ? ` ${updaterStatus.version}` : ''}，正在准备下载`;
+      case 'downloading':
+        return `正在下载更新${updaterStatus?.percent ? ` (${updaterStatus.percent.toFixed(1)}%)` : ''}`;
+      case 'downloaded':
+        return `更新包已就绪${updaterStatus?.version ? ` (${updaterStatus.version})` : ''}`;
+      case 'error':
+        return `自动更新出现问题：${updaterStatus?.errorMessage ?? '请稍后重试'}`;
+      case 'disabled':
+        return '自动更新已禁用（开发模式）';
+      default:
+        return '已是最新版本';
+    }
+  }, [supportsUpdater, updaterStatus]);
+
+  const renderDownloadProgress = () => {
+    if (updaterStatus?.state !== 'downloading') return null;
+    return (
+      <div className="about-update-progress">
+        <Progress
+          percent={updaterStatus.percent ?? 0}
+          showInfo={false}
+          size="small"
+          status="active"
+        />
+        {(updaterStatus.transferredBytes || updaterStatus.totalBytes) && (
+          <Text type="secondary">
+            {formatBytes(updaterStatus.transferredBytes)} / {formatBytes(updaterStatus.totalBytes)}
+          </Text>
+        )}
+      </div>
+    );
+  };
+
+  const formatBytes = (value?: number) => {
+    if (!value || Number.isNaN(value)) return '0 B';
+    if (value < 1024) return `${value.toFixed(0)} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+    return `${(value / 1024 / 1024 / 1024).toFixed(1)} GB`;
   };
 
   const menuItems = [
@@ -195,8 +271,55 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                 />
               </div>
               <h2>InfinityNoteX</h2>
-              <p className="about-version">版本 0.0.0</p>
+              <p className="about-version">版本 {appVersion}</p>
               <p className="about-description">一款无限可能的笔记应用</p>
+              <div className="about-update-card">
+                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                  <div className="about-update-header">
+                    <Text strong>自动更新</Text>
+                    {updaterStatus?.version && updaterStatus.state !== 'downloaded' && (
+                      <Text type="secondary">目标版本：{updaterStatus.version}</Text>
+                    )}
+                  </div>
+                  <Text type="secondary" className="about-update-status">
+                    {updaterStatusText}
+                  </Text>
+                  {renderDownloadProgress()}
+                  {updaterStatus?.releaseNotes && updaterStatus.state === 'downloaded' && (
+                    <Paragraph
+                      className="about-update-notes"
+                      ellipsis={{ rows: 3, expandable: true }}
+                    >
+                      {updaterStatus.releaseNotes}
+                    </Paragraph>
+                  )}
+                  <Space className="about-update-actions" wrap>
+                    <Button
+                      size="small"
+                      onClick={triggerUpdateCheck}
+                      loading={updaterChecking}
+                      disabled={!supportsUpdater}
+                    >
+                      检查更新
+                    </Button>
+                    {updaterStatus?.state === 'downloaded' && (
+                      <Button
+                        type="primary"
+                        size="small"
+                        loading={updaterInstalling}
+                        onClick={triggerInstallUpdate}
+                      >
+                        立即重启更新
+                      </Button>
+                    )}
+                  </Space>
+                </Space>
+              </div>
+              {!supportsUpdater && (
+                <Paragraph type="secondary" style={{ marginTop: 16 }}>
+                  当前处于开发模式或无自动更新配置，如需体验热更新请使用打包版本。
+                </Paragraph>
+              )}
             </div>
           </div>
         );

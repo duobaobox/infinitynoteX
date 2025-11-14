@@ -155,3 +155,45 @@
 .about-content p strong {
   color: var(--text-primary);
 }
+
+.about-update-card {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--toolbar-divider);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--panel-bg, rgba(255, 255, 255, 0.9));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.about-update-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.about-update-status {
+  min-height: 20px;
+}
+
+.about-update-progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.about-update-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-update-notes {
+  width: 100%;
+  font-size: 12px;
+  margin: 0;
+  color: var(--text-secondary);
+}

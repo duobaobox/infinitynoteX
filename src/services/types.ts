@@ -175,3 +175,24 @@ export interface FloatingWindowOptions {
   x?: number;
   y?: number;
 }
+
+// ============ 自动更新 ============
+
+export type UpdateState =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+  | 'disabled';
+
+export interface UpdateStatusPayload {
+  state: UpdateState;
+  version?: string;
+  releaseNotes?: string | null;
+  percent?: number;
+  transferredBytes?: number;
+  totalBytes?: number;
+  errorMessage?: string;
+}

@@ -8,10 +8,23 @@ import type {
   StorageStats,
   CreateNotePayload,
   SetStoragePathOptions,
+  UpdateStatusPayload,
+  OpenDialogOptions,
 } from './services/types';
 
 declare global {
   interface Window {
+    electronAPI?: {
+      minimize(): void;
+      maximize(): void;
+      unmaximize(): void;
+      close(): void;
+      isMaximized(): Promise<boolean>;
+      onWindowStateChanged(callback: (isMaximized: boolean) => void): void;
+      showOpenDialog(
+        options: OpenDialogOptions,
+      ): Promise<{ canceled: boolean; filePaths: string[] }>;
+    };
     storage: {
       // 路径管理
       getDefaultPath(): Promise<string>;
@@ -47,5 +60,16 @@ declare global {
       minimizeWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
       restoreWindow(noteId: string): Promise<{ success: boolean; message?: string }>;
     };
+    autoUpdater?: {
+      checkForUpdates(): Promise<unknown>;
+      installUpdate(): Promise<unknown>;
+      getLastStatus(): Promise<UpdateStatusPayload>;
+      onStatusChange(callback: (status: UpdateStatusPayload) => void): () => void;
+    };
+    appInfo?: {
+      getVersion(): Promise<string>;
+    };
   }
 }
+
+export {};

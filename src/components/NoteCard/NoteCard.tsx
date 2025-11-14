@@ -5,6 +5,7 @@ import './NoteCard.css';
 import { getThemeColor } from '../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
 import CardBackground from '../CardBackground/CardBackground';
+import { NoteCardListContext } from './NoteCardContext';
 
 export interface NoteCardProps {
   title: string;
@@ -30,18 +31,17 @@ const NoteCard: React.FC<NoteCardProps> = ({
   const [hovered, setHovered] = React.useState(false);
 
   React.useEffect(() => {
-    const handler = (e: Event) => {
-      const color = (e as unknown as CustomEvent<string>).detail;
-      if (typeof color === 'string' && color) setThemeColor(color);
+    const handler: EventListener = (event) => {
+      if (event instanceof CustomEvent && typeof event.detail === 'string' && event.detail) {
+        setThemeColor(event.detail);
+      }
     };
-    window.addEventListener('theme-color-change', handler as EventListener);
-    return () => window.removeEventListener('theme-color-change', handler as EventListener);
+    window.addEventListener('theme-color-change', handler);
+    return () => window.removeEventListener('theme-color-change', handler);
   }, []);
 
   // 由父组件传递 selectedId，当前卡片是否选中
-  const listContext = React.useContext(NoteCardListContext as any) as
-    | { selectedId?: string }
-    | undefined;
+  const listContext = React.useContext(NoteCardListContext);
   const isSelected =
     listContext && listContext.selectedId === (typeof id === 'string' ? id : undefined);
 
@@ -91,10 +91,5 @@ const NoteCard: React.FC<NoteCardProps> = ({
     </div>
   );
 };
-
-// 用于传递选中id到NoteCard
-export const NoteCardListContext = React.createContext<
-  { selectedId?: string; id?: string } | undefined
->(undefined);
 
 export default NoteCard;

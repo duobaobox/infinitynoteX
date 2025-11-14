@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { NoteIndex } from '../services/types';
-import NoteCard, { NoteCardListContext } from './NoteCard/NoteCard';
+import NoteCard from './NoteCard/NoteCard';
+import { NoteCardListContext } from './NoteCard/NoteCardContext';
 import { getThemeColor } from '../theme/theme';
 import './ListPanel.css';
 

@@ -102,7 +102,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitializationComplete 
           >
             <span style={{ fontWeight: 600 }}>让灵感与效率，自由流动</span>
             <br />
-            <span style={{ fontWeight: 400 }}>记录、管理、探索。你的多功能数字空间。</span>
+            <span style={{ fontWeight: 400 }}>记录、管理、探索。你的多功能便签空间。</span>
           </div>
         </div>
 

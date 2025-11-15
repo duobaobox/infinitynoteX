@@ -264,19 +264,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         return (
           <div className="settings-panel about-panel">
             <div className="about-content">
+              {/* Logo */}
               <div className="about-logo">
                 <img
                   src={new URL('../../assets/logo.png', import.meta.url).href}
                   alt="InfinityNoteX"
                 />
               </div>
+
+              {/* 标题和版本 */}
               <h2>InfinityNoteX</h2>
-              <p className="about-version">版本 {appVersion}</p>
-              <p className="about-description">一款无限可能的笔记应用</p>
+              <p className="about-version">版本 {appVersion} · 一款无限可能的笔记应用</p>
+
+              {/* 更新检查卡片 */}
               <div className="about-update-card">
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
                   <div className="about-update-header">
-                    <Text strong>自动更新</Text>
+                    <Text strong>检查更新</Text>
                     {updaterStatus?.version && updaterStatus.state !== 'downloaded' && (
                       <Text type="secondary">目标版本：{updaterStatus.version}</Text>
                     )}
@@ -315,11 +319,84 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                   </Space>
                 </Space>
               </div>
+
               {!supportsUpdater && (
-                <Paragraph type="secondary" style={{ marginTop: 16 }}>
-                  当前处于开发模式或无自动更新配置，如需体验热更新请使用打包版本。
+                <Paragraph type="secondary" style={{ marginTop: 12, maxWidth: 500 }}>
+                  自动更新已禁用（开发模式）
                 </Paragraph>
               )}
+
+              {/* 链接列表 */}
+              <div className="about-link-list">
+                <div
+                  className="about-link-item"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.open('https://infinitynotex.com', '_blank');
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>官方网站</span>
+                  <svg
+                    className="anticon"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                    height="1em"
+                    fill="currentColor"
+                  >
+                    <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
+                  </svg>
+                </div>
+                <div
+                  className="about-link-item"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.open('https://infinitynotex.com/support', '_blank');
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>帮助与支持</span>
+                  <svg
+                    className="anticon"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                    height="1em"
+                    fill="currentColor"
+                  >
+                    <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
+                  </svg>
+                </div>
+                <div
+                  className="about-link-item"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.open('https://infinitynotex.com/privacy', '_blank');
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <span>隐私政策</span>
+                  <svg
+                    className="anticon"
+                    viewBox="64 64 896 896"
+                    width="1em"
+                    height="1em"
+                    fill="currentColor"
+                  >
+                    <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* 底部版权 */}
+              <div className="about-footer">
+                <p>© 2025 InfinityNoteX. 保留所有权利。</p>
+              </div>
             </div>
           </div>
         );

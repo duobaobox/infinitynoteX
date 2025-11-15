@@ -5,11 +5,13 @@ import type {
   CreateNotePayload,
   UpdateNotePayload,
 } from '../src/services/types';
+import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 import { storageManager } from './storage';
 import { initAutoUpdater } from './updater';
+import { readAIConfig, writeAIConfig, createAdapter } from './ai';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -617,3 +619,85 @@ ipcMain.handle(
     return defaultFloatingWindowSize;
   },
 );
+
+// ============ AI IPC 处理器 ============
+
+/**
+ * 获取 AI 配置
+ */
+ipcMain.handle('ai:getConfig', async () => {
+  return await readAIConfig();
+});
+
+/**
+ * 保存 AI 配置
+ */
+ipcMain.handle('ai:setConfig', async (_, config: AIConfig) => {
+  await writeAIConfig(config);
+});
+
+/**
+ * 测试 AI 连接
+ */
+ipcMain.handle('ai:testConnection', async () => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      return { ok: false, message: '未找到 AI 配置，请先设置' };
+    }
+    const adapter = createAdapter(config);
+    return await adapter.testConnection();
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `连接测试失败：${msg}` };
+  }
+});
+
+/**
+ * 发送 AI 聊天请求（非流式）
+ */
+ipcMain.handle('ai:chat', async (_, payload: ChatPayload) => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      throw new Error('未找到 AI 配置，请先在设置中配置 AI');
+    }
+    const adapter = createAdapter(config);
+    const response = await adapter.chat(payload);
+    return { success: true, content: response.content };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+});
+
+/**
+ * 发送 AI 聊天请求（流式）
+ * 逐段通过 ai:stream:chunk 事件回传
+ */
+ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      throw new Error('未找到 AI 配置，请先在设置中配置 AI');
+    }
+    const adapter = createAdapter(config);
+
+    (async () => {
+      try {
+        for await (const chunk of adapter.chatStream(payload)) {
+          event.sender.send('ai:stream:chunk', chunk);
+        }
+        event.sender.send('ai:stream:done', { success: true });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        event.sender.send('ai:stream:error', { error: msg });
+      }
+    })();
+
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+});

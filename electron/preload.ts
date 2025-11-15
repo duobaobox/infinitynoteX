@@ -6,6 +6,7 @@ import type {
   UpdateNotePayload,
   UpdateStatusPayload,
 } from '../src/services/types';
+import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -104,4 +105,36 @@ contextBridge.exposeInMainWorld('autoUpdater', {
 // --------- Expose app info API ---------
 contextBridge.exposeInMainWorld('appInfo', {
   getVersion: () => ipcRenderer.invoke('app:getVersion') as Promise<string>,
+});
+
+// --------- Expose AI API ---------
+contextBridge.exposeInMainWorld('ai', {
+  getConfig: () => ipcRenderer.invoke('ai:getConfig') as Promise<AIConfig | null>,
+  setConfig: (config: AIConfig) => ipcRenderer.invoke('ai:setConfig', config) as Promise<void>,
+  testConnection: () =>
+    ipcRenderer.invoke('ai:testConnection') as Promise<{ ok: boolean; message: string }>,
+  chat: (payload: ChatPayload) =>
+    ipcRenderer.invoke('ai:chat', payload) as Promise<{
+      success: boolean;
+      content?: string;
+      error?: string;
+    }>,
+  chatStream: (payload: ChatPayload) =>
+    ipcRenderer.invoke('ai:chatStream', payload) as Promise<{ success: boolean; error?: string }>,
+  onStreamChunk: (callback: (data: { delta: string; finishReason?: string }) => void) => {
+    const listener = (_event: unknown, data: { delta: string; finishReason?: string }) =>
+      callback(data);
+    ipcRenderer.on('ai:stream:chunk', listener);
+    return () => ipcRenderer.removeListener('ai:stream:chunk', listener);
+  },
+  onStreamDone: (callback: (data: { success: boolean }) => void) => {
+    const listener = (_event: unknown, data: { success: boolean }) => callback(data);
+    ipcRenderer.on('ai:stream:done', listener);
+    return () => ipcRenderer.removeListener('ai:stream:done', listener);
+  },
+  onStreamError: (callback: (data: { error: string }) => void) => {
+    const listener = (_event: unknown, data: { error: string }) => callback(data);
+    ipcRenderer.on('ai:stream:error', listener);
+    return () => ipcRenderer.removeListener('ai:stream:error', listener);
+  },
 });

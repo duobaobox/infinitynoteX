@@ -14602,6 +14602,217 @@ function initAutoUpdater(getWindow) {
     }, interval);
   }, initialDelay);
 }
+function getConfigPath() {
+  return path$m.join(app.getPath("userData"), "ai-config.json");
+}
+async function readAIConfig() {
+  try {
+    const configPath = getConfigPath();
+    const data = await fs$j.readFile(configPath, "utf-8");
+    return JSON.parse(data);
+  } catch (error2) {
+    console.warn("[AI] Config file not found or invalid:", error2);
+    return null;
+  }
+}
+async function writeAIConfig(config) {
+  try {
+    const configPath = getConfigPath();
+    await fs$j.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+    console.log("[AI] Config saved:", { provider: config.provider, model: config.model });
+  } catch (error2) {
+    console.error("[AI] Failed to save config:", error2);
+    throw new Error("Failed to save AI config");
+  }
+}
+class OpenAICompatibleAdapter {
+  constructor(config) {
+    __publicField(this, "config");
+    this.config = config;
+  }
+  /**
+   * 测试连接
+   */
+  async testConnection() {
+    try {
+      const url = new URL("/v1/models", this.config.baseURL);
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`
+        },
+        signal: AbortSignal.timeout(this.config.timeoutMs || 1e4)
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          return {
+            ok: false,
+            message: `连接失败：API Key 无效（${response.status} Unauthorized）`
+          };
+        }
+        return {
+          ok: false,
+          message: `连接失败：${response.status} ${response.statusText}`
+        };
+      }
+      return {
+        ok: true,
+        message: `连接成功！当前模型：${this.config.model}`,
+        modelInfo: {
+          model: this.config.model,
+          provider: this.config.provider
+        }
+      };
+    } catch (error2) {
+      const msg = error2 instanceof Error ? error2.message : String(error2);
+      return {
+        ok: false,
+        message: `连接失败：${msg}`
+      };
+    }
+  }
+  /**
+   * 发送聊天请求（非流式）
+   */
+  async chat(payload) {
+    var _a, _b, _c, _d, _e;
+    const messages = [
+      ...this.config.systemPrompt ? [{ role: "system", content: this.config.systemPrompt }] : [],
+      ...payload.messages,
+      { role: "user", content: payload.message }
+    ];
+    try {
+      const url = new URL("/v1/chat/completions", this.config.baseURL);
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages,
+          temperature: this.config.temperature ?? 0.7,
+          max_tokens: this.config.max_tokens,
+          stream: false
+        }),
+        signal: AbortSignal.timeout(this.config.timeoutMs || 6e4)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      const content = ((_c = (_b = (_a = data == null ? void 0 : data.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content) || "";
+      if (!content) {
+        throw new Error("No content in response");
+      }
+      return {
+        content,
+        finishReason: (_e = (_d = data == null ? void 0 : data.choices) == null ? void 0 : _d[0]) == null ? void 0 : _e.finish_reason
+      };
+    } catch (error2) {
+      const msg = error2 instanceof Error ? error2.message : String(error2);
+      throw new Error(`Chat failed: ${msg}`);
+    }
+  }
+  /**
+   * 流式聊天请求
+   * 返回异步迭代器，逐段产生内容
+   */
+  async *chatStream(payload) {
+    var _a, _b, _c, _d, _e, _f;
+    const messages = [
+      ...this.config.systemPrompt ? [{ role: "system", content: this.config.systemPrompt }] : [],
+      ...payload.messages,
+      { role: "user", content: payload.message }
+    ];
+    try {
+      const url = new URL("/v1/chat/completions", this.config.baseURL);
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.apiKey}`
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages,
+          temperature: this.config.temperature ?? 0.7,
+          max_tokens: this.config.max_tokens,
+          stream: true
+        }),
+        signal: AbortSignal.timeout(this.config.timeoutMs || 6e4)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      if (!response.body) {
+        throw new Error("No response body");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed === ":") continue;
+            if (trimmed.startsWith("data: ")) {
+              const data = trimmed.slice(6);
+              if (data === "[DONE]") continue;
+              try {
+                const json2 = JSON.parse(data);
+                const choices = (json2 == null ? void 0 : json2.choices) || [];
+                const choiceItem = choices[0];
+                const delta = ((_a = choiceItem == null ? void 0 : choiceItem.delta) == null ? void 0 : _a.content) || "";
+                if (delta) {
+                  yield {
+                    delta,
+                    finishReason: choiceItem == null ? void 0 : choiceItem.finish_reason
+                  };
+                }
+              } catch (e) {
+                console.warn("[AI] Failed to parse SSE:", trimmed);
+              }
+            }
+          }
+        }
+        if (buffer.trim() && buffer.trim() !== ":") {
+          if (buffer.trim().startsWith("data: ")) {
+            const data = buffer.trim().slice(6);
+            if (data !== "[DONE]") {
+              try {
+                const json2 = JSON.parse(data);
+                const delta = ((_d = (_c = (_b = json2 == null ? void 0 : json2.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content) || "";
+                if (delta) {
+                  yield {
+                    delta,
+                    finishReason: (_f = (_e = json2 == null ? void 0 : json2.choices) == null ? void 0 : _e[0]) == null ? void 0 : _f.finish_reason
+                  };
+                }
+              } catch (e) {
+                console.warn("[AI] Failed to parse final SSE:", buffer);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error2) {
+      const msg = error2 instanceof Error ? error2.message : String(error2);
+      throw new Error(`Stream failed: ${msg}`);
+    }
+  }
+}
+function createAdapter(config) {
+  return new OpenAICompatibleAdapter(config);
+}
 const __dirname = path$m.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path$m.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -15010,6 +15221,63 @@ ipcMain.handle(
     return defaultFloatingWindowSize;
   }
 );
+ipcMain.handle("ai:getConfig", async () => {
+  return await readAIConfig();
+});
+ipcMain.handle("ai:setConfig", async (_, config) => {
+  await writeAIConfig(config);
+});
+ipcMain.handle("ai:testConnection", async () => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      return { ok: false, message: "未找到 AI 配置，请先设置" };
+    }
+    const adapter = createAdapter(config);
+    return await adapter.testConnection();
+  } catch (error2) {
+    const msg = error2 instanceof Error ? error2.message : String(error2);
+    return { ok: false, message: `连接测试失败：${msg}` };
+  }
+});
+ipcMain.handle("ai:chat", async (_, payload) => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      throw new Error("未找到 AI 配置，请先在设置中配置 AI");
+    }
+    const adapter = createAdapter(config);
+    const response = await adapter.chat(payload);
+    return { success: true, content: response.content };
+  } catch (error2) {
+    const msg = error2 instanceof Error ? error2.message : String(error2);
+    return { success: false, error: msg };
+  }
+});
+ipcMain.handle("ai:chatStream", async (event, payload) => {
+  try {
+    const config = await readAIConfig();
+    if (!config) {
+      throw new Error("未找到 AI 配置，请先在设置中配置 AI");
+    }
+    const adapter = createAdapter(config);
+    (async () => {
+      try {
+        for await (const chunk of adapter.chatStream(payload)) {
+          event.sender.send("ai:stream:chunk", chunk);
+        }
+        event.sender.send("ai:stream:done", { success: true });
+      } catch (error2) {
+        const msg = error2 instanceof Error ? error2.message : String(error2);
+        event.sender.send("ai:stream:error", { error: msg });
+      }
+    })();
+    return { success: true };
+  } catch (error2) {
+    const msg = error2 instanceof Error ? error2.message : String(error2);
+    return { success: false, error: msg };
+  }
+});
 export {
   MAIN_DIST,
   RENDERER_DIST,

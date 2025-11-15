@@ -25,3 +25,6 @@ dist-ssr
 # 忽略 release 文件夹下所有内容
 release/
 dist-electron/
+
+# 忽略文档文件夹（自动生成的开发文档）
+docs/

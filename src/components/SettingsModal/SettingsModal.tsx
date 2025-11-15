@@ -12,9 +12,13 @@ import {
   message,
   Progress,
   ColorPicker,
+  Switch,
+  InputNumber,
+  Alert,
 } from 'antd';
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
+import type { AIConfig } from '../../services/aiConfig';
 import './SettingsModal.css';
 import BackgroundEditor from '../BackgroundEditor';
 import {
@@ -50,6 +54,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [bgDark, setBgDark] = useState<string>(getThemeBgDark());
   const [appVersion, setAppVersion] = useState<string>('0.0.0');
 
+  // AI 配置相关
+  const [aiConfig, setAIConfig] = useState<AIConfig | null>(null);
+  const [aiLoading, setAILoading] = useState(false);
+  const [aiTestLoading, setAITestLoading] = useState(false);
+  const [aiTestResult, setAITestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   const {
     status: updaterStatus,
     checking: updaterChecking,
@@ -59,7 +69,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
     installUpdate: triggerInstallUpdate,
   } = useAutoUpdater();
 
-  // 加载存储信息
+  // 加载存储信息与 AI 配置
   useEffect(() => {
     if (open) {
       if (selectedMenu === 'data') {
@@ -67,6 +77,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       }
       if (selectedMenu === 'about') {
         loadAppInfo();
+      }
+      if (selectedMenu === 'ai') {
+        loadAIConfig();
       }
     }
   }, [open, selectedMenu]);
@@ -90,6 +103,57 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
     } catch (error) {
       console.error('Failed to load app info:', error);
       setAppVersion('0.0.0');
+    }
+  };
+
+  const loadAIConfig = async () => {
+    try {
+      setAILoading(true);
+      const config = await window.ai.getConfig();
+      setAIConfig(config);
+      setAITestResult(null);
+    } catch (error) {
+      console.error('Failed to load AI config:', error);
+      message.error('加载 AI 配置失败');
+    } finally {
+      setAILoading(false);
+    }
+  };
+
+  const saveAIConfig = async () => {
+    if (!aiConfig) return;
+    try {
+      setAILoading(true);
+      // 简单验证
+      if (!aiConfig.baseURL || !aiConfig.apiKey || !aiConfig.model) {
+        message.warning('请填写完整的配置信息');
+        return;
+      }
+      await window.ai.setConfig(aiConfig);
+      message.success('AI 配置已保存');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      message.error(`保存失败：${msg}`);
+    } finally {
+      setAILoading(false);
+    }
+  };
+
+  const testAIConnection = async () => {
+    try {
+      setAITestLoading(true);
+      const result = await window.ai.testConnection();
+      setAITestResult(result);
+      if (result.ok) {
+        message.success(result.message);
+      } else {
+        message.error(result.message);
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      message.error(`连接测试失败：${msg}`);
+    } finally {
+      setAITestLoading(false);
     }
   };
 
@@ -145,6 +209,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
 
   const menuItems = [
     { key: 'appearance', label: '外观' },
+    { key: 'ai', label: 'AI 管理' },
     { key: 'data', label: '数据管理' },
     { key: 'about', label: '关于' },
   ];
@@ -617,6 +682,123 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     }}
                   >
                     重置所有数据
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </div>
+        );
+      case 'ai':
+        return (
+          <div className="settings-panel">
+            <h3>AI 管理</h3>
+            <Form layout="vertical">
+              <Alert
+                message="支持任何 OpenAI 兼容的模型（包括本地 Ollama、云服务等）"
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+
+              <Form.Item label="提供商/服务名称" required>
+                <Input
+                  placeholder="例如：OpenAI, Ollama, 自定义服务"
+                  value={aiConfig?.provider || ''}
+                  onChange={(e) => setAIConfig({ ...aiConfig!, provider: e.target.value })}
+                />
+              </Form.Item>
+
+              <Form.Item label="API Base URL" required>
+                <Input
+                  placeholder="例如：https://api.openai.com/v1 或 http://localhost:11434/v1"
+                  value={aiConfig?.baseURL || ''}
+                  onChange={(e) => setAIConfig({ ...aiConfig!, baseURL: e.target.value })}
+                />
+              </Form.Item>
+
+              <Form.Item label="API Key" required>
+                <Input.Password
+                  placeholder="输入 API Key（仅主进程持有，不会上传）"
+                  value={aiConfig?.apiKey || ''}
+                  onChange={(e) => setAIConfig({ ...aiConfig!, apiKey: e.target.value })}
+                />
+              </Form.Item>
+
+              <Form.Item label="模型名称" required>
+                <Input
+                  placeholder="例如：gpt-4o, gpt-3.5-turbo, mistral, llama2"
+                  value={aiConfig?.model || ''}
+                  onChange={(e) => setAIConfig({ ...aiConfig!, model: e.target.value })}
+                />
+              </Form.Item>
+
+              <Divider />
+
+              <Form.Item label="温度 (Temperature)">
+                <InputNumber
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={aiConfig?.temperature ?? 0.7}
+                  onChange={(val) => setAIConfig({ ...aiConfig!, temperature: val ?? 0.7 })}
+                />
+              </Form.Item>
+
+              <Form.Item label="最大 Token 数">
+                <InputNumber
+                  min={1}
+                  max={128000}
+                  value={aiConfig?.max_tokens ?? 2048}
+                  onChange={(val) => setAIConfig({ ...aiConfig!, max_tokens: val ?? 2048 })}
+                />
+              </Form.Item>
+
+              <Form.Item label="系统提示词">
+                <Input.TextArea
+                  rows={3}
+                  placeholder="设置模型的基础行为（可选）"
+                  value={aiConfig?.systemPrompt || ''}
+                  onChange={(e) => setAIConfig({ ...aiConfig!, systemPrompt: e.target.value })}
+                />
+              </Form.Item>
+
+              <Form.Item label="超时时间（毫秒）">
+                <InputNumber
+                  min={5000}
+                  max={600000}
+                  step={5000}
+                  value={aiConfig?.timeoutMs ?? 60000}
+                  onChange={(val) => setAIConfig({ ...aiConfig!, timeoutMs: val ?? 60000 })}
+                />
+              </Form.Item>
+
+              <Form.Item label="启用流式响应">
+                <Switch
+                  checked={aiConfig?.stream ?? true}
+                  onChange={(val) => setAIConfig({ ...aiConfig!, stream: val })}
+                />
+              </Form.Item>
+
+              <Divider />
+
+              {aiTestResult && (
+                <Alert
+                  message={aiTestResult.message}
+                  type={aiTestResult.ok ? 'success' : 'error'}
+                  showIcon
+                  closable
+                  onClose={() => setAITestResult(null)}
+                  style={{ marginBottom: 16 }}
+                />
+              )}
+
+              <Form.Item>
+                <Space>
+                  <Button type="primary" loading={aiLoading} onClick={saveAIConfig}>
+                    保存配置
+                  </Button>
+                  <Button loading={aiTestLoading} onClick={testAIConnection}>
+                    连接测试
                   </Button>
                 </Space>
               </Form.Item>

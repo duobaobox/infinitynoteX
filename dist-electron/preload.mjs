@@ -80,3 +80,25 @@ electron.contextBridge.exposeInMainWorld("autoUpdater", {
 electron.contextBridge.exposeInMainWorld("appInfo", {
   getVersion: () => electron.ipcRenderer.invoke("app:getVersion")
 });
+electron.contextBridge.exposeInMainWorld("ai", {
+  getConfig: () => electron.ipcRenderer.invoke("ai:getConfig"),
+  setConfig: (config) => electron.ipcRenderer.invoke("ai:setConfig", config),
+  testConnection: () => electron.ipcRenderer.invoke("ai:testConnection"),
+  chat: (payload) => electron.ipcRenderer.invoke("ai:chat", payload),
+  chatStream: (payload) => electron.ipcRenderer.invoke("ai:chatStream", payload),
+  onStreamChunk: (callback) => {
+    const listener = (_event, data) => callback(data);
+    electron.ipcRenderer.on("ai:stream:chunk", listener);
+    return () => electron.ipcRenderer.removeListener("ai:stream:chunk", listener);
+  },
+  onStreamDone: (callback) => {
+    const listener = (_event, data) => callback(data);
+    electron.ipcRenderer.on("ai:stream:done", listener);
+    return () => electron.ipcRenderer.removeListener("ai:stream:done", listener);
+  },
+  onStreamError: (callback) => {
+    const listener = (_event, data) => callback(data);
+    electron.ipcRenderer.on("ai:stream:error", listener);
+    return () => electron.ipcRenderer.removeListener("ai:stream:error", listener);
+  }
+});

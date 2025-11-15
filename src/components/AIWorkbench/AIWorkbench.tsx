@@ -1,40 +1,53 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Sender, Bubble, useXAgent, useXChat } from '@ant-design/x';
-import { Alert, Spin, Button, Space } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
-import type { XRequest } from '@ant-design/x';
+import { Alert, Button, Space, Spin, Tooltip, Divider } from 'antd';
+import { ReloadOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import './AIWorkbench.css';
+
+interface AIConfig {
+  provider?: string;
+  model?: string;
+  baseURL?: string;
+}
 
 const AIWorkbench: React.FC = () => {
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
+  const [config, setConfig] = useState<AIConfig | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // 检查 AI 配置
   useEffect(() => {
     const checkConfig = async () => {
       try {
-        const config = await window.ai.getConfig();
-        setIsConfigured(!!config && !!config.apiKey && !!config.model && !!config.baseURL);
+        const aiConfig = await window.ai.getConfig();
+        setConfig(aiConfig);
+        setIsConfigured(!!aiConfig && !!aiConfig.apiKey && !!aiConfig.model && !!aiConfig.baseURL);
       } catch (err) {
         console.error('Failed to check AI config:', err);
         setIsConfigured(false);
+      } finally {
+        setIsInitializing(false);
       }
     };
     checkConfig();
   }, []);
 
-  // 创建 Agent，处理模型请求
+  // 创建 Agent
   const [agent] = useXAgent({
-    request: async (info, callbacks) => {
+    request: useCallback(async (info: any, callbacks: any) => {
       try {
-        const { message, messages } = info;
-        const { onSuccess } = callbacks;
+        const { message, messages } = info as {
+          message: string;
+          messages: Array<{ role: string; content: string }>;
+        };
+        const { onSuccess } = callbacks as { onSuccess: (content: string) => void };
 
         setError(null);
         setIsLoading(true);
 
-        // 构建消息列表，发送给主进程
+        // 构建消息列表
         const payload = {
           message,
           messages: messages.map((msg) => ({
@@ -43,14 +56,13 @@ const AIWorkbench: React.FC = () => {
           })),
         };
 
-        // 调用主进程的聊天接口（非流式）
+        // 调用主进程的聊天接口
         const response = await window.ai.chat(payload);
 
         if (!response.success || !response.content) {
           throw new Error(response.error || '未知错误');
         }
 
-        // 调用成功回调，渲染最终消息
         onSuccess(response.content);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -58,36 +70,57 @@ const AIWorkbench: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
-    },
+    }, []),
   });
 
-  // 使用 useXChat 管理消息队列
-  const { messages, onRequest } = useXChat({ agent });
+  // 使用 useXChat 管理消息
+  const { messages, onRequest, setMessages } = useXChat({ agent });
 
-  // 转换消息格式以供 Bubble.List 渲染
-  const bubbleItems: XRequest.BubbleProps[] = messages.map(({ message, id }) => ({
+  // 转换消息格式供 Bubble.List 渲染
+  const bubbleItems = messages.map(({ message, id }) => ({
     key: id,
     content: message,
   }));
 
+  if (isInitializing) {
+    return (
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}
+      >
+        <Spin tip="初始化中..." />
+      </div>
+    );
+  }
+
   // 未配置时的提示
   if (!isConfigured) {
     return (
-      <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div
+        style={{
+          padding: '32px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: '16px',
+        }}
+      >
         <Alert
-          message="未配置 AI"
-          description="请先在设置页面中配置 AI 模型信息（设置 > AI 管理）"
+          message="未配置 AI 模型"
+          description="请先在设置页面中配置 AI 模型信息（设置 > AI 管理）以开始对话"
           type="warning"
           showIcon
+          style={{ maxWidth: '500px' }}
         />
-        <p style={{ color: '#666', fontSize: '14px' }}>
-          支持任何 OpenAI 兼容的模型，包括：
-          <br />
-          • OpenAI (gpt-4o, gpt-3.5-turbo)
-          <br />
-          • Ollama (本地模型)
-          <br />• 其他兼容服务 (自定义 baseURL)
-        </p>
+        <div style={{ color: '#666', fontSize: '13px', maxWidth: '500px', textAlign: 'center' }}>
+          <p style={{ marginBottom: '8px' }}>支持以下模型：</p>
+          <ul style={{ textAlign: 'left', display: 'inline-block' }}>
+            <li>OpenAI: gpt-4o, gpt-3.5-turbo</li>
+            <li>本地 Ollama: mistral, llama2 等</li>
+            <li>其他 OpenAI 兼容服务</li>
+          </ul>
+        </div>
       </div>
     );
   }
@@ -101,7 +134,7 @@ const AIWorkbench: React.FC = () => {
         backgroundColor: '#fafafa',
       }}
     >
-      {/* 顶部状态条 */}
+      {/* 顶部状态栏 */}
       <div
         style={{
           padding: '12px 16px',
@@ -112,11 +145,46 @@ const AIWorkbench: React.FC = () => {
           justifyContent: 'space-between',
         }}
       >
-        <span style={{ fontSize: '12px', color: '#666' }}>AI 工作台 • 支持流式对话</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 500 }}>AI 助手</span>
+          <span style={{ fontSize: '12px', color: '#999' }}>
+            {config?.provider && config?.model ? `${config.provider} • ${config.model}` : '未配置'}
+          </span>
+        </div>
+
         <Space size="small">
-          <Button type="text" size="small" icon={<ReloadOutlined />} onClick={() => setError(null)}>
-            清除错误
-          </Button>
+          <Tooltip title="清除错误">
+            <Button
+              type="text"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={() => setError(null)}
+              disabled={!error}
+            />
+          </Tooltip>
+          <Tooltip title="清空对话">
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => {
+                setMessages([]);
+                setError(null);
+              }}
+              disabled={messages.length === 0}
+            />
+          </Tooltip>
+          <Divider type="vertical" style={{ margin: '0' }} />
+          <Tooltip title="打开设置">
+            <Button
+              type="text"
+              size="small"
+              icon={<SettingOutlined />}
+              onClick={() => {
+                // TODO: 触发打开设置页面的事件
+              }}
+            />
+          </Tooltip>
         </Space>
       </div>
 
@@ -134,27 +202,51 @@ const AIWorkbench: React.FC = () => {
       )}
 
       {/* 消息列表 */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        {isLoading ? (
-          <Spin tip="等待回复中..." />
+      <div
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: bubbleItems.length === 0 ? 'center' : 'flex-start',
+        }}
+      >
+        {isLoading && messages.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#999' }}>
+            <Spin tip="等待回复中..." />
+          </div>
         ) : bubbleItems.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#999', paddingTop: '40px' }}>
-            <p>开始对话，与 AI 互动</p>
+          <div style={{ textAlign: 'center', color: '#bbb' }}>
+            <p style={{ fontSize: '14px' }}>开始对话，与 AI 互动</p>
+            <p style={{ fontSize: '12px', color: '#999' }}>输入你的问题，AI 将为你答疑解惑</p>
           </div>
         ) : (
-          <Bubble.List items={bubbleItems} />
+          <Bubble.List
+            items={bubbleItems}
+            style={{
+              flex: 1,
+            }}
+          />
         )}
       </div>
 
       {/* 输入框 */}
       <div
-        style={{ padding: '12px 16px', backgroundColor: '#fff', borderTop: '1px solid #f0f0f0' }}
+        style={{
+          padding: '12px 16px',
+          backgroundColor: '#fff',
+          borderTop: '1px solid #f0f0f0',
+        }}
       >
         <Sender
           loading={isLoading}
-          disabled={isLoading}
+          disabled={isLoading || !isConfigured}
           onSubmit={onRequest}
-          placeholder="输入问题... (Shift+Enter 换行，Enter 发送)"
+          placeholder="输入问题...（Shift+Enter 换行，Enter 发送）"
+          style={{
+            borderRadius: '6px',
+          }}
         />
       </div>
     </div>

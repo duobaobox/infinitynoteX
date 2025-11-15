@@ -221,11 +221,13 @@ export class OpenAICompatibleAdapter {
                 const json = JSON.parse(data);
                 const choices = (json?.choices as unknown[]) || [];
                 const choiceItem = choices[0] as Record<string, unknown>;
-                const delta =
-                  ((choiceItem?.delta as Record<string, unknown>)?.content as string) || '';
-                if (delta) {
+                const deltaObj = (choiceItem?.delta as Record<string, unknown>) || {};
+                const delta = (deltaObj?.content as string) || '';
+                const reasoningDelta = (deltaObj as any)?.reasoning_content as string | undefined;
+                if (delta || reasoningDelta) {
                   yield {
-                    delta,
+                    delta: delta || '',
+                    reasoningDelta: reasoningDelta || undefined,
                     finishReason: choiceItem?.finish_reason as string | undefined,
                   };
                 }
@@ -243,10 +245,13 @@ export class OpenAICompatibleAdapter {
             if (data !== '[DONE]') {
               try {
                 const json = JSON.parse(data);
-                const delta = json?.choices?.[0]?.delta?.content || '';
-                if (delta) {
+                const deltaObj = (json?.choices?.[0]?.delta as any) || {};
+                const delta = (deltaObj?.content as string) || '';
+                const reasoningDelta = deltaObj?.reasoning_content as string | undefined;
+                if (delta || reasoningDelta) {
                   yield {
-                    delta,
+                    delta: delta || '',
+                    reasoningDelta: reasoningDelta || undefined,
                     finishReason: json?.choices?.[0]?.finish_reason,
                   };
                 }

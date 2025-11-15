@@ -121,9 +121,13 @@ contextBridge.exposeInMainWorld('ai', {
     }>,
   chatStream: (payload: ChatPayload) =>
     ipcRenderer.invoke('ai:chatStream', payload) as Promise<{ success: boolean; error?: string }>,
-  onStreamChunk: (callback: (data: { delta: string; finishReason?: string }) => void) => {
-    const listener = (_event: unknown, data: { delta: string; finishReason?: string }) =>
-      callback(data);
+  onStreamChunk: (
+    callback: (data: { delta: string; reasoningDelta?: string; finishReason?: string }) => void,
+  ) => {
+    const listener = (
+      _event: unknown,
+      data: { delta: string; reasoningDelta?: string; finishReason?: string },
+    ) => callback(data);
     ipcRenderer.on('ai:stream:chunk', listener);
     return () => ipcRenderer.removeListener('ai:stream:chunk', listener);
   },

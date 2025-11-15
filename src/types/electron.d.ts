@@ -13,7 +13,9 @@ declare global {
       testConnection(): Promise<{ ok: boolean; message: string }>;
       chat(payload: ChatPayload): Promise<{ success: boolean; content?: string; error?: string }>;
       chatStream(payload: ChatPayload): Promise<{ success: boolean; error?: string }>;
-      onStreamChunk(callback: (data: { delta: string; finishReason?: string }) => void): () => void;
+      onStreamChunk(
+        callback: (data: { delta: string; reasoningDelta?: string; finishReason?: string }) => void,
+      ): () => void;
       onStreamDone(callback: (data: { success: boolean }) => void): () => void;
       onStreamError(callback: (data: { error: string }) => void): () => void;
     };

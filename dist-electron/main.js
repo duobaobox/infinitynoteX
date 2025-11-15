@@ -14720,7 +14720,7 @@ class OpenAICompatibleAdapter {
    * 返回异步迭代器，逐段产生内容
    */
   async *chatStream(payload) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d;
     const messages = [
       ...this.config.systemPrompt ? [{ role: "system", content: this.config.systemPrompt }] : [],
       ...payload.messages,
@@ -14769,10 +14769,13 @@ class OpenAICompatibleAdapter {
                 const json2 = JSON.parse(data);
                 const choices = (json2 == null ? void 0 : json2.choices) || [];
                 const choiceItem = choices[0];
-                const delta = ((_a = choiceItem == null ? void 0 : choiceItem.delta) == null ? void 0 : _a.content) || "";
-                if (delta) {
+                const deltaObj = (choiceItem == null ? void 0 : choiceItem.delta) || {};
+                const delta = (deltaObj == null ? void 0 : deltaObj.content) || "";
+                const reasoningDelta = deltaObj == null ? void 0 : deltaObj.reasoning_content;
+                if (delta || reasoningDelta) {
                   yield {
-                    delta,
+                    delta: delta || "",
+                    reasoningDelta: reasoningDelta || void 0,
                     finishReason: choiceItem == null ? void 0 : choiceItem.finish_reason
                   };
                 }
@@ -14788,11 +14791,14 @@ class OpenAICompatibleAdapter {
             if (data !== "[DONE]") {
               try {
                 const json2 = JSON.parse(data);
-                const delta = ((_d = (_c = (_b = json2 == null ? void 0 : json2.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content) || "";
-                if (delta) {
+                const deltaObj = ((_b = (_a = json2 == null ? void 0 : json2.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.delta) || {};
+                const delta = (deltaObj == null ? void 0 : deltaObj.content) || "";
+                const reasoningDelta = deltaObj == null ? void 0 : deltaObj.reasoning_content;
+                if (delta || reasoningDelta) {
                   yield {
-                    delta,
-                    finishReason: (_f = (_e = json2 == null ? void 0 : json2.choices) == null ? void 0 : _e[0]) == null ? void 0 : _f.finish_reason
+                    delta: delta || "",
+                    reasoningDelta: reasoningDelta || void 0,
+                    finishReason: (_d = (_c = json2 == null ? void 0 : json2.choices) == null ? void 0 : _c[0]) == null ? void 0 : _d.finish_reason
                   };
                 }
               } catch (e) {

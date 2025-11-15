@@ -58,7 +58,8 @@ export interface ChatResponse {
  * 流式数据块
  */
 export interface StreamChunk {
-  delta: string; // 增量内容
+  delta: string; // 文本增量
+  reasoningDelta?: string; // 思维链增量（如 deepseek-reasoner 的 reasoning_content）
   finishReason?: string;
 }
 

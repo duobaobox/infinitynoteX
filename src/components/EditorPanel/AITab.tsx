@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Sender, Bubble } from '@ant-design/x';
+import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
 import { Alert, Button, Space, Tooltip, Divider } from 'antd';
 import {
   ReloadOutlined,
@@ -26,8 +26,9 @@ interface AIConfig {
   baseURL?: string;
 }
 
-// Bubble.List 的 roles 类型定义
+// Bubble.List / ThoughtChain 类型定义
 type BubbleListRolesType = GetProp<typeof Bubble.List, 'roles'>;
+type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
 
 export const AITab = ({ noteId }: AITabProps) => {
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
@@ -58,10 +59,76 @@ export const AITab = ({ noteId }: AITabProps) => {
     key: string;
     role: 'user' | 'ai';
     content: string;
+    thoughtChain?: ThoughtChainItems;
+    isStreaming?: boolean;
+    thoughtChainText?: string; // 流式思维链原始文本增量累积
   }
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
+  const [streamingKey, setStreamingKey] = useState<string | null>(null);
 
-  // 发送用户消息并调用后端
+  const splitParagraphs = (text: string): string[] =>
+    text
+      .split(/\n{2,}/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+  const getReasoningParagraphs = (item: ChatItem): string[] => {
+    if (item.thoughtChain && item.thoughtChain.length > 0) {
+      return item.thoughtChain
+        .map((node) => (typeof node.content === 'string' ? node.content : ''))
+        .flatMap((content) => splitParagraphs(content))
+        .filter(Boolean);
+    }
+    if (item.thoughtChainText && item.thoughtChainText.length > 0) {
+      return splitParagraphs(item.thoughtChainText);
+    }
+    return [];
+  };
+
+  // 监听 IPC 流式事件
+  useEffect(() => {
+    const unsubscribeChunk = window.ai?.onStreamChunk?.(
+      (data: { delta: string; reasoningDelta?: string }) => {
+        if (streamingKey) {
+          setChatItems((prev) =>
+            prev.map((item) =>
+              item.key === streamingKey
+                ? {
+                    ...item,
+                    content: item.content + (data.delta || ''),
+                    thoughtChainText: (item.thoughtChainText || '') + (data.reasoningDelta || ''),
+                  }
+                : item,
+            ),
+          );
+        }
+      },
+    );
+
+    const unsubscribeDone = window.ai?.onStreamDone?.(() => {
+      if (streamingKey) {
+        setChatItems((prev) =>
+          prev.map((item) => (item.key === streamingKey ? { ...item, isStreaming: false } : item)),
+        );
+      }
+      setStreamingKey(null);
+      setIsLoading(false);
+    });
+
+    const unsubscribeError = window.ai?.onStreamError?.((data: any) => {
+      setError(data.error || '流式传输出错');
+      setStreamingKey(null);
+      setIsLoading(false);
+    });
+
+    return () => {
+      unsubscribeChunk?.();
+      unsubscribeDone?.();
+      unsubscribeError?.();
+    };
+  }, [streamingKey]);
+
+  // 发送用户消息并调用流式后端
   const sendUserMessage = async (text: string) => {
     if (!text.trim()) return;
     const userItem: ChatItem = {
@@ -72,6 +139,19 @@ export const AITab = ({ noteId }: AITabProps) => {
     setChatItems((prev) => [...prev, userItem]);
     setError(null);
     setIsLoading(true);
+
+    // 创建 AI 气泡占位符
+    const aiKey = `a-${Date.now()}-${Math.random()}`;
+    const aiItem: ChatItem = {
+      key: aiKey,
+      role: 'ai',
+      content: '',
+      isStreaming: true,
+    };
+    setChatItems((prev) => [...prev, aiItem]);
+    setStreamingKey(aiKey);
+
+    // 调用流式 API
     try {
       const payload = {
         message: text,
@@ -80,20 +160,18 @@ export const AITab = ({ noteId }: AITabProps) => {
           content: m.content,
         })),
       };
-      const response = await window.ai.chat(payload);
-      if (!response.success || !response.content) {
-        throw new Error(response.error || '未知错误');
+      // 使用流式 API
+      const result = await window.ai.chatStream(payload);
+      if (!result?.success) {
+        throw new Error(result?.error || '流式请求失败');
       }
-      const aiItem: ChatItem = {
-        key: `a-${Date.now()}-${Math.random()}`,
-        role: 'ai',
-        content: response.content,
-      };
-      setChatItems((prev) => [...prev, aiItem]);
+      // 流式内容通过 IPC 事件逐步更新，等待 ai:stream:done 事件
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
-    } finally {
+      // 移除失败的 AI 气泡
+      setChatItems((prev) => prev.filter((item) => item.key !== aiKey));
+      setStreamingKey(null);
       setIsLoading(false);
     }
   };
@@ -110,7 +188,7 @@ export const AITab = ({ noteId }: AITabProps) => {
           color: '#1890ff',
         },
       },
-      typing: { step: 5, interval: 20 },
+      typing: { step: 5, interval: 50 },
     },
     // User 角色：右对齐（end）
     user: {
@@ -126,14 +204,64 @@ export const AITab = ({ noteId }: AITabProps) => {
   };
 
   // 转换为 Bubble.List items
-  const bubbleItems = chatItems.map((m) => ({ key: m.key, role: m.role, content: m.content }));
-  if (isLoading) {
-    bubbleItems.push({
-      key: 'loading',
-      role: 'ai',
-      content: 'AI 正在思考中...',
-      loading: true,
-    } as any);
+  const renderBubbleContent = (item: ChatItem) => {
+    if (item.role !== 'ai') {
+      return item.content;
+    }
+
+    const reasoningParagraphs = getReasoningParagraphs(item);
+    if (reasoningParagraphs.length === 0) {
+      return item.content;
+    }
+
+    const mergedItem: ThoughtChainItems = [
+      {
+        key: `${item.key}-reasoning`,
+        title: '思考过程',
+        content: (
+          <div className="ai-thought-chain-content">
+            {reasoningParagraphs.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
+          </div>
+        ),
+      },
+    ];
+
+    return (
+      <div className="ai-bubble-with-thought-chain">
+        <div className="ai-bubble-text">{item.content}</div>
+        <div className="ai-thought-chain-wrapper">
+          <ThoughtChain items={mergedItem} size="small" collapsible />
+        </div>
+      </div>
+    );
+  };
+
+  const bubbleItems = chatItems.map((m) => {
+    const item: any = {
+      key: m.key,
+      role: m.role,
+      content: renderBubbleContent(m),
+    };
+    // AI 气泡正在流式接收时启用打字机效果
+    if (m.role === 'ai' && m.isStreaming && m.content.length > 0) {
+      item.typing = { step: 5, interval: 50 };
+    }
+    return item;
+  });
+
+  // 在首个增量到达之前，显示 AI loading 气泡（官方 demo 风格）
+  if (streamingKey) {
+    const aiCurrent = chatItems.find((x) => x.key === streamingKey);
+    if (aiCurrent && aiCurrent.content.length === 0) {
+      bubbleItems.push({
+        key: `${streamingKey}-loading`,
+        role: 'ai',
+        content: 'AI 正在思考中...',
+        loading: true,
+      } as any);
+    }
   }
 
   if (isInitializing) {

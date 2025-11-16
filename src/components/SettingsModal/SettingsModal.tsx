@@ -19,6 +19,7 @@ import {
   Card,
   Slider,
   Tag,
+  Collapse,
 } from 'antd';
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
@@ -925,41 +926,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
           </div>
         );
       case 'ai': {
-        const providerStatus = getProviderStatus(aiConfig);
-        const statusMeta = PROVIDER_STATUS_META[providerStatus];
-        const providerColor = getProviderBrandColor(selectedProviderId);
+        // const providerStatus = getProviderStatus(aiConfig);
+        // const statusMeta = PROVIDER_STATUS_META[providerStatus];
+        // const providerColor = getProviderBrandColor(selectedProviderId);
         const isPresetProviderLocked =
           selectedProviderId !== CUSTOM_PROVIDER_ID && !!currentProviderPreset;
 
         return (
           <div className="settings-panel ai-settings-panel">
             <h3>AI 管理</h3>
-            <Alert
-              message="在一个界面内绑定多个 AI 厂商"
-              description="为每个厂商分别保存 API Key 与模型参数，保存后即可随时一键切换并同步到 AI 工作台。"
-              type="info"
-              showIcon
-            />
 
             <div className="ai-settings-header">
-              <div className="ai-status-card" style={{ borderColor: providerColor }}>
-                <div className="ai-status-meta">
-                  <Text type="secondary">{currentProviderPreset?.name ?? aiConfig.provider}</Text>
-                  <div className="ai-status-title">
-                    {aiConfig.provider || '未命名服务'} / {aiConfig.model || '未选择模型'}
+              <div className="ai-status-card">
+                <div className="ai-status-left">
+                  <div className="ai-status-content">
+                    <div className="ai-status-model">{aiConfig.model || '未选择模型'}</div>
+                    <Text type="secondary" className="ai-status-desc">
+                      {currentProviderPreset?.description || aiConfig.provider}
+                    </Text>
                   </div>
-                  <Text type="secondary">
-                    {currentProviderPreset?.description ||
-                      '完成配置后即可在画布工作台随时切换模型。'}
-                  </Text>
                 </div>
-                <div className="ai-status-actions">
-                  {selectedProviderId === activeProviderId && (
-                    <Tag color={providerColor}>当前使用</Tag>
-                  )}
-                  <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
-                  <div className="ai-status-switch">
-                    <Text type="secondary">设为当前</Text>
+                <div className="ai-status-right">
+                  <div className="ai-status-tags">{/* “当前使用”标签已移除 */}</div>
+                  <div className="ai-status-control">
+                    <Text type="secondary" className="ai-control-label">
+                      激活此AI
+                    </Text>
                     <Switch
                       checked={selectedProviderId === activeProviderId}
                       onChange={(checked) => {
@@ -1109,7 +1101,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                   </Form>
                 </Card>
 
-                <Card className="ai-card" size="small" title="模型与高级参数">
+                <Card className="ai-card" size="small" title="模型选择">
                   <Form layout="vertical">
                     {recommendedModelOptions.length > 0 && (
                       <Form.Item label="推荐模型">
@@ -1131,47 +1123,57 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                         onChange={(e) => syncCurrentConfig({ model: e.target.value })}
                       />
                     </Form.Item>
-                    <Form.Item label="系统提示词">
-                      <Input.TextArea
-                        rows={3}
-                        placeholder="可选：用于统一设定模型的角色与行为"
-                        value={aiConfig.systemPrompt || ''}
-                        onChange={(e) => syncCurrentConfig({ systemPrompt: e.target.value })}
-                      />
-                    </Form.Item>
-                    <Form.Item label="启用流式响应">
-                      <Switch
-                        checked={aiConfig.stream ?? true}
-                        onChange={(val) => syncCurrentConfig({ stream: val })}
-                      />
-                    </Form.Item>
-                    <Form.Item label="超时时间（毫秒）">
-                      <InputNumber
-                        min={5000}
-                        max={600000}
-                        step={5000}
-                        value={aiConfig.timeoutMs ?? 60000}
-                        onChange={(val) => syncCurrentConfig({ timeoutMs: val ?? 60000 })}
-                        style={{ width: '100%' }}
-                      />
-                    </Form.Item>
+                    <Collapse
+                      ghost
+                      size="small"
+                      className="ai-advanced-collapse"
+                      items={[
+                        {
+                          key: 'advanced',
+                          label: '高级参数（可选）',
+                          children: (
+                            <>
+                              <Form.Item label="系统提示词">
+                                <Input.TextArea
+                                  rows={3}
+                                  placeholder="设定模型角色与默认行为"
+                                  value={aiConfig.systemPrompt || ''}
+                                  onChange={(e) =>
+                                    syncCurrentConfig({ systemPrompt: e.target.value })
+                                  }
+                                />
+                              </Form.Item>
+                              <Form.Item label="启用流式响应">
+                                <Switch
+                                  checked={aiConfig.stream ?? true}
+                                  onChange={(val) => syncCurrentConfig({ stream: val })}
+                                />
+                              </Form.Item>
+                              <Form.Item label="超时时间（毫秒）">
+                                <InputNumber
+                                  min={5000}
+                                  max={600000}
+                                  step={5000}
+                                  value={aiConfig.timeoutMs ?? 60000}
+                                  onChange={(val) => syncCurrentConfig({ timeoutMs: val ?? 60000 })}
+                                  style={{ width: '100%' }}
+                                />
+                              </Form.Item>
+                            </>
+                          ),
+                        },
+                      ]}
+                    />
                   </Form>
-                  <Space style={{ marginTop: 12 }} wrap>
-                    <Button
-                      onClick={handleActivateSelectedProvider}
-                      disabled={selectedProviderId === activeProviderId || aiLoading}
-                      loading={aiLoading}
-                    >
-                      设为当前模型
-                    </Button>
-                    <Button
-                      loading={aiTestLoading}
-                      onClick={testAIConnection}
-                      disabled={selectedProviderId !== activeProviderId}
-                    >
-                      重新连接测试
-                    </Button>
-                  </Space>
+                  <Button
+                    block
+                    loading={aiTestLoading}
+                    onClick={testAIConnection}
+                    disabled={selectedProviderId !== activeProviderId}
+                    style={{ marginTop: 12 }}
+                  >
+                    重新连接测试
+                  </Button>
                 </Card>
 
                 {aiTestResult && (

@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { AnchorHTMLAttributes, HTMLAttributes, Key, TableHTMLAttributes } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
-import { Alert, Button, Space, Tooltip, Divider } from 'antd';
+import { Alert, Button, Space, Tooltip, Divider, Input } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -103,6 +103,11 @@ export const AITab = ({ noteId }: AITabProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // 对话标题相关状态
+  const [conversationTitle, setConversationTitle] = useState<string>('AI 对话');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState<string>('');
+
   // 检查 AI 配置
   useEffect(() => {
     const checkConfig = async () => {
@@ -138,6 +143,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       if (!noteId) {
         // 未选中对话时清空消息
         setChatItems([]);
+        setConversationTitle('AI 对话');
         return;
       }
 
@@ -145,21 +151,27 @@ export const AITab = ({ noteId }: AITabProps) => {
         const conversations = await window.storage.getAIConversations();
         const conversation = conversations.find((c) => c.id === noteId);
 
-        if (conversation && conversation.messages && conversation.messages.length > 0) {
-          // 转换存储格式到 ChatItem 格式
-          const items: ChatItem[] = conversation.messages.map((msg) => ({
-            key: `${msg.role}-${msg.timestamp}`,
-            role: msg.role === 'assistant' ? 'ai' : 'user',
-            content: msg.content,
-          }));
-          setChatItems(items);
-        } else {
-          // 对话存在但没有消息，清空
-          setChatItems([]);
+        if (conversation) {
+          // 设置对话标题
+          setConversationTitle(conversation.title || 'AI 对话');
+
+          if (conversation.messages && conversation.messages.length > 0) {
+            // 转换存储格式到 ChatItem 格式
+            const items: ChatItem[] = conversation.messages.map((msg) => ({
+              key: `${msg.role}-${msg.timestamp}`,
+              role: msg.role === 'assistant' ? 'ai' : 'user',
+              content: msg.content,
+            }));
+            setChatItems(items);
+          } else {
+            // 对话存在但没有消息，清空
+            setChatItems([]);
+          }
         }
       } catch (err) {
         console.error('Failed to load conversation history:', err);
         setChatItems([]);
+        setConversationTitle('AI 对话');
       }
     };
 
@@ -185,6 +197,49 @@ export const AITab = ({ noteId }: AITabProps) => {
     },
     [noteId],
   );
+
+  // 开始编辑标题
+  const startEditingTitle = () => {
+    setTempTitle(conversationTitle);
+    setIsEditingTitle(true);
+  };
+
+  // 保存标题
+  const saveTitle = async () => {
+    if (!noteId || !tempTitle.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    try {
+      await window.storage.updateAIConversationTitle(noteId, tempTitle.trim());
+      setConversationTitle(tempTitle.trim());
+      setIsEditingTitle(false);
+
+      // 触发自定义事件通知列表刷新
+      window.dispatchEvent(new CustomEvent('ai-conversation-updated'));
+    } catch (err) {
+      console.error('Failed to update conversation title:', err);
+      setIsEditingTitle(false);
+    }
+  };
+
+  // 取消编辑
+  const cancelEditingTitle = () => {
+    setIsEditingTitle(false);
+    setTempTitle('');
+  };
+
+  // 处理标题输入的键盘事件
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitle();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditingTitle();
+    }
+  };
 
   const splitParagraphs = (text: string): string[] =>
     text
@@ -451,15 +506,34 @@ export const AITab = ({ noteId }: AITabProps) => {
       {/* 顶部状态栏 */}
       <div className="ai-tab-header">
         <div className="ai-tab-header-left">
-          <span className="ai-tab-header-title">AI 助手</span>
+          {isEditingTitle ? (
+            <Input
+              value={tempTitle}
+              onChange={(e) => setTempTitle(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={handleTitleKeyDown}
+              autoFocus
+              size="small"
+              style={{
+                width: '200px',
+                fontSize: '13px',
+                fontWeight: 500,
+              }}
+              placeholder="输入对话标题"
+            />
+          ) : (
+            <span
+              className="ai-tab-header-title"
+              onDoubleClick={startEditingTitle}
+              style={{ cursor: 'pointer' }}
+              title="双击编辑标题"
+            >
+              {conversationTitle}
+            </span>
+          )}
           <span className="ai-tab-header-meta">
             {config?.provider && config?.model ? `${config.provider} • ${config.model}` : '未配置'}
           </span>
-          {noteId && (
-            <span style={{ fontSize: '11px', color: '#ccc' }}>
-              • 便签 ID: {noteId.slice(0, 6)}...
-            </span>
-          )}
         </div>
 
         <Space size="small">

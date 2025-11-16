@@ -639,9 +639,11 @@ class StorageManager {
     const now = Date.now();
     const conversations = await this.getAIConversations();
     const isDefaultConversation = conversations.length === 0;
+    const dateStr = (/* @__PURE__ */ new Date()).toLocaleDateString("zh-CN").replace(/\//g, "");
+    const defaultTitle = `对话${dateStr}`;
     const newConversation = {
       id: this.generateId(),
-      title: isDefaultConversation ? "默认对话" : title || `对话 ${(/* @__PURE__ */ new Date()).toLocaleDateString("zh-CN")}`,
+      title: isDefaultConversation ? "默认对话" : title || defaultTitle,
       excerpt: "开始对话",
       messages: [],
       createdAt: now,

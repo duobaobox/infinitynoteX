@@ -886,11 +886,13 @@ export class StorageManager {
     const conversations = await this.getAIConversations();
     const isDefaultConversation = conversations.length === 0; // 如果没有对话，这是第一个（默认对话）
 
+    // 生成默认标题格式：对话YYYYMMDD
+    const dateStr = new Date().toLocaleDateString('zh-CN').replace(/\//g, '');
+    const defaultTitle = `对话${dateStr}`;
+
     const newConversation: AIConversation = {
       id: this.generateId(),
-      title: isDefaultConversation
-        ? '默认对话'
-        : title || `对话 ${new Date().toLocaleDateString('zh-CN')}`,
+      title: isDefaultConversation ? '默认对话' : title || defaultTitle,
       excerpt: '开始对话',
       messages: [],
       createdAt: now,

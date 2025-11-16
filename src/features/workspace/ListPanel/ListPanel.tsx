@@ -86,6 +86,18 @@ const ListPanel: React.FC<ListPanelProps> = ({
     }
   }, [isNoteView, effectiveToolId, loadAiConversations]);
 
+  // 监听 AI 对话更新事件（标题编辑等）
+  useEffect(() => {
+    const handleConversationUpdate = () => {
+      if (isAiChatView) {
+        loadAiConversations();
+      }
+    };
+
+    window.addEventListener('ai-conversation-updated', handleConversationUpdate);
+    return () => window.removeEventListener('ai-conversation-updated', handleConversationUpdate);
+  }, [isAiChatView, loadAiConversations]);
+
   // 加载便签列表
   const loadNotes = useCallback(async () => {
     if (!folderId || !isNoteView) return;

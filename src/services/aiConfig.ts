@@ -14,7 +14,7 @@ export interface AIConfig {
   /** API 基础 URL，支持任意 OpenAI 兼容服务 */
   baseURL: string; // e.g., 'https://api.openai.com/v1', 'http://localhost:11434/v1'
   /** API Key（由主进程持有，渲染进程绝不访问） */
-  apiKey: string;
+  apiKey?: string;
   /** 模型名称 */
   model: string; // e.g., 'gpt-4o', 'mistral', 'llama2'
   /** 是否启用流式响应 */

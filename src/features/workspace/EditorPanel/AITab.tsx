@@ -27,6 +27,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 import './AITab.css';
+import type { AIConfig } from '../../../services/aiConfig';
 import {
   detectProviderIdFromConfig,
   ensureAIConfigDefaults,
@@ -39,12 +40,6 @@ import {
 
 interface AITabProps {
   noteId: string | null;
-}
-
-interface AIConfig {
-  provider?: string;
-  model?: string;
-  baseURL?: string;
 }
 
 interface StreamErrorPayload {

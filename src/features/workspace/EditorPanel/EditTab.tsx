@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { TipTapEditor } from '../../../components/TipTapEditor';
-import type { TipTapJSONContent } from '../../services/types';
+import type { TipTapJSONContent } from '../../../services/types';
 
 interface EditTabProps {
   noteId: string | null;

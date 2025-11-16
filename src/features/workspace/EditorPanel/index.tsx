@@ -6,12 +6,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Segmented, message } from 'antd';
 import { EditOutlined, ToolOutlined, RobotOutlined, AppstoreOutlined } from '@ant-design/icons';
-import type { TipTapJSONContent } from '../../services/types';
+import type { TipTapJSONContent } from '../../../services/types';
 import { EditTab } from './EditTab';
 import { ToolsTab } from './ToolsTab';
 import { AITab } from './AITab';
 import { OtherTab } from './OtherTab';
-import type { NoteColor as NoteColorType } from '../../services/types';
+import type { NoteColor as NoteColorType } from '../../../services/types';
 
 type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
 

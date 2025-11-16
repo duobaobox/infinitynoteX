@@ -6,7 +6,7 @@ import {
   AppstoreOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import type { ToolDefinition } from '../../constants/tools';
+import type { ToolDefinition } from '../../../constants/tools';
 import { AITab } from '../EditorPanel/AITab';
 import './ToolPanel.css';
 

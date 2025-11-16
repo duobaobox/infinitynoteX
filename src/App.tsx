@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from 'react';
 import './App.css';
-import Sidebar from './components/Sidebar';
-import ListPanel from './components/ListPanel';
-import EditorPanel from './components/EditorPanel';
+import Sidebar from './features/workspace/Sidebar';
+import ListPanel from './features/workspace/ListPanel';
+import EditorPanel from './features/workspace/EditorPanel';
+import { ToolPanel } from './features/workspace/ToolPanel';
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
+import { DEFAULT_TOOLS, DEFAULT_AI_CONVERSATIONS, type WorkspaceView } from './constants/tools';
 
 declare global {
   interface Window {
@@ -47,6 +49,11 @@ function App() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); /* 当前选中的便签ID */
   const [refreshListTrigger, setRefreshListTrigger] = useState(0); /* 刷新列表的触发器 */
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null); /* 首次启动标志 */
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('note');
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(DEFAULT_TOOLS[0]?.id || null);
+  const [selectedToolItemId, setSelectedToolItemId] = useState<string | null>(
+    DEFAULT_AI_CONVERSATIONS[0]?.id || null,
+  );
 
   // 初始化检测
   useEffect(() => {
@@ -65,6 +72,22 @@ function App() {
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
+
+  useEffect(() => {
+    if (workspaceView === 'tool' && !selectedToolId && DEFAULT_TOOLS.length > 0) {
+      setSelectedToolId(DEFAULT_TOOLS[0].id);
+    }
+  }, [workspaceView, selectedToolId]);
+
+  useEffect(() => {
+    if (selectedToolId === 'ai-chat') {
+      if (!selectedToolItemId && DEFAULT_AI_CONVERSATIONS.length > 0) {
+        setSelectedToolItemId(DEFAULT_AI_CONVERSATIONS[0].id);
+      }
+    } else if (selectedToolItemId) {
+      setSelectedToolItemId(null);
+    }
+  }, [selectedToolId, selectedToolItemId]);
 
   // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
   if (windowType === 'floating') {
@@ -90,6 +113,17 @@ function App() {
     // 仅在titlebar空白区域双击时触发最大化
     if (e.target === e.currentTarget) {
       window.electronAPI?.maximize();
+    }
+  };
+
+  const handleWorkspaceViewChange = (view: WorkspaceView) => {
+    setWorkspaceView(view);
+    if (view === 'note') {
+      setShowEditor(!!selectedNoteId);
+    } else {
+      if (!showEditor) {
+        setShowEditor(true);
+      }
     }
   };
 
@@ -229,7 +263,20 @@ function App() {
         <div className="layout-panel main-content">
           {showSidebar && (
             <>
-              <Sidebar selectedFolderId={selectedFolderId} onSelectFolder={setSelectedFolderId} />
+              <Sidebar
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={(folderId) => {
+                  setSelectedFolderId(folderId);
+                  handleWorkspaceViewChange('note');
+                }}
+                selectedToolId={selectedToolId}
+                onSelectTool={(toolId) => {
+                  setSelectedToolId(toolId);
+                  handleWorkspaceViewChange('tool');
+                }}
+                activeView={workspaceView}
+                onViewChange={handleWorkspaceViewChange}
+              />
               <div className="gap-panel" />
             </>
           )}
@@ -242,15 +289,33 @@ function App() {
               setShowEditor(!!noteId);
             }}
             refreshTrigger={refreshListTrigger}
+            selectedToolId={selectedToolId}
+            onSelectTool={(toolId) => {
+              setSelectedToolId(toolId);
+              handleWorkspaceViewChange('tool');
+            }}
+            selectedToolItemId={selectedToolItemId}
+            onSelectToolItem={(itemId) => {
+              setSelectedToolItemId(itemId);
+              handleWorkspaceViewChange('tool');
+            }}
+            activeView={workspaceView}
           />
           {showEditor && <div className="gap-panel" />}
-          {showEditor && (
-            <EditorPanel
-              noteId={selectedNoteId}
-              onClose={() => setShowEditor(false)}
-              onSave={() => setRefreshListTrigger((prev) => prev + 1)}
-            />
-          )}
+          {showEditor &&
+            (workspaceView === 'note' ? (
+              <EditorPanel
+                noteId={selectedNoteId}
+                onClose={() => setShowEditor(false)}
+                onSave={() => setRefreshListTrigger((prev) => prev + 1)}
+              />
+            ) : (
+              <ToolPanel
+                toolId={selectedToolId}
+                tools={DEFAULT_TOOLS}
+                selectedToolItemId={selectedToolItemId}
+              />
+            ))}
         </div>
       )}
     </>

@@ -10,16 +10,28 @@ import {
   EditOutlined,
   MoreOutlined,
 } from '@ant-design/icons';
-import type { Folder } from '../services/types';
-import SettingsModal from './SettingsModal/SettingsModal';
+import { DEFAULT_TOOLS, type WorkspaceView } from '../../../constants/tools';
+import type { Folder } from '../../../services/types';
+import SettingsModal from '../../../components/SettingsModal/SettingsModal';
 import './Sidebar.css';
 
 interface SidebarProps {
   selectedFolderId: string | null;
   onSelectFolder: (folderId: string) => void;
+  selectedToolId: string | null;
+  onSelectTool: (toolId: string) => void;
+  activeView: WorkspaceView;
+  onViewChange: (view: WorkspaceView) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  selectedFolderId,
+  onSelectFolder,
+  selectedToolId,
+  onSelectTool,
+  activeView,
+  onViewChange,
+}) => {
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
@@ -31,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) =
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [renaming, setRenaming] = useState(false);
+  const isNoteView = activeView === 'note';
 
   const loadFolders = React.useCallback(async () => {
     try {
@@ -214,6 +227,8 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) =
       <div className="flex-vertical-auto">
         <Segmented
           block
+          value={activeView}
+          onChange={(value) => onViewChange(value as WorkspaceView)}
           options={[
             {
               label: (
@@ -235,81 +250,108 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedFolderId, onSelectFolder }) =
             },
           ]}
         />
-        <Button
-          type="text"
-          block
-          icon={<PlusOutlined />}
-          onClick={openCreateFolderModal}
-          style={{ justifyContent: 'flex-start' }}
-        >
-          添加文件夹
-        </Button>
+        {isNoteView && (
+          <Button
+            type="text"
+            block
+            icon={<PlusOutlined />}
+            onClick={openCreateFolderModal}
+            style={{ justifyContent: 'flex-start' }}
+          >
+            添加文件夹
+          </Button>
+        )}
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
         <div className="scrollable-list" ref={scrollableListRef}>
           <Menu
             mode="inline"
-            selectedKeys={selectedFolderId ? [selectedFolderId] : []}
-            onClick={(e) => onSelectFolder(String(e.key))}
+            selectedKeys={
+              isNoteView
+                ? selectedFolderId
+                  ? [selectedFolderId]
+                  : []
+                : selectedToolId
+                  ? [selectedToolId]
+                  : []
+            }
+            onClick={(e) => {
+              if (isNoteView) {
+                onSelectFolder(String(e.key));
+              } else {
+                onSelectTool(String(e.key));
+              }
+            }}
             className="sidebar-menu"
-            items={folders.map((folder) => {
-              const editing = editingId === folder.id;
+            items={
+              isNoteView
+                ? folders.map((folder) => {
+                    const editing = editingId === folder.id;
 
-              // 为非系统文件夹创建更多菜单
-              const moreMenuItems =
-                !folder.system && !editing
-                  ? [
-                      {
-                        key: 'rename',
-                        icon: <EditOutlined />,
-                        label: '编辑',
-                        onClick: () => startRename(folder),
-                      },
-                      {
-                        key: 'delete',
-                        icon: <DeleteOutlined />,
-                        label: '删除',
-                        danger: true,
-                        onClick: () => handleDeleteFolder(folder.id),
-                      },
-                    ]
-                  : [];
+                    const moreMenuItems =
+                      !folder.system && !editing
+                        ? [
+                            {
+                              key: 'rename',
+                              icon: <EditOutlined />,
+                              label: '编辑',
+                              onClick: () => startRename(folder),
+                            },
+                            {
+                              key: 'delete',
+                              icon: <DeleteOutlined />,
+                              label: '删除',
+                              danger: true,
+                              onClick: () => handleDeleteFolder(folder.id),
+                            },
+                          ]
+                        : [];
 
-              return {
-                key: folder.id,
-                icon: <FolderOutlined />,
-                label: (
-                  <div className="menu-item-row" title={folder.name}>
-                    {!editing ? (
-                      <span className="item-name">{folder.name}</span>
-                    ) : (
-                      <Input
-                        size="small"
-                        value={editName}
-                        autoFocus
-                        disabled={renaming}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onPressEnter={submitRename}
-                        onBlur={submitRename}
-                        maxLength={30}
-                      />
-                    )}
-                    {!folder.system && !editing && (
-                      <span className="item-actions" onClick={(e) => e.stopPropagation()}>
-                        <Dropdown
-                          menu={{ items: moreMenuItems }}
-                          placement="bottom"
-                          trigger={['click']}
-                        >
-                          <Button type="text" size="small" icon={<MoreOutlined />} />
-                        </Dropdown>
-                      </span>
-                    )}
-                  </div>
-                ),
-              };
-            })}
+                    return {
+                      key: folder.id,
+                      icon: <FolderOutlined />,
+                      label: (
+                        <div className="menu-item-row" title={folder.name}>
+                          {!editing ? (
+                            <span className="item-name">{folder.name}</span>
+                          ) : (
+                            <Input
+                              size="small"
+                              value={editName}
+                              autoFocus
+                              disabled={renaming}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              onPressEnter={submitRename}
+                              onBlur={submitRename}
+                              maxLength={30}
+                            />
+                          )}
+                          {!folder.system && !editing && (
+                            <span className="item-actions" onClick={(e) => e.stopPropagation()}>
+                              <Dropdown
+                                menu={{ items: moreMenuItems }}
+                                placement="bottom"
+                                trigger={['click']}
+                              >
+                                <Button type="text" size="small" icon={<MoreOutlined />} />
+                              </Dropdown>
+                            </span>
+                          )}
+                        </div>
+                      ),
+                    };
+                  })
+                : DEFAULT_TOOLS.map((tool) => ({
+                    key: tool.id,
+                    icon: tool.icon,
+                    label: (
+                      <div className="menu-item-row" title={tool.name}>
+                        <span className="item-name">{tool.name}</span>
+                      </div>
+                    ),
+                  }))
+            }
           />
         </div>
       </div>

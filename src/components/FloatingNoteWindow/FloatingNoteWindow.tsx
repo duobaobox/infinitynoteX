@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { message } from 'antd';
 import TipTapEditor from '../TipTapEditor/TipTapEditor';
-import { useNoteCardTheme } from '../NoteCard/useNoteCardTheme';
+import { useNoteCardTheme } from '../../features/workspace/NoteCard/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
 import './FloatingNoteWindow.css';
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNoteCardTheme } from '../NoteCard/useNoteCardTheme';
+import { useNoteCardTheme } from '../../features/workspace/NoteCard/useNoteCardTheme';
 import CardBackground from '../CardBackground/CardBackground';
 import type { NoteColor } from '../../services/types';
 import './PillWindow.css';

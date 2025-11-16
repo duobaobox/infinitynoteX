@@ -1,0 +1,388 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Input, Badge, Button, message, Modal } from 'antd';
+import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import type { NoteIndex } from '../../../services/types';
+import NoteCard from '../NoteCard/NoteCard';
+import { NoteCardListContext } from '../NoteCard/NoteCardContext';
+import { getThemeColor } from '../../../theme/theme';
+import {
+  DEFAULT_TOOLS,
+  DEFAULT_AI_CONVERSATIONS,
+  type WorkspaceView,
+} from '../../../constants/tools';
+import './ListPanel.css';
+
+interface ListPanelProps {
+  flex: string | number;
+  folderId: string | null;
+  selectedNoteId: string | null;
+  onSelectNote: (noteId: string | null) => void;
+  refreshTrigger?: number; // 刷新触发器
+  selectedToolId: string | null;
+  onSelectTool: (toolId: string) => void;
+  selectedToolItemId: string | null;
+  onSelectToolItem: (itemId: string) => void;
+  activeView: WorkspaceView;
+}
+
+const ListPanel: React.FC<ListPanelProps> = ({
+  flex,
+  folderId,
+  selectedNoteId,
+  onSelectNote,
+  refreshTrigger,
+  selectedToolId,
+  onSelectTool,
+  selectedToolItemId,
+  onSelectToolItem,
+  activeView,
+}) => {
+  const [themeColor, setThemeColor] = React.useState(getThemeColor());
+  const scrollableListRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const color = (e as unknown as CustomEvent<string>).detail;
+      if (typeof color === 'string' && color) setThemeColor(color);
+    };
+    window.addEventListener('theme-color-change', handler as EventListener);
+    return () => window.removeEventListener('theme-color-change', handler as EventListener);
+  }, []);
+  const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
+  const [isOverflow, setIsOverflow] = useState(false);
+  const [notes, setNotes] = useState<NoteIndex[]>([]);
+  const [folderName, setFolderName] = useState('未选择');
+  const [searchQuery, setSearchQuery] = useState('');
+  const isNoteView = activeView === 'note';
+  const toolList = DEFAULT_TOOLS;
+  const effectiveToolId = selectedToolId || toolList[0]?.id || null;
+  const [aiConversations] = useState(DEFAULT_AI_CONVERSATIONS);
+  const isAiChatView = !isNoteView && effectiveToolId === 'ai-chat';
+
+  // 加载便签列表
+  const loadNotes = useCallback(async () => {
+    if (!folderId || !isNoteView) return;
+
+    try {
+      // 加载便签列表
+      const noteList = await window.storage.listNotes(folderId);
+      setNotes(noteList);
+
+      // 获取文件夹名称
+      const folders = await window.storage.listFolders();
+      const folder = folders.find((f) => f.id === folderId);
+      setFolderName(folder?.name || '未知文件夹');
+    } catch (error) {
+      console.error('Failed to load notes:', error);
+      message.error('加载便签失败');
+    }
+  }, [folderId, isNoteView]);
+
+  useEffect(() => {
+    if (!folderId || !isNoteView) return;
+    loadNotes();
+  }, [folderId, isNoteView, loadNotes, refreshTrigger]);
+
+  const handleCreateNote = async () => {
+    if (!folderId) {
+      message.warning('请先选择文件夹');
+      return;
+    }
+
+    try {
+      const newNote = await window.storage.createNote(folderId, {
+        title: '无标题',
+      });
+      await loadNotes();
+      onSelectNote(newNote.id);
+      // 创建成功不再弹窗提醒
+    } catch (error) {
+      console.error('Failed to create note:', error);
+      message.error('创建便签失败');
+    }
+  };
+
+  // 筛选便签（简单的标题搜索）
+  const filteredNotes = notes.filter((note) =>
+    note.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  // 处理钉住按钮 - 创建悬浮窗口
+  const handlePinNote = async (noteId: string) => {
+    try {
+      const result = await window.floatingWindow.createWindow(noteId);
+      if (result.success) {
+        message.success('已创建悬浮便签');
+      } else {
+        message.info(result.message || '窗口已存在');
+      }
+    } catch (error) {
+      console.error('Failed to create floating window:', error);
+      message.error('创建悬浮窗口失败');
+    }
+  };
+
+  const handleDeleteNote = async (id: string, title: string) => {
+    Modal.confirm({
+      title: '删除便签',
+      content: `确定删除便签"${title || '无标题'}"吗？`,
+      okText: '删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      async onOk() {
+        try {
+          await window.storage.deleteNote(id);
+          // 删除成功不再弹窗提醒
+          await loadNotes();
+          if (selectedNoteId === id) {
+            onSelectNote(null);
+          }
+        } catch (error) {
+          console.error('Failed to delete note:', error);
+          message.error('删除失败');
+          throw error;
+        }
+      },
+    });
+  };
+
+  // 检测滚动条是否出现
+  useEffect(() => {
+    const scrollableElement = scrollableListRef.current;
+    if (!scrollableElement) return;
+
+    // 使用 ResizeObserver 监控容器大小变化
+    const resizeObserver = new ResizeObserver(() => {
+      // 检查是否有垂直滚动条：scrollHeight > clientHeight
+      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
+      setIsOverflow(hasVerticalScroll);
+    });
+
+    resizeObserver.observe(scrollableElement);
+
+    // 同时监控 MutationObserver 捕捉内容变化
+    const mutationObserver = new MutationObserver(() => {
+      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
+      setIsOverflow(hasVerticalScroll);
+    });
+
+    mutationObserver.observe(scrollableElement, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
+  // 根据溢出状态动态更新 padding
+  useEffect(() => {
+    if (flexVerticalEqualRef.current) {
+      if (isOverflow) {
+        flexVerticalEqualRef.current.style.paddingRight = '0px';
+      } else {
+        flexVerticalEqualRef.current.style.paddingRight = '10px';
+      }
+    }
+  }, [isOverflow]);
+
+  if (isAiChatView) {
+    const filteredAiConversations = aiConversations.filter((item) =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+
+    return (
+      <div className="layout-panel list-container" style={{ flex }}>
+        <div className="flex-vertical-auto">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span className="folder-name" title="AI对话">
+              AI对话
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Badge
+                count={filteredAiConversations.length}
+                showZero
+                style={{ backgroundColor: themeColor }}
+              />
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => message.info('AI 对话创建功能开发中')}
+                title="新建AI对话"
+              />
+            </div>
+          </div>
+          <Input
+            allowClear
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索AI对话"
+            prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
+          <NoteCardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
+            <div className="scrollable-list" ref={scrollableListRef}>
+              {filteredAiConversations.map((session) => (
+                <NoteCard
+                  key={session.id}
+                  title={session.title}
+                  content={session.excerpt}
+                  color={session.color || 'ffffff'}
+                  onClick={() => onSelectToolItem(session.id)}
+                  actions={
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        message.info('删除 AI 对话功能开发中');
+                      }}
+                    />
+                  }
+                  id={session.id}
+                />
+              ))}
+            </div>
+          </NoteCardListContext.Provider>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isNoteView) {
+    return (
+      <div className="layout-panel list-container" style={{ flex }}>
+        <div className="flex-vertical-auto">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span className="folder-name" title="工具集合">
+              工具集合
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Badge count={toolList.length} showZero style={{ backgroundColor: themeColor }} />
+              <Button type="text" size="small" disabled>
+                管理中
+              </Button>
+            </div>
+          </div>
+          <Input
+            allowClear
+            disabled
+            placeholder="工具搜索即将上线"
+            prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
+          <div className="scrollable-list" ref={scrollableListRef}>
+            {toolList.map((tool) => (
+              <div
+                key={tool.id}
+                className={`tool-card${tool.id === effectiveToolId ? ' tool-card-selected' : ''}`}
+                onClick={() => onSelectTool(tool.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectTool(tool.id);
+                  }
+                }}
+              >
+                <div>
+                  <div className="tool-card-title">{tool.name}</div>
+                  <div className="tool-card-desc">{tool.description}</div>
+                </div>
+                <span className="tool-card-icon">{tool.icon}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="layout-panel list-container" style={{ flex }}>
+      <div className="flex-vertical-auto">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span className="folder-name" title={folderName}>
+            {folderName}
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Badge count={filteredNotes.length} showZero style={{ backgroundColor: themeColor }} />
+            <Button
+              type="text"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={handleCreateNote}
+              title="新建便签"
+            />
+          </div>
+        </div>
+        <Input
+          allowClear
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="搜索"
+          prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
+          style={{ width: '100%' }}
+        />
+      </div>
+      <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
+        <NoteCardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
+          <div className="scrollable-list" ref={scrollableListRef}>
+            {filteredNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                title={note.title}
+                content={note.excerpt}
+                color={note.color || 'ffffff'}
+                onClick={() => onSelectNote(note.id)}
+                onPin={() => handlePinNote(note.id)}
+                actions={
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteNote(note.id, note.title);
+                    }}
+                  />
+                }
+                // 传递当前卡片id给 context
+                id={note.id}
+              />
+            ))}
+          </div>
+        </NoteCardListContext.Provider>
+      </div>
+    </div>
+  );
+};
+
+export default ListPanel;

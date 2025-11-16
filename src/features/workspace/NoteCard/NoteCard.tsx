@@ -2,9 +2,9 @@ import React from 'react';
 import { PushpinOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import './NoteCard.css';
-import { getThemeColor } from '../../theme/theme';
+import { getThemeColor } from '../../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
-import CardBackground from '../CardBackground/CardBackground';
+import CardBackground from '../../../components/CardBackground/CardBackground';
 import { NoteCardListContext } from './NoteCardContext';
 
 export interface NoteCardProps {

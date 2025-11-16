@@ -3,7 +3,7 @@
    包含：卡片主体、文字样式、交互效果
    ============================================ */
 
-@import '../CardBackground/CardBackground.css';
+@import '../../../components/CardBackground/CardBackground.css';
 
 /* ==================== 1. 卡片主体 ==================== */
 .note-card {

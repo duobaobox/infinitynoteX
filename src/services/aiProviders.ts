@@ -19,6 +19,18 @@ export interface AIProviderPreset {
 export const CUSTOM_PROVIDER_ID = 'custom';
 export const DEFAULT_PROVIDER_ID = 'deepseek';
 
+export const PROVIDER_BRAND_COLORS: Record<string, string> = {
+  deepseek: '#7C4DFF',
+  alibaba: '#FF7A45',
+  siliconflow: '#13C2C2',
+  zhipu: '#52C41A',
+  openai: '#1890FF',
+  [CUSTOM_PROVIDER_ID]: '#8C8C8C',
+};
+
+export const getProviderBrandColor = (providerId?: string) =>
+  PROVIDER_BRAND_COLORS[providerId ?? ''] ?? '#8c8c8c';
+
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     id: 'deepseek',

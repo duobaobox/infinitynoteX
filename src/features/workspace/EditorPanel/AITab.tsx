@@ -4,21 +4,35 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import type { AnchorHTMLAttributes, HTMLAttributes, Key, TableHTMLAttributes } from 'react';
+import type {
+  AnchorHTMLAttributes,
+  HTMLAttributes,
+  Key,
+  TableHTMLAttributes,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
-import { Alert, Button, Space, Tooltip, Divider, Input } from 'antd';
+import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
   SettingOutlined,
   RobotOutlined,
   UserOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import type { GetProp } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 import './AITab.css';
+import {
+  detectProviderIdFromConfig,
+  ensureAIConfigDefaults,
+  getProviderBrandColor,
+} from '../../../services/aiProviders';
+import { readStoredProviderConfigs } from '../../../services/aiConfigStore';
 
 interface AITabProps {
   noteId: string | null;
@@ -96,9 +110,23 @@ const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
   );
 };
 
+const isAIConfigReady = (config?: AIConfig | null) => {
+  if (!config) {
+    return false;
+  }
+  return !!config.baseURL?.trim() && !!config.model?.trim() && !!config.apiKey?.trim();
+};
+
+type ProviderOption = {
+  providerId: string;
+  config: AIConfig;
+};
+
 export const AITab = ({ noteId }: AITabProps) => {
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const [config, setConfig] = useState<AIConfig | null>(null);
+  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
+  const [switchingProviderId, setSwitchingProviderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -108,22 +136,46 @@ export const AITab = ({ noteId }: AITabProps) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('');
 
+  const refreshProviderOptions = useCallback((activeConfig?: AIConfig | null) => {
+    const stored = readStoredProviderConfigs();
+    const normalized: Record<string, AIConfig> = {};
+
+    Object.entries(stored).forEach(([providerId, cfg]) => {
+      normalized[providerId] = ensureAIConfigDefaults({ ...cfg, providerId });
+    });
+
+    if (activeConfig) {
+      const activeId = detectProviderIdFromConfig(activeConfig);
+      normalized[activeId] = ensureAIConfigDefaults({ ...activeConfig, providerId: activeId });
+    }
+
+    const readyOptions = Object.entries(normalized)
+      .map(([providerId, cfg]) => ({ providerId, config: cfg }))
+      .filter(({ config }) => isAIConfigReady(config));
+
+    setProviderOptions(readyOptions);
+  }, []);
+
   // 检查 AI 配置
   useEffect(() => {
     const checkConfig = async () => {
       try {
         const aiConfig = await window.ai.getConfig();
-        setConfig(aiConfig);
-        setIsConfigured(!!aiConfig && !!aiConfig.apiKey && !!aiConfig.model && !!aiConfig.baseURL);
+        const normalizedConfig = aiConfig ? ensureAIConfigDefaults(aiConfig) : null;
+        setConfig(normalizedConfig);
+        setIsConfigured(isAIConfigReady(normalizedConfig));
+        refreshProviderOptions(normalizedConfig);
       } catch (err) {
         console.error('Failed to check AI config:', err);
         setIsConfigured(false);
+        setConfig(null);
+        refreshProviderOptions(null);
       } finally {
         setIsInitializing(false);
       }
     };
     checkConfig();
-  }, []);
+  }, [refreshProviderOptions]);
 
   // 聊天消息本地状态（不依赖 useXChat，确保 role 正确）
   interface ChatItem {
@@ -199,6 +251,49 @@ export const AITab = ({ noteId }: AITabProps) => {
     },
     [noteId],
   );
+
+  const handleProviderSwitch = useCallback(
+    async (providerId: string) => {
+      if (!providerId) {
+        return;
+      }
+
+      const target = providerOptions.find((option) => option.providerId === providerId);
+      if (!target) {
+        return;
+      }
+
+      const currentProviderId = detectProviderIdFromConfig(config ?? undefined);
+      if (providerId === currentProviderId) {
+        return;
+      }
+
+      try {
+        setSwitchingProviderId(providerId);
+        const normalized = ensureAIConfigDefaults(target.config);
+        await window.ai.setConfig(normalized);
+        setConfig(normalized);
+        setIsConfigured(true);
+        message.success(`已切换到 ${normalized.provider} · ${normalized.model}`);
+        refreshProviderOptions(normalized);
+      } catch (err) {
+        console.error('Failed to switch AI config:', err);
+        const errorMsg =
+          err instanceof Error ? err.message : typeof err === 'string' ? err : '未知错误';
+        message.error(`切换失败：${errorMsg}`);
+      } finally {
+        setSwitchingProviderId(null);
+      }
+    },
+    [config, providerOptions, refreshProviderOptions],
+  );
+
+  const handleMetaTriggerKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      event.currentTarget.click();
+    }
+  };
 
   // 开始编辑标题
   const startEditingTitle = () => {
@@ -503,6 +598,55 @@ export const AITab = ({ noteId }: AITabProps) => {
     );
   }
 
+  const currentProviderId = detectProviderIdFromConfig(config ?? undefined);
+  const providerColor = config ? getProviderBrandColor(currentProviderId) : '#d9d9d9';
+  const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
+    const isActive = option.providerId === currentProviderId;
+    return {
+      key: option.providerId,
+      label: (
+        <div className="ai-meta-option">
+          <div className="ai-meta-option__row">
+            <span
+              className="ai-meta-option__dot"
+              style={{ backgroundColor: getProviderBrandColor(option.providerId) }}
+            />
+            <span className="ai-meta-option__provider">{option.config.provider}</span>
+            {isActive && <span className="ai-meta-option__badge">当前</span>}
+          </div>
+          <div className="ai-meta-option__model">{option.config.model}</div>
+        </div>
+      ),
+    };
+  });
+
+  const dropdownMenuProps: MenuProps | undefined = providerMenuItems.length
+    ? {
+        items: providerMenuItems,
+        onClick: ({ key }) => handleProviderSwitch(key as string),
+      }
+    : undefined;
+
+  const hasProviderConfigs = providerOptions.length > 0;
+  const metaTriggerClassName = `ai-tab-meta-trigger${switchingProviderId ? ' is-switching' : ''}`;
+  const renderMetaTrigger = (interactive: boolean) => (
+    <div
+      className={metaTriggerClassName}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : -1}
+      onKeyDown={interactive ? handleMetaTriggerKeyDown : undefined}
+    >
+      <span className="ai-tab-meta-provider">
+        <span className="ai-tab-meta-dot" style={{ backgroundColor: providerColor }} />
+        {config?.provider ?? '未选择厂商'}
+      </span>
+      <span className="ai-tab-meta-model">
+        {config?.model ?? '未选择模型'}
+        <DownOutlined className="ai-tab-meta-icon" />
+      </span>
+    </div>
+  );
+
   return (
     <div className="ai-tab-container">
       {/* 顶部状态栏 */}
@@ -533,9 +677,20 @@ export const AITab = ({ noteId }: AITabProps) => {
               {conversationTitle}
             </span>
           )}
-          <span className="ai-tab-header-meta">
-            {config?.provider && config?.model ? `${config.provider} • ${config.model}` : '未配置'}
-          </span>
+          {hasProviderConfigs && dropdownMenuProps ? (
+            <Dropdown
+              menu={dropdownMenuProps}
+              trigger={['click']}
+              placement="bottomLeft"
+              overlayClassName="ai-meta-dropdown"
+            >
+              {renderMetaTrigger(true)}
+            </Dropdown>
+          ) : config ? (
+            renderMetaTrigger(false)
+          ) : (
+            <span className="ai-tab-header-meta">未配置</span>
+          )}
         </div>
 
         <Space size="small">

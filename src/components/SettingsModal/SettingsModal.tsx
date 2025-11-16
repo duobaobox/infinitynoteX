@@ -31,7 +31,9 @@ import {
   createDefaultAIConfig,
   ensureAIConfigDefaults,
   findProviderPresetById,
+  getProviderBrandColor,
 } from '../../services/aiProviders';
+import { persistProviderConfigs, readStoredProviderConfigs } from '../../services/aiConfigStore';
 import './SettingsModal.css';
 import BackgroundEditor from '../BackgroundEditor';
 import {
@@ -49,17 +51,6 @@ import { useAutoUpdater } from '../../hooks/useAutoUpdater';
 
 const { Text, Paragraph } = Typography;
 
-const PROVIDER_CONFIG_STORAGE_KEY = 'infinitynotex:ai:provider-configs';
-
-const PROVIDER_BRAND_COLORS: Record<string, string> = {
-  deepseek: '#7C4DFF',
-  alibaba: '#FF7A45',
-  siliconflow: '#13C2C2',
-  zhipu: '#52C41A',
-  openai: '#1890FF',
-  [CUSTOM_PROVIDER_ID]: '#8C8C8C',
-};
-
 type ProviderStatus = 'ready' | 'missingKey' | 'incomplete' | 'unconfigured';
 
 const PROVIDER_STATUS_META: Record<ProviderStatus, { label: string; color: string }> = {
@@ -69,9 +60,6 @@ const PROVIDER_STATUS_META: Record<ProviderStatus, { label: string; color: strin
   unconfigured: { label: '未绑定', color: '#bfbfbf' },
 };
 
-const getProviderBrandColor = (providerId?: string) =>
-  PROVIDER_BRAND_COLORS[providerId ?? ''] ?? '#8c8c8c';
-
 const getProviderStatus = (config?: AIConfig | null): ProviderStatus => {
   if (!config) return 'unconfigured';
   if (!config.baseURL?.trim() || !config.model?.trim()) return 'incomplete';
@@ -80,31 +68,6 @@ const getProviderStatus = (config?: AIConfig | null): ProviderStatus => {
 };
 
 const isConfigReady = (config?: AIConfig | null) => getProviderStatus(config) === 'ready';
-
-const readStoredProviderConfigs = (): Record<string, AIConfig> => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(PROVIDER_CONFIG_STORAGE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw) as Record<string, AIConfig>;
-  } catch (error) {
-    console.warn('[AI] Failed to parse cached provider configs:', error);
-    return {};
-  }
-};
-
-const persistProviderConfigs = (configs: Record<string, AIConfig>) => {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-  try {
-    window.localStorage.setItem(PROVIDER_CONFIG_STORAGE_KEY, JSON.stringify(configs));
-  } catch (error) {
-    console.warn('[AI] Failed to persist provider configs:', error);
-  }
-};
 
 interface SettingsModalProps {
   open: boolean;

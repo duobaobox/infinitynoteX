@@ -7,8 +7,8 @@ import { NoteCardListContext } from '../NoteCard/NoteCardContext';
 import { getThemeColor } from '../../../theme/theme';
 import {
   DEFAULT_TOOLS,
-  DEFAULT_AI_CONVERSATIONS,
   type WorkspaceView,
+  type AIConversationPreview,
 } from '../../../constants/tools';
 import './ListPanel.css';
 
@@ -39,6 +39,35 @@ const ListPanel: React.FC<ListPanelProps> = ({
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
+  const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
+  const [isOverflow, setIsOverflow] = useState(false);
+  const [notes, setNotes] = useState<NoteIndex[]>([]);
+  const [folderName, setFolderName] = useState('未选择');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [aiConversations, setAiConversations] = useState<AIConversationPreview[]>([]);
+
+  const isNoteView = activeView === 'note';
+  const toolList = DEFAULT_TOOLS;
+  const effectiveToolId = selectedToolId || toolList[0]?.id || null;
+  const isAiChatView = !isNoteView && effectiveToolId === 'ai-chat';
+
+  // 加载 AI 对话列表
+  const loadAiConversations = useCallback(async () => {
+    try {
+      const conversations = await window.storage.getAIConversations();
+      setAiConversations(
+        conversations.map((c) => ({
+          id: c.id,
+          title: c.title,
+          excerpt: c.excerpt,
+          updatedAt: c.updatedAt,
+          color: 'd6e4ff',
+        })),
+      );
+    } catch (error) {
+      console.error('Failed to load AI conversations:', error);
+    }
+  }, []);
 
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -48,16 +77,13 @@ const ListPanel: React.FC<ListPanelProps> = ({
     window.addEventListener('theme-color-change', handler as EventListener);
     return () => window.removeEventListener('theme-color-change', handler as EventListener);
   }, []);
-  const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
-  const [isOverflow, setIsOverflow] = useState(false);
-  const [notes, setNotes] = useState<NoteIndex[]>([]);
-  const [folderName, setFolderName] = useState('未选择');
-  const [searchQuery, setSearchQuery] = useState('');
-  const isNoteView = activeView === 'note';
-  const toolList = DEFAULT_TOOLS;
-  const effectiveToolId = selectedToolId || toolList[0]?.id || null;
-  const [aiConversations] = useState(DEFAULT_AI_CONVERSATIONS);
-  const isAiChatView = !isNoteView && effectiveToolId === 'ai-chat';
+
+  // 初始化加载 AI 对话列表
+  useEffect(() => {
+    if (!isNoteView && effectiveToolId === 'ai-chat') {
+      loadAiConversations();
+    }
+  }, [isNoteView, effectiveToolId, loadAiConversations]);
 
   // 加载便签列表
   const loadNotes = useCallback(async () => {
@@ -193,6 +219,40 @@ const ListPanel: React.FC<ListPanelProps> = ({
       item.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
+    const handleCreateAIConversation = async () => {
+      try {
+        await window.storage.createAIConversation();
+        await loadAiConversations();
+        message.success('新建对话成功');
+      } catch (error) {
+        console.error('Failed to create AI conversation:', error);
+        message.error('创建对话失败');
+      }
+    };
+
+    const handleDeleteAIConversation = async (id: string, title: string) => {
+      Modal.confirm({
+        title: '删除对话',
+        content: `确定删除对话"${title}"吗？`,
+        okText: '删除',
+        cancelText: '取消',
+        okButtonProps: { danger: true },
+        async onOk() {
+          try {
+            await window.storage.deleteAIConversation(id);
+            await loadAiConversations();
+            if (selectedToolItemId === id) {
+              onSelectToolItem('');
+            }
+          } catch (error) {
+            console.error('Failed to delete AI conversation:', error);
+            message.error('删除对话失败');
+            throw error;
+          }
+        },
+      });
+    };
+
     return (
       <div className="layout-panel list-container" style={{ flex }}>
         <div className="flex-vertical-auto">
@@ -216,7 +276,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                 type="text"
                 size="small"
                 icon={<PlusOutlined />}
-                onClick={() => message.info('AI 对话创建功能开发中')}
+                onClick={handleCreateAIConversation}
                 title="新建AI对话"
               />
             </div>
@@ -247,7 +307,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                       icon={<DeleteOutlined />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        message.info('删除 AI 对话功能开发中');
+                        handleDeleteAIConversation(session.id, session.title);
                       }}
                     />
                   }

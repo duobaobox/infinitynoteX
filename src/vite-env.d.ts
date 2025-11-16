@@ -51,6 +51,69 @@ declare global {
       getNote(id: string): Promise<Note>;
       updateNote(id: string, patch: Partial<Note>): Promise<Note>;
       deleteNote(id: string): Promise<void>;
+
+      // AI 对话操作
+      getAIConversations(): Promise<
+        Array<{
+          id: string;
+          title: string;
+          excerpt: string;
+          messages: Array<{
+            role: 'user' | 'assistant';
+            content: string;
+            timestamp: number;
+          }>;
+          createdAt: number;
+          updatedAt: number;
+        }>
+      >;
+      createAIConversation(title?: string): Promise<{
+        id: string;
+        title: string;
+        excerpt: string;
+        messages: Array<{
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: number;
+        }>;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+      deleteAIConversation(id: string): Promise<void>;
+      saveAIConversationMessages(
+        id: string,
+        messages: Array<{
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: number;
+        }>,
+      ): Promise<{
+        id: string;
+        title: string;
+        excerpt: string;
+        messages: Array<{
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: number;
+        }>;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+      updateAIConversationTitle(
+        id: string,
+        title: string,
+      ): Promise<{
+        id: string;
+        title: string;
+        excerpt: string;
+        messages: Array<{
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: number;
+        }>;
+        createdAt: number;
+        updatedAt: number;
+      }>;
     };
     floatingWindow: {
       // 悬浮窗口操作

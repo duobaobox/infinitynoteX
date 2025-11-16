@@ -8,6 +8,12 @@ import type {
 } from '../src/services/types';
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
 
+type AIConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+};
+
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
@@ -77,6 +83,16 @@ contextBridge.exposeInMainWorld('storage', {
   updateNote: (id: string, patch: UpdateNotePayload) =>
     ipcRenderer.invoke('storage:updateNote', id, patch),
   deleteNote: (id: string) => ipcRenderer.invoke('storage:deleteNote', id),
+
+  // AI 对话操作
+  getAIConversations: () => ipcRenderer.invoke('storage:getAIConversations'),
+  createAIConversation: (title?: string) =>
+    ipcRenderer.invoke('storage:createAIConversation', title),
+  deleteAIConversation: (id: string) => ipcRenderer.invoke('storage:deleteAIConversation', id),
+  saveAIConversationMessages: (id: string, messages: AIConversationMessage[]) =>
+    ipcRenderer.invoke('storage:saveAIConversationMessages', id, messages),
+  updateAIConversationTitle: (id: string, title: string) =>
+    ipcRenderer.invoke('storage:updateAIConversationTitle', id, title),
 });
 
 // --------- Expose floating window API ---------

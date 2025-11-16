@@ -13,6 +13,12 @@ import { storageManager } from './storage';
 import { initAutoUpdater } from './updater';
 import { readAIConfig, writeAIConfig, createAdapter } from './ai';
 
+type AIConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
@@ -354,6 +360,30 @@ ipcMain.handle('storage:updateNote', async (_, id: string, patch: UpdateNotePayl
 
 ipcMain.handle('storage:deleteNote', async (_, id: string) => {
   await storageManager.deleteNote(id);
+});
+
+// AI 对话操作
+ipcMain.handle('storage:getAIConversations', async () => {
+  return await storageManager.getAIConversations();
+});
+
+ipcMain.handle('storage:createAIConversation', async (_, title?: string) => {
+  return await storageManager.createAIConversation(title);
+});
+
+ipcMain.handle('storage:deleteAIConversation', async (_, id: string) => {
+  await storageManager.deleteAIConversation(id);
+});
+
+ipcMain.handle(
+  'storage:saveAIConversationMessages',
+  async (_, id: string, messages: AIConversationMessage[]) => {
+    return await storageManager.saveAIConversationMessages(id, messages);
+  },
+);
+
+ipcMain.handle('storage:updateAIConversationTitle', async (_, id: string, title: string) => {
+  return await storageManager.updateAIConversationTitle(id, title);
 });
 
 // ============ 系统对话框 IPC 处理器 ============

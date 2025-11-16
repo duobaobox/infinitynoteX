@@ -56,7 +56,13 @@ electron.contextBridge.exposeInMainWorld("storage", {
   createNote: (folderId, payload) => electron.ipcRenderer.invoke("storage:createNote", folderId, payload),
   getNote: (id) => electron.ipcRenderer.invoke("storage:getNote", id),
   updateNote: (id, patch) => electron.ipcRenderer.invoke("storage:updateNote", id, patch),
-  deleteNote: (id) => electron.ipcRenderer.invoke("storage:deleteNote", id)
+  deleteNote: (id) => electron.ipcRenderer.invoke("storage:deleteNote", id),
+  // AI 对话操作
+  getAIConversations: () => electron.ipcRenderer.invoke("storage:getAIConversations"),
+  createAIConversation: (title) => electron.ipcRenderer.invoke("storage:createAIConversation", title),
+  deleteAIConversation: (id) => electron.ipcRenderer.invoke("storage:deleteAIConversation", id),
+  saveAIConversationMessages: (id, messages) => electron.ipcRenderer.invoke("storage:saveAIConversationMessages", id, messages),
+  updateAIConversationTitle: (id, title) => electron.ipcRenderer.invoke("storage:updateAIConversationTitle", id, title)
 });
 electron.contextBridge.exposeInMainWorld("floatingWindow", {
   createWindow: (noteId) => electron.ipcRenderer.invoke("floating:createWindow", noteId),

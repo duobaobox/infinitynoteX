@@ -620,6 +620,87 @@ class StorageManager {
       return "";
     }
   }
+  // ============ AI 对话操作 ============
+  /**
+   * 获取所有 AI 对话
+   */
+  async getAIConversations() {
+    const conversationsPath = path$m.join(this.currentPath, "ai-conversations.json");
+    const exists = await this.fileExists(conversationsPath);
+    if (!exists) {
+      return [];
+    }
+    return await this.readJsonFile(conversationsPath, []);
+  }
+  /**
+   * 创建 AI 对话
+   */
+  async createAIConversation(title) {
+    const now = Date.now();
+    const newConversation = {
+      id: this.generateId(),
+      title: title || `对话 ${(/* @__PURE__ */ new Date()).toLocaleDateString("zh-CN")}`,
+      excerpt: "开始对话",
+      messages: [],
+      createdAt: now,
+      updatedAt: now
+    };
+    const conversations = await this.getAIConversations();
+    conversations.push(newConversation);
+    await this.saveAIConversations(conversations);
+    return newConversation;
+  }
+  /**
+   * 删除 AI 对话
+   */
+  async deleteAIConversation(id) {
+    const conversations = await this.getAIConversations();
+    const index = conversations.findIndex((c) => c.id === id);
+    if (index < 0) {
+      throw new StorageError("E_NOT_FOUND", `Conversation not found: ${id}`);
+    }
+    conversations.splice(index, 1);
+    await this.saveAIConversations(conversations);
+  }
+  /**
+   * 保存 AI 对话消息
+   */
+  async saveAIConversationMessages(id, messages) {
+    const conversations = await this.getAIConversations();
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation) {
+      throw new StorageError("E_NOT_FOUND", `Conversation not found: ${id}`);
+    }
+    conversation.messages = messages;
+    conversation.updatedAt = Date.now();
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMessage) {
+      conversation.excerpt = lastUserMessage.content.slice(0, 100);
+    }
+    await this.saveAIConversations(conversations);
+    return conversation;
+  }
+  /**
+   * 更新 AI 对话标题
+   */
+  async updateAIConversationTitle(id, title) {
+    const conversations = await this.getAIConversations();
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation) {
+      throw new StorageError("E_NOT_FOUND", `Conversation not found: ${id}`);
+    }
+    conversation.title = title;
+    conversation.updatedAt = Date.now();
+    await this.saveAIConversations(conversations);
+    return conversation;
+  }
+  /**
+   * 保存 AI 对话列表
+   */
+  async saveAIConversations(conversations) {
+    const conversationsPath = path$m.join(this.currentPath, "ai-conversations.json");
+    await this.writeJsonFile(conversationsPath, conversations);
+  }
   // ============ 工具方法 ============
   /**
    * 生成唯一 ID
@@ -15044,6 +15125,24 @@ ipcMain.handle("storage:updateNote", async (_, id, patch2) => {
 });
 ipcMain.handle("storage:deleteNote", async (_, id) => {
   await storageManager.deleteNote(id);
+});
+ipcMain.handle("storage:getAIConversations", async () => {
+  return await storageManager.getAIConversations();
+});
+ipcMain.handle("storage:createAIConversation", async (_, title) => {
+  return await storageManager.createAIConversation(title);
+});
+ipcMain.handle("storage:deleteAIConversation", async (_, id) => {
+  await storageManager.deleteAIConversation(id);
+});
+ipcMain.handle(
+  "storage:saveAIConversationMessages",
+  async (_, id, messages) => {
+    return await storageManager.saveAIConversationMessages(id, messages);
+  }
+);
+ipcMain.handle("storage:updateAIConversationTitle", async (_, id, title) => {
+  return await storageManager.updateAIConversationTitle(id, title);
 });
 ipcMain.handle("dialog:showOpenDialog", async (_, options) => {
   const result = await dialog.showOpenDialog(options);

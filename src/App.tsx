@@ -81,9 +81,23 @@ function App() {
 
   useEffect(() => {
     if (selectedToolId === 'ai-chat') {
-      if (!selectedToolItemId && DEFAULT_AI_CONVERSATIONS.length > 0) {
-        setSelectedToolItemId(DEFAULT_AI_CONVERSATIONS[0].id);
-      }
+      // 初始化 AI 对话列表
+      const initAIConversations = async () => {
+        try {
+          const conversations = await window.storage.getAIConversations();
+          if (conversations.length === 0) {
+            // 如果没有对话，创建默认对话
+            const defaultConv = await window.storage.createAIConversation('新建对话');
+            setSelectedToolItemId(defaultConv.id);
+          } else if (!selectedToolItemId) {
+            // 如果有对话但没有选中，选中第一个
+            setSelectedToolItemId(conversations[0].id);
+          }
+        } catch (error) {
+          console.error('Failed to initialize AI conversations:', error);
+        }
+      };
+      initAIConversations();
     } else if (selectedToolItemId) {
       setSelectedToolItemId(null);
     }

@@ -36,24 +36,10 @@ export interface AIConversationPreview {
 
 export const DEFAULT_AI_CONVERSATIONS: AIConversationPreview[] = [
   {
-    id: 'ai-session-quicknote',
-    title: '速记助手',
-    excerpt: '帮我总结今天的会议要点并生成三条行动项。',
-    updatedAt: Date.now() - 1000 * 60 * 3,
+    id: 'ai-session-default',
+    title: '新建对话',
+    excerpt: '开始对话，与 AI 互动',
+    updatedAt: Date.now(),
     color: 'd6e4ff',
-  },
-  {
-    id: 'ai-session-brainstorm',
-    title: '灵感共创',
-    excerpt: '结合主视觉，想三个有记忆点的标语备选。',
-    updatedAt: Date.now() - 1000 * 60 * 60,
-    color: 'ffd6e7',
-  },
-  {
-    id: 'ai-session-learning',
-    title: '学习伙伴',
-    excerpt: '解释一下 Electron 主进程与渲染进程通讯的关键点。',
-    updatedAt: Date.now() - 1000 * 60 * 60 * 4,
-    color: 'bae0ff',
   },
 ];

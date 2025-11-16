@@ -3,7 +3,7 @@
  * AI 工作台 - AI 相关功能（基于 Ant Design X 规范）
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { AnchorHTMLAttributes, HTMLAttributes, Key, TableHTMLAttributes } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
 import { Alert, Button, Space, Tooltip, Divider } from 'antd';
@@ -132,6 +132,52 @@ export const AITab = ({ noteId }: AITabProps) => {
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [streamingKey, setStreamingKey] = useState<string | null>(null);
 
+  // 加载对话历史
+  useEffect(() => {
+    const loadConversationHistory = async () => {
+      if (!noteId) return;
+
+      try {
+        const conversations = await window.storage.getAIConversations();
+        const conversation = conversations.find((c) => c.id === noteId);
+
+        if (conversation && conversation.messages && conversation.messages.length > 0) {
+          // 转换存储格式到 ChatItem 格式
+          const items: ChatItem[] = conversation.messages.map((msg) => ({
+            key: `${msg.role}-${msg.timestamp}`,
+            role: msg.role === 'assistant' ? 'ai' : 'user',
+            content: msg.content,
+          }));
+          setChatItems(items);
+        }
+      } catch (err) {
+        console.error('Failed to load conversation history:', err);
+      }
+    };
+
+    loadConversationHistory();
+  }, [noteId]);
+
+  // 保存对话历史
+  const saveConversationHistory = useCallback(
+    async (items: ChatItem[]) => {
+      if (!noteId) return;
+
+      try {
+        const messages = items.map((item) => ({
+          role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
+          content: item.content,
+          timestamp: Date.now(),
+        }));
+
+        await window.storage.saveAIConversationMessages(noteId, messages);
+      } catch (err) {
+        console.error('Failed to save conversation history:', err);
+      }
+    },
+    [noteId],
+  );
+
   const splitParagraphs = (text: string): string[] =>
     text
       .split(/\n{2,}/)
@@ -173,9 +219,14 @@ export const AITab = ({ noteId }: AITabProps) => {
 
     const unsubscribeDone = window.ai?.onStreamDone?.(() => {
       if (streamingKey) {
-        setChatItems((prev) =>
-          prev.map((item) => (item.key === streamingKey ? { ...item, isStreaming: false } : item)),
-        );
+        setChatItems((prev) => {
+          const updated = prev.map((item) =>
+            item.key === streamingKey ? { ...item, isStreaming: false } : item,
+          );
+          // 流式传输完成后保存对话历史
+          saveConversationHistory(updated);
+          return updated;
+        });
       }
       setStreamingKey(null);
       setIsLoading(false);
@@ -192,7 +243,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       unsubscribeDone?.();
       unsubscribeError?.();
     };
-  }, [streamingKey]);
+  }, [streamingKey, saveConversationHistory]);
 
   // 发送用户消息并调用流式后端
   const sendUserMessage = async (text: string) => {
@@ -202,7 +253,8 @@ export const AITab = ({ noteId }: AITabProps) => {
       role: 'user',
       content: text,
     };
-    setChatItems((prev) => [...prev, userItem]);
+    const newChatItems = [...chatItems, userItem];
+    setChatItems(newChatItems);
     setError(null);
     setIsLoading(true);
 
@@ -214,14 +266,15 @@ export const AITab = ({ noteId }: AITabProps) => {
       content: '',
       isStreaming: true,
     };
-    setChatItems((prev) => [...prev, aiItem]);
+    const updatedChatItems = [...newChatItems, aiItem];
+    setChatItems(updatedChatItems);
     setStreamingKey(aiKey);
 
     // 调用流式 API
     try {
       const payload = {
         message: text,
-        messages: chatItems.map((m) => ({
+        messages: newChatItems.map((m) => ({
           role: m.role === 'user' ? 'user' : 'assistant',
           content: m.content,
         })),
@@ -419,6 +472,7 @@ export const AITab = ({ noteId }: AITabProps) => {
               onClick={() => {
                 setChatItems([]);
                 setError(null);
+                saveConversationHistory([]);
               }}
               disabled={chatItems.length === 0}
             />

@@ -61,13 +61,24 @@ export class OpenAICompatibleAdapter {
     this.config = config;
   }
 
+  private buildAPIURL(endpoint: string): string {
+    const url = new URL(this.config.baseURL);
+    const sanitizedEndpoint = endpoint.replace(/^\/+/, '');
+    const basePath = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
+    const trimmedBase = basePath.replace(/\/+$/g, '');
+    const combined = `${trimmedBase}/${sanitizedEndpoint}`.replace(/\/{2,}/g, '/');
+    const normalized = combined.startsWith('/') ? combined : `/${combined}`;
+    url.pathname = normalized || '/';
+    return url.toString();
+  }
+
   /**
    * 测试连接
    */
   async testConnection(): Promise<ConnectionTestResult> {
     try {
-      const url = new URL('/v1/models', this.config.baseURL);
-      const response = await fetch(url.toString(), {
+      const url = this.buildAPIURL('models');
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
@@ -118,8 +129,8 @@ export class OpenAICompatibleAdapter {
     ];
 
     try {
-      const url = new URL('/v1/chat/completions', this.config.baseURL);
-      const response = await fetch(url.toString(), {
+      const url = this.buildAPIURL('chat/completions');
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,8 +181,8 @@ export class OpenAICompatibleAdapter {
     ];
 
     try {
-      const url = new URL('/v1/chat/completions', this.config.baseURL);
-      const response = await fetch(url.toString(), {
+      const url = this.buildAPIURL('chat/completions');
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

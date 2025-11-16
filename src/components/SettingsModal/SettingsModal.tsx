@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Modal,
   Menu,
@@ -16,6 +16,9 @@ import {
   InputNumber,
   Alert,
   Select,
+  Card,
+  Slider,
+  Tag,
 } from 'antd';
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import type { StorageStats } from '../../services/types';
@@ -23,6 +26,7 @@ import type { AIConfig } from '../../services/aiConfig';
 import {
   AI_PROVIDER_PRESETS,
   CUSTOM_PROVIDER_ID,
+  DEFAULT_PROVIDER_ID,
   createDefaultAIConfig,
   ensureAIConfigDefaults,
   findProviderPresetById,
@@ -44,6 +48,63 @@ import { useAutoUpdater } from '../../hooks/useAutoUpdater';
 
 const { Text, Paragraph } = Typography;
 
+const PROVIDER_CONFIG_STORAGE_KEY = 'infinitynotex:ai:provider-configs';
+
+const PROVIDER_BRAND_COLORS: Record<string, string> = {
+  deepseek: '#7C4DFF',
+  alibaba: '#FF7A45',
+  siliconflow: '#13C2C2',
+  zhipu: '#52C41A',
+  openai: '#1890FF',
+  [CUSTOM_PROVIDER_ID]: '#8C8C8C',
+};
+
+type ProviderStatus = 'ready' | 'missingKey' | 'incomplete' | 'unconfigured';
+
+const PROVIDER_STATUS_META: Record<ProviderStatus, { label: string; color: string }> = {
+  ready: { label: '就绪', color: '#52c41a' },
+  missingKey: { label: '待填密钥', color: '#faad14' },
+  incomplete: { label: '待完善', color: '#fa8c16' },
+  unconfigured: { label: '未绑定', color: '#bfbfbf' },
+};
+
+const getProviderBrandColor = (providerId?: string) =>
+  PROVIDER_BRAND_COLORS[providerId ?? ''] ?? '#8c8c8c';
+
+const getProviderStatus = (config?: AIConfig | null): ProviderStatus => {
+  if (!config) return 'unconfigured';
+  if (!config.baseURL?.trim() || !config.model?.trim()) return 'incomplete';
+  if (!config.apiKey?.trim()) return 'missingKey';
+  return 'ready';
+};
+
+const isConfigReady = (config?: AIConfig | null) => getProviderStatus(config) === 'ready';
+
+const readStoredProviderConfigs = (): Record<string, AIConfig> => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return {};
+  }
+  try {
+    const raw = window.localStorage.getItem(PROVIDER_CONFIG_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, AIConfig>;
+  } catch (error) {
+    console.warn('[AI] Failed to parse cached provider configs:', error);
+    return {};
+  }
+};
+
+const persistProviderConfigs = (configs: Record<string, AIConfig>) => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(PROVIDER_CONFIG_STORAGE_KEY, JSON.stringify(configs));
+  } catch (error) {
+    console.warn('[AI] Failed to persist provider configs:', error);
+  }
+};
+
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
@@ -64,9 +125,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
 
   // AI 配置相关
   const [aiConfig, setAIConfig] = useState<AIConfig>(() => createDefaultAIConfig());
+  const [providerConfigs, setProviderConfigs] = useState<Record<string, AIConfig>>({});
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(DEFAULT_PROVIDER_ID);
+  const [activeProviderId, setActiveProviderId] = useState<string>(DEFAULT_PROVIDER_ID);
   const [aiLoading, setAILoading] = useState(false);
   const [aiTestLoading, setAITestLoading] = useState(false);
   const [aiTestResult, setAITestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const activeConfigRef = useRef<AIConfig | null>(null);
 
   const {
     status: updaterStatus,
@@ -91,6 +156,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       }
     }
   }, [open, selectedMenu]);
+
+  useEffect(() => {
+    if (!open || selectedMenu !== 'ai') return;
+    if (!Object.keys(providerConfigs).length) return;
+    persistProviderConfigs(providerConfigs);
+  }, [providerConfigs, open, selectedMenu]);
+
+  useEffect(() => {
+    if (selectedMenu === 'ai') {
+      setAITestResult(null);
+    }
+  }, [selectedProviderId, selectedMenu]);
 
   const loadStorageInfo = async () => {
     try {
@@ -117,8 +194,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const loadAIConfig = async () => {
     try {
       setAILoading(true);
-      const config = await window.ai.getConfig();
-      setAIConfig(ensureAIConfigDefaults(config));
+      const stored = readStoredProviderConfigs();
+      const normalizedStored: Record<string, AIConfig> = {};
+      Object.entries(stored).forEach(([id, cfg]) => {
+        normalizedStored[id] = ensureAIConfigDefaults({ ...cfg, providerId: id });
+      });
+
+      const active = ensureAIConfigDefaults(await window.ai.getConfig());
+      const resolvedProviderId = active.providerId ?? DEFAULT_PROVIDER_ID;
+      normalizedStored[resolvedProviderId] = active;
+
+      setProviderConfigs(normalizedStored);
+      setSelectedProviderId(resolvedProviderId);
+      setActiveProviderId(resolvedProviderId);
+      setAIConfig(normalizedStored[resolvedProviderId]);
+      activeConfigRef.current = active;
       setAITestResult(null);
     } catch (error) {
       console.error('Failed to load AI config:', error);
@@ -129,26 +219,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   };
 
   const saveAIConfig = async () => {
+    const normalized = normalizeCurrentConfig(aiConfig, selectedProviderId);
+    if (!isConfigReady(normalized)) {
+      message.warning('请填写完整的配置信息');
+      return;
+    }
     try {
       setAILoading(true);
-      const normalized = {
-        ...aiConfig,
-        provider: aiConfig.provider?.trim() || '自定义服务',
-        baseURL: aiConfig.baseURL.trim(),
-        apiKey: aiConfig.apiKey.trim(),
-        model: aiConfig.model.trim(),
-      } satisfies AIConfig;
-      // 简单验证
-      if (!normalized.baseURL || !normalized.apiKey || !normalized.model) {
-        message.warning('请填写完整的配置信息');
-        return;
+      syncCurrentConfig(() => normalized);
+      const result = await applyProviderConfig(normalized);
+      if (result.ok) {
+        message.success('配置已保存并通过测试');
+      } else {
+        message.error(result.message);
       }
-      setAIConfig(normalized);
-      await window.ai.setConfig(normalized);
-      message.success('AI 配置已保存');
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      message.error(`保存失败：${msg}`);
     } finally {
       setAILoading(false);
     }
@@ -229,20 +313,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
     { key: 'about', label: '关于' },
   ];
 
-  const providerOptions = useMemo(
-    () => [
-      ...AI_PROVIDER_PRESETS.map((provider) => ({
-        label: provider.name,
-        value: provider.id,
-      })),
-      { label: '自定义 / 其他服务', value: CUSTOM_PROVIDER_ID },
-    ],
-    [],
+  const currentProviderPreset = useMemo(
+    () => findProviderPresetById(selectedProviderId),
+    [selectedProviderId],
   );
 
-  const currentProviderPreset = useMemo(
-    () => findProviderPresetById(aiConfig.providerId),
-    [aiConfig.providerId],
+  const providerListItems = useMemo(
+    () => [
+      ...AI_PROVIDER_PRESETS,
+      {
+        id: CUSTOM_PROVIDER_ID,
+        name: '自定义 / 其他服务',
+        website: 'https://infinitynotex.com',
+        baseURL: '',
+        description: '连接任意符合 OpenAI 兼容协议的自建或第三方服务。',
+        models: [],
+      },
+    ],
+    [],
   );
 
   const recommendedModelOptions = useMemo(
@@ -262,32 +350,104 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
     [aiConfig.model, recommendedModelOptions],
   );
 
-  const handleProviderChange = (nextProviderId: string) => {
-    if (nextProviderId === CUSTOM_PROVIDER_ID) {
-      setAIConfig((prev) => ({
-        ...prev,
-        providerId: CUSTOM_PROVIDER_ID,
-        provider: prev.providerId === CUSTOM_PROVIDER_ID ? prev.provider : '自定义服务',
+  const syncCurrentConfig = (patch: Partial<AIConfig> | ((prev: AIConfig) => AIConfig)) => {
+    setAIConfig((prev) => {
+      const next =
+        typeof patch === 'function'
+          ? (patch as (value: AIConfig) => AIConfig)(prev)
+          : { ...prev, ...patch };
+      const normalized = { ...next, providerId: selectedProviderId };
+      setProviderConfigs((configs) => ({
+        ...configs,
+        [selectedProviderId]: normalized,
       }));
-      return;
-    }
-
-    const preset = findProviderPresetById(nextProviderId);
-    setAIConfig((prev) => ({
-      ...prev,
-      providerId: preset?.id ?? prev.providerId,
-      provider: preset?.name ?? prev.provider,
-      baseURL: preset?.baseURL ?? prev.baseURL,
-      model: preset?.models[0]?.id ?? prev.model,
-    }));
+      return normalized;
+    });
   };
 
   const handleModelPresetChange = (modelId?: string) => {
     if (!modelId) return;
-    setAIConfig((prev) => ({
+    syncCurrentConfig((prev) => ({
       ...prev,
       model: modelId,
     }));
+  };
+
+  const handleProviderSelect = (providerId: string) => {
+    setSelectedProviderId(providerId);
+    setAITestResult(null);
+    const existing =
+      providerConfigs[providerId] ?? ensureAIConfigDefaults(createDefaultAIConfig(providerId));
+    const normalized = { ...existing, providerId };
+    setAIConfig(normalized);
+    setProviderConfigs((configs) => ({
+      ...configs,
+      [providerId]: normalized,
+    }));
+  };
+
+  const normalizeCurrentConfig = (config: AIConfig, providerId: string): AIConfig => ({
+    ...config,
+    providerId,
+    provider: config.provider?.trim() || findProviderPresetById(providerId)?.name || '自定义服务',
+    baseURL: config.baseURL?.trim() ?? '',
+    apiKey: config.apiKey?.trim() ?? '',
+    model: config.model?.trim() ?? '',
+    temperature: typeof config.temperature === 'number' ? config.temperature : 0.7,
+    max_tokens: config.max_tokens ?? 3500,
+    stream: config.stream ?? true,
+    timeoutMs: config.timeoutMs ?? 60000,
+  });
+
+  const applyProviderConfig = async (
+    config: AIConfig,
+    options?: { skipTest?: boolean },
+  ): Promise<{ ok: boolean; message: string }> => {
+    const previous = activeConfigRef.current;
+    try {
+      await window.ai.setConfig(config);
+      activeConfigRef.current = config;
+      setActiveProviderId(config.providerId ?? CUSTOM_PROVIDER_ID);
+
+      if (options?.skipTest) {
+        return { ok: true, message: '配置已切换' };
+      }
+
+      const result = await window.ai.testConnection();
+      setAITestResult(result);
+      if (!result.ok && previous) {
+        await window.ai.setConfig(previous);
+        activeConfigRef.current = previous;
+        setActiveProviderId(previous.providerId ?? CUSTOM_PROVIDER_ID);
+      }
+      return result;
+    } catch (error) {
+      if (previous) {
+        await window.ai.setConfig(previous);
+        activeConfigRef.current = previous;
+        setActiveProviderId(previous.providerId ?? CUSTOM_PROVIDER_ID);
+      }
+      return { ok: false, message: getErrMsg(error) };
+    }
+  };
+
+  const handleActivateSelectedProvider = async () => {
+    const normalized = normalizeCurrentConfig(aiConfig, selectedProviderId);
+    if (!isConfigReady(normalized)) {
+      message.warning('请先完善并保存当前配置');
+      return;
+    }
+    try {
+      setAILoading(true);
+      const result = await applyProviderConfig(normalized);
+      if (result.ok) {
+        message.success('已切换到当前模型');
+      } else {
+        message.error(result.message);
+      }
+    } finally {
+      setAILoading(false);
+    }
   };
 
   const renderSettingsPanel = () => {
@@ -764,224 +924,270 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             </Form>
           </div>
         );
-      case 'ai':
+      case 'ai': {
+        const providerStatus = getProviderStatus(aiConfig);
+        const statusMeta = PROVIDER_STATUS_META[providerStatus];
+        const providerColor = getProviderBrandColor(selectedProviderId);
+        const isPresetProviderLocked =
+          selectedProviderId !== CUSTOM_PROVIDER_ID && !!currentProviderPreset;
+
         return (
-          <div className="settings-panel">
+          <div className="settings-panel ai-settings-panel">
             <h3>AI 管理</h3>
-            <Form layout="vertical">
-              <Alert
-                message="预置 DeepSeek、阿里百炼、智谱 AI、硅基流动、OpenAI 等厂商，统一 OpenAI 兼容参数。"
-                description="选择厂商后自动填充 API 域名与热门模型，仍可随时手动调整或切换到自定义服务。"
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
+            <Alert
+              message="在一个界面内绑定多个 AI 厂商"
+              description="为每个厂商分别保存 API Key 与模型参数，保存后即可随时一键切换并同步到 AI 工作台。"
+              type="info"
+              showIcon
+            />
 
-              <Form.Item label="接入厂商" required>
-                <Select
-                  placeholder="请选择厂商或使用自定义"
-                  options={providerOptions}
-                  value={aiConfig.providerId ?? CUSTOM_PROVIDER_ID}
-                  onChange={handleProviderChange}
-                />
-              </Form.Item>
+            <div className="ai-settings-header">
+              <div className="ai-status-card" style={{ borderColor: providerColor }}>
+                <div className="ai-status-meta">
+                  <Text type="secondary">{currentProviderPreset?.name ?? aiConfig.provider}</Text>
+                  <div className="ai-status-title">
+                    {aiConfig.provider || '未命名服务'} / {aiConfig.model || '未选择模型'}
+                  </div>
+                  <Text type="secondary">
+                    {currentProviderPreset?.description ||
+                      '完成配置后即可在画布工作台随时切换模型。'}
+                  </Text>
+                </div>
+                <div className="ai-status-actions">
+                  {selectedProviderId === activeProviderId && (
+                    <Tag color={providerColor}>当前使用</Tag>
+                  )}
+                  <Tag color={statusMeta.color}>{statusMeta.label}</Tag>
+                  <div className="ai-status-switch">
+                    <Text type="secondary">设为当前</Text>
+                    <Switch
+                      checked={selectedProviderId === activeProviderId}
+                      onChange={(checked) => {
+                        if (checked) {
+                          handleActivateSelectedProvider();
+                        }
+                      }}
+                      disabled={!isConfigReady(aiConfig) || aiLoading}
+                    />
+                  </div>
+                </div>
+              </div>
 
-              {aiConfig.providerId !== CUSTOM_PROVIDER_ID && currentProviderPreset && (
-                <Alert
-                  type="success"
-                  showIcon
-                  message={`${currentProviderPreset.name}`}
-                  description={
-                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                      <span>{currentProviderPreset.description}</span>
-                      <Space size="small" wrap>
-                        <Button
-                          type="link"
-                          size="small"
-                          onClick={() => window.open(currentProviderPreset.website, '_blank')}
+              <div className="ai-parameters-card">
+                <div className="ai-parameter-grid">
+                  <div className="ai-parameter-field">
+                    <div className="ai-parameter-label">
+                      <Text strong>温度</Text>
+                      <Text type="secondary">{(aiConfig.temperature ?? 0.7).toFixed(1)}</Text>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={aiConfig.temperature ?? 0.7}
+                      onChange={(value) => {
+                        const numeric = Array.isArray(value) ? value[0] : value;
+                        syncCurrentConfig({ temperature: numeric });
+                      }}
+                      marks={{ 0: '精确', 2: '创意' }}
+                    />
+                  </div>
+                  <div className="ai-parameter-field">
+                    <div className="ai-parameter-label">
+                      <Text strong>最大 Token</Text>
+                    </div>
+                    <InputNumber
+                      min={100}
+                      max={128000}
+                      value={aiConfig.max_tokens ?? 3500}
+                      onChange={(val) => syncCurrentConfig({ max_tokens: val ?? 3500 })}
+                      style={{ width: '100%' }}
+                    />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      建议范围 100 ~ 128000
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="ai-config-grid">
+              <Card
+                className="ai-provider-card ai-card"
+                size="small"
+                title="AI 提供商"
+                bodyStyle={{ padding: 12 }}
+              >
+                <div className="ai-provider-list">
+                  {providerListItems.map((provider) => {
+                    const isActive = provider.id === selectedProviderId;
+                    const configForItem =
+                      providerConfigs[provider.id] ||
+                      (provider.id === selectedProviderId ? aiConfig : undefined);
+                    const itemStatus = getProviderStatus(configForItem);
+                    const itemStatusMeta = PROVIDER_STATUS_META[itemStatus];
+                    return (
+                      <div
+                        key={provider.id}
+                        className={`ai-provider-item${isActive ? ' active' : ''}`}
+                        onClick={() => handleProviderSelect(provider.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleProviderSelect(provider.id);
+                          }
+                        }}
+                      >
+                        <div className="ai-provider-item__title">
+                          <div className="ai-provider-item__name">
+                            <span
+                              className="ai-provider-item__dot"
+                              style={{ backgroundColor: getProviderBrandColor(provider.id) }}
+                            />
+                            <span>{provider.name}</span>
+                          </div>
+                          {provider.id === activeProviderId && (
+                            <Tag color={getProviderBrandColor(provider.id)}>当前</Tag>
+                          )}
+                        </div>
+                        <div
+                          className="ai-provider-item__status"
+                          style={{ color: itemStatusMeta.color }}
                         >
-                          官网
+                          {itemStatusMeta.label}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+
+              <div className="ai-config-forms">
+                <Card className="ai-card" size="small" title="API 接入信息">
+                  <Form layout="vertical">
+                    {isPresetProviderLocked ? (
+                      <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                        {`已接入 ${currentProviderPreset?.name ?? aiConfig.provider}，域名与服务信息由系统管理。如需自定义地址，请切换到“自定义 / 其他服务”。`}
+                      </Paragraph>
+                    ) : (
+                      <>
+                        <Form.Item label="供应商 / 服务名称" required>
+                          <Input
+                            placeholder="例如：深度求索、OpenAI 或自定义服务"
+                            value={aiConfig.provider}
+                            onChange={(e) => syncCurrentConfig({ provider: e.target.value })}
+                          />
+                        </Form.Item>
+                        <Form.Item label="API Base URL" required>
+                          <Input
+                            placeholder={
+                              currentProviderPreset?.baseURL || 'https://api.example.com/v1'
+                            }
+                            value={aiConfig.baseURL}
+                            onChange={(e) => syncCurrentConfig({ baseURL: e.target.value })}
+                          />
+                        </Form.Item>
+                      </>
+                    )}
+                    <Form.Item label="API Key" required>
+                      <Space.Compact style={{ width: '100%' }}>
+                        <Input.Password
+                          placeholder="输入 API Key（仅本地保存）"
+                          value={aiConfig.apiKey}
+                          onChange={(e) => syncCurrentConfig({ apiKey: e.target.value })}
+                        />
+                        <Button type="primary" onClick={saveAIConfig} loading={aiLoading}>
+                          保存并测试
                         </Button>
-                        {currentProviderPreset.docsURL && (
-                          <Button
-                            type="link"
-                            size="small"
-                            onClick={() => window.open(currentProviderPreset.docsURL, '_blank')}
-                          >
-                            API 文档
-                          </Button>
-                        )}
-                      </Space>
-                    </Space>
-                  }
-                  style={{ marginBottom: 16 }}
-                />
-              )}
+                      </Space.Compact>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Key 加密后存储在本地用户目录，不会上传到服务器。
+                      </Text>
+                    </Form.Item>
+                  </Form>
+                </Card>
 
-              <Form.Item label="提供商/服务名称" required>
-                <Input
-                  placeholder="例如：深度求索、OpenAI 或自定义服务"
-                  value={aiConfig.provider}
-                  onChange={(e) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      provider: e.target.value,
-                    }))
-                  }
-                />
-              </Form.Item>
+                <Card className="ai-card" size="small" title="模型与高级参数">
+                  <Form layout="vertical">
+                    {recommendedModelOptions.length > 0 && (
+                      <Form.Item label="推荐模型">
+                        <Select
+                          allowClear
+                          showSearch
+                          placeholder="快速选择热门模型"
+                          optionFilterProp="label"
+                          options={recommendedModelOptions}
+                          value={recommendedModelValue}
+                          onChange={handleModelPresetChange}
+                        />
+                      </Form.Item>
+                    )}
+                    <Form.Item label="模型名称" required>
+                      <Input
+                        placeholder="例如：deepseek-chat、qwen3-max"
+                        value={aiConfig.model}
+                        onChange={(e) => syncCurrentConfig({ model: e.target.value })}
+                      />
+                    </Form.Item>
+                    <Form.Item label="系统提示词">
+                      <Input.TextArea
+                        rows={3}
+                        placeholder="可选：用于统一设定模型的角色与行为"
+                        value={aiConfig.systemPrompt || ''}
+                        onChange={(e) => syncCurrentConfig({ systemPrompt: e.target.value })}
+                      />
+                    </Form.Item>
+                    <Form.Item label="启用流式响应">
+                      <Switch
+                        checked={aiConfig.stream ?? true}
+                        onChange={(val) => syncCurrentConfig({ stream: val })}
+                      />
+                    </Form.Item>
+                    <Form.Item label="超时时间（毫秒）">
+                      <InputNumber
+                        min={5000}
+                        max={600000}
+                        step={5000}
+                        value={aiConfig.timeoutMs ?? 60000}
+                        onChange={(val) => syncCurrentConfig({ timeoutMs: val ?? 60000 })}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+                  </Form>
+                  <Space style={{ marginTop: 12 }} wrap>
+                    <Button
+                      onClick={handleActivateSelectedProvider}
+                      disabled={selectedProviderId === activeProviderId || aiLoading}
+                      loading={aiLoading}
+                    >
+                      设为当前模型
+                    </Button>
+                    <Button
+                      loading={aiTestLoading}
+                      onClick={testAIConnection}
+                      disabled={selectedProviderId !== activeProviderId}
+                    >
+                      重新连接测试
+                    </Button>
+                  </Space>
+                </Card>
 
-              {recommendedModelOptions.length > 0 && (
-                <Form.Item label="推荐模型">
-                  <Select
-                    allowClear
-                    showSearch
-                    placeholder="选择常用模型，或下方自定义"
-                    optionFilterProp="label"
-                    options={recommendedModelOptions}
-                    value={recommendedModelValue}
-                    onChange={handleModelPresetChange}
+                {aiTestResult && (
+                  <Alert
+                    message={aiTestResult.message}
+                    type={aiTestResult.ok ? 'success' : 'error'}
+                    showIcon
+                    closable
+                    onClose={() => setAITestResult(null)}
                   />
-                </Form.Item>
-              )}
-
-              <Form.Item label="模型名称" required>
-                <Input
-                  placeholder="例如：deepseek-chat、qwen3-max、glm-4.6"
-                  value={aiConfig.model}
-                  onChange={(e) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      model: e.target.value,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="API Base URL" required>
-                <Input
-                  placeholder="例如：https://api.deepseek.com/v1"
-                  value={aiConfig.baseURL}
-                  onChange={(e) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      baseURL: e.target.value,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="API Key" required>
-                <Input.Password
-                  placeholder="输入 API Key（仅本地保存，不会上传）"
-                  value={aiConfig.apiKey}
-                  onChange={(e) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      apiKey: e.target.value,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Divider />
-
-              <Form.Item label="温度 (Temperature)">
-                <InputNumber
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={aiConfig.temperature ?? 0.7}
-                  onChange={(val) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      temperature: val ?? 0.7,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="最大 Token 数">
-                <InputNumber
-                  min={1}
-                  max={128000}
-                  value={aiConfig.max_tokens ?? 2048}
-                  onChange={(val) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      max_tokens: val ?? 2048,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="系统提示词">
-                <Input.TextArea
-                  rows={3}
-                  placeholder="设置模型的基础行为（可选）"
-                  value={aiConfig.systemPrompt || ''}
-                  onChange={(e) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      systemPrompt: e.target.value,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="超时时间（毫秒）">
-                <InputNumber
-                  min={5000}
-                  max={600000}
-                  step={5000}
-                  value={aiConfig.timeoutMs ?? 60000}
-                  onChange={(val) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      timeoutMs: val ?? 60000,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Form.Item label="启用流式响应">
-                <Switch
-                  checked={aiConfig.stream ?? true}
-                  onChange={(val) =>
-                    setAIConfig((prev) => ({
-                      ...prev,
-                      stream: val,
-                    }))
-                  }
-                />
-              </Form.Item>
-
-              <Divider />
-
-              {aiTestResult && (
-                <Alert
-                  message={aiTestResult.message}
-                  type={aiTestResult.ok ? 'success' : 'error'}
-                  showIcon
-                  closable
-                  onClose={() => setAITestResult(null)}
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-
-              <Form.Item>
-                <Space>
-                  <Button type="primary" loading={aiLoading} onClick={saveAIConfig}>
-                    保存配置
-                  </Button>
-                  <Button loading={aiTestLoading} onClick={testAIConnection}>
-                    连接测试
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
+                )}
+              </div>
+            </div>
           </div>
         );
+      }
       default:
         return null;
     }

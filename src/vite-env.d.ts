@@ -62,6 +62,7 @@ declare global {
             role: 'user' | 'assistant';
             content: string;
             timestamp: number;
+            reasoning?: string;
           }>;
           createdAt: number;
           updatedAt: number;
@@ -75,6 +76,7 @@ declare global {
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
+          reasoning?: string;
         }>;
         createdAt: number;
         updatedAt: number;
@@ -86,6 +88,7 @@ declare global {
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
+          reasoning?: string;
         }>,
       ): Promise<{
         id: string;
@@ -95,6 +98,7 @@ declare global {
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
+          reasoning?: string;
         }>;
         createdAt: number;
         updatedAt: number;
@@ -110,6 +114,7 @@ declare global {
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
+          reasoning?: string;
         }>;
         createdAt: number;
         updatedAt: number;

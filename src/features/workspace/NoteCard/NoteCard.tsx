@@ -4,12 +4,15 @@ import { getThemeColor } from '../../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
 import CardBackground from '../../../components/CardBackground/CardBackground';
 import { NoteCardListContext } from './NoteCardContext';
+import { Button } from 'antd';
+import { PushpinOutlined } from '@ant-design/icons';
 
 export interface NoteCardProps {
   title: string;
   content: string;
   color?: NoteCardColor;
   onClick?: () => void;
+  onPin?: () => void; // 钉住按钮的回调
   actions?: React.ReactNode; // 右上角操作区（如删除等）
   id?: string; // 用于选中高亮
 }
@@ -19,6 +22,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   content,
   color = 'ffffff',
   onClick,
+  onPin,
   actions,
   id,
 }) => {
@@ -70,7 +74,19 @@ const NoteCard: React.FC<NoteCardProps> = ({
       </div>
 
       <div className="note-card-actions">
-        {/* 删除按钮（由父组件通过 actions 传入） */}
+        {/* 钉住按钮 */}
+        {onPin && (
+          <Button
+            type="text"
+            size="small"
+            icon={<PushpinOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPin();
+            }}
+          />
+        )}
+        {/* 其他操作按钮（由父组件通过 actions 传入） */}
         {actions}
       </div>
     </div>

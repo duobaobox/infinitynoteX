@@ -78,6 +78,7 @@ interface AIConversation {
     role: 'user' | 'assistant';
     content: string;
     timestamp: number;
+    reasoning?: string; // AI 思考过程（可选）
   }>;
   createdAt: number;
   updatedAt: number;

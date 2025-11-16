@@ -161,6 +161,7 @@ export const AITab = ({ noteId }: AITabProps) => {
               key: `${msg.role}-${msg.timestamp}`,
               role: msg.role === 'assistant' ? 'ai' : 'user',
               content: msg.content,
+              thoughtChainText: msg.reasoning || undefined, // 恢复思考过程
             }));
             setChatItems(items);
           } else {
@@ -188,6 +189,7 @@ export const AITab = ({ noteId }: AITabProps) => {
           role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
           content: item.content,
           timestamp: Date.now(),
+          reasoning: item.thoughtChainText || undefined, // 保存思考过程
         }));
 
         await window.storage.saveAIConversationMessages(noteId, messages);

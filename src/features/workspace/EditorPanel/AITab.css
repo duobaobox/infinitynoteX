@@ -57,6 +57,28 @@
   flex-shrink: 0;
 }
 
+/* 隐藏输入框的滚动条 */
+.ai-tab-input .ant-sender-input {
+  scrollbar-width: none; /* Firefox */
+}
+
+.ai-tab-input .ant-sender-input::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* 移除 Sender 组件激活时的阴影 */
+.ai-tab-input .ant-sender {
+  box-shadow: none !important;
+}
+
+.ai-tab-input .ant-sender:focus-within {
+  box-shadow: none !important;
+}
+
+.ai-tab-input .ant-sender-wrapper {
+  box-shadow: none !important;
+}
+
 .ai-tab-alert {
   margin: 12px 16px 0;
 }

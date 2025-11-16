@@ -89,3 +89,7 @@
 .ai-thought-chain-content p:last-child {
   margin-bottom: 0;
 }
+
+.ai-placeholder-text {
+  color: #999;
+}

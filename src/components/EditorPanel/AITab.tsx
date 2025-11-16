@@ -204,15 +204,24 @@ export const AITab = ({ noteId }: AITabProps) => {
   };
 
   // 转换为 Bubble.List items
-  const renderBubbleContent = (item: ChatItem) => {
+  const renderBubbleContent = (
+    item: ChatItem,
+    options?: { reasoningParagraphs?: string[]; showAnswerPlaceholder?: boolean },
+  ) => {
     if (item.role !== 'ai') {
       return item.content;
     }
 
-    const reasoningParagraphs = getReasoningParagraphs(item);
+    const reasoningParagraphs = options?.reasoningParagraphs ?? getReasoningParagraphs(item);
     if (reasoningParagraphs.length === 0) {
+      if (options?.showAnswerPlaceholder) {
+        return <span className="ai-placeholder-text">AI 正在组织回答…</span>;
+      }
       return item.content;
     }
+
+    const isPlaceholder = options?.showAnswerPlaceholder && item.content.length === 0;
+    const answerText = isPlaceholder ? 'AI 正在组织回答…' : item.content;
 
     const mergedItem: ThoughtChainItems = [
       {
@@ -230,7 +239,11 @@ export const AITab = ({ noteId }: AITabProps) => {
 
     return (
       <div className="ai-bubble-with-thought-chain">
-        <div className="ai-bubble-text">{item.content}</div>
+        {answerText && (
+          <div className={`ai-bubble-text${isPlaceholder ? ' ai-placeholder-text' : ''}`}>
+            {answerText}
+          </div>
+        )}
         <div className="ai-thought-chain-wrapper">
           <ThoughtChain items={mergedItem} size="small" collapsible />
         </div>
@@ -239,30 +252,34 @@ export const AITab = ({ noteId }: AITabProps) => {
   };
 
   const bubbleItems = chatItems.map((m) => {
+    const reasoningParagraphs = m.role === 'ai' ? getReasoningParagraphs(m) : [];
+    const hasReasoning = reasoningParagraphs.length > 0;
+    const hasAnswerText = m.content.length > 0;
+    const showAnswerPlaceholder =
+      m.role === 'ai' && m.isStreaming && !hasAnswerText && hasReasoning;
+
+    const baseContent = renderBubbleContent(m, {
+      reasoningParagraphs,
+      showAnswerPlaceholder,
+    });
+
     const item: any = {
       key: m.key,
       role: m.role,
-      content: renderBubbleContent(m),
+      content: baseContent,
     };
-    // AI 气泡正在流式接收时启用打字机效果
-    if (m.role === 'ai' && m.isStreaming && m.content.length > 0) {
-      item.typing = { step: 5, interval: 50 };
+
+    if (m.role === 'ai') {
+      if (!hasAnswerText && !hasReasoning && m.isStreaming) {
+        item.loading = true;
+        item.content = 'AI 正在思考中...';
+      } else if (m.isStreaming && hasAnswerText) {
+        item.typing = { step: 5, interval: 50 };
+      }
     }
+
     return item;
   });
-
-  // 在首个增量到达之前，显示 AI loading 气泡（官方 demo 风格）
-  if (streamingKey) {
-    const aiCurrent = chatItems.find((x) => x.key === streamingKey);
-    if (aiCurrent && aiCurrent.content.length === 0) {
-      bubbleItems.push({
-        key: `${streamingKey}-loading`,
-        role: 'ai',
-        content: 'AI 正在思考中...',
-        loading: true,
-      } as any);
-    }
-  }
 
   if (isInitializing) {
     return (

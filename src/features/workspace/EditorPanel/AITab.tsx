@@ -32,7 +32,10 @@ import {
   ensureAIConfigDefaults,
   getProviderBrandColor,
 } from '../../../services/aiProviders';
-import { readStoredProviderConfigs } from '../../../services/aiConfigStore';
+import {
+  readStoredProviderConfigs,
+  subscribeAIConfigChanged,
+} from '../../../services/aiConfigStore';
 
 interface AITabProps {
   noteId: string | null;
@@ -175,6 +178,16 @@ export const AITab = ({ noteId }: AITabProps) => {
       }
     };
     checkConfig();
+  }, [refreshProviderOptions]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeAIConfigChanged((nextConfig) => {
+      const normalized = ensureAIConfigDefaults(nextConfig);
+      setConfig(normalized);
+      setIsConfigured(isAIConfigReady(normalized));
+      refreshProviderOptions(normalized);
+    });
+    return unsubscribe;
   }, [refreshProviderOptions]);
 
   // 聊天消息本地状态（不依赖 useXChat，确保 role 正确）

@@ -33,7 +33,11 @@ import {
   findProviderPresetById,
   getProviderBrandColor,
 } from '../../services/aiProviders';
-import { persistProviderConfigs, readStoredProviderConfigs } from '../../services/aiConfigStore';
+import {
+  emitAIConfigChanged,
+  persistProviderConfigs,
+  readStoredProviderConfigs,
+} from '../../services/aiConfigStore';
 import './SettingsModal.css';
 import BackgroundEditor from '../BackgroundEditor';
 import {
@@ -372,6 +376,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       await window.ai.setConfig(config);
       activeConfigRef.current = config;
       setActiveProviderId(config.providerId ?? CUSTOM_PROVIDER_ID);
+      emitAIConfigChanged(config);
 
       if (options?.skipTest) {
         return { ok: true, message: '配置已切换' };
@@ -383,6 +388,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         await window.ai.setConfig(previous);
         activeConfigRef.current = previous;
         setActiveProviderId(previous.providerId ?? CUSTOM_PROVIDER_ID);
+        emitAIConfigChanged(previous);
       }
       return result;
     } catch (error) {
@@ -390,6 +396,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         await window.ai.setConfig(previous);
         activeConfigRef.current = previous;
         setActiveProviderId(previous.providerId ?? CUSTOM_PROVIDER_ID);
+        emitAIConfigChanged(previous);
       }
       return { ok: false, message: getErrMsg(error) };
     }

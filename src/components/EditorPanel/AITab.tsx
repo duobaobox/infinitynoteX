@@ -239,14 +239,14 @@ export const AITab = ({ noteId }: AITabProps) => {
 
     return (
       <div className="ai-bubble-with-thought-chain">
+        <div className="ai-thought-chain-wrapper">
+          <ThoughtChain items={mergedItem} size="small" collapsible />
+        </div>
         {answerText && (
           <div className={`ai-bubble-text${isPlaceholder ? ' ai-placeholder-text' : ''}`}>
             {answerText}
           </div>
         )}
-        <div className="ai-thought-chain-wrapper">
-          <ThoughtChain items={mergedItem} size="small" collapsible />
-        </div>
       </div>
     );
   };

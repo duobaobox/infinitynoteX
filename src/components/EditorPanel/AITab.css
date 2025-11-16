@@ -73,8 +73,33 @@
 }
 
 .ai-thought-chain-wrapper {
-  border-left: 2px solid #e8e8e8;
-  padding-left: 12px;
+  padding-left: 0;
+}
+
+.ai-thought-chain-wrapper .ant-thought-chain-item-icon,
+.ai-thought-chain-wrapper .ant-avatar,
+.ai-thought-chain-wrapper .ant-x-thought-chain-icon,
+.ai-thought-chain-wrapper .ant-x-thought-chain-line,
+.ai-thought-chain-wrapper .ant-x-thought-chain-header {
+  display: none !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-item {
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-item::before,
+.ai-thought-chain-wrapper .ant-x-thought-chain-item::after {
+  display: none !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-content {
+  padding-left: 0;
+}
+
+.ai-thought-chain-wrapper .ant-thought-chain-item-header::before {
+  display: none !important;
 }
 
 .ai-thought-chain-content {

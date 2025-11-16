@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import type { AnchorHTMLAttributes, HTMLAttributes, Key, TableHTMLAttributes } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
 import { Alert, Button, Space, Tooltip, Divider } from 'antd';
 import {
@@ -14,6 +15,9 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { GetProp } from 'antd';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 import './AITab.css';
 
 interface AITabProps {
@@ -26,9 +30,71 @@ interface AIConfig {
   baseURL?: string;
 }
 
+interface StreamErrorPayload {
+  error?: string;
+}
+
 // Bubble.List / ThoughtChain 类型定义
 type BubbleListRolesType = GetProp<typeof Bubble.List, 'roles'>;
 type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
+type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
+
+type MarkdownExtraProps = {
+  node?: unknown;
+};
+
+type MarkdownLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & MarkdownExtraProps;
+type MarkdownCodeProps = HTMLAttributes<HTMLElement> &
+  MarkdownExtraProps & {
+    inline?: boolean;
+    className?: string;
+  };
+type MarkdownTableProps = TableHTMLAttributes<HTMLTableElement> & MarkdownExtraProps;
+
+const markdownComponents: Components = {
+  a: (props: MarkdownLinkProps) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  code: ({ inline, className, children, ...props }: MarkdownCodeProps) => {
+    if (inline) {
+      return (
+        <code className={`ai-inline-code ${className || ''}`} {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <pre className="ai-code-block">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    );
+  },
+  table: (props: MarkdownTableProps) => (
+    <div className="ai-table-wrapper">
+      <table {...props} />
+    </div>
+  ),
+};
+
+const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
+  if (!text || !text.trim()) {
+    return null;
+  }
+  const classNames = ['ai-markdown'];
+  if (className) {
+    classNames.push(className);
+  }
+  return (
+    <ReactMarkdown
+      key={key}
+      className={classNames.join(' ')}
+      remarkPlugins={[remarkGfm]}
+      components={markdownComponents}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+};
 
 export const AITab = ({ noteId }: AITabProps) => {
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
@@ -69,8 +135,8 @@ export const AITab = ({ noteId }: AITabProps) => {
   const splitParagraphs = (text: string): string[] =>
     text
       .split(/\n{2,}/)
-      .map((segment) => segment.trim())
-      .filter(Boolean);
+      .map((segment) => segment.trimEnd())
+      .filter((segment) => segment.trim().length > 0);
 
   const getReasoningParagraphs = (item: ChatItem): string[] => {
     if (item.thoughtChain && item.thoughtChain.length > 0) {
@@ -115,7 +181,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       setIsLoading(false);
     });
 
-    const unsubscribeError = window.ai?.onStreamError?.((data: any) => {
+    const unsubscribeError = window.ai?.onStreamError?.((data: StreamErrorPayload) => {
       setError(data.error || '流式传输出错');
       setStreamingKey(null);
       setIsLoading(false);
@@ -213,15 +279,16 @@ export const AITab = ({ noteId }: AITabProps) => {
     }
 
     const reasoningParagraphs = options?.reasoningParagraphs ?? getReasoningParagraphs(item);
-    if (reasoningParagraphs.length === 0) {
-      if (options?.showAnswerPlaceholder) {
+    const hasReasoning = reasoningParagraphs.length > 0;
+    const hasAnswerText = item.content.trim().length > 0;
+    const isPlaceholder = options?.showAnswerPlaceholder && !hasAnswerText;
+
+    if (!hasReasoning) {
+      if (isPlaceholder) {
         return <span className="ai-placeholder-text">AI 正在组织回答…</span>;
       }
-      return item.content;
+      return renderMarkdownBlock(item.content, 'ai-bubble-text');
     }
-
-    const isPlaceholder = options?.showAnswerPlaceholder && item.content.length === 0;
-    const answerText = isPlaceholder ? 'AI 正在组织回答…' : item.content;
 
     const mergedItem: ThoughtChainItems = [
       {
@@ -230,7 +297,9 @@ export const AITab = ({ noteId }: AITabProps) => {
         content: (
           <div className="ai-thought-chain-content">
             {reasoningParagraphs.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
+              <div key={index} className="ai-thought-chain-block">
+                {renderMarkdownBlock(paragraph)}
+              </div>
             ))}
           </div>
         ),
@@ -242,10 +311,10 @@ export const AITab = ({ noteId }: AITabProps) => {
         <div className="ai-thought-chain-wrapper">
           <ThoughtChain items={mergedItem} size="small" collapsible />
         </div>
-        {answerText && (
-          <div className={`ai-bubble-text${isPlaceholder ? ' ai-placeholder-text' : ''}`}>
-            {answerText}
-          </div>
+        {isPlaceholder ? (
+          <span className="ai-placeholder-text">AI 正在组织回答…</span>
+        ) : (
+          renderMarkdownBlock(item.content, 'ai-bubble-text')
         )}
       </div>
     );
@@ -263,7 +332,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       showAnswerPlaceholder,
     });
 
-    const item: any = {
+    const item: BubbleListItem = {
       key: m.key,
       role: m.role,
       content: baseContent,

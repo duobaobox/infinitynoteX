@@ -86,11 +86,11 @@ function App() {
         try {
           const conversations = await window.storage.getAIConversations();
           if (conversations.length === 0) {
-            // 如果没有对话，创建默认对话
-            const defaultConv = await window.storage.createAIConversation('新建对话');
+            // 如果没有对话，创建默认对话（第一个会自动命名为"默认对话"）
+            const defaultConv = await window.storage.createAIConversation();
             setSelectedToolItemId(defaultConv.id);
           } else if (!selectedToolItemId) {
-            // 如果有对话但没有选中，选中第一个
+            // 如果有对话但没有选中，选中第一个（默认对话）
             setSelectedToolItemId(conversations[0].id);
           }
         } catch (error) {

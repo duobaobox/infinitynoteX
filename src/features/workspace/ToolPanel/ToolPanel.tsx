@@ -34,7 +34,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       label: (
         <span>
           <RobotOutlined style={{ marginRight: 4 }} />
-          AI对话
         </span>
       ),
       value: 'ai',
@@ -43,7 +42,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       label: (
         <span>
           <ClockCircleOutlined style={{ marginRight: 4 }} />
-          计时器
         </span>
       ),
       value: 'timer',
@@ -52,7 +50,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       label: (
         <span>
           <AppstoreOutlined style={{ marginRight: 4 }} />
-          工具组件
         </span>
       ),
       value: 'kit',
@@ -61,7 +58,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       label: (
         <span>
           <SettingOutlined style={{ marginRight: 4 }} />
-          更多
         </span>
       ),
       value: 'settings',
@@ -96,9 +92,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
   return (
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">
+        {/* 标签栏 */}
         <div style={{ display: 'inline-block' }}>
           <Segmented
-            block
             options={segmentOptions}
             value={activeTab}
             onChange={(value) => setActiveTab(value as ToolPanelTab)}

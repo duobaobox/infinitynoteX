@@ -3,6 +3,7 @@ import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { NoteIndex } from '../../../services/types';
 import NoteCard from '../NoteCard/NoteCard';
+import AIConversationCard from '../NoteCard/AIConversationCard';
 import { NoteCardListContext } from '../NoteCard/NoteCardContext';
 import { getThemeColor } from '../../../theme/theme';
 import {
@@ -221,8 +222,10 @@ const ListPanel: React.FC<ListPanelProps> = ({
 
     const handleCreateAIConversation = async () => {
       try {
-        await window.storage.createAIConversation();
+        const newConversation = await window.storage.createAIConversation();
         await loadAiConversations();
+        // 自动选中新创建的对话
+        onSelectToolItem(newConversation.id);
         message.success('新建对话成功');
       } catch (error) {
         console.error('Failed to create AI conversation:', error);
@@ -231,6 +234,12 @@ const ListPanel: React.FC<ListPanelProps> = ({
     };
 
     const handleDeleteAIConversation = async (id: string, title: string) => {
+      // 检查是否为默认对话
+      if (title === '默认对话') {
+        message.warning('默认对话无法删除');
+        return;
+      }
+
       Modal.confirm({
         title: '删除对话',
         content: `确定删除对话"${title}"吗？`,
@@ -240,10 +249,18 @@ const ListPanel: React.FC<ListPanelProps> = ({
         async onOk() {
           try {
             await window.storage.deleteAIConversation(id);
-            await loadAiConversations();
+
+            // 如果删除的是当前选中的对话，自动切换到第一个对话
             if (selectedToolItemId === id) {
-              onSelectToolItem('');
+              const updatedConversations = await window.storage.getAIConversations();
+              if (updatedConversations.length > 0) {
+                onSelectToolItem(updatedConversations[0].id);
+              } else {
+                onSelectToolItem('');
+              }
             }
+
+            await loadAiConversations();
           } catch (error) {
             console.error('Failed to delete AI conversation:', error);
             message.error('删除对话失败');
@@ -294,22 +311,23 @@ const ListPanel: React.FC<ListPanelProps> = ({
           <NoteCardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
             <div className="scrollable-list" ref={scrollableListRef}>
               {filteredAiConversations.map((session) => (
-                <NoteCard
+                <AIConversationCard
                   key={session.id}
                   title={session.title}
                   content={session.excerpt}
-                  color={session.color || 'ffffff'}
                   onClick={() => onSelectToolItem(session.id)}
                   actions={
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAIConversation(session.id, session.title);
-                      }}
-                    />
+                    session.title !== '默认对话' ? (
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAIConversation(session.id, session.title);
+                        }}
+                      />
+                    ) : null
                   }
                   id={session.id}
                 />

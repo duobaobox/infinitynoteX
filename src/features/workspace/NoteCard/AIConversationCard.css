@@ -1,0 +1,7 @@
+/* ============================================
+   AI对话卡片样式
+   复用 NoteCard 的所有样式（除了背景装饰改为机器人）
+   ============================================ */
+
+@import './NoteCard.css';
+@import '../../../components/CardBackground/RobotBackground.css';

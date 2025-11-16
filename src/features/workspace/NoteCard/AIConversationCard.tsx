@@ -1,23 +1,21 @@
 import React from 'react';
-import './NoteCard.css';
+import './AIConversationCard.css';
 import { getThemeColor } from '../../../theme/theme';
-import { useNoteCardTheme, type NoteCardColor } from './useNoteCardTheme';
-import CardBackground from '../../../components/CardBackground/CardBackground';
+import { useNoteCardTheme } from './useNoteCardTheme';
+import RobotBackground from '../../../components/CardBackground/RobotBackground';
 import { NoteCardListContext } from './NoteCardContext';
 
-export interface NoteCardProps {
+export interface AIConversationCardProps {
   title: string;
   content: string;
-  color?: NoteCardColor;
   onClick?: () => void;
   actions?: React.ReactNode; // 右上角操作区（如删除等）
   id?: string; // 用于选中高亮
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({
+const AIConversationCard: React.FC<AIConversationCardProps> = ({
   title,
   content,
-  color = 'ffffff',
   onClick,
   actions,
   id,
@@ -41,9 +39,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
   const isSelected =
     listContext && listContext.selectedId === (typeof id === 'string' ? id : undefined);
 
-  // 使用主题 hook 获取卡片的背景色和边框色
+  // AI卡片固定为白色，复用 NoteCard 的主题逻辑，但颜色固定为白色
   const isInteractive = isSelected || hovered;
-  const { bgColor, borderColor } = useNoteCardTheme(color, themeColor, isInteractive);
+  const { borderColor } = useNoteCardTheme('ffffff', themeColor, isInteractive);
+  const bgColor = '#ffffff'; // 固定白色
 
   return (
     <div
@@ -56,8 +55,8 @@ const NoteCard: React.FC<NoteCardProps> = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* 堆叠便签卡片背景图案 */}
-      <CardBackground className="note-card-pattern" />
+      {/* AI机器人背景装饰 */}
+      <RobotBackground className="note-card-pattern" />
 
       {/* 卡片内容 */}
       <div className="note-card-content-wrapper">
@@ -69,12 +68,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
         </div>
       </div>
 
-      <div className="note-card-actions">
-        {/* 删除按钮（由父组件通过 actions 传入） */}
-        {actions}
-      </div>
+      {/* 操作区（右上角，仅删除按钮，无钉住按钮） */}
+      <div className="note-card-actions">{actions}</div>
     </div>
   );
 };
 
-export default NoteCard;
+export default AIConversationCard;

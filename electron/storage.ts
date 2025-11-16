@@ -81,6 +81,7 @@ interface AIConversation {
   }>;
   createdAt: number;
   updatedAt: number;
+  isDefault?: boolean; // 是否是默认对话（系统对话，禁止删除）
 }
 
 enum StorageErrorCode {
@@ -882,16 +883,21 @@ export class StorageManager {
    */
   async createAIConversation(title?: string): Promise<AIConversation> {
     const now = Date.now();
+    const conversations = await this.getAIConversations();
+    const isDefaultConversation = conversations.length === 0; // 如果没有对话，这是第一个（默认对话）
+
     const newConversation: AIConversation = {
       id: this.generateId(),
-      title: title || `对话 ${new Date().toLocaleDateString('zh-CN')}`,
+      title: isDefaultConversation
+        ? '默认对话'
+        : title || `对话 ${new Date().toLocaleDateString('zh-CN')}`,
       excerpt: '开始对话',
       messages: [],
       createdAt: now,
       updatedAt: now,
+      isDefault: isDefaultConversation, // 标记为默认对话
     };
 
-    const conversations = await this.getAIConversations();
     conversations.push(newConversation);
     await this.saveAIConversations(conversations);
 
@@ -907,6 +913,11 @@ export class StorageManager {
 
     if (index < 0) {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
+    }
+
+    // 禁止删除默认对话
+    if (conversations[index].isDefault) {
+      throw new StorageError(StorageErrorCode.E_FOLDER_SYSTEM, '无法删除默认对话');
     }
 
     conversations.splice(index, 1);

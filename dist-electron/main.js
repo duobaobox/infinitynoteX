@@ -637,15 +637,18 @@ class StorageManager {
    */
   async createAIConversation(title) {
     const now = Date.now();
+    const conversations = await this.getAIConversations();
+    const isDefaultConversation = conversations.length === 0;
     const newConversation = {
       id: this.generateId(),
-      title: title || `对话 ${(/* @__PURE__ */ new Date()).toLocaleDateString("zh-CN")}`,
+      title: isDefaultConversation ? "默认对话" : title || `对话 ${(/* @__PURE__ */ new Date()).toLocaleDateString("zh-CN")}`,
       excerpt: "开始对话",
       messages: [],
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      isDefault: isDefaultConversation
+      // 标记为默认对话
     };
-    const conversations = await this.getAIConversations();
     conversations.push(newConversation);
     await this.saveAIConversations(conversations);
     return newConversation;
@@ -658,6 +661,9 @@ class StorageManager {
     const index = conversations.findIndex((c) => c.id === id);
     if (index < 0) {
       throw new StorageError("E_NOT_FOUND", `Conversation not found: ${id}`);
+    }
+    if (conversations[index].isDefault) {
+      throw new StorageError("E_FOLDER_SYSTEM", "无法删除默认对话");
     }
     conversations.splice(index, 1);
     await this.saveAIConversations(conversations);

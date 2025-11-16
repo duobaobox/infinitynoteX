@@ -135,7 +135,11 @@ export const AITab = ({ noteId }: AITabProps) => {
   // 加载对话历史
   useEffect(() => {
     const loadConversationHistory = async () => {
-      if (!noteId) return;
+      if (!noteId) {
+        // 未选中对话时清空消息
+        setChatItems([]);
+        return;
+      }
 
       try {
         const conversations = await window.storage.getAIConversations();
@@ -149,9 +153,13 @@ export const AITab = ({ noteId }: AITabProps) => {
             content: msg.content,
           }));
           setChatItems(items);
+        } else {
+          // 对话存在但没有消息，清空
+          setChatItems([]);
         }
       } catch (err) {
         console.error('Failed to load conversation history:', err);
+        setChatItems([]);
       }
     };
 

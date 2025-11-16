@@ -1,14 +1,23 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Sender, Bubble, useXAgent, useXChat } from '@ant-design/x';
+import type { RequestFn } from '@ant-design/x/es/use-x-agent';
 import { Alert, Button, Space, Spin, Tooltip, Divider } from 'antd';
 import { ReloadOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
 import './AIWorkbench.css';
+import type { AIConfig } from '../../services/aiConfig';
+import { AI_PROVIDER_PRESETS } from '../../services/aiProviders';
 
-interface AIConfig {
-  provider?: string;
-  model?: string;
-  baseURL?: string;
-}
+type ChatAgentMessage = {
+  role: string;
+  content: string;
+};
+
+type AgentRequestContext = {
+  message: string;
+  messages: ChatAgentMessage[];
+};
+
+type AgentRequestHandler = RequestFn<string, AgentRequestContext, string>;
 
 const AIWorkbench: React.FC = () => {
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
@@ -16,6 +25,17 @@ const AIWorkbench: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const providerSummaries = useMemo(
+    () =>
+      AI_PROVIDER_PRESETS.map((provider) => {
+        const topModels = provider.models
+          .slice(0, 2)
+          .map((model) => model.id)
+          .join('、');
+        return topModels ? `${provider.name}：${topModels}` : provider.name;
+      }),
+    [],
+  );
 
   // 检查 AI 配置
   useEffect(() => {
@@ -35,14 +55,11 @@ const AIWorkbench: React.FC = () => {
   }, []);
 
   // 创建 Agent
-  const [agent] = useXAgent({
-    request: useCallback(async (info: any, callbacks: any) => {
+  const [agent] = useXAgent<string, AgentRequestContext, string>({
+    request: useCallback<AgentRequestHandler>(async (info, callbacks) => {
       try {
-        const { message, messages } = info as {
-          message: string;
-          messages: Array<{ role: string; content: string }>;
-        };
-        const { onSuccess } = callbacks as { onSuccess: (content: string) => void };
+        const { message, messages } = info;
+        const { onSuccess } = callbacks;
 
         setError(null);
         setIsLoading(true);
@@ -63,7 +80,7 @@ const AIWorkbench: React.FC = () => {
           throw new Error(response.error || '未知错误');
         }
 
-        onSuccess(response.content);
+        onSuccess([response.content]);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         setError(errorMsg);
@@ -114,11 +131,12 @@ const AIWorkbench: React.FC = () => {
           style={{ maxWidth: '500px' }}
         />
         <div style={{ color: '#666', fontSize: '13px', maxWidth: '500px', textAlign: 'center' }}>
-          <p style={{ marginBottom: '8px' }}>支持以下模型：</p>
+          <p style={{ marginBottom: '8px' }}>预置以下厂商，可直接选择：</p>
           <ul style={{ textAlign: 'left', display: 'inline-block' }}>
-            <li>OpenAI: gpt-4o, gpt-3.5-turbo</li>
-            <li>本地 Ollama: mistral, llama2 等</li>
-            <li>其他 OpenAI 兼容服务</li>
+            {providerSummaries.map((summary) => (
+              <li key={summary}>{summary}</li>
+            ))}
+            <li>自定义服务：兼容 OpenAI /v1/chat/completions 即可</li>
           </ul>
         </div>
       </div>

@@ -7,6 +7,8 @@
  * AI 配置（用户在"AI 管理"中配置）
  */
 export interface AIConfig {
+  /** 预设的模型提供商 ID（用于自动填充配置） */
+  providerId?: string; // e.g., 'deepseek', 'alibaba'
   /** 模型提供商（用于 UI 展示与区分） */
   provider: string; // e.g., 'openai', 'ollama', 'qwen', 'azure', 'custom'
   /** API 基础 URL，支持任意 OpenAI 兼容服务 */

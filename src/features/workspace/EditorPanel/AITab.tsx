@@ -442,7 +442,7 @@ export const AITab = ({ noteId }: AITabProps) => {
     try {
       const payload = {
         message: text,
-        messages: newChatItems.map((m) => ({
+        messages: chatItems.map((m) => ({
           role: m.role === 'user' ? 'user' : 'assistant',
           content: m.content,
         })),

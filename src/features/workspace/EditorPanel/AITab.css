@@ -205,6 +205,29 @@
   gap: 8px;
 }
 
+.ai-bubble-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ai-bubble-footer .ant-btn {
+  font-size: 12px;
+  color: var(--text-secondary, #595959);
+}
+
+.ai-tab-container .ant-bubble-content,
+.ai-tab-container .ant-bubble-content-filled {
+  margin-bottom: 0 !important;
+}
+
+.ai-tab-container .ant-bubble-footer {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 .ai-bubble-text {
   line-height: 1.65;
 }

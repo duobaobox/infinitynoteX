@@ -3,7 +3,8 @@
  * AI 工作台 - AI 相关功能（基于 Ant Design X 规范）
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import type {
   AnchorHTMLAttributes,
   HTMLAttributes,
@@ -13,7 +14,7 @@ import type {
 } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
 import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message } from 'antd';
-import type { MenuProps } from 'antd';
+import type { MenuProps, GetProp } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -21,8 +22,10 @@ import {
   RobotOutlined,
   UserOutlined,
   DownOutlined,
+  CopyOutlined,
+  CheckOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
-import type { GetProp } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
@@ -88,7 +91,7 @@ const markdownComponents: Components = {
   ),
 };
 
-const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
+const createMarkdownElement = (text: string, className?: string, key?: Key) => {
   if (!text || !text.trim()) {
     return null;
   }
@@ -106,6 +109,15 @@ const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
       {text}
     </ReactMarkdown>
   );
+};
+
+const renderMarkdownBlock = (text: string, className?: string, key?: Key) =>
+  createMarkdownElement(text, className, key);
+
+const renderMarkdownToHtml = (text: string, className?: string) => {
+  const element = createMarkdownElement(text, className);
+  if (!element) return '';
+  return ReactDOMServer.renderToStaticMarkup(element);
 };
 
 const isAIConfigReady = (config?: AIConfig | null) => {
@@ -133,6 +145,8 @@ export const AITab = ({ noteId }: AITabProps) => {
   const [conversationTitle, setConversationTitle] = useState<string>('AI 对话');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('');
+  const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
+  const copyResetTimerRef = useRef<number | null>(null);
 
   const refreshProviderOptions = useCallback((activeConfig?: AIConfig | null) => {
     const stored = readStoredProviderConfigs();
@@ -176,6 +190,51 @@ export const AITab = ({ noteId }: AITabProps) => {
   }, [refreshProviderOptions]);
 
   useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current) {
+        window.clearTimeout(copyResetTimerRef.current);
+        copyResetTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleSaveToNote = useCallback(async (content: string) => {
+    try {
+      // 将文本内容转换为 TipTap JSON 格式
+      // 按段落分割（双换行符）
+      const paragraphs = content.split(/\n\n+/).filter((p) => p.trim());
+
+      const tipTapContent = {
+        type: 'doc',
+        content: paragraphs.map((para) => ({
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: para.trim(),
+            },
+          ],
+        })),
+      };
+
+      // 生成便签标题（取第一行或前30个字符）
+      const firstLine = content.split('\n')[0].trim();
+      const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
+
+      // 创建便签到默认文件夹
+      await window.storage.createNote('default', {
+        title,
+        content: tipTapContent,
+      });
+
+      message.success('已保存到默认文件夹');
+    } catch (error) {
+      console.error('Failed to save to note:', error);
+      message.error('保存失败，请重试');
+    }
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = subscribeAIConfigChanged((nextConfig) => {
       const normalized = ensureAIConfigDefaults(nextConfig);
       setConfig(normalized);
@@ -190,6 +249,7 @@ export const AITab = ({ noteId }: AITabProps) => {
     key: string;
     role: 'user' | 'ai';
     content: string;
+    timestamp: number;
     thoughtChain?: ThoughtChainItems;
     isStreaming?: boolean;
     thoughtChainText?: string; // 流式思维链原始文本增量累积
@@ -217,10 +277,11 @@ export const AITab = ({ noteId }: AITabProps) => {
 
           if (conversation.messages && conversation.messages.length > 0) {
             // 转换存储格式到 ChatItem 格式
-            const items: ChatItem[] = conversation.messages.map((msg) => ({
-              key: `${msg.role}-${msg.timestamp}`,
+            const items: ChatItem[] = conversation.messages.map((msg, index) => ({
+              key: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
               role: msg.role === 'assistant' ? 'ai' : 'user',
               content: msg.content,
+              timestamp: msg.timestamp ?? Date.now(),
               thoughtChainText: msg.reasoning || undefined, // 恢复思考过程
             }));
             setChatItems(items);
@@ -245,10 +306,11 @@ export const AITab = ({ noteId }: AITabProps) => {
       if (!noteId) return;
 
       try {
-        const messages = items.map((item) => ({
+        const messages = items.map((item, index) => ({
+          id: item.key || `${item.role}-${item.timestamp}-${index}`,
           role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
           content: item.content,
-          timestamp: Date.now(),
+          timestamp: item.timestamp ?? Date.now(),
           reasoning: item.thoughtChainText || undefined, // 保存思考过程
         }));
 
@@ -365,6 +427,89 @@ export const AITab = ({ noteId }: AITabProps) => {
     return [];
   };
 
+  const handleCopyAnswer = useCallback((item: ChatItem) => {
+    const textToCopy = item.content?.trim();
+    if (!textToCopy) {
+      message.info('暂无可复制内容');
+      return;
+    }
+
+    const htmlToCopy = renderMarkdownToHtml(textToCopy, 'ai-bubble-text');
+
+    const copyWithClipboardItem = async () => {
+      if (!htmlToCopy) return false;
+      if (typeof ClipboardItem === 'undefined' || !navigator?.clipboard?.write) {
+        return false;
+      }
+      try {
+        const itemData: Record<string, Blob> = {
+          'text/plain': new Blob([textToCopy], { type: 'text/plain' }),
+          'text/html': new Blob([htmlToCopy], { type: 'text/html' }),
+        };
+        await navigator.clipboard.write([new ClipboardItem(itemData)]);
+        return true;
+      } catch (error) {
+        console.warn('Clipboard HTML copy failed, fallback to text.', error);
+        return false;
+      }
+    };
+
+    const copyWithClipboardText = async () => {
+      if (!navigator?.clipboard?.writeText) {
+        return false;
+      }
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const copyWithDomFallback = () => {
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'fixed';
+      tempContainer.style.opacity = '0';
+      tempContainer.style.pointerEvents = 'none';
+      tempContainer.innerHTML = htmlToCopy || textToCopy;
+      document.body.appendChild(tempContainer);
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(tempContainer);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.execCommand('copy');
+      selection?.removeAllRanges();
+      document.body.removeChild(tempContainer);
+    };
+
+    const executeCopy = async () => {
+      const copiedHtml = await copyWithClipboardItem();
+      if (copiedHtml) return;
+
+      const copiedText = await copyWithClipboardText();
+      if (copiedText) return;
+
+      copyWithDomFallback();
+    };
+
+    executeCopy()
+      .then(() => {
+        setCopiedBubbleKey(item.key);
+        if (copyResetTimerRef.current) {
+          window.clearTimeout(copyResetTimerRef.current);
+        }
+        copyResetTimerRef.current = window.setTimeout(() => {
+          setCopiedBubbleKey((current) => (current === item.key ? null : current));
+        }, 2000);
+        message.success('已复制');
+      })
+      .catch((err) => {
+        console.error('Failed to copy AI response:', err);
+        message.error('复制失败，请手动选择文本');
+      });
+  }, []);
+
   // 监听 IPC 流式事件
   useEffect(() => {
     const unsubscribeChunk = window.ai?.onStreamChunk?.(
@@ -420,6 +565,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       key: `u-${Date.now()}-${Math.random()}`,
       role: 'user',
       content: text,
+      timestamp: Date.now(),
     };
     const newChatItems = [...chatItems, userItem];
     setChatItems(newChatItems);
@@ -432,6 +578,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       key: aiKey,
       role: 'ai',
       content: '',
+      timestamp: Date.now(),
       isStreaming: true,
     };
     const updatedChatItems = [...newChatItems, aiItem];
@@ -547,6 +694,7 @@ export const AITab = ({ noteId }: AITabProps) => {
     const hasAnswerText = m.content.length > 0;
     const showAnswerPlaceholder =
       m.role === 'ai' && m.isStreaming && !hasAnswerText && hasReasoning;
+    const isCopied = copiedBubbleKey === m.key;
 
     const baseContent = renderBubbleContent(m, {
       reasoningParagraphs,
@@ -560,6 +708,33 @@ export const AITab = ({ noteId }: AITabProps) => {
     };
 
     if (m.role === 'ai') {
+      item.footer = (
+        <div className="ai-bubble-footer">
+          <Tooltip title={isCopied ? '已复制' : '复制回答'}>
+            <Button
+              type="text"
+              size="small"
+              icon={isCopied ? <CheckOutlined /> : <CopyOutlined />}
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleCopyAnswer(m);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="保存到笔记">
+            <Button
+              type="text"
+              size="small"
+              icon={<SaveOutlined />}
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleSaveToNote(m.content);
+              }}
+            />
+          </Tooltip>
+        </div>
+      );
+
       if (!hasAnswerText && !hasReasoning && m.isStreaming) {
         item.loading = true;
         item.content = 'AI 正在思考中...';

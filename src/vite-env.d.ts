@@ -59,6 +59,7 @@ declare global {
           title: string;
           excerpt: string;
           messages: Array<{
+            id?: string;
             role: 'user' | 'assistant';
             content: string;
             timestamp: number;
@@ -73,6 +74,7 @@ declare global {
         title: string;
         excerpt: string;
         messages: Array<{
+          id?: string;
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
@@ -95,6 +97,7 @@ declare global {
         title: string;
         excerpt: string;
         messages: Array<{
+          id?: string;
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;
@@ -111,6 +114,7 @@ declare global {
         title: string;
         excerpt: string;
         messages: Array<{
+          id?: string;
           role: 'user' | 'assistant';
           content: string;
           timestamp: number;

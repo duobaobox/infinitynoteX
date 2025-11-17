@@ -75,6 +75,7 @@ interface AIConversation {
   title: string;
   excerpt: string;
   messages: Array<{
+    id?: string;
     role: 'user' | 'assistant';
     content: string;
     timestamp: number;
@@ -941,7 +942,10 @@ export class StorageManager {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
     }
 
-    conversation.messages = messages;
+    conversation.messages = messages.map((message, index) => ({
+      ...message,
+      id: message.id ?? `${message.role}-${message.timestamp}-${index}`,
+    }));
     conversation.updatedAt = Date.now();
 
     // 更新摘要（使用最后一条用户消息）

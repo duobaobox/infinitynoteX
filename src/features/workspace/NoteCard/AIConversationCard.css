@@ -5,3 +5,30 @@
 
 @import './NoteCard.css';
 @import '../../../components/CardBackground/RobotBackground.css';
+
+/* ============================================
+   暗色模式适配
+   ============================================ */
+
+/* 暗色模式 - AI对话卡片 */
+:root[data-theme='dark'] .note-card.group[class*='AIConversation'] {
+  background-color: #262626;
+  border-color: #434343;
+}
+
+:root[data-theme='dark'] .note-card.group[class*='AIConversation']:hover {
+  border-color: #595959;
+}
+
+:root[data-theme='dark'] .note-card.group[class*='AIConversation'].note-card-selected {
+  border-color: #177ddc;
+  box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.2);
+}
+
+:root[data-theme='dark'] .note-card.group .note-card-title {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .note-card.group .note-card-content {
+  color: #a6a6a6;
+}

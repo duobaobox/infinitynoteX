@@ -369,3 +369,180 @@
 .ai-tab-input .ant-sender-footer {
   padding: 8px 12px;
 }
+
+/* ==================== 暗色模式适配 ==================== */
+
+/* 暗色模式 - 容器 */
+:root[data-theme='dark'] .ai-tab-container {
+  background-color: #141414;
+}
+
+/* 暗色模式 - 顶部标题栏 */
+:root[data-theme='dark'] .ai-tab-header {
+  background-color: #1f1f1f;
+  border-bottom-color: #434343;
+}
+
+:root[data-theme='dark'] .ai-tab-header-title {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-tab-header-meta {
+  color: #8c8c8c;
+}
+
+/* 暗色模式 - 消息区域 */
+:root[data-theme='dark'] .ai-tab-messages {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ai-tab-messages-empty {
+  color: #595959;
+}
+
+/* 暗色模式 - 输入框 */
+:root[data-theme='dark'] .ai-tab-input {
+  background-color: #1f1f1f;
+  border-top-color: #434343;
+}
+
+/* 暗色模式 - 模型切换触发器 */
+:root[data-theme='dark'] .ai-tab-meta-trigger {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-tab-meta-trigger[role='button']:hover {
+  border-color: #177ddc;
+  background: rgba(23, 125, 220, 0.12);
+}
+
+:root[data-theme='dark'] .ai-tab-meta-provider {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-tab-meta-model {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - 元数据选项 */
+:root[data-theme='dark'] .ai-meta-option__provider {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-meta-option__model {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - Sender 输入框样式 */
+:root[data-theme='dark'] .ai-tab-input .ant-sender {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ai-tab-input .ant-sender-input {
+  background-color: #262626;
+  color: #e6e6e6;
+  border-color: #434343;
+}
+
+:root[data-theme='dark'] .ai-tab-input .ant-sender-input::placeholder {
+  color: #8c8c8c;
+}
+
+:root[data-theme='dark'] .ai-tab-input .ant-sender-footer {
+  background-color: #1f1f1f;
+  border-top-color: #434343;
+}
+
+/* 暗色模式 - 告警提示 */
+:root[data-theme='dark'] .ai-tab-alert {
+  background-color: #2f1515;
+  border-color: #58181c;
+}
+
+/* 暗色模式 - 气泡菜单 */
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu {
+  background-color: #262626;
+}
+
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item:hover {
+  background-color: #434343;
+}
+
+/* 暗色模式 - AI对话气泡 */
+:root[data-theme='dark'] .ai-tab-messages {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ant-bubble-content {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ant-bubble-footer {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - Markdown内容 */
+:root[data-theme='dark'] .ai-markdown {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-markdown a {
+  color: #177ddc;
+}
+
+:root[data-theme='dark'] .ai-inline-code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f5;
+}
+
+:root[data-theme='dark'] .ai-code-block {
+  background: #1f1f1f;
+  border: 1px solid #434343;
+}
+
+:root[data-theme='dark'] .ai-markdown blockquote {
+  border-left-color: #434343;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 暗色模式 - 便签卡片 */
+:root[data-theme='dark'] .note-card.group {
+  background-color: #262626;
+  border-color: #434343;
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .note-card.group:hover {
+  border-color: #595959;
+  background-color: #2d2d2d;
+}
+
+:root[data-theme='dark'] .note-card.group.note-card-selected {
+  border-color: #177ddc;
+  background-color: #2d2d2d;
+  box-shadow: 0 0 0 2px rgba(23, 125, 220, 0.2);
+}
+
+:root[data-theme='dark'] .note-card-title {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .note-card-content {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - 思维链 */
+:root[data-theme='dark'] .ai-thought-chain-content {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-placeholder-text {
+  color: #595959;
+}

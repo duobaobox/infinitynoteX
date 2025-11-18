@@ -23,6 +23,7 @@ const AIConversationCard: React.FC<AIConversationCardProps> = ({
   // 监听主题色变化
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
   const [hovered, setHovered] = React.useState(false);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
 
   React.useEffect(() => {
     const handler: EventListener = (event) => {
@@ -34,15 +35,32 @@ const AIConversationCard: React.FC<AIConversationCardProps> = ({
     return () => window.removeEventListener('theme-color-change', handler);
   }, []);
 
+  // 检测暗色模式
+  React.useEffect(() => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    setIsDarkMode(isDark);
+
+    const observer = new MutationObserver(() => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      setIsDarkMode(isDark);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // 由父组件传递 selectedId，当前卡片是否选中
   const listContext = React.useContext(NoteCardListContext);
   const isSelected =
     listContext && listContext.selectedId === (typeof id === 'string' ? id : undefined);
 
-  // AI卡片固定为白色，复用 NoteCard 的主题逻辑，但颜色固定为白色
+  // AI卡片在暗色模式下使用深色背景，亮色模式使用白色
   const isInteractive = isSelected || hovered;
   const { borderColor } = useNoteCardTheme('ffffff', themeColor, isInteractive);
-  const bgColor = '#ffffff'; // 固定白色
+  const bgColor = isDarkMode ? '#262626' : '#ffffff'; // 暗色模式使用深色背景
 
   return (
     <div

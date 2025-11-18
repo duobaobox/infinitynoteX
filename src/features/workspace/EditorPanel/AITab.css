@@ -173,6 +173,11 @@
   flex-shrink: 0;
 }
 
+/* 隐藏 ant-sender-content 中的按钮 */
+.ai-tab-input .ant-sender-content .ant-btn {
+  display: none;
+}
+
 /* 隐藏输入框的滚动条 */
 .ai-tab-input .ant-sender-input {
   scrollbar-width: none; /* Firefox */
@@ -353,4 +358,14 @@
 
 .ai-table-wrapper tr:nth-child(2n) td {
   background: rgba(0, 0, 0, 0.02);
+}
+
+/* Sender 输入框 - 最小化自定义，使用 Ant Design X 原生样式 */
+.ai-tab-input {
+  padding: 0;
+  border-top: none;
+}
+
+.ai-tab-input .ant-sender-footer {
+  padding: 8px 12px;
 }

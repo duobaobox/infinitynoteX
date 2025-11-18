@@ -14,7 +14,7 @@ import type {
 } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
 import { generateJSON } from '@tiptap/html';
-import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message } from 'antd';
+import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message, Flex } from 'antd';
 import type { MenuProps, GetProp } from 'antd';
 import {
   ReloadOutlined,
@@ -226,6 +226,7 @@ export const AITab = ({ noteId }: AITabProps) => {
   const [tempTitle, setTempTitle] = useState<string>('');
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
   const copyResetTimerRef = useRef<number | null>(null);
+  const [inputValue, setInputValue] = useState<string>('');
 
   const refreshProviderOptions = useCallback((activeConfig?: AIConfig | null) => {
     const stored = readStoredProviderConfigs();
@@ -320,6 +321,7 @@ export const AITab = ({ noteId }: AITabProps) => {
   }
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [streamingKey, setStreamingKey] = useState<string | null>(null);
+  const [hasWelcomeMessage, setHasWelcomeMessage] = useState(false);
 
   // 加载对话历史
   useEffect(() => {
@@ -328,6 +330,7 @@ export const AITab = ({ noteId }: AITabProps) => {
         // 未选中对话时清空消息
         setChatItems([]);
         setConversationTitle('AI 对话');
+        setHasWelcomeMessage(false);
         return;
       }
 
@@ -349,15 +352,18 @@ export const AITab = ({ noteId }: AITabProps) => {
               thoughtChainText: msg.reasoning || undefined, // 恢复思考过程
             }));
             setChatItems(items);
+            setHasWelcomeMessage(true); // 已有消息，不需要欢迎语言
           } else {
-            // 对话存在但没有消息，清空
+            // 对话存在但没有消息，显示欢迎语言
             setChatItems([]);
+            setHasWelcomeMessage(false);
           }
         }
       } catch (err) {
         console.error('Failed to load conversation history:', err);
         setChatItems([]);
         setConversationTitle('AI 对话');
+        setHasWelcomeMessage(false);
       }
     };
 
@@ -625,6 +631,15 @@ export const AITab = ({ noteId }: AITabProps) => {
   // 发送用户消息并调用流式后端
   const sendUserMessage = async (text: string) => {
     if (!text.trim()) return;
+
+    // 清空输入框
+    setInputValue('');
+
+    // 用户发送第一条消息时，标记为已有消息（不再显示欢迎语言）
+    if (!hasWelcomeMessage) {
+      setHasWelcomeMessage(true);
+    }
+
     const userItem: ChatItem = {
       key: `u-${Date.now()}-${Math.random()}`,
       role: 'user',
@@ -924,20 +939,6 @@ export const AITab = ({ noteId }: AITabProps) => {
               {conversationTitle}
             </span>
           )}
-          {hasProviderConfigs && dropdownMenuProps ? (
-            <Dropdown
-              menu={dropdownMenuProps}
-              trigger={['click']}
-              placement="bottomLeft"
-              overlayClassName="ai-meta-dropdown"
-            >
-              {renderMetaTrigger(true)}
-            </Dropdown>
-          ) : config ? (
-            renderMetaTrigger(false)
-          ) : (
-            <span className="ai-tab-header-meta">未配置</span>
-          )}
         </div>
 
         <Space size="small">
@@ -1008,7 +1009,37 @@ export const AITab = ({ noteId }: AITabProps) => {
           loading={isLoading}
           disabled={isLoading || !isConfigured}
           onSubmit={sendUserMessage}
-          placeholder="输入问题...（Shift+Enter 换行，Enter 发送）"
+          placeholder="请输入问题...（Shift+Enter 换行，Enter 发送）"
+          value={inputValue}
+          onChange={setInputValue}
+          actions={null}
+          footer={
+            <Flex justify="space-between" align="center">
+              <Flex align="center" gap="small">
+                {hasProviderConfigs && dropdownMenuProps ? (
+                  <Dropdown
+                    menu={dropdownMenuProps}
+                    trigger={['click']}
+                    placement="topLeft"
+                    overlayClassName="ai-meta-dropdown"
+                  >
+                    {renderMetaTrigger(true)}
+                  </Dropdown>
+                ) : config ? (
+                  renderMetaTrigger(false)
+                ) : null}
+              </Flex>
+              <Flex align="center">
+                <Button
+                  type="primary"
+                  shape="circle"
+                  icon={<RobotOutlined style={{ fontSize: 18 }} />}
+                  onClick={() => inputValue.trim() && sendUserMessage(inputValue)}
+                  disabled={isLoading || !isConfigured || !inputValue.trim()}
+                />
+              </Flex>
+            </Flex>
+          }
         />
       </div>
     </div>

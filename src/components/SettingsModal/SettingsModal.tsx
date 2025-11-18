@@ -81,7 +81,7 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const getErrMsg = (e: unknown) =>
     e instanceof Error ? e.message : typeof e === 'string' ? e : '未知错误';
-  const [selectedMenu, setSelectedMenu] = useState('general');
+  const [selectedMenu, setSelectedMenu] = useState('appearance');
   const [currentPath, setCurrentPath] = useState<string>('');
   const [stats, setStats] = useState<StorageStats | null>(null);
   const [migrating, setMigrating] = useState(false);

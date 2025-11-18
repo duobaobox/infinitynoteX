@@ -721,7 +721,7 @@ export const AITab = ({ noteId }: AITabProps) => {
               }}
             />
           </Tooltip>
-          <Tooltip title="保存到笔记">
+          <Tooltip title="保存到便签">
             <Button
               type="text"
               size="small"

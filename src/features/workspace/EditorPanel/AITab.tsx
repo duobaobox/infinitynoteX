@@ -13,6 +13,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
+import { generateJSON } from '@tiptap/html';
 import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message } from 'antd';
 import type { MenuProps, GetProp } from 'antd';
 import {
@@ -31,6 +32,7 @@ import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 import './AITab.css';
 import type { AIConfig } from '../../../services/aiConfig';
+import type { TipTapJSONContent } from '../../../services/types';
 import {
   detectProviderIdFromConfig,
   ensureAIConfigDefaults,
@@ -40,6 +42,7 @@ import {
   readStoredProviderConfigs,
   subscribeAIConfigChanged,
 } from '../../../services/aiConfigStore';
+import { getExtensions } from '../../../components/TipTapEditor/extensions';
 
 interface AITabProps {
   noteId: string | null;
@@ -118,6 +121,82 @@ const renderMarkdownToHtml = (text: string, className?: string) => {
   const element = createMarkdownElement(text, className);
   if (!element) return '';
   return ReactDOMServer.renderToStaticMarkup(element);
+};
+
+const tiptapSerializerExtensions = getExtensions();
+
+const buildPlainTextDoc = (text: string): TipTapJSONContent => {
+  const paragraphs = text
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  if (paragraphs.length === 0) {
+    return {
+      type: 'doc',
+      content: [{ type: 'paragraph' }],
+    };
+  }
+
+  return {
+    type: 'doc',
+    content: paragraphs.map((paragraph) => ({
+      type: 'paragraph',
+      content: [
+        {
+          type: 'text',
+          text: paragraph,
+        },
+      ],
+    })),
+  };
+};
+
+const sanitizeHtmlForTipTap = (html: string): string => {
+  if (!html) {
+    return '';
+  }
+
+  try {
+    if (typeof DOMParser === 'undefined') {
+      return html;
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const firstElement = doc.body.firstElementChild;
+    if (firstElement && firstElement.tagName === 'DIV') {
+      return firstElement.innerHTML || '';
+    }
+    return doc.body.innerHTML || '';
+  } catch {
+    return html;
+  }
+};
+
+const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => {
+  if (!markdown?.trim()) {
+    return buildPlainTextDoc('');
+  }
+
+  const html = renderMarkdownToHtml(markdown);
+  const sanitizedHtml = sanitizeHtmlForTipTap(html);
+
+  if (sanitizedHtml) {
+    try {
+      const json = generateJSON(sanitizedHtml, tiptapSerializerExtensions);
+      if (json?.type === 'doc') {
+        return json as TipTapJSONContent;
+      }
+      return {
+        type: 'doc',
+        content: json ? [json as TipTapJSONContent] : [],
+      };
+    } catch (error) {
+      console.error('Failed to convert markdown to TipTap JSON:', error);
+    }
+  }
+
+  return buildPlainTextDoc(markdown);
 };
 
 const isAIConfigReady = (config?: AIConfig | null) => {
@@ -200,22 +279,7 @@ export const AITab = ({ noteId }: AITabProps) => {
 
   const handleSaveToNote = useCallback(async (content: string) => {
     try {
-      // 将文本内容转换为 TipTap JSON 格式
-      // 按段落分割（双换行符）
-      const paragraphs = content.split(/\n\n+/).filter((p) => p.trim());
-
-      const tipTapContent = {
-        type: 'doc',
-        content: paragraphs.map((para) => ({
-          type: 'paragraph',
-          content: [
-            {
-              type: 'text',
-              text: para.trim(),
-            },
-          ],
-        })),
-      };
+      const tipTapContent = convertMarkdownToTipTap(content);
 
       // 生成便签标题（取第一行或前30个字符）
       const firstLine = content.split('\n')[0].trim();

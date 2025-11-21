@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Segmented } from 'antd';
-import {
-  RobotOutlined,
-  ClockCircleOutlined,
-  AppstoreOutlined,
-  SettingOutlined,
-} from '@ant-design/icons';
+import { RobotOutlined, AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ToolDefinition } from '../../../constants/tools';
 import { AITab } from '../EditorPanel/AITab';
 import './ToolPanel.css';
 
-type ToolPanelTab = 'ai' | 'timer' | 'kit' | 'settings';
+type ToolPanelTab = 'ai' | 'kit' | 'settings';
 
 interface ToolPanelProps {
   toolId: string | null;
@@ -24,8 +19,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
   useEffect(() => {
     if (toolId === 'ai-chat') {
       setActiveTab('ai');
-    } else if (toolId === 'timer') {
-      setActiveTab('timer');
     }
   }, [toolId]);
 
@@ -37,14 +30,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
         </span>
       ),
       value: 'ai',
-    },
-    {
-      label: (
-        <span>
-          <ClockCircleOutlined style={{ marginRight: 4 }} />
-        </span>
-      ),
-      value: 'timer',
     },
     {
       label: (
@@ -70,12 +55,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
     }
 
     const activeTool = tools.find((tool) => tool.id === toolId);
-    const title =
-      activeTab === 'timer'
-        ? '计时器面板建设中'
-        : activeTab === 'kit'
-          ? '工具组件区开发中'
-          : '更多功能开发中';
+    const title = activeTab === 'kit' ? '工具组件区开发中' : '更多功能开发中';
 
     return (
       <div className="tool-panel-placeholder">

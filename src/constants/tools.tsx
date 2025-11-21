@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ClockCircleOutlined, RobotOutlined } from '@ant-design/icons';
+import { RobotOutlined } from '@ant-design/icons';
 import type { NoteColor } from '../services/types';
 
 export type WorkspaceView = 'note' | 'tool';
@@ -17,12 +17,6 @@ export const DEFAULT_TOOLS: ToolDefinition[] = [
     name: 'AI对话',
     description: '与智能助手的多轮对话空间。',
     icon: <RobotOutlined />,
-  },
-  {
-    id: 'timer',
-    name: '计时器',
-    description: '轻量计时与番茄钟管理。',
-    icon: <ClockCircleOutlined />,
   },
 ];
 

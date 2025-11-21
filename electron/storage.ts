@@ -86,6 +86,15 @@ interface AIConversation {
   isDefault?: boolean; // 是否是默认对话（系统对话，禁止删除）
 }
 
+interface AIConversationIndex {
+  id: string;
+  title: string;
+  excerpt: string;
+  createdAt: number;
+  updatedAt: number;
+  isDefault?: boolean;
+}
+
 enum StorageErrorCode {
   E_FOLDER_SYSTEM = 'E_FOLDER_SYSTEM',
   E_IO_READ = 'E_IO_READ',
@@ -114,6 +123,7 @@ export class StorageManager {
   private currentPath: string;
   private foldersCache: Folder[] | null = null;
   private notesIndexCache: NoteIndex[] | null = null;
+  private aiConversationsIndexCache: AIConversationIndex[] | null = null;
   private defaultPath: string;
 
   constructor() {
@@ -180,8 +190,11 @@ export class StorageManager {
     const metaExists = await this.fileExists(metaPath);
 
     if (metaExists) {
-      // 已初始化，加载缓存
+      await this.ensureBaseDirectories(storagePath);
+      await this.ensureAIConversationIndex(storagePath);
       await this.loadCaches();
+      // 仅在既存存储中检查并修复默认对话重复问题
+      await this.ensureSingleDefaultAIConversation();
       return;
     }
 
@@ -189,10 +202,7 @@ export class StorageManager {
     console.log(`[Storage] First-time initialization at: ${storagePath}`);
 
     // 创建目录结构
-    await fs.mkdir(storagePath, { recursive: true });
-    await fs.mkdir(path.join(storagePath, 'notes'), { recursive: true });
-    await fs.mkdir(path.join(storagePath, 'temp'), { recursive: true });
-    await fs.mkdir(path.join(storagePath, 'backups'), { recursive: true });
+    await this.ensureBaseDirectories(storagePath);
 
     // 创建 meta.json
     const meta: StorageMeta = {
@@ -218,7 +228,9 @@ export class StorageManager {
     const indexPath = path.join(storagePath, 'notes.index.json');
     await this.writeJsonFile(indexPath, []);
 
-    // 加载缓存
+    await this.ensureAIConversationIndex(storagePath);
+
+    // 加载缓存（新建时无需 normalization，之后由应用层创建首个默认对话）
     await this.loadCaches();
   }
 
@@ -228,9 +240,14 @@ export class StorageManager {
   private async loadCaches(): Promise<void> {
     const foldersPath = path.join(this.currentPath, 'folders.json');
     const indexPath = path.join(this.currentPath, 'notes.index.json');
+    const aiIndexPath = path.join(this.currentPath, 'ai-conversations.index.json');
 
     this.foldersCache = await this.readJsonFile<Folder[]>(foldersPath, []);
     this.notesIndexCache = await this.readJsonFile<NoteIndex[]>(indexPath, []);
+    this.aiConversationsIndexCache = await this.readJsonFile<AIConversationIndex[]>(
+      aiIndexPath,
+      [],
+    );
   }
 
   /**
@@ -239,6 +256,7 @@ export class StorageManager {
   private clearCaches(): void {
     this.foldersCache = null;
     this.notesIndexCache = null;
+    this.aiConversationsIndexCache = null;
   }
 
   /**
@@ -271,6 +289,9 @@ export class StorageManager {
           // 便签文件恢复到 notes/ 目录
           const noteId = originalName.replace('note-', '').replace('.json', '');
           targetPath = path.join(this.currentPath, 'notes', `${noteId}.json`);
+        } else if (originalName.startsWith('ai-conversation-')) {
+          const fileName = originalName.replace('ai-conversation-', '');
+          targetPath = path.join(this.currentPath, 'ai-conversations', fileName);
         } else {
           // 其他文件恢复到根目录
           targetPath = path.join(this.currentPath, originalName);
@@ -299,6 +320,70 @@ export class StorageManager {
       console.error('[Storage] Crash recovery failed:', error);
       // 不抛出错误，允许应用继续启动
     }
+  }
+
+  private async ensureBaseDirectories(storagePath: string): Promise<void> {
+    await fs.mkdir(storagePath, { recursive: true });
+    const subDirs = ['notes', 'temp', 'backups', 'ai-conversations'];
+    for (const dir of subDirs) {
+      await fs.mkdir(path.join(storagePath, dir), { recursive: true });
+    }
+  }
+
+  private async ensureAIConversationIndex(storagePath: string): Promise<void> {
+    const indexPath = path.join(storagePath, 'ai-conversations.index.json');
+    const exists = await this.fileExists(indexPath);
+    if (!exists) {
+      await this.writeJsonFile(indexPath, []);
+    }
+  }
+
+  private async ensureSingleDefaultAIConversation(): Promise<void> {
+    const index = await this.getAIConversationIndex();
+    const defaultEntries = index.filter((item) => item.isDefault);
+
+    if (defaultEntries.length <= 1) {
+      return;
+    }
+
+    // 按创建时间排序，保留最早的默认对话
+    const sortedDefaults = [...defaultEntries].sort((a, b) => a.createdAt - b.createdAt);
+    const keeperId = sortedDefaults[0].id;
+    const demotedIds = sortedDefaults.slice(1).map((item) => item.id);
+
+    for (const id of demotedIds) {
+      try {
+        const conversation = await this.readAIConversationFile(id);
+        let updatedTitle = conversation.title;
+        if (updatedTitle === '默认对话') {
+          updatedTitle = this.generateConversationTitle(conversation.createdAt);
+        }
+
+        conversation.isDefault = false;
+        conversation.title = updatedTitle;
+        conversation.updatedAt = Date.now();
+
+        await this.writeAIConversationFile(conversation);
+
+        const meta = index.find((item) => item.id === id);
+        if (meta) {
+          meta.isDefault = false;
+          meta.title = updatedTitle;
+          meta.updatedAt = conversation.updatedAt;
+          meta.excerpt = conversation.excerpt;
+        }
+      } catch (error) {
+        console.warn(`[Storage] Failed to normalize default AI conversation ${id}:`, error);
+      }
+    }
+
+    // 确保保留的默认对话标记正确
+    const keeper = index.find((item) => item.id === keeperId);
+    if (keeper && !keeper.isDefault) {
+      keeper.isDefault = true;
+    }
+
+    await this.saveAIConversationIndex(index);
   }
 
   // ============ 路径管理 ============
@@ -396,7 +481,12 @@ export class StorageManager {
    * 校验存储完整性
    */
   private async validateStorageIntegrity(storagePath: string): Promise<void> {
-    const requiredFiles = ['meta.json', 'folders.json', 'notes.index.json'];
+    const requiredFiles = [
+      'meta.json',
+      'folders.json',
+      'notes.index.json',
+      'ai-conversations.index.json',
+    ];
     for (const file of requiredFiles) {
       const filePath = path.join(storagePath, file);
       const exists = await this.fileExists(filePath);
@@ -864,20 +954,31 @@ export class StorageManager {
     }
   }
 
+  private generateConversationTitle(timestamp: number): string {
+    const date = new Date(timestamp || Date.now());
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    return `对话${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  }
+
   // ============ AI 对话操作 ============
 
   /**
    * 获取所有 AI 对话
    */
   async getAIConversations(): Promise<AIConversation[]> {
-    const conversationsPath = path.join(this.currentPath, 'ai-conversations.json');
-    const exists = await this.fileExists(conversationsPath);
+    const index = await this.getAIConversationIndex();
+    const conversations = await Promise.all(
+      index.map(async (item) => {
+        try {
+          return await this.readAIConversationFile(item.id);
+        } catch (error) {
+          console.error(`[Storage] Failed to read AI conversation ${item.id}:`, error);
+          return null;
+        }
+      }),
+    );
 
-    if (!exists) {
-      return [];
-    }
-
-    return await this.readJsonFile<AIConversation[]>(conversationsPath, []);
+    return conversations.filter((item): item is AIConversation => item !== null);
   }
 
   /**
@@ -885,8 +986,8 @@ export class StorageManager {
    */
   async createAIConversation(title?: string): Promise<AIConversation> {
     const now = Date.now();
-    const conversations = await this.getAIConversations();
-    const isDefaultConversation = conversations.length === 0; // 如果没有对话，这是第一个（默认对话）
+    const index = await this.getAIConversationIndex();
+    const isDefaultConversation = index.length === 0; // 如果没有对话，这是第一个（默认对话）
 
     // 生成默认标题格式：对话YYYYMMDD
     const dateStr = new Date().toLocaleDateString('zh-CN').replace(/\//g, '');
@@ -902,8 +1003,10 @@ export class StorageManager {
       isDefault: isDefaultConversation, // 标记为默认对话
     };
 
-    conversations.push(newConversation);
-    await this.saveAIConversations(conversations);
+    await this.writeAIConversationFile(newConversation);
+
+    index.push(this.toConversationIndex(newConversation));
+    await this.saveAIConversationIndex(index);
 
     return newConversation;
   }
@@ -912,20 +1015,25 @@ export class StorageManager {
    * 删除 AI 对话
    */
   async deleteAIConversation(id: string): Promise<void> {
-    const conversations = await this.getAIConversations();
-    const index = conversations.findIndex((c) => c.id === id);
+    const index = await this.getAIConversationIndex();
+    const metaIndex = index.findIndex((c) => c.id === id);
 
-    if (index < 0) {
+    if (metaIndex < 0) {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
     }
 
     // 禁止删除默认对话
-    if (conversations[index].isDefault) {
+    if (index[metaIndex].isDefault) {
       throw new StorageError(StorageErrorCode.E_FOLDER_SYSTEM, '无法删除默认对话');
     }
 
-    conversations.splice(index, 1);
-    await this.saveAIConversations(conversations);
+    const filePath = this.getAIConversationFilePath(id);
+    if (await this.fileExists(filePath)) {
+      await fs.unlink(filePath);
+    }
+
+    index.splice(metaIndex, 1);
+    await this.saveAIConversationIndex(index);
   }
 
   /**
@@ -935,12 +1043,7 @@ export class StorageManager {
     id: string,
     messages: AIConversation['messages'],
   ): Promise<AIConversation> {
-    const conversations = await this.getAIConversations();
-    const conversation = conversations.find((c) => c.id === id);
-
-    if (!conversation) {
-      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
-    }
+    const conversation = await this.readAIConversationFile(id);
 
     conversation.messages = messages.map((message, index) => ({
       ...message,
@@ -954,7 +1057,9 @@ export class StorageManager {
       conversation.excerpt = lastUserMessage.content.slice(0, 100);
     }
 
-    await this.saveAIConversations(conversations);
+    await this.writeAIConversationFile(conversation);
+
+    await this.updateAIConversationIndexEntry(conversation);
 
     return conversation;
   }
@@ -963,26 +1068,78 @@ export class StorageManager {
    * 更新 AI 对话标题
    */
   async updateAIConversationTitle(id: string, title: string): Promise<AIConversation> {
-    const conversations = await this.getAIConversations();
-    const conversation = conversations.find((c) => c.id === id);
-
-    if (!conversation) {
-      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
-    }
+    const conversation = await this.readAIConversationFile(id);
 
     conversation.title = title;
     conversation.updatedAt = Date.now();
-    await this.saveAIConversations(conversations);
+    await this.writeAIConversationFile(conversation);
+
+    await this.updateAIConversationIndexEntry(conversation);
 
     return conversation;
   }
 
-  /**
-   * 保存 AI 对话列表
-   */
-  private async saveAIConversations(conversations: AIConversation[]): Promise<void> {
-    const conversationsPath = path.join(this.currentPath, 'ai-conversations.json');
-    await this.writeJsonFile(conversationsPath, conversations);
+  private async getAIConversationIndex(): Promise<AIConversationIndex[]> {
+    if (!this.aiConversationsIndexCache) {
+      const indexPath = path.join(this.currentPath, 'ai-conversations.index.json');
+      this.aiConversationsIndexCache = await this.readJsonFile<AIConversationIndex[]>(
+        indexPath,
+        [],
+      );
+    }
+    return this.aiConversationsIndexCache;
+  }
+
+  private async saveAIConversationIndex(index: AIConversationIndex[]): Promise<void> {
+    const indexPath = path.join(this.currentPath, 'ai-conversations.index.json');
+    await this.writeJsonFile(indexPath, index);
+    this.aiConversationsIndexCache = index;
+  }
+
+  private toConversationIndex(conversation: AIConversation): AIConversationIndex {
+    return {
+      id: conversation.id,
+      title: conversation.title,
+      excerpt: conversation.excerpt,
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt,
+      isDefault: conversation.isDefault,
+    };
+  }
+
+  private getAIConversationFilePath(id: string, basePath?: string): string {
+    const root = basePath ?? this.currentPath;
+    return path.join(root, 'ai-conversations', `${id}.json`);
+  }
+
+  private async readAIConversationFile(id: string): Promise<AIConversation> {
+    const filePath = this.getAIConversationFilePath(id);
+    const exists = await this.fileExists(filePath);
+
+    if (!exists) {
+      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
+    }
+
+    return await this.readJsonFile<AIConversation>(filePath);
+  }
+
+  private async writeAIConversationFile(conversation: AIConversation): Promise<void> {
+    const filePath = this.getAIConversationFilePath(conversation.id);
+    await this.writeJsonFileAtomic(filePath, conversation);
+  }
+
+  private async updateAIConversationIndexEntry(conversation: AIConversation): Promise<void> {
+    const index = await this.getAIConversationIndex();
+    const meta = this.toConversationIndex(conversation);
+    const existingIndex = index.findIndex((item) => item.id === conversation.id);
+
+    if (existingIndex >= 0) {
+      index[existingIndex] = meta;
+    } else {
+      index.push(meta);
+    }
+
+    await this.saveAIConversationIndex(index);
   }
 
   // ============ 工具方法 ============
@@ -1043,9 +1200,16 @@ export class StorageManager {
    */
   private async writeJsonFileAtomic(filePath: string, data: unknown): Promise<void> {
     // 为便签文件添加特殊前缀，便于崩溃恢复时识别
-    const isNoteFile = filePath.includes('/notes/');
+    const normalizedPath = filePath.split(path.sep).join('/');
+    const isNoteFile = normalizedPath.includes('/notes/');
+    const isAIConversationFile = normalizedPath.includes('/ai-conversations/');
     const baseName = path.basename(filePath);
-    const tempFileName = isNoteFile ? `note-${baseName}.tmp` : `${baseName}.tmp`;
+    let tempFileName = `${baseName}.tmp`;
+    if (isNoteFile) {
+      tempFileName = `note-${baseName}.tmp`;
+    } else if (isAIConversationFile) {
+      tempFileName = `ai-conversation-${baseName}.tmp`;
+    }
     const tempPath = path.join(this.currentPath, 'temp', tempFileName);
 
     try {

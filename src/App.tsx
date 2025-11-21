@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import './App.css';
 import Sidebar from './features/workspace/Sidebar';
 import ListPanel from './features/workspace/ListPanel';
@@ -9,7 +9,7 @@ import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWind
 import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
-import { DEFAULT_TOOLS, DEFAULT_AI_CONVERSATIONS, type WorkspaceView } from './constants/tools';
+import { DEFAULT_TOOLS, type WorkspaceView } from './constants/tools';
 
 declare global {
   interface Window {
@@ -51,9 +51,8 @@ function App() {
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null); /* 首次启动标志 */
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('note');
   const [selectedToolId, setSelectedToolId] = useState<string | null>(DEFAULT_TOOLS[0]?.id || null);
-  const [selectedToolItemId, setSelectedToolItemId] = useState<string | null>(
-    DEFAULT_AI_CONVERSATIONS[0]?.id || null,
-  );
+  const [selectedToolItemId, setSelectedToolItemId] = useState<string | null>(null);
+  const isInitializingAIConversationRef = useRef(false);
 
   // 初始化检测
   useEffect(() => {
@@ -79,29 +78,51 @@ function App() {
     }
   }, [workspaceView, selectedToolId]);
 
+  // 应用启动时初始化默认 AI 对话（如果不存在）
   useEffect(() => {
-    if (selectedToolId === 'ai-chat') {
-      // 初始化 AI 对话列表
-      const initAIConversations = async () => {
+    const initDefaultAIConversation = async () => {
+      if (isInitializingAIConversationRef.current || isFirstLaunch === null) {
+        return; // 等待首次启动检测完成
+      }
+
+      try {
+        isInitializingAIConversationRef.current = true;
+        const conversations = await window.storage.getAIConversations();
+        if (conversations.length === 0) {
+          // 如果没有对话，创建默认对话（第一个会自动命名为"默认对话"）
+          await window.storage.createAIConversation();
+          console.log('[App] Created default AI conversation on startup');
+        }
+      } catch (error) {
+        console.error('Failed to initialize default AI conversation:', error);
+      } finally {
+        isInitializingAIConversationRef.current = false;
+      }
+    };
+
+    initDefaultAIConversation();
+  }, [isFirstLaunch]);
+
+  // 切换到 AI 对话视图时，确保选中一个对话
+  useEffect(() => {
+    if (workspaceView === 'tool' && selectedToolId === 'ai-chat' && !selectedToolItemId) {
+      const selectDefaultConversation = async () => {
         try {
           const conversations = await window.storage.getAIConversations();
-          if (conversations.length === 0) {
-            // 如果没有对话，创建默认对话（第一个会自动命名为"默认对话"）
-            const defaultConv = await window.storage.createAIConversation();
-            setSelectedToolItemId(defaultConv.id);
-          } else if (!selectedToolItemId) {
-            // 如果有对话但没有选中，选中第一个（默认对话）
+          if (conversations.length > 0 && !selectedToolItemId) {
+            // 选中第一个对话（默认对话）
             setSelectedToolItemId(conversations[0].id);
           }
         } catch (error) {
-          console.error('Failed to initialize AI conversations:', error);
+          console.error('Failed to select default conversation:', error);
         }
       };
-      initAIConversations();
-    } else if (selectedToolItemId) {
+      selectDefaultConversation();
+    } else if (workspaceView !== 'tool' && selectedToolItemId) {
+      // 切换回便签视图时清空选中的工具项
       setSelectedToolItemId(null);
     }
-  }, [selectedToolId, selectedToolItemId]);
+  }, [workspaceView, selectedToolId, selectedToolItemId]);
 
   // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
   if (windowType === 'floating') {

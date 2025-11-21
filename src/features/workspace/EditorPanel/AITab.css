@@ -362,7 +362,7 @@
 
 /* Sender 输入框 - 最小化自定义，使用 Ant Design X 原生样式 */
 .ai-tab-input {
-  padding: 0;
+  padding: 10px;
   border-top: none;
 }
 

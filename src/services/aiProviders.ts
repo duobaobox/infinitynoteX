@@ -168,8 +168,8 @@ export function createDefaultAIConfig(providerId: string = DEFAULT_PROVIDER_ID):
     model: preset?.models[0]?.id ?? '',
     stream: true,
     temperature: 0.7,
-    max_tokens: 2048,
-    timeoutMs: 60000,
+    max_tokens: 8192,
+    timeoutMs: 300000,
   };
 }
 
@@ -189,9 +189,9 @@ export function ensureAIConfigDefaults(config?: AIConfig | null): AIConfig {
     model: config.model || preset?.models[0]?.id || '',
     stream: config.stream ?? true,
     temperature: config.temperature ?? 0.7,
-    max_tokens: config.max_tokens ?? 2048,
+    max_tokens: config.max_tokens ?? 8192,
     systemPrompt: config.systemPrompt,
-    timeoutMs: config.timeoutMs ?? 60000,
+    timeoutMs: config.timeoutMs ?? 300000,
     httpProxy: config.httpProxy,
   };
 }

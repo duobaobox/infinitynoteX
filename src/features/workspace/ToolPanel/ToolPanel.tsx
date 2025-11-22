@@ -3,6 +3,7 @@ import { Segmented } from 'antd';
 import { RobotOutlined, AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ToolDefinition } from '../../../constants/tools';
 import { AITab } from '../EditorPanel/AITab';
+import AISettingsTab from './AISettingsTab';
 import './ToolPanel.css';
 
 type ToolPanelTab = 'ai' | 'kit' | 'settings';
@@ -54,8 +55,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       return <AITab noteId={selectedToolItemId} />;
     }
 
+    if (activeTab === 'settings') {
+      return <AISettingsTab />;
+    }
+
     const activeTool = tools.find((tool) => tool.id === toolId);
-    const title = activeTab === 'kit' ? '工具组件区开发中' : '更多功能开发中';
+    const title = '工具组件区开发中';
 
     return (
       <div className="tool-panel-placeholder">

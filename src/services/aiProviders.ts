@@ -187,7 +187,7 @@ export function ensureAIConfigDefaults(config?: AIConfig | null): AIConfig {
     baseURL: config.baseURL || preset?.baseURL || '',
     apiKey: config.apiKey ?? '',
     model: config.model || preset?.models[0]?.id || '',
-    stream: config.stream ?? true,
+    stream: true,
     temperature: config.temperature ?? 0.7,
     max_tokens: config.max_tokens ?? 8192,
     systemPrompt: config.systemPrompt,

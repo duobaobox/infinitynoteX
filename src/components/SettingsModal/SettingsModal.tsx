@@ -12,7 +12,6 @@ import {
   message,
   Progress,
   ColorPicker,
-  Switch,
   InputNumber,
   Alert,
   Select,
@@ -363,7 +362,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
     model: config.model?.trim() ?? '',
     temperature: typeof config.temperature === 'number' ? config.temperature : 0.7,
     max_tokens: config.max_tokens ?? 3500,
-    stream: config.stream ?? true,
+    stream: true,
     timeoutMs: config.timeoutMs ?? 60000,
   });
 
@@ -399,25 +398,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         emitAIConfigChanged(previous);
       }
       return { ok: false, message: getErrMsg(error) };
-    }
-  };
-
-  const handleActivateSelectedProvider = async () => {
-    const normalized = normalizeCurrentConfig(aiConfig, selectedProviderId);
-    if (!isConfigReady(normalized)) {
-      message.warning('请先完善并保存当前配置');
-      return;
-    }
-    try {
-      setAILoading(true);
-      const result = await applyProviderConfig(normalized);
-      if (result.ok) {
-        message.success('已切换到当前模型');
-      } else {
-        message.error(result.message);
-      }
-    } finally {
-      setAILoading(false);
     }
   };
 
@@ -907,35 +887,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
             <h3>AI 管理</h3>
 
             <div className="ai-settings-header">
-              <div className="ai-status-card">
-                <div className="ai-status-left">
-                  <div className="ai-status-content">
-                    <div className="ai-status-model">{aiConfig.model || '未选择模型'}</div>
-                    <Text type="secondary" className="ai-status-desc">
-                      {currentProviderPreset?.description || aiConfig.provider}
+              <Card className="ai-status-card" size="small" bordered>
+                <div className="ai-status-card-inner">
+                  <div className="ai-status-card-info">
+                    <Text type="secondary" className="ai-status-label">
+                      当前模型
                     </Text>
+                    <div className="ai-status-card-title">
+                      <span className="ai-status-provider">
+                        <span
+                          className="ai-status-provider-dot"
+                          style={{ backgroundColor: getProviderBrandColor(selectedProviderId) }}
+                        />
+                        {aiConfig.provider || '未配置提供商'}
+                      </span>
+                      <span className="ai-status-model">{aiConfig.model || '未选择模型'}</span>
+                    </div>
+                    <Paragraph type="secondary" className="ai-status-base" ellipsis>
+                      {aiConfig.baseURL || 'Base URL 未配置'}
+                    </Paragraph>
+                    <div className="ai-status-card-state">
+                      <Tag color={selectedProviderId === activeProviderId ? 'green' : 'default'}>
+                        {selectedProviderId === activeProviderId ? '当前使用' : '未激活'}
+                      </Tag>
+                      <Text type="secondary" className="ai-status-hint">
+                        保存并测试后自动激活
+                      </Text>
+                    </div>
                   </div>
                 </div>
-                <div className="ai-status-right">
-                  <div className="ai-status-tags">{/* “当前使用”标签已移除 */}</div>
-                  <div className="ai-status-control">
-                    <Text type="secondary" className="ai-control-label">
-                      激活此AI
-                    </Text>
-                    <Switch
-                      checked={selectedProviderId === activeProviderId}
-                      onChange={(checked) => {
-                        if (checked) {
-                          handleActivateSelectedProvider();
-                        }
-                      }}
-                      disabled={!isConfigReady(aiConfig) || aiLoading}
-                    />
-                  </div>
-                </div>
-              </div>
+              </Card>
 
-              <div className="ai-parameters-card">
+              <Card className="ai-parameters-card" size="small" bordered>
                 <div className="ai-parameter-grid">
                   <div className="ai-parameter-field">
                     <div className="ai-parameter-label">
@@ -970,7 +953,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                     </Text>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
 
             <div className="ai-config-grid">
@@ -1111,12 +1094,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
                                   onChange={(e) =>
                                     syncCurrentConfig({ systemPrompt: e.target.value })
                                   }
-                                />
-                              </Form.Item>
-                              <Form.Item label="启用流式响应">
-                                <Switch
-                                  checked={aiConfig.stream ?? true}
-                                  onChange={(val) => syncCurrentConfig({ stream: val })}
                                 />
                               </Form.Item>
                               <Form.Item label="超时时间（毫秒）">

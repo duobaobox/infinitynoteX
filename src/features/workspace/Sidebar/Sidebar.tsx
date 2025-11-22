@@ -243,7 +243,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               label: (
                 <span>
                   <ToolOutlined style={{ marginRight: 4 }} />
-                  工具
+                  工坊
                 </span>
               ),
               value: 'tool',

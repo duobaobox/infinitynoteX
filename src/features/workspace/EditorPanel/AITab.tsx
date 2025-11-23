@@ -6,6 +6,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Key, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
+import { generateJSON } from '@tiptap/html';
+import { marked } from 'marked';
 import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message, Flex } from 'antd';
 import type { MenuProps, GetProp } from 'antd';
 import {
@@ -31,6 +33,7 @@ import {
   readStoredProviderConfigs,
   subscribeAIConfigChanged,
 } from '../../../services/aiConfigStore';
+import { getExtensions } from '../../../components/TipTapEditor/extensions';
 import { AIMarkdownRenderer } from '../../../components/AIMarkdown/AIMarkdownRenderer';
 
 interface AITabProps {
@@ -54,19 +57,23 @@ const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
   return <AIMarkdownRenderer key={key} content={text} className={className} />;
 };
 
-// 将 markdown 转换为简单的 HTML（用于复制功能）
+// 将 markdown 转换为 HTML（用于复制功能）
 const renderMarkdownToHtml = (markdown: string): string => {
-  // 简单的 markdown 到 HTML 的转换（基础处理）
-  const html = markdown
-    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
-
-  return html;
+  try {
+    const html = marked.parse(markdown) as string;
+    return html || '';
+  } catch (error) {
+    console.error('Failed to convert markdown to HTML:', error);
+    // 降级处理
+    return markdown
+      .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  }
 };
 
 const buildPlainTextDoc = (text: string): TipTapJSONContent => {
@@ -101,10 +108,30 @@ const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => {
     return buildPlainTextDoc('');
   }
 
-  // 注意：由于使用 XMarkdown 是基于 React 组件的，无法直接生成 HTML 字符串
-  // 这里我们使用备用方案：直接返回纯文本文档，保留原有的 convertMarkdownToTipTap 功能
-  // 如果需要完整的 HTML 渲染，建议在需要的地方使用 renderMarkdownBlock 组件
-  return buildPlainTextDoc(markdown);
+  try {
+    // 使用 marked 将 markdown 转换为 HTML
+    const html = marked.parse(markdown) as string;
+
+    if (!html || !html.trim()) {
+      return buildPlainTextDoc(markdown);
+    }
+
+    // 使用 TipTap 的 generateJSON 从 HTML 生成 JSON
+    const extensions = getExtensions();
+    const json = generateJSON(html, extensions);
+
+    if (json?.type === 'doc') {
+      return json as TipTapJSONContent;
+    }
+
+    return {
+      type: 'doc',
+      content: json ? [json as TipTapJSONContent] : [],
+    };
+  } catch (error) {
+    console.error('Failed to convert markdown to TipTap JSON:', error);
+    return buildPlainTextDoc(markdown);
+  }
 };
 
 const isAIConfigReady = (config?: AIConfig | null) => {

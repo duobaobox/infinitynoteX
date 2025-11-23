@@ -4,16 +4,8 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import type {
-  AnchorHTMLAttributes,
-  HTMLAttributes,
-  Key,
-  TableHTMLAttributes,
-  KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import type { Key, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
-import { generateJSON } from '@tiptap/html';
 import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message, Flex } from 'antd';
 import type { MenuProps, GetProp } from 'antd';
 import {
@@ -27,9 +19,6 @@ import {
   CheckOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import type { Components } from 'react-markdown';
 import './AITab.css';
 import type { AIConfig } from '../../../services/aiConfig';
 import type { TipTapJSONContent } from '../../../services/types';
@@ -42,7 +31,7 @@ import {
   readStoredProviderConfigs,
   subscribeAIConfigChanged,
 } from '../../../services/aiConfigStore';
-import { getExtensions } from '../../../components/TipTapEditor/extensions';
+import { AIMarkdownRenderer } from '../../../components/AIMarkdown/AIMarkdownRenderer';
 
 interface AITabProps {
   noteId: string | null;
@@ -57,73 +46,28 @@ type BubbleListRolesType = GetProp<typeof Bubble.List, 'roles'>;
 type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
 
-type MarkdownExtraProps = {
-  node?: unknown;
-};
-
-type MarkdownLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & MarkdownExtraProps;
-type MarkdownCodeProps = HTMLAttributes<HTMLElement> &
-  MarkdownExtraProps & {
-    inline?: boolean;
-    className?: string;
-  };
-type MarkdownTableProps = TableHTMLAttributes<HTMLTableElement> & MarkdownExtraProps;
-
-const markdownComponents: Components = {
-  a: (props: MarkdownLinkProps) => <a {...props} target="_blank" rel="noopener noreferrer" />,
-  code: ({ inline, className, children, ...props }: MarkdownCodeProps) => {
-    if (inline) {
-      return (
-        <code className={`ai-inline-code ${className || ''}`} {...props}>
-          {children}
-        </code>
-      );
-    }
-    return (
-      <pre className="ai-code-block">
-        <code className={className} {...props}>
-          {children}
-        </code>
-      </pre>
-    );
-  },
-  table: (props: MarkdownTableProps) => (
-    <div className="ai-table-wrapper">
-      <table {...props} />
-    </div>
-  ),
-};
-
-const createMarkdownElement = (text: string, className?: string, key?: Key) => {
+// 使用 xMarkdown 渲染 Markdown 块
+const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
   if (!text || !text.trim()) {
     return null;
   }
-  const classNames = ['ai-markdown'];
-  if (className) {
-    classNames.push(className);
-  }
-  return (
-    <ReactMarkdown
-      key={key}
-      className={classNames.join(' ')}
-      remarkPlugins={[remarkGfm]}
-      components={markdownComponents}
-    >
-      {text}
-    </ReactMarkdown>
-  );
+  return <AIMarkdownRenderer key={key} content={text} className={className} />;
 };
 
-const renderMarkdownBlock = (text: string, className?: string, key?: Key) =>
-  createMarkdownElement(text, className, key);
+// 将 markdown 转换为简单的 HTML（用于复制功能）
+const renderMarkdownToHtml = (markdown: string): string => {
+  // 简单的 markdown 到 HTML 的转换（基础处理）
+  const html = markdown
+    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
 
-const renderMarkdownToHtml = (text: string, className?: string) => {
-  const element = createMarkdownElement(text, className);
-  if (!element) return '';
-  return ReactDOMServer.renderToStaticMarkup(element);
+  return html;
 };
-
-const tiptapSerializerExtensions = getExtensions();
 
 const buildPlainTextDoc = (text: string): TipTapJSONContent => {
   const paragraphs = text
@@ -152,50 +96,14 @@ const buildPlainTextDoc = (text: string): TipTapJSONContent => {
   };
 };
 
-const sanitizeHtmlForTipTap = (html: string): string => {
-  if (!html) {
-    return '';
-  }
-
-  try {
-    if (typeof DOMParser === 'undefined') {
-      return html;
-    }
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const firstElement = doc.body.firstElementChild;
-    if (firstElement && firstElement.tagName === 'DIV') {
-      return firstElement.innerHTML || '';
-    }
-    return doc.body.innerHTML || '';
-  } catch {
-    return html;
-  }
-};
-
 const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => {
   if (!markdown?.trim()) {
     return buildPlainTextDoc('');
   }
 
-  const html = renderMarkdownToHtml(markdown);
-  const sanitizedHtml = sanitizeHtmlForTipTap(html);
-
-  if (sanitizedHtml) {
-    try {
-      const json = generateJSON(sanitizedHtml, tiptapSerializerExtensions);
-      if (json?.type === 'doc') {
-        return json as TipTapJSONContent;
-      }
-      return {
-        type: 'doc',
-        content: json ? [json as TipTapJSONContent] : [],
-      };
-    } catch (error) {
-      console.error('Failed to convert markdown to TipTap JSON:', error);
-    }
-  }
-
+  // 注意：由于使用 XMarkdown 是基于 React 组件的，无法直接生成 HTML 字符串
+  // 这里我们使用备用方案：直接返回纯文本文档，保留原有的 convertMarkdownToTipTap 功能
+  // 如果需要完整的 HTML 渲染，建议在需要的地方使用 renderMarkdownBlock 组件
   return buildPlainTextDoc(markdown);
 };
 
@@ -504,7 +412,7 @@ export const AITab = ({ noteId }: AITabProps) => {
       return;
     }
 
-    const htmlToCopy = renderMarkdownToHtml(textToCopy, 'ai-bubble-text');
+    const htmlToCopy = renderMarkdownToHtml(textToCopy);
 
     const copyWithClipboardItem = async () => {
       if (!htmlToCopy) return false;

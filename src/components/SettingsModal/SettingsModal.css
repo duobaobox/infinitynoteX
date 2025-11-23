@@ -12,6 +12,11 @@
   height: 100% !important;
 }
 
+/* 设置 Modal 容器 padding */
+.settings-modal .ant-modal-container {
+  padding: 0px !important;
+}
+
 /* 使弹窗始终居中并使用视口尺寸（交由 Modal 的 centered 属性处理垂直/水平居中） */
 .settings-modal .ant-modal {
   width: 80vw !important;
@@ -21,7 +26,7 @@
   box-sizing: border-box;
 }
 
-/* 去除 antd Modal 默认内容区 padding，防止双重内边距 */
+/* 去除 antd Modal 默认内容区 padding,防止双重内边距 */
 .settings-modal .ant-modal-content {
   padding: 0 !important;
   width: 100% !important;
@@ -31,6 +36,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 防止外层滚动 */
 }
 
 /* 设置弹窗容器样式 */
@@ -40,6 +46,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 防止外层滚动 */
 }
 
 .settings-container {
@@ -47,6 +54,7 @@
   flex-direction: row;
   height: 100%;
   gap: 0;
+  overflow: hidden; /* 防止外层滚动 */
 }
 
 /* 设置弹窗左侧菜单栏 - 使用与 Sidebar 一致的 CSS 类 */
@@ -69,8 +77,10 @@
 .settings-content {
   flex: 1;
   padding: 24px 40px;
-  overflow-y: auto;
+  overflow-y: auto; /* 内容区独立滚动 */
+  overflow-x: hidden;
   margin: 12px 0px 12px 0px;
+  min-height: 0; /* 允许 flex 子元素缩小 */
 }
 
 /* 右侧内容区滚动条，和全局 scrollable-list 保持一致 */

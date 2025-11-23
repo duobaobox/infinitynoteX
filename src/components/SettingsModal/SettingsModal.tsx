@@ -1151,6 +1151,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
       centered
       width="80vw"
       className="settings-modal"
+      styles={{
+        body: { height: '80vh', overflow: 'hidden', padding: 0 },
+      }}
     >
       <div className="settings-container">
         <div className="settings-sidebar">

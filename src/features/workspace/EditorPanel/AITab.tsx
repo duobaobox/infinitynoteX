@@ -49,12 +49,30 @@ type BubbleListRolesType = GetProp<typeof Bubble.List, 'roles'>;
 type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
 
+type MarkdownRenderOptions = {
+  isStreaming?: boolean;
+};
+
 // 使用 xMarkdown 渲染 Markdown 块
-const renderMarkdownBlock = (text: string, className?: string, key?: Key) => {
+const renderMarkdownBlock = (
+  text: string,
+  className?: string,
+  key?: Key,
+  options?: MarkdownRenderOptions,
+) => {
   if (!text || !text.trim()) {
     return null;
   }
-  return <AIMarkdownRenderer key={key} content={text} className={className} />;
+  const streaming = options?.isStreaming
+    ? {
+        hasNextChunk: true,
+        enableAnimation: true,
+      }
+    : undefined;
+
+  return (
+    <AIMarkdownRenderer key={key} content={text} className={className} streaming={streaming} />
+  );
 };
 
 // 将 markdown 转换为 HTML（用于复制功能）
@@ -669,7 +687,9 @@ export const AITab = ({ noteId }: AITabProps) => {
       if (isPlaceholder) {
         return <span className="ai-placeholder-text">AI 正在组织回答…</span>;
       }
-      return renderMarkdownBlock(item.content, 'ai-bubble-text');
+      return renderMarkdownBlock(item.content, 'ai-bubble-text', undefined, {
+        isStreaming: item.isStreaming,
+      });
     }
 
     const mergedItem: ThoughtChainItems = [
@@ -680,7 +700,9 @@ export const AITab = ({ noteId }: AITabProps) => {
           <div className="ai-thought-chain-content">
             {reasoningParagraphs.map((paragraph, index) => (
               <div key={index} className="ai-thought-chain-block">
-                {renderMarkdownBlock(paragraph)}
+                {renderMarkdownBlock(paragraph, undefined, `${item.key}-reasoning-${index}`, {
+                  isStreaming: item.isStreaming,
+                })}
               </div>
             ))}
           </div>
@@ -696,7 +718,9 @@ export const AITab = ({ noteId }: AITabProps) => {
         {isPlaceholder ? (
           <span className="ai-placeholder-text">AI 正在组织回答…</span>
         ) : (
-          renderMarkdownBlock(item.content, 'ai-bubble-text')
+          renderMarkdownBlock(item.content, 'ai-bubble-text', undefined, {
+            isStreaming: item.isStreaming,
+          })
         )}
       </div>
     );

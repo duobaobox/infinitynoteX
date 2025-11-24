@@ -27,6 +27,11 @@ export default defineConfig({
           : {},
     }),
   ],
+  optimizeDeps: {
+    esbuildOptions: {
+      preserveSymlinks: true,
+    },
+  },
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {

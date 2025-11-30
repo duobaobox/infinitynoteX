@@ -35,6 +35,7 @@ import {
 } from '../../../services/aiConfigStore';
 import { getExtensions } from '../../../components/TipTapEditor/extensions';
 import { AIMarkdownRenderer } from '../../../components/AIMarkdown/AIMarkdownRenderer';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 
 interface AITabProps {
   noteId: string | null;
@@ -165,6 +166,9 @@ type ProviderOption = {
 };
 
 export const AITab = ({ noteId }: AITabProps) => {
+  // 从 Store 获取触发器方法（替代自定义事件）
+  const { triggerAIConversationsRefresh } = useWorkspaceStore();
+
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const [config, setConfig] = useState<AIConfig | null>(null);
   const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
@@ -406,8 +410,8 @@ export const AITab = ({ noteId }: AITabProps) => {
       setConversationTitle(tempTitle.trim());
       setIsEditingTitle(false);
 
-      // 触发自定义事件通知列表刷新
-      window.dispatchEvent(new CustomEvent('ai-conversation-updated'));
+      // 使用 Zustand 触发器通知列表刷新（统一状态管理模式）
+      triggerAIConversationsRefresh();
     } catch (err) {
       console.error('Failed to update conversation title:', err);
       setIsEditingTitle(false);

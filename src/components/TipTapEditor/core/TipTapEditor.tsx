@@ -65,7 +65,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   }
   // 使用 useEditor Hook 创建编辑器实例
   const editor = useEditor({
-    extensions: getExtensions(placeholder),
+    extensions: getExtensions({ placeholder }),
     content: initialContent,
     editable,
     autofocus,

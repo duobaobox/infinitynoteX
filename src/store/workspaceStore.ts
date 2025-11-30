@@ -30,6 +30,7 @@ interface WorkspaceState {
 
   // 刷新触发器
   refreshListTrigger: number;
+  refreshAIConversationsTrigger: number;
 
   // Tab 重置触发器（用于重置编辑器/对话面板的 tab 到第一个）
   resetEditorTabTrigger: number;
@@ -58,6 +59,7 @@ interface WorkspaceState {
 
   // 刷新列表
   triggerListRefresh: () => void;
+  triggerAIConversationsRefresh: () => void;
 
   // 重置编辑器 tab
   resetEditorTab: () => void;
@@ -107,6 +109,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       aiConversations: [],
 
       refreshListTrigger: 0,
+      refreshAIConversationsTrigger: 0,
       resetEditorTabTrigger: 0,
       isFirstLaunch: null,
 
@@ -153,6 +156,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       triggerListRefresh: () =>
         set((state) => ({
           refreshListTrigger: state.refreshListTrigger + 1,
+        })),
+
+      triggerAIConversationsRefresh: () =>
+        set((state) => ({
+          refreshAIConversationsTrigger: state.refreshAIConversationsTrigger + 1,
         })),
 
       // 重置编辑器 tab

@@ -19,6 +19,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
   const {
     selectedToolItemId,
     aiConversations, // 从 Store 获取 aiConversations
+    refreshAIConversationsTrigger, // 监听刷新触发器
     createAIConversation, // 从 Store 获取 createAIConversation
     deleteAIConversation, // 从 Store 获取 deleteAIConversation
     loadAIConversations, // 从 Store 获取 loadAIConversations
@@ -48,15 +49,10 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
     loadAIConversations();
   }, [loadAIConversations]);
 
-  // 监听 AI 对话更新事件
+  // 监听刷新触发器，自动重新加载 AI 对话（统一使用 Zustand 触发器模式）
   useEffect(() => {
-    const handleConversationUpdate = () => {
-      loadAIConversations();
-    };
-
-    window.addEventListener('ai-conversation-updated', handleConversationUpdate);
-    return () => window.removeEventListener('ai-conversation-updated', handleConversationUpdate);
-  }, [loadAIConversations]);
+    loadAIConversations();
+  }, [refreshAIConversationsTrigger, loadAIConversations]);
 
   // 创建 AI 对话
   const handleCreateAIConversation = async () => {

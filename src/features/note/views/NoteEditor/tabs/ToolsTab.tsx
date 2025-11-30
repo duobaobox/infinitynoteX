@@ -81,8 +81,8 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
     try {
       await window.storage.updateNote(noteId, { color });
       onColorChange(color);
-      // 通知所有悬浮窗口更新该便签的数据
-      window.ipcRenderer?.send('note:changed', noteId);
+      // 统一使用 'note:updated' 事件通知所有窗口更新该便签的数据
+      window.ipcRenderer?.send('note:updated', noteId);
       // 颜色更改成功不再弹窗提醒
     } catch (e) {
       console.error('Failed to update color:', e);

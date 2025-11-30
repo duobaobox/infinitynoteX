@@ -63,9 +63,10 @@ export const NoteEditor: React.FC = () => {
       }
     };
 
-    window.ipcRenderer?.on('floating-note:updated', handleFloatingNoteUpdate);
+    // 统一使用 'note:updated' 事件
+    window.ipcRenderer?.on('note:updated', handleFloatingNoteUpdate);
     return () => {
-      window.ipcRenderer?.off('floating-note:updated', handleFloatingNoteUpdate);
+      window.ipcRenderer?.off('note:updated', handleFloatingNoteUpdate);
     };
   }, []);
 
@@ -97,7 +98,8 @@ export const NoteEditor: React.FC = () => {
             content,
           });
           console.log('Note auto-saved');
-          window.ipcRenderer?.send('note:changed', currentNoteIdRef.current);
+          // 统一使用 'note:updated' 事件通知
+          window.ipcRenderer?.send('note:updated', currentNoteIdRef.current);
           triggerListRefresh();
         } catch (error) {
           console.error('Failed to save note:', error);
@@ -123,9 +125,22 @@ export const NoteEditor: React.FC = () => {
   };
 
   // 颜色变更处理
-  const handleColorChange = (newColor: NoteColorType) => {
-    setNoteColor(newColor);
-    triggerListRefresh();
+  const handleColorChange = async (newColor: NoteColorType) => {
+    if (!currentNoteIdRef.current) return;
+
+    try {
+      // 保存颜色到数据库
+      await window.storage.updateNote(currentNoteIdRef.current, { color: newColor });
+      // 更新本地状态
+      setNoteColor(newColor);
+      // 统一使用 'note:updated' 事件通知
+      window.ipcRenderer?.send('note:updated', currentNoteIdRef.current);
+      // 触发列表刷新（使列表中的卡片颜色更新）
+      triggerListRefresh();
+    } catch (error) {
+      console.error('Failed to update color:', error);
+      message.error('更新颜色失败');
+    }
   };
 
   // 组件卸载时清除定时器

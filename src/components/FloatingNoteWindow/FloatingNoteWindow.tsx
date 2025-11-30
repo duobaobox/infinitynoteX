@@ -88,7 +88,8 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
             content,
           });
           console.log('Floating note auto-saved');
-          window.ipcRenderer?.send('floating-note:changed', noteId);
+          // 通知主窗口更新该便签的数据（改为 note:updated）
+          window.ipcRenderer?.send('note:updated', noteId);
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');
@@ -124,13 +125,8 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="floating-note-container">
-        <div className="floating-note-titlebar">
-          <span>加载中...</span>
-        </div>
-      </div>
-    );
+    // 加载时不显示任何内容，避免闪烁
+    return null;
   }
 
   // 计算标题栏文字颜色（根据背景色亮度自适应）

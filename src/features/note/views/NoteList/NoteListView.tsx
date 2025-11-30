@@ -21,6 +21,8 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     selectedNoteId,
     notes, // 从 Store 获取 notes
     currentFolderName, // 从 Store 获取 currentFolderName
+    refreshListTrigger, // 监听刷新触发器
+    loadNotes, // 用于重新加载 notes
     createNote, // 从 Store 获取 createNote
     deleteNote, // 从 Store 获取 deleteNote
     setSelectedNote,
@@ -43,6 +45,13 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     window.addEventListener('theme-color-change', handler as EventListener);
     return () => window.removeEventListener('theme-color-change', handler as EventListener);
   }, []);
+
+  // 监听刷新触发器，自动重新加载 notes（修复颜色和内容更新问题）
+  useEffect(() => {
+    if (selectedFolderId) {
+      loadNotes(selectedFolderId);
+    }
+  }, [refreshListTrigger, selectedFolderId, loadNotes]);
 
   // 创建便签
   const handleCreateNote = async () => {

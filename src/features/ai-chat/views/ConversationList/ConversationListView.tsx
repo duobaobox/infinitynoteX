@@ -17,7 +17,7 @@ interface ConversationListViewProps {
  */
 export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex }) => {
   // Store 状态
-  const { selectedToolItemId, setSelectedToolItem } = useWorkspaceStore();
+  const { selectedToolItemId, setSelectedToolItem, resetEditorTab } = useWorkspaceStore();
 
   // 本地状态
   const [themeColor, setThemeColor] = useState(getThemeColor());
@@ -210,7 +210,10 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
                 key={session.id}
                 title={session.title}
                 content={session.excerpt}
-                onClick={() => setSelectedToolItem(session.id)}
+                onClick={() => {
+                  setSelectedToolItem(session.id);
+                  resetEditorTab();
+                }}
                 actions={
                   session.title !== '默认对话' ? (
                     <Button

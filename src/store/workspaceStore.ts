@@ -23,6 +23,9 @@ interface WorkspaceState {
   // 刷新触发器
   refreshListTrigger: number;
 
+  // Tab 重置触发器（用于重置编辑器/对话面板的 tab 到第一个）
+  resetEditorTabTrigger: number;
+
   // 首次启动标志
   isFirstLaunch: boolean | null;
 
@@ -48,6 +51,9 @@ interface WorkspaceState {
   // 刷新列表
   triggerListRefresh: () => void;
 
+  // 重置编辑器 tab
+  resetEditorTab: () => void;
+
   // 首次启动
   setIsFirstLaunch: (isFirst: boolean | null) => void;
   completeInitialization: () => void;
@@ -65,6 +71,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       selectedToolItemId: null,
       workspaceView: 'note',
       refreshListTrigger: 0,
+      resetEditorTabTrigger: 0,
       isFirstLaunch: null,
 
       // ============ Actions 实现 ============
@@ -110,6 +117,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       triggerListRefresh: () =>
         set((state) => ({
           refreshListTrigger: state.refreshListTrigger + 1,
+        })),
+
+      // 重置编辑器 tab
+      resetEditorTab: () =>
+        set((state) => ({
+          resetEditorTabTrigger: state.resetEditorTabTrigger + 1,
         })),
 
       // 首次启动

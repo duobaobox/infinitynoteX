@@ -12,7 +12,7 @@ type ToolPanelTab = 'ai' | 'kit' | 'settings';
 // ToolPanel 不再需要 props，直接使用 Store
 const ToolPanel: React.FC = () => {
   // 从 Store 获取状态
-  const { selectedToolId, selectedToolItemId } = useWorkspaceStore();
+  const { selectedToolId, selectedToolItemId, resetEditorTabTrigger } = useWorkspaceStore();
   // 本地状态
   const [activeTab, setActiveTab] = useState<ToolPanelTab>('ai');
 
@@ -21,6 +21,11 @@ const ToolPanel: React.FC = () => {
       setActiveTab('ai');
     }
   }, [selectedToolId]);
+
+  // 监听 tab 重置信号
+  useEffect(() => {
+    setActiveTab('ai');
+  }, [resetEditorTabTrigger]);
 
   const segmentOptions = [
     {

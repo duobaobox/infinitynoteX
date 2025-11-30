@@ -21,7 +21,7 @@ type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
  */
 export const NoteEditor: React.FC = () => {
   // 从 Store 获取状态
-  const { selectedNoteId, triggerListRefresh } = useWorkspaceStore();
+  const { selectedNoteId, triggerListRefresh, resetEditorTabTrigger } = useWorkspaceStore();
 
   // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
@@ -42,6 +42,11 @@ export const NoteEditor: React.FC = () => {
     loadNote(selectedNoteId);
     currentNoteIdRef.current = selectedNoteId;
   }, [selectedNoteId]);
+
+  // 监听 tab 重置信号
+  useEffect(() => {
+    setActiveTab('edit');
+  }, [resetEditorTabTrigger]);
 
   // 监听来自悬浮窗口的更新通知
   useEffect(() => {

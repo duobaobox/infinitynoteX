@@ -17,7 +17,7 @@ interface NoteListViewProps {
  */
 export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   // Store 状态
-  const { selectedFolderId, selectedNoteId, refreshListTrigger, setSelectedNote } =
+  const { selectedFolderId, selectedNoteId, refreshListTrigger, setSelectedNote, resetEditorTab } =
     useWorkspaceStore();
 
   // 本地状态
@@ -206,7 +206,10 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
                 title={note.title}
                 content={note.excerpt}
                 color={note.color || 'ffffff'}
-                onClick={() => setSelectedNote(note.id)}
+                onClick={() => {
+                  setSelectedNote(note.id);
+                  resetEditorTab();
+                }}
                 onPin={() => handlePinNote(note.id)}
                 actions={
                   <Button

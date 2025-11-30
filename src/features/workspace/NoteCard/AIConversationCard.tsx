@@ -1,7 +1,7 @@
 import React from 'react';
 import './AIConversationCard.css';
 import { getThemeColor } from '../../../theme/theme';
-import { useNoteCardTheme } from './useNoteCardTheme';
+import { useNoteCardTheme } from '../../../hooks/useNoteCardTheme';
 import RobotBackground from '../../../components/CardBackground/RobotBackground';
 import { NoteCardListContext } from './NoteCardContext';
 

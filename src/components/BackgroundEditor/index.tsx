@@ -4,19 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  Tabs,
-  ColorPicker,
-  Space,
-  Row,
-  Col,
-  Typography,
-  Segmented,
-  Card,
-  Form,
-  Input,
-  message,
-} from 'antd';
+import { Tabs, ColorPicker, Space, Row, Col, Typography, Segmented, Card, Form, Input } from 'antd';
 import type { Color } from 'antd/es/color-picker';
 import { getThemeColor } from '../../theme/theme';
 import './index.css';
@@ -76,7 +64,6 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
 
   const handlePresetSelect = (bgValue: string) => {
     onChange(bgValue);
-    message.success('背景已更新');
   };
 
   const handleSolidColorChange = (color: Color) => {

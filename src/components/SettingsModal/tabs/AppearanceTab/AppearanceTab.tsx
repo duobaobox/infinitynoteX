@@ -38,12 +38,6 @@ const AppearanceTab: React.FC = () => {
               onChangeComplete={(c) => {
                 const hex = c.toHexString();
                 applyPrimaryColor(hex);
-                message.open({
-                  type: 'success',
-                  content: '主题色已更新',
-                  key: 'theme-color-updated',
-                  duration: 1.5,
-                });
               }}
               presets={[
                 {
@@ -71,12 +65,6 @@ const AppearanceTab: React.FC = () => {
                 const v = e.target.value.trim();
                 if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) {
                   applyPrimaryColor(v);
-                  message.open({
-                    type: 'success',
-                    content: '主题色已更新',
-                    key: 'theme-color-updated',
-                    duration: 1.5,
-                  });
                 } else {
                   message.warning('请输入有效的十六进制颜色，如 #1677ff');
                   setPrimaryColor(getThemeColor());
@@ -97,7 +85,6 @@ const AppearanceTab: React.FC = () => {
             onChange={(v) => {
               const next = v as ThemeMode;
               applyThemeMode(next);
-              message.success('主题模式已更新');
             }}
             block
           />
@@ -108,12 +95,6 @@ const AppearanceTab: React.FC = () => {
             value={themeMode === 'dark' ? bgDark : bgLight}
             onChange={(newBg: string) => {
               applyBackground(newBg, themeMode === 'dark' ? 'dark' : 'light');
-              message.open({
-                type: 'success',
-                content: '背景已更新',
-                key: 'theme-bg-updated',
-                duration: 1.5,
-              });
             }}
             mode={themeMode === 'dark' ? 'dark' : 'light'}
           />

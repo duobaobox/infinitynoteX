@@ -8,13 +8,12 @@
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Input } from 'antd';
-import { MenuBar } from './MenuBar';
-import { BubbleMenu } from './BubbleMenu';
-import { getExtensions } from './extensions';
-import type { TipTapEditorProps } from './types';
-import { getThemeColor } from '../../theme/theme';
-import './TipTapEditor.css';
-import './table.css';
+import { MenuBar } from '../menus/MenuBar';
+import { getExtensions } from '../extensions';
+import type { TipTapEditorProps } from '../types';
+import { getThemeColor } from '../../../theme/theme';
+import '../styles/editor.css';
+import '../styles/table.css';
 
 /**
  * TipTap 编辑器组件
@@ -75,7 +74,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       const json = editor.getJSON();
       // 记录最新内容，用于和外部传入内容做去抖比对，避免 setContent 导致光标跳动/换行
       lastSyncedContentRef.current = JSON.stringify(json);
-      onContentChange?.(json as unknown as import('../../services/types').TipTapJSONContent);
+      onContentChange?.(json as unknown as import('../../../services/types').TipTapJSONContent);
     },
     // 编辑器属性配置
     editorProps: {
@@ -156,9 +155,6 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
       {/* 可选的菜单栏 */}
       {showMenuBar && <MenuBar editor={editor} />}
-
-      {/* 气泡菜单 - 选中文本时浮动显示 */}
-      <BubbleMenu editor={editor} />
 
       {/* 编辑器内容区域 */}
       <div className="tiptap-editor-wrapper">

@@ -18,7 +18,7 @@
   align-items: stretch;
   gap: 0 !important;
   padding: 0 !important;
-  border: 2px solid transparent !important;
+  border: 1px solid transparent !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   overflow: hidden;
   border-radius: 6px !important;
@@ -27,12 +27,10 @@
 .preset-card:hover {
   transform: translateY(-2px);
   border-color: rgba(24, 144, 255, 0.3) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
 .preset-card-active {
   border-color: #1890ff !important;
-  box-shadow: 0 0 8px rgba(24, 144, 255, 0.3) !important;
 }
 
 .preset-preview {

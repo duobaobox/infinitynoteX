@@ -1,15 +1,31 @@
+/**
+ * BackgroundEditor - 背景编辑器组件
+ * 支持预设背景和自定义纯色/渐变背景
+ */
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Tabs, ColorPicker, Space, Row, Col, Typography, Segmented, Card, Form, Input } from 'antd';
+import {
+  Tabs,
+  ColorPicker,
+  Space,
+  Row,
+  Col,
+  Typography,
+  Segmented,
+  Card,
+  Form,
+  Input,
+  message,
+} from 'antd';
 import type { Color } from 'antd/es/color-picker';
-import './BackgroundEditor.css';
 import { getThemeColor } from '../../theme/theme';
+import './index.css';
 
 const { Paragraph } = Typography;
 
 // 预设背景集合
 const PRESET_BACKGROUNDS = {
   gradients: [
-    { name: '相遇紫', value: 'linear-gradient(135deg, #e9e6ff 0%, #c9d6ff 100%)' },
     { name: '清晨蓝', value: 'linear-gradient(135deg, #e6f2ff 0%, #f0e6ff 100%)' },
     { name: '薄荷梦', value: 'linear-gradient(135deg, #e0f7f4 0%, #f0f4ff 100%)' },
     { name: '樱花淡', value: 'linear-gradient(135deg, #ffe6f0 0%, #fff0e6 100%)' },
@@ -60,6 +76,7 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
 
   const handlePresetSelect = (bgValue: string) => {
     onChange(bgValue);
+    message.success('背景已更新');
   };
 
   const handleSolidColorChange = (color: Color) => {

@@ -9,7 +9,8 @@ import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWind
 import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
-import { DEFAULT_TOOLS, type WorkspaceView } from './constants/tools';
+import { DEFAULT_TOOLS } from './constants/tools';
+import { useWorkspaceStore } from './store/workspaceStore';
 
 declare global {
   interface Window {
@@ -38,20 +39,31 @@ function App() {
     return 'main';
   }, []);
 
-  // 主窗口模式的 Hooks
-  const [showEditor, setShowEditor] = useState(false); /* 编辑容器显示状态 */
-  const [showSidebar, setShowSidebar] = useState(true); /* 侧边栏显示状态 */
-  const [lastTitlebarClickTime, setLastTitlebarClickTime] =
-    useState(0); /* 用于防止快速点击触发窗口最大化 */
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(
-    null,
-  ); /* 当前选中的文件夹ID */
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null); /* 当前选中的便签ID */
-  const [refreshListTrigger, setRefreshListTrigger] = useState(0); /* 刷新列表的触发器 */
-  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null); /* 首次启动标志 */
-  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('note');
-  const [selectedToolId, setSelectedToolId] = useState<string | null>(DEFAULT_TOOLS[0]?.id || null);
-  const [selectedToolItemId, setSelectedToolItemId] = useState<string | null>(null);
+  // ============ 使用 Zustand Store 管理状态 ============
+  const {
+    showEditor,
+    showSidebar,
+    selectedFolderId,
+    selectedNoteId,
+    selectedToolId,
+    selectedToolItemId,
+    workspaceView,
+    refreshListTrigger,
+    isFirstLaunch,
+    setShowEditor,
+    toggleSidebar,
+    toggleEditor,
+    setSelectedFolder,
+    setSelectedNote,
+    setSelectedTool,
+    setSelectedToolItem,
+    setWorkspaceView,
+    triggerListRefresh,
+    setIsFirstLaunch,
+  } = useWorkspaceStore();
+
+  // 保留的本地状态（非全局共享）
+  const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
   const isInitializingAIConversationRef = useRef(false);
 
   // 初始化检测
@@ -67,16 +79,16 @@ function App() {
     };
 
     checkFirstLaunch();
-  }, []);
+  }, [setIsFirstLaunch]);
 
   // 平台判断（避免改 preload，直接基于 UA 判断是否为 macOS）
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
 
   useEffect(() => {
     if (workspaceView === 'tool' && !selectedToolId && DEFAULT_TOOLS.length > 0) {
-      setSelectedToolId(DEFAULT_TOOLS[0].id);
+      setSelectedTool(DEFAULT_TOOLS[0].id);
     }
-  }, [workspaceView, selectedToolId]);
+  }, [workspaceView, selectedToolId, setSelectedTool]);
 
   // 应用启动时初始化默认 AI 对话（如果不存在）
   useEffect(() => {
@@ -111,7 +123,7 @@ function App() {
           const conversations = await window.storage.getAIConversations();
           if (conversations.length > 0 && !selectedToolItemId) {
             // 选中第一个对话（默认对话）
-            setSelectedToolItemId(conversations[0].id);
+            setSelectedToolItem(conversations[0].id);
           }
         } catch (error) {
           console.error('Failed to select default conversation:', error);
@@ -120,9 +132,9 @@ function App() {
       selectDefaultConversation();
     } else if (workspaceView !== 'tool' && selectedToolItemId) {
       // 切换回便签视图时清空选中的工具项
-      setSelectedToolItemId(null);
+      setSelectedToolItem(null);
     }
-  }, [workspaceView, selectedToolId, selectedToolItemId]);
+  }, [workspaceView, selectedToolId, selectedToolItemId, setSelectedToolItem]);
 
   // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
   if (windowType === 'floating') {
@@ -151,7 +163,7 @@ function App() {
     }
   };
 
-  const handleWorkspaceViewChange = (view: WorkspaceView) => {
+  const handleWorkspaceViewChange = (view: 'note' | 'tool') => {
     setWorkspaceView(view);
     if (view === 'note') {
       setShowEditor(!!selectedNoteId);
@@ -200,7 +212,7 @@ function App() {
             icon={<img src={sidebarLeftSvg} alt="sidebar" style={{ width: 18, height: 18 }} />}
             onClick={(e) => {
               e.stopPropagation();
-              setShowSidebar(!showSidebar);
+              toggleSidebar();
             }}
             style={{ padding: 0 }}
             title="切换侧边栏"
@@ -216,7 +228,7 @@ function App() {
             }
             onClick={(e) => {
               e.stopPropagation();
-              setShowEditor(!showEditor);
+              toggleEditor();
             }}
             style={{ padding: 0 }}
             title="切换编辑器"
@@ -301,12 +313,12 @@ function App() {
               <Sidebar
                 selectedFolderId={selectedFolderId}
                 onSelectFolder={(folderId) => {
-                  setSelectedFolderId(folderId);
+                  setSelectedFolder(folderId);
                   handleWorkspaceViewChange('note');
                 }}
                 selectedToolId={selectedToolId}
                 onSelectTool={(toolId) => {
-                  setSelectedToolId(toolId);
+                  setSelectedTool(toolId);
                   handleWorkspaceViewChange('tool');
                 }}
                 activeView={workspaceView}
@@ -320,18 +332,17 @@ function App() {
             folderId={selectedFolderId}
             selectedNoteId={selectedNoteId}
             onSelectNote={(noteId) => {
-              setSelectedNoteId(noteId);
-              setShowEditor(!!noteId);
+              setSelectedNote(noteId);
             }}
             refreshTrigger={refreshListTrigger}
             selectedToolId={selectedToolId}
             onSelectTool={(toolId) => {
-              setSelectedToolId(toolId);
+              setSelectedTool(toolId);
               handleWorkspaceViewChange('tool');
             }}
             selectedToolItemId={selectedToolItemId}
             onSelectToolItem={(itemId) => {
-              setSelectedToolItemId(itemId);
+              setSelectedToolItem(itemId);
               handleWorkspaceViewChange('tool');
             }}
             activeView={workspaceView}
@@ -342,7 +353,7 @@ function App() {
               <EditorPanel
                 noteId={selectedNoteId}
                 onClose={() => setShowEditor(false)}
-                onSave={() => setRefreshListTrigger((prev) => prev + 1)}
+                onSave={() => triggerListRefresh()}
               />
             ) : (
               <ToolPanel

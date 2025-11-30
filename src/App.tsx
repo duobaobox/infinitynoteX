@@ -43,17 +43,14 @@ function App() {
   const {
     showEditor,
     showSidebar,
-    selectedNoteId,
     selectedToolId,
     selectedToolItemId,
     workspaceView,
     isFirstLaunch,
-    setShowEditor,
     toggleSidebar,
     toggleEditor,
     setSelectedTool,
     setSelectedToolItem,
-    triggerListRefresh,
     setIsFirstLaunch,
   } = useWorkspaceStore();
 
@@ -299,20 +296,7 @@ function App() {
           )}
           <ListPanel flex={showEditor ? '0 0 250px' : 1} />
           {showEditor && <div className="gap-panel" />}
-          {showEditor &&
-            (workspaceView === 'note' ? (
-              <EditorPanel
-                noteId={selectedNoteId}
-                onClose={() => setShowEditor(false)}
-                onSave={() => triggerListRefresh()}
-              />
-            ) : (
-              <ToolPanel
-                toolId={selectedToolId}
-                tools={DEFAULT_TOOLS}
-                selectedToolItemId={selectedToolItemId}
-              />
-            ))}
+          {showEditor && (workspaceView === 'note' ? <EditorPanel /> : <ToolPanel />)}
         </div>
       )}
     </>

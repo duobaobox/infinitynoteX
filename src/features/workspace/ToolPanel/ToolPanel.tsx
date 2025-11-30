@@ -1,27 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Segmented } from 'antd';
 import { RobotOutlined, AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
-import type { ToolDefinition } from '../../../constants/tools';
+import { DEFAULT_TOOLS } from '../../../constants/tools';
 import { AITab } from '../EditorPanel/AITab';
 import AISettingsTab from './AISettingsTab';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './ToolPanel.css';
 
 type ToolPanelTab = 'ai' | 'kit' | 'settings';
 
-interface ToolPanelProps {
-  toolId: string | null;
-  tools: ToolDefinition[];
-  selectedToolItemId: string | null;
-}
-
-const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId }) => {
+// ToolPanel 不再需要 props，直接使用 Store
+const ToolPanel: React.FC = () => {
+  // 从 Store 获取状态
+  const { selectedToolId, selectedToolItemId } = useWorkspaceStore();
+  // 本地状态
   const [activeTab, setActiveTab] = useState<ToolPanelTab>('ai');
 
   useEffect(() => {
-    if (toolId === 'ai-chat') {
+    if (selectedToolId === 'ai-chat') {
       setActiveTab('ai');
     }
-  }, [toolId]);
+  }, [selectedToolId]);
 
   const segmentOptions = [
     {
@@ -59,7 +58,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({ toolId, tools, selectedToolItemId
       return <AISettingsTab />;
     }
 
-    const activeTool = tools.find((tool) => tool.id === toolId);
+    const activeTool = DEFAULT_TOOLS.find((tool) => tool.id === selectedToolId);
     const title = '工具组件区开发中';
 
     return (

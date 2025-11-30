@@ -12,16 +12,15 @@ import { ToolsTab } from './ToolsTab';
 import { AITab } from './AITab';
 import { OtherTab } from './OtherTab';
 import type { NoteColor as NoteColorType } from '../../../services/types';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 
 type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
 
-interface EditorPanelProps {
-  noteId: string | null;
-  onClose?: () => void;
-  onSave?: () => void; // 保存完成时的回调
-}
-
-const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
+// EditorPanel 不再需要 props，直接使用 Store
+const EditorPanel: React.FC = () => {
+  // 从 Store 获取状态
+  const { selectedNoteId, triggerListRefresh } = useWorkspaceStore();
+  // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKeyType>('edit');
@@ -31,15 +30,15 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
 
   // 加载便签内容
   useEffect(() => {
-    if (!noteId) {
+    if (!selectedNoteId) {
       setNoteTitle('');
       setEditorContent(null);
       return;
     }
 
-    loadNote(noteId);
-    currentNoteIdRef.current = noteId;
-  }, [noteId]);
+    loadNote(selectedNoteId);
+    currentNoteIdRef.current = selectedNoteId;
+  }, [selectedNoteId]);
 
   // 监听来自悬浮窗口的更新通知
   useEffect(() => {
@@ -96,15 +95,15 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
           console.log('Note auto-saved');
           // 通知悬浮窗口便签已更新
           window.ipcRenderer?.send('note:changed', currentNoteIdRef.current);
-          // 保存成功后调用回调，通知列表更新
-          onSave?.();
+          // 保存成功后触发列表刷新
+          triggerListRefresh();
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败，请检查磁盘空间');
         }
       }, 800);
     },
-    [onSave],
+    [triggerListRefresh],
   );
 
   // 标题变更处理
@@ -124,7 +123,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
   // 颜色变更处理
   const handleColorChange = (newColor: NoteColorType) => {
     setNoteColor(newColor);
-    onSave?.(); // 通知列表刷新
+    triggerListRefresh(); // 通知列表刷新
   };
 
   // 组件卸载时清除定时器
@@ -183,7 +182,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
         <div className="editor-inner-tab-container">
           {activeTab === 'edit' && (
             <EditTab
-              noteId={noteId}
+              noteId={selectedNoteId}
               noteTitle={noteTitle}
               editorContent={editorContent}
               onTitleChange={handleTitleChange}
@@ -191,10 +190,14 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ noteId, onSave }) => {
             />
           )}
           {activeTab === 'tools' && (
-            <ToolsTab noteId={noteId} noteColor={noteColor} onColorChange={handleColorChange} />
+            <ToolsTab
+              noteId={selectedNoteId}
+              noteColor={noteColor}
+              onColorChange={handleColorChange}
+            />
           )}
-          {activeTab === 'ai' && <AITab noteId={noteId} />}
-          {activeTab === 'other' && <OtherTab noteId={noteId} />}
+          {activeTab === 'ai' && <AITab noteId={selectedNoteId} />}
+          {activeTab === 'other' && <OtherTab noteId={selectedNoteId} />}
         </div>
       </div>
     </div>

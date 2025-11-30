@@ -10,28 +10,24 @@ import {
   EditOutlined,
   MoreOutlined,
 } from '@ant-design/icons';
-import { DEFAULT_TOOLS, type WorkspaceView } from '../../../constants/tools';
+import { DEFAULT_TOOLS } from '../../../constants/tools';
 import type { Folder } from '../../../services/types';
 import SettingsModal from '../../../components/SettingsModal/SettingsModal';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './Sidebar.css';
 
-interface SidebarProps {
-  selectedFolderId: string | null;
-  onSelectFolder: (folderId: string) => void;
-  selectedToolId: string | null;
-  onSelectTool: (toolId: string) => void;
-  activeView: WorkspaceView;
-  onViewChange: (view: WorkspaceView) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({
-  selectedFolderId,
-  onSelectFolder,
-  selectedToolId,
-  onSelectTool,
-  activeView,
-  onViewChange,
-}) => {
+// Sidebar 组件不再需要 props，直接使用 Store
+const Sidebar: React.FC = () => {
+  // 从 Store 获取状态和操作
+  const {
+    selectedFolderId,
+    selectedToolId,
+    workspaceView,
+    setSelectedFolder,
+    setSelectedTool,
+    setWorkspaceView,
+  } = useWorkspaceStore();
+  // 本地状态
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
@@ -43,7 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [renaming, setRenaming] = useState(false);
-  const isNoteView = activeView === 'note';
+  const isNoteView = workspaceView === 'note';
 
   const loadFolders = React.useCallback(async () => {
     try {
@@ -52,13 +48,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       // 默认选中第一个文件夹（默认文件夹）
       if (folderList.length > 0 && !selectedFolderId) {
-        onSelectFolder(folderList[0].id);
+        setSelectedFolder(folderList[0].id);
       }
     } catch (error) {
       console.error('Failed to load folders:', error);
       message.error('加载文件夹失败');
     }
-  }, [onSelectFolder, selectedFolderId]);
+  }, [setSelectedFolder, selectedFolderId]);
 
   // 加载文件夹列表
   useEffect(() => {
@@ -124,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           const nextFolders = await window.storage.listFolders();
           setFolders(nextFolders);
           if (selectedFolderId === id) {
-            onSelectFolder(nextFolders[0]?.id || 'default');
+            setSelectedFolder(nextFolders[0]?.id || 'default');
           }
         } catch (error) {
           console.error('Failed to delete folder:', error);
@@ -227,8 +223,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-vertical-auto">
         <Segmented
           block
-          value={activeView}
-          onChange={(value) => onViewChange(value as WorkspaceView)}
+          value={workspaceView}
+          onChange={(value) => setWorkspaceView(value as 'note' | 'tool')}
           options={[
             {
               label: (
@@ -277,9 +273,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
             onClick={(e) => {
               if (isNoteView) {
-                onSelectFolder(String(e.key));
+                setSelectedFolder(String(e.key));
               } else {
-                onSelectTool(String(e.key));
+                setSelectedTool(String(e.key));
               }
             }}
             className="sidebar-menu"

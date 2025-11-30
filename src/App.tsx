@@ -43,21 +43,16 @@ function App() {
   const {
     showEditor,
     showSidebar,
-    selectedFolderId,
     selectedNoteId,
     selectedToolId,
     selectedToolItemId,
     workspaceView,
-    refreshListTrigger,
     isFirstLaunch,
     setShowEditor,
     toggleSidebar,
     toggleEditor,
-    setSelectedFolder,
-    setSelectedNote,
     setSelectedTool,
     setSelectedToolItem,
-    setWorkspaceView,
     triggerListRefresh,
     setIsFirstLaunch,
   } = useWorkspaceStore();
@@ -160,17 +155,6 @@ function App() {
     // 仅在titlebar空白区域双击时触发最大化
     if (e.target === e.currentTarget) {
       window.electronAPI?.maximize();
-    }
-  };
-
-  const handleWorkspaceViewChange = (view: 'note' | 'tool') => {
-    setWorkspaceView(view);
-    if (view === 'note') {
-      setShowEditor(!!selectedNoteId);
-    } else {
-      if (!showEditor) {
-        setShowEditor(true);
-      }
     }
   };
 
@@ -306,47 +290,14 @@ function App() {
           }}
         />
       ) : (
-        // 正常应用界面
         <div className="layout-panel main-content">
           {showSidebar && (
             <>
-              <Sidebar
-                selectedFolderId={selectedFolderId}
-                onSelectFolder={(folderId) => {
-                  setSelectedFolder(folderId);
-                  handleWorkspaceViewChange('note');
-                }}
-                selectedToolId={selectedToolId}
-                onSelectTool={(toolId) => {
-                  setSelectedTool(toolId);
-                  handleWorkspaceViewChange('tool');
-                }}
-                activeView={workspaceView}
-                onViewChange={handleWorkspaceViewChange}
-              />
+              <Sidebar />
               <div className="gap-panel" />
             </>
           )}
-          <ListPanel
-            flex={showEditor ? '0 0 250px' : 1}
-            folderId={selectedFolderId}
-            selectedNoteId={selectedNoteId}
-            onSelectNote={(noteId) => {
-              setSelectedNote(noteId);
-            }}
-            refreshTrigger={refreshListTrigger}
-            selectedToolId={selectedToolId}
-            onSelectTool={(toolId) => {
-              setSelectedTool(toolId);
-              handleWorkspaceViewChange('tool');
-            }}
-            selectedToolItemId={selectedToolItemId}
-            onSelectToolItem={(itemId) => {
-              setSelectedToolItem(itemId);
-              handleWorkspaceViewChange('tool');
-            }}
-            activeView={workspaceView}
-          />
+          <ListPanel flex={showEditor ? '0 0 250px' : 1} />
           {showEditor && <div className="gap-panel" />}
           {showEditor &&
             (workspaceView === 'note' ? (

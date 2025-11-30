@@ -6,38 +6,29 @@ import NoteCard from '../NoteCard/NoteCard';
 import AIConversationCard from '../NoteCard/AIConversationCard';
 import { NoteCardListContext } from '../NoteCard/NoteCardContext';
 import { getThemeColor } from '../../../theme/theme';
-import {
-  DEFAULT_TOOLS,
-  type WorkspaceView,
-  type AIConversationPreview,
-} from '../../../constants/tools';
+import { DEFAULT_TOOLS, type AIConversationPreview } from '../../../constants/tools';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './ListPanel.css';
 
+// ListPanel 只保留 flex 作为 prop，其他状态从 Store 获取
 interface ListPanelProps {
   flex: string | number;
-  folderId: string | null;
-  selectedNoteId: string | null;
-  onSelectNote: (noteId: string | null) => void;
-  refreshTrigger?: number; // 刷新触发器
-  selectedToolId: string | null;
-  onSelectTool: (toolId: string) => void;
-  selectedToolItemId: string | null;
-  onSelectToolItem: (itemId: string) => void;
-  activeView: WorkspaceView;
 }
 
-const ListPanel: React.FC<ListPanelProps> = ({
-  flex,
-  folderId,
-  selectedNoteId,
-  onSelectNote,
-  refreshTrigger,
-  selectedToolId,
-  onSelectTool,
-  selectedToolItemId,
-  onSelectToolItem,
-  activeView,
-}) => {
+const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
+  // 从 Store 获取状态
+  const {
+    selectedFolderId,
+    selectedNoteId,
+    selectedToolId,
+    selectedToolItemId,
+    workspaceView,
+    refreshListTrigger,
+    setSelectedNote,
+    setSelectedTool,
+    setSelectedToolItem,
+  } = useWorkspaceStore();
+  // 本地状态
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
@@ -47,7 +38,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [aiConversations, setAiConversations] = useState<AIConversationPreview[]>([]);
 
-  const isNoteView = activeView === 'note';
+  const isNoteView = workspaceView === 'note';
   const toolList = DEFAULT_TOOLS;
   const effectiveToolId = selectedToolId || toolList[0]?.id || null;
   const isAiChatView = !isNoteView && effectiveToolId === 'ai-chat';
@@ -100,40 +91,40 @@ const ListPanel: React.FC<ListPanelProps> = ({
 
   // 加载便签列表
   const loadNotes = useCallback(async () => {
-    if (!folderId || !isNoteView) return;
+    if (!selectedFolderId || !isNoteView) return;
 
     try {
       // 加载便签列表
-      const noteList = await window.storage.listNotes(folderId);
+      const noteList = await window.storage.listNotes(selectedFolderId);
       setNotes(noteList);
 
       // 获取文件夹名称
       const folders = await window.storage.listFolders();
-      const folder = folders.find((f) => f.id === folderId);
+      const folder = folders.find((f) => f.id === selectedFolderId);
       setFolderName(folder?.name || '未知文件夹');
     } catch (error) {
       console.error('Failed to load notes:', error);
       message.error('加载便签失败');
     }
-  }, [folderId, isNoteView]);
+  }, [selectedFolderId, isNoteView]);
 
   useEffect(() => {
-    if (!folderId || !isNoteView) return;
+    if (!selectedFolderId || !isNoteView) return;
     loadNotes();
-  }, [folderId, isNoteView, loadNotes, refreshTrigger]);
+  }, [selectedFolderId, isNoteView, loadNotes, refreshListTrigger]);
 
   const handleCreateNote = async () => {
-    if (!folderId) {
+    if (!selectedFolderId) {
       message.warning('请先选择文件夹');
       return;
     }
 
     try {
-      const newNote = await window.storage.createNote(folderId, {
+      const newNote = await window.storage.createNote(selectedFolderId, {
         title: '无标题',
       });
       await loadNotes();
-      onSelectNote(newNote.id);
+      setSelectedNote(newNote.id);
       // 创建成功不再弹窗提醒
     } catch (error) {
       console.error('Failed to create note:', error);
@@ -174,7 +165,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
           // 删除成功不再弹窗提醒
           await loadNotes();
           if (selectedNoteId === id) {
-            onSelectNote(null);
+            setSelectedNote(null);
           }
         } catch (error) {
           console.error('Failed to delete note:', error);
@@ -237,7 +228,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
         const newConversation = await window.storage.createAIConversation();
         await loadAiConversations();
         // 自动选中新创建的对话
-        onSelectToolItem(newConversation.id);
+        setSelectedToolItem(newConversation.id);
         message.success('新建对话成功');
       } catch (error) {
         console.error('Failed to create AI conversation:', error);
@@ -266,9 +257,9 @@ const ListPanel: React.FC<ListPanelProps> = ({
             if (selectedToolItemId === id) {
               const updatedConversations = await window.storage.getAIConversations();
               if (updatedConversations.length > 0) {
-                onSelectToolItem(updatedConversations[0].id);
+                setSelectedToolItem(updatedConversations[0].id);
               } else {
-                onSelectToolItem('');
+                setSelectedToolItem('');
               }
             }
 
@@ -327,7 +318,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                   key={session.id}
                   title={session.title}
                   content={session.excerpt}
-                  onClick={() => onSelectToolItem(session.id)}
+                  onClick={() => setSelectedToolItem(session.id)}
                   actions={
                     session.title !== '默认对话' ? (
                       <Button
@@ -386,13 +377,13 @@ const ListPanel: React.FC<ListPanelProps> = ({
               <div
                 key={tool.id}
                 className={`tool-card${tool.id === effectiveToolId ? ' tool-card-selected' : ''}`}
-                onClick={() => onSelectTool(tool.id)}
+                onClick={() => setSelectedTool(tool.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onSelectTool(tool.id);
+                    setSelectedTool(tool.id);
                   }
                 }}
               >
@@ -451,7 +442,7 @@ const ListPanel: React.FC<ListPanelProps> = ({
                 title={note.title}
                 content={note.excerpt}
                 color={note.color || 'ffffff'}
-                onClick={() => onSelectNote(note.id)}
+                onClick={() => setSelectedNote(note.id)}
                 onPin={() => handlePinNote(note.id)}
                 actions={
                   <Button

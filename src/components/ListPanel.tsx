@@ -1,1 +1,1 @@
-export { default } from '../features/workspace/ListPanel';
+export { default } from '../features/layout/ListPanel';

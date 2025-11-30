@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import AIConversationCard from '../NoteCard/AIConversationCard';
-import { NoteCardListContext } from '../NoteCard/NoteCardContext';
-import { getThemeColor } from '../../../theme/theme';
-import type { AIConversationPreview } from '../../../constants/tools';
-import { useWorkspaceStore } from '../../../store/workspaceStore';
+import ConversationCard from '../../../../components/ConversationCard/ConversationCard';
+import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
+import { getThemeColor } from '../../../../theme/theme';
+import type { AIConversationPreview } from '../../../../constants/tools';
+import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
-interface AIConversationListViewProps {
+interface ConversationListViewProps {
   flex: string | number;
 }
 
 /**
- * AIConversationListView - AI对话列表视图组件
+ * ConversationListView - AI对话列表视图组件
  * 专门负责展示和管理AI对话列表
  */
-export const AIConversationListView: React.FC<AIConversationListViewProps> = ({ flex }) => {
+export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex }) => {
   // Store 状态
   const { selectedToolItemId, setSelectedToolItem } = useWorkspaceStore();
 
@@ -206,7 +206,7 @@ export const AIConversationListView: React.FC<AIConversationListViewProps> = ({ 
         <NoteCardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableListRef}>
             {filteredAiConversations.map((session) => (
-              <AIConversationCard
+              <ConversationCard
                 key={session.id}
                 title={session.title}
                 content={session.excerpt}

@@ -1,25 +1,28 @@
 /**
- * EditorPanel/index.tsx
- * 编辑器面板主入口 - 管理 tab 切换和数据流
+ * NoteEditor - 便签编辑器容器
+ * 管理编辑器 tabs 切换和数据流
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Segmented, message } from 'antd';
 import { EditOutlined, ToolOutlined, RobotOutlined, AppstoreOutlined } from '@ant-design/icons';
-import type { TipTapJSONContent } from '../../../services/types';
-import { EditTab } from './EditTab';
-import { ToolsTab } from './ToolsTab';
-import { AITab } from './AITab';
-import { OtherTab } from './OtherTab';
-import type { NoteColor as NoteColorType } from '../../../services/types';
-import { useWorkspaceStore } from '../../../store/workspaceStore';
+import type { TipTapJSONContent } from '../../../../services/types';
+import { EditTab } from './tabs/EditTab';
+import { ToolsTab } from './tabs/ToolsTab';
+import { AITab } from '../../../layout/EditorPanel/AITab'; // AITab 保持在 layout/
+import { OtherTab } from './tabs/OtherTab';
+import type { NoteColor as NoteColorType } from '../../../../services/types';
+import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
 type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
 
-// EditorPanel 不再需要 props，直接使用 Store
-const EditorPanel: React.FC = () => {
+/**
+ * NoteEditor - 便签编辑器组件
+ */
+export const NoteEditor: React.FC = () => {
   // 从 Store 获取状态
   const { selectedNoteId, triggerListRefresh } = useWorkspaceStore();
+
   // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
@@ -55,9 +58,7 @@ const EditorPanel: React.FC = () => {
       }
     };
 
-    // 监听悬浮窗口的更新通知
     window.ipcRenderer?.on('floating-note:updated', handleFloatingNoteUpdate);
-
     return () => {
       window.ipcRenderer?.off('floating-note:updated', handleFloatingNoteUpdate);
     };
@@ -80,12 +81,10 @@ const EditorPanel: React.FC = () => {
     (title: string, content: TipTapJSONContent) => {
       if (!currentNoteIdRef.current) return;
 
-      // 清除之前的定时器
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
 
-      // 设置新的定时器
       saveTimerRef.current = setTimeout(async () => {
         try {
           await window.storage.updateNote(currentNoteIdRef.current!, {
@@ -93,9 +92,7 @@ const EditorPanel: React.FC = () => {
             content,
           });
           console.log('Note auto-saved');
-          // 通知悬浮窗口便签已更新
           window.ipcRenderer?.send('note:changed', currentNoteIdRef.current);
-          // 保存成功后触发列表刷新
           triggerListRefresh();
         } catch (error) {
           console.error('Failed to save note:', error);
@@ -123,7 +120,7 @@ const EditorPanel: React.FC = () => {
   // 颜色变更处理
   const handleColorChange = (newColor: NoteColorType) => {
     setNoteColor(newColor);
-    triggerListRefresh(); // 通知列表刷新
+    triggerListRefresh();
   };
 
   // 组件卸载时清除定时器
@@ -203,5 +200,3 @@ const EditorPanel: React.FC = () => {
     </div>
   );
 };
-
-export default EditorPanel;

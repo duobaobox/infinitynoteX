@@ -3,8 +3,8 @@ import { Badge } from 'antd';
 import { DEFAULT_TOOLS } from '../../../constants/tools';
 import { getThemeColor } from '../../../theme/theme';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
-import { NoteListView } from './NoteListView';
-import { AIConversationListView } from './AIConversationListView';
+import { NoteListView } from '../../note/views/NoteList/NoteListView';
+import { ConversationListView } from '../../ai-chat/views/ConversationList/ConversationListView';
 import './ListPanel.css';
 
 interface ListPanelProps {
@@ -83,7 +83,7 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
 
   // AI 对话列表视图
   if (isAiChatView) {
-    return <AIConversationListView flex={flex} />;
+    return <ConversationListView flex={flex} />;
   }
 
   // 工具列表视图

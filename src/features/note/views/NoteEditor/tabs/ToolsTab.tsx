@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { message, Tooltip, Slider } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
-import type { NoteColor as NoteColorType } from '../../../services/types';
+import type { NoteColor as NoteColorType } from '../../../../../services/types';
 
 interface ToolsTabProps {
   noteId: string | null;

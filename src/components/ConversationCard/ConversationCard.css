@@ -3,8 +3,8 @@
    复用 NoteCard 的所有样式（除了背景装饰改为机器人）
    ============================================ */
 
-@import './NoteCard.css';
-@import '../../../components/CardBackground/RobotBackground.css';
+@import '../NoteCard/NoteCard.css';
+@import '../CardBackground/RobotBackground.css';
 
 /* ============================================
    暗色模式适配

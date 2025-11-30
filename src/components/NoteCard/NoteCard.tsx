@@ -1,9 +1,9 @@
 import React from 'react';
 import './NoteCard.css';
-import { getThemeColor } from '../../../theme/theme';
-import { useNoteCardTheme, type NoteCardColor } from '../../../hooks/useNoteCardTheme';
-import CardBackground from '../../../components/CardBackground/CardBackground';
-import { NoteCardListContext } from './NoteCardContext';
+import { getThemeColor } from '../../theme/theme';
+import { useNoteCardTheme, type NoteCardColor } from '../../hooks/useNoteCardTheme';
+import CardBackground from '../CardBackground/CardBackground';
+import { NoteCardListContext } from '../CardContext/CardContext';
 import { Button } from 'antd';
 import { PushpinOutlined } from '@ant-design/icons';
 

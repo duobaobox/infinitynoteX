@@ -10,7 +10,7 @@ import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 import { DEFAULT_TOOLS } from './constants/tools';
-import { useWorkspaceStore } from './store/workspaceStore';
+import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 
 declare global {
   interface Window {
@@ -47,6 +47,8 @@ function App() {
     selectedToolItemId,
     workspaceView,
     isFirstLaunch,
+    loadFolders, // 获取 loadFolders
+    loadAIConversations, // 获取 loadAIConversations
     toggleSidebar,
     toggleEditor,
     setSelectedTool,
@@ -57,6 +59,18 @@ function App() {
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
   const isInitializingAIConversationRef = useRef(false);
+
+  // 应用启动时加载数据
+  useEffect(() => {
+    loadFolders(); // 加载文件夹列表
+    loadAIConversations(); // 加载 AI 对话列表
+  }, [loadFolders, loadAIConversations]);
+
+  // 初始化数据同步机制：监听 selectedFolderId 变化，自动加载 notes
+  useEffect(() => {
+    const unsubscribe = setupFolderNotesSync();
+    return unsubscribe; // 组件卸载时取消订阅
+  }, []);
 
   // 初始化检测
   useEffect(() => {

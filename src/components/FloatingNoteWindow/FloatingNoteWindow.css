@@ -8,7 +8,8 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--app-bg, #ffffff);
+  /* Background set by applyDataTheme() in main.tsx before render */
+  background: var(--app-bg);
   overflow: hidden;
 }
 

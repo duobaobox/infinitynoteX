@@ -1,10 +1,11 @@
 /* Theme mode variables: light (default) and dark via [data-theme="dark"] */
-/* Note: --app-bg-light, --app-bg-dark, --app-bg are dynamically set by theme.ts via applyThemeBg() */
-/* The values here are just initial placeholders to prevent flash before JS runs */
+/* IMPORTANT: --app-bg-light, --app-bg-dark, --app-bg are set by applyDataTheme() in main.tsx */
+/* The values here are just transparent placeholders - JS sets the actual backgrounds BEFORE React renders */
+/* This ensures: 1) Single source of truth (theme.ts), 2) No flash, 3) No duplicate maintenance */
 
 :root {
   color-scheme: light;
-  /* Background colors will be set dynamically by theme.ts based on user preferences */
+  /* Background colors set dynamically by theme.ts - these are just placeholders */
   --app-bg-light: transparent;
   --app-bg-dark: transparent;
   --app-bg: transparent;
@@ -26,7 +27,7 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  /* Background colors will be set dynamically by theme.ts based on user preferences */
+  /* Background colors set dynamically by theme.ts */
   --app-bg-light: transparent;
   --app-bg-dark: transparent;
   --app-bg: transparent;

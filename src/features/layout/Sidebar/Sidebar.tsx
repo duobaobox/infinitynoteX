@@ -23,16 +23,21 @@ const Sidebar: React.FC = () => {
     selectedFolderId,
     selectedToolId,
     workspaceView,
+    folders, // 从 Store 获取 folders
+    loadFolders, // 从 Store 获取 loadFolders
+    createFolder, // 从 Store 获取 createFolder
+    deleteFolder, // 从 Store 获取 deleteFolder
+    renameFolder, // 从 Store 获取 renameFolder
     setSelectedFolder,
     setSelectedTool,
     setWorkspaceView,
   } = useWorkspaceStore();
-  // 本地状态
+
+  // 本地状态（仅 UI 状态）
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [folders, setFolders] = useState<Folder[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -41,25 +46,15 @@ const Sidebar: React.FC = () => {
   const [renaming, setRenaming] = useState(false);
   const isNoteView = workspaceView === 'note';
 
-  const loadFolders = React.useCallback(async () => {
-    try {
-      const folderList = await window.storage.listFolders();
-      setFolders(folderList);
-
-      // 默认选中第一个文件夹（默认文件夹）
-      if (folderList.length > 0 && !selectedFolderId) {
-        setSelectedFolder(folderList[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load folders:', error);
-      message.error('加载文件夹失败');
-    }
-  }, [setSelectedFolder, selectedFolderId]);
-
-  // 加载文件夹列表
+  // 加载文件夹列表（初始化时）
   useEffect(() => {
     loadFolders();
-  }, [loadFolders]);
+
+    // 如果没有选中文件夹，默认选中第一个
+    if (!selectedFolderId && folders.length > 0) {
+      setSelectedFolder(folders[0].id);
+    }
+  }, [loadFolders]); // 移除 selectedFolderId 依赖，避免循环
 
   const openCreateFolderModal = () => {
     setNewFolderName('');
@@ -80,11 +75,10 @@ const Sidebar: React.FC = () => {
 
     try {
       setCreating(true);
-      await window.storage.createFolder(name);
+      await createFolder(name); // 使用 Store Action
       // 创建成功不再弹窗提醒
       setIsCreateOpen(false);
       setNewFolderName('');
-      await loadFolders();
     } catch (error) {
       console.error('Failed to create folder:', error);
       const msg = error instanceof Error ? error.message : String(error);
@@ -115,13 +109,8 @@ const Sidebar: React.FC = () => {
       okButtonProps: { danger: true },
       async onOk() {
         try {
-          await window.storage.deleteFolder(id);
+          await deleteFolder(id); // 使用 Store Action，会自动重新加载 folders
           // 删除成功不再弹窗提醒
-          const nextFolders = await window.storage.listFolders();
-          setFolders(nextFolders);
-          if (selectedFolderId === id) {
-            setSelectedFolder(nextFolders[0]?.id || 'default');
-          }
         } catch (error) {
           console.error('Failed to delete folder:', error);
           message.error('删除文件夹失败');
@@ -160,10 +149,9 @@ const Sidebar: React.FC = () => {
     }
     try {
       setRenaming(true);
-      await window.storage.renameFolder(id, name);
+      await renameFolder(id, name); // 使用 Store Action，会自动重新加载 folders
       // 重命名成功不再弹窗提醒
       cancelRename();
-      await loadFolders();
     } catch (error) {
       console.error('Failed to rename folder:', error);
       const msg = error instanceof Error ? error.message : String(error);

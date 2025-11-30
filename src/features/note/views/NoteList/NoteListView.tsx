@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import type { NoteIndex } from '../../../../services/types';
 import NoteCard from '../../../../components/NoteCard/NoteCard';
 import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
 import { getThemeColor } from '../../../../theme/theme';
@@ -17,16 +16,22 @@ interface NoteListViewProps {
  */
 export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   // Store 状态
-  const { selectedFolderId, selectedNoteId, refreshListTrigger, setSelectedNote, resetEditorTab } =
-    useWorkspaceStore();
+  const {
+    selectedFolderId,
+    selectedNoteId,
+    notes, // 从 Store 获取 notes
+    currentFolderName, // 从 Store 获取 currentFolderName
+    createNote, // 从 Store 获取 createNote
+    deleteNote, // 从 Store 获取 deleteNote
+    setSelectedNote,
+    resetEditorTab,
+  } = useWorkspaceStore();
 
-  // 本地状态
+  // 本地状态（仅 UI 状态）
   const [themeColor, setThemeColor] = useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
-  const [notes, setNotes] = useState<NoteIndex[]>([]);
-  const [folderName, setFolderName] = useState('未选择');
   const [searchQuery, setSearchQuery] = useState('');
 
   // 监听主题色变化
@@ -39,29 +44,6 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     return () => window.removeEventListener('theme-color-change', handler as EventListener);
   }, []);
 
-  // 加载便签列表
-  const loadNotes = useCallback(async () => {
-    if (!selectedFolderId) return;
-
-    try {
-      const noteList = await window.storage.listNotes(selectedFolderId);
-      setNotes(noteList);
-
-      // 获取文件夹名称
-      const folders = await window.storage.listFolders();
-      const folder = folders.find((f) => f.id === selectedFolderId);
-      setFolderName(folder?.name || '未知文件夹');
-    } catch (error) {
-      console.error('Failed to load notes:', error);
-      message.error('加载便签失败');
-    }
-  }, [selectedFolderId]);
-
-  useEffect(() => {
-    if (!selectedFolderId) return;
-    loadNotes();
-  }, [selectedFolderId, loadNotes, refreshListTrigger]);
-
   // 创建便签
   const handleCreateNote = async () => {
     if (!selectedFolderId) {
@@ -70,10 +52,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     }
 
     try {
-      const newNote = await window.storage.createNote(selectedFolderId, {
-        title: '无标题',
-      });
-      await loadNotes();
+      const newNote = await createNote(selectedFolderId); // 使用 Store Action
       setSelectedNote(newNote.id);
     } catch (error) {
       console.error('Failed to create note:', error);
@@ -91,8 +70,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
       okButtonProps: { danger: true },
       async onOk() {
         try {
-          await window.storage.deleteNote(id);
-          await loadNotes();
+          await deleteNote(id); // 使用 Store Action
           if (selectedNoteId === id) {
             setSelectedNote(null);
           }
@@ -174,8 +152,8 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
             alignItems: 'center',
           }}
         >
-          <span className="folder-name" title={folderName}>
-            {folderName}
+          <span className="folder-name" title={currentFolderName}>
+            {currentFolderName}
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Badge count={filteredNotes.length} showZero style={{ backgroundColor: themeColor }} />

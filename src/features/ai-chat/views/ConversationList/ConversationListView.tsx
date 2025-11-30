@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import ConversationCard from '../../../../components/ConversationCard/ConversationCard';
 import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
 import { getThemeColor } from '../../../../theme/theme';
-import type { AIConversationPreview } from '../../../../constants/tools';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
 interface ConversationListViewProps {
@@ -17,14 +16,21 @@ interface ConversationListViewProps {
  */
 export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex }) => {
   // Store 状态
-  const { selectedToolItemId, setSelectedToolItem, resetEditorTab } = useWorkspaceStore();
+  const {
+    selectedToolItemId,
+    aiConversations, // 从 Store 获取 aiConversations
+    createAIConversation, // 从 Store 获取 createAIConversation
+    deleteAIConversation, // 从 Store 获取 deleteAIConversation
+    loadAIConversations, // 从 Store 获取 loadAIConversations
+    setSelectedToolItem,
+    resetEditorTab,
+  } = useWorkspaceStore();
 
-  // 本地状态
+  // 本地状态（仅 UI 状态）
   const [themeColor, setThemeColor] = useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
-  const [aiConversations, setAiConversations] = useState<AIConversationPreview[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // 监听主题色变化
@@ -37,46 +43,31 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
     return () => window.removeEventListener('theme-color-change', handler as EventListener);
   }, []);
 
-  // 加载 AI 对话列表
-  const loadAiConversations = useCallback(async () => {
-    try {
-      const conversations = await window.storage.getAIConversations();
-      setAiConversations(
-        conversations.map((c) => ({
-          id: c.id,
-          title: c.title,
-          excerpt: c.excerpt,
-          updatedAt: c.updatedAt,
-          color: 'd6e4ff',
-        })),
-      );
-    } catch (error) {
-      console.error('Failed to load AI conversations:', error);
-    }
-  }, []);
-
-  // 初始化加载
+  // 初始化加载 AI 对话
   useEffect(() => {
-    loadAiConversations();
-  }, [loadAiConversations]);
+    loadAIConversations();
+  }, [loadAIConversations]);
 
   // 监听 AI 对话更新事件
   useEffect(() => {
     const handleConversationUpdate = () => {
-      loadAiConversations();
+      loadAIConversations();
     };
 
     window.addEventListener('ai-conversation-updated', handleConversationUpdate);
     return () => window.removeEventListener('ai-conversation-updated', handleConversationUpdate);
-  }, [loadAiConversations]);
+  }, [loadAIConversations]);
 
   // 创建 AI 对话
   const handleCreateAIConversation = async () => {
     try {
-      const newConversation = await window.storage.createAIConversation();
-      await loadAiConversations();
-      setSelectedToolItem(newConversation.id);
+      await createAIConversation(); // 使用 Store Action
       message.success('新建对话成功');
+      // 选中最新创建的对话（需要重新加载后选中）
+      const conversations = await window.storage.getAIConversations();
+      if (conversations.length > 0) {
+        setSelectedToolItem(conversations[0].id);
+      }
     } catch (error) {
       console.error('Failed to create AI conversation:', error);
       message.error('创建对话失败');
@@ -99,19 +90,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
       okButtonProps: { danger: true },
       async onOk() {
         try {
-          await window.storage.deleteAIConversation(id);
-
-          // 如果删除的是当前选中的对话，自动切换到第一个对话
-          if (selectedToolItemId === id) {
-            const updatedConversations = await window.storage.getAIConversations();
-            if (updatedConversations.length > 0) {
-              setSelectedToolItem(updatedConversations[0].id);
-            } else {
-              setSelectedToolItem('');
-            }
-          }
-
-          await loadAiConversations();
+          await deleteAIConversation(id); // 使用 Store Action
         } catch (error) {
           console.error('Failed to delete AI conversation:', error);
           message.error('删除对话失败');

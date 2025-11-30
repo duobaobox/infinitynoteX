@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Form, Input, Button, Space, Typography, Divider, Progress, Modal, message } from 'antd';
+import { Form, Input, Button, Space, Typography, Divider, Progress, message } from 'antd';
 import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import './DataTab.css';
@@ -204,41 +204,6 @@ const DataTab: React.FC = () => {
           >
             运行健康检查
           </Button>
-        </Form.Item>
-
-        <Divider />
-
-        <Form.Item label="重置数据">
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              清空所有数据并重新初始化。警告：此操作不可撤销！
-            </Paragraph>
-            <Button
-              danger
-              onClick={async () => {
-                Modal.confirm({
-                  title: '确认重置所有数据',
-                  content:
-                    '此操作将删除所有便签、文件夹等数据，并重新初始化存储。此操作不可撤销，是否继续？',
-                  okText: '确认重置',
-                  cancelText: '取消',
-                  okButtonProps: { danger: true },
-                  async onOk() {
-                    try {
-                      await window.storage.resetAllData();
-                      message.success('数据重置成功');
-                      await loadStorageInfo();
-                    } catch (error: unknown) {
-                      console.error('Failed to reset data:', error);
-                      message.error(`重置失败: ${getErrMsg(error)}`);
-                    }
-                  },
-                });
-              }}
-            >
-              重置所有数据
-            </Button>
-          </Space>
         </Form.Item>
       </Form>
     </div>

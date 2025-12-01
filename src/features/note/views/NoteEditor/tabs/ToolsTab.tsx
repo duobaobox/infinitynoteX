@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { message, Tooltip, Slider } from 'antd';
 import { CheckOutlined } from '@ant-design/icons';
 import type { NoteColor as NoteColorType } from '../../../../../services/types';
+import { PRESET_COLORS } from '../../../../../hooks/useNoteCardTheme';
 
 interface ToolsTabProps {
   noteId: string | null;
@@ -17,16 +18,6 @@ interface ToolsTabProps {
 export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorChange }) => {
   const [defaultFloatingWindowWidth, setDefaultFloatingWindowWidth] = useState<number>(400);
   const [defaultFloatingWindowHeight, setDefaultFloatingWindowHeight] = useState<number>(400);
-
-  // 预设 6 色（与 NoteCard 约定相同）- 仅此 Tab 使用，放在本地即可
-  const PRESET_COLORS: Array<{ key: NoteColorType; label: string }> = [
-    { key: 'ffffff', label: '白色' },
-    { key: 'bae0ff', label: '蓝' },
-    { key: 'd6e4ff', label: '靛蓝' },
-    { key: 'd9f7be', label: '绿' },
-    { key: 'ffd666', label: '金' },
-    { key: 'ffd6e7', label: '粉' },
-  ];
 
   // 从存储中加载默认悬浮便签大小设置
   useEffect(() => {

@@ -2,6 +2,14 @@
  * 数据持久化相关类型定义
  */
 
+import type { NoteCardColor } from '../hooks/useNoteCardTheme';
+
+/**
+ * 便签颜色（预设 6 种）
+ * 统一从 useNoteCardTheme 导出，避免重复定义
+ */
+export type NoteColor = NoteCardColor;
+
 // ============ 数据模型 ============
 
 /**
@@ -156,12 +164,6 @@ export interface TipTapJSONContent {
   marks?: TipTapMark[];
   text?: string;
 }
-
-/**
- * 便签颜色（预设 6 种）
- * 使用不带 # 的十六进制字符串，便于直接存储
- */
-export type NoteColor = 'bae0ff' | 'd9f7be' | 'ffd6e7' | 'd6e4ff' | 'ffd666' | 'ffffff';
 
 // ============ 悬浮窗口相关 ============
 

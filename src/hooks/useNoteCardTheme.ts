@@ -47,6 +47,18 @@ const CARD_COLOR_PALETTE: Record<NoteCardColor, { light: string; dark: string }>
 };
 
 /**
+ * 预设颜色选项（供 UI 选择器使用）
+ */
+export const PRESET_COLORS: Array<{ key: NoteCardColor; label: string }> = [
+  { key: 'ffffff', label: '白色' },
+  { key: 'bae0ff', label: '蓝' },
+  { key: 'd6e4ff', label: '靛蓝' },
+  { key: 'd9f7be', label: '绿' },
+  { key: 'ffd666', label: '金' },
+  { key: 'ffd6e7', label: '粉' },
+];
+
+/**
  * 边框颜色 - 根据主题自适应
  */
 const BORDER_COLOR = {
@@ -110,19 +122,33 @@ export function useNoteCardTheme(
     // 初始检测
     updateDarkMode();
 
-    // 使用 MutationObserver 监听 DOM 属性变化
+    // 监听主题模式变化事件（light/dark/auto 切换时触发）
+    const onThemeModeChange = () => {
+      updateDarkMode();
+    };
+
+    window.addEventListener('theme-mode-change', onThemeModeChange);
+
+    // 回退：仍保留 MutationObserver，以防外部样式直接修改 data-theme
     const observer = new MutationObserver(updateDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-theme'],
     });
 
-    return () => observer.disconnect();
+    return () => {
+      window.removeEventListener('theme-mode-change', onThemeModeChange);
+      observer.disconnect();
+    };
   }, []);
 
-  // 计算并返回卡片样式值
-  const bgColor = getCardBackgroundColor(colorKey, isDark);
-  const borderColor = getBorderColor(isDark, isInteractive, themeColor);
+  // 计算并返回卡片样式值（memoized 减少重复计算）
+  const bgColor = React.useMemo(() => getCardBackgroundColor(colorKey, isDark), [colorKey, isDark]);
+
+  const borderColor = React.useMemo(
+    () => getBorderColor(isDark, isInteractive, themeColor),
+    [isDark, isInteractive, themeColor],
+  );
 
   return {
     isDark,

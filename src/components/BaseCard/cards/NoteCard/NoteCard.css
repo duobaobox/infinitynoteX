@@ -1,0 +1,67 @@
+/* ============================================
+   NoteCard - 便签卡片特有样式
+   ============================================ */
+
+/* 便签图标 */
+.note-icon__card {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  bottom: 10px;
+  left: 20px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: rotate(-12deg);
+  transition: all 0.3s ease-in-out;
+  background: linear-gradient(135deg, #f9d79e 30%, #f0dcc6 100%);
+  opacity: 0.9;
+}
+
+.base-card:hover .note-icon__card {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
+  transform: rotate(-12deg) translateY(-2px);
+}
+
+/* 高光效果 */
+.note-icon__shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* 横线效果 */
+.note-icon__lines {
+  position: absolute;
+  top: 32%;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 5px,
+    rgba(0, 0, 0, 0.18) 5px,
+    rgba(0, 0, 0, 0.18) 6.5px
+  );
+}
+
+/* ==================== 暗色模式 ==================== */
+[data-theme='dark'] .note-icon__card {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #4a4a4a 30%, #3a3a3a 100%);
+}
+
+[data-theme='dark'] .note-icon__lines {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 5px,
+    rgba(255, 255, 255, 0.1) 5px,
+    rgba(255, 255, 255, 0.1) 6.5px
+  );
+}

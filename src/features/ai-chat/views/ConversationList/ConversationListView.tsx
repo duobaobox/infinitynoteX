@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import { ConversationCard, CardListContext } from '../../../../components/BaseCard';
+import ConversationCard, {
+  CardListContext,
+} from '../../../../components/BaseCard/cards/ConversationCard';
 import { getThemeColor } from '../../../../theme/theme';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 

@@ -1,0 +1,419 @@
+/**
+ * AIChat 组件样式
+ * 基于 AITab.css 重构，使用通用的 ai-chat- 前缀
+ */
+
+.ai-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--panel-bg, #fafafa);
+}
+
+.ai-chat-header {
+  padding: 12px 16px;
+  background-color: var(--bg, #fff);
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.ai-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-chat-header-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ai-chat-header-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+.ai-chat-meta-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.ai-chat-meta-trigger[role='button'] {
+  cursor: pointer;
+}
+
+.ai-chat-meta-trigger[role='button']:hover {
+  border-color: var(--primary-color, #1677ff);
+  background: rgba(22, 119, 255, 0.08);
+}
+
+.ai-chat-meta-trigger.is-switching {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ai-chat-meta-provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-primary, #1f1f1f);
+  font-weight: 500;
+}
+
+.ai-chat-meta-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-chat-meta-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.ai-chat-meta-icon {
+  font-size: 10px;
+  color: inherit;
+}
+
+.ai-chat-meta-trigger.is-switching .ai-chat-meta-icon {
+  animation: ai-meta-spin 0.9s linear infinite;
+}
+
+@keyframes ai-meta-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Provider 下拉选项（复用 AITab 样式） */
+.ai-meta-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-meta-option__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-meta-option__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-meta-option__provider {
+  font-weight: 500;
+  color: var(--text-primary, #1f1f1f);
+}
+
+.ai-meta-option__badge {
+  font-size: 11px;
+  color: #fa541c;
+  background: rgba(250, 84, 28, 0.12);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+.ai-meta-option__model {
+  font-size: 12px;
+  color: #8c8c8c;
+  padding-left: 14px;
+}
+
+.ai-meta-dropdown .ant-dropdown-menu {
+  min-width: 200px;
+}
+
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.ai-chat-messages-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+}
+
+.ai-chat-input {
+  padding: 10px;
+  background-color: var(--bg, #fff);
+  border-top: none;
+  flex-shrink: 0;
+}
+
+/* 隐藏 ant-sender-content 中的按钮 */
+.ai-chat-input .ant-sender-content .ant-btn {
+  display: none;
+}
+
+/* 隐藏输入框的滚动条 */
+.ai-chat-input .ant-sender-input {
+  scrollbar-width: none; /* Firefox */
+}
+
+.ai-chat-input .ant-sender-input::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* 移除 Sender 组件激活时的阴影 */
+.ai-chat-input .ant-sender {
+  box-shadow: none !important;
+}
+
+.ai-chat-input .ant-sender:focus-within {
+  box-shadow: none !important;
+}
+
+.ai-chat-input .ant-sender-wrapper {
+  box-shadow: none !important;
+}
+
+.ai-chat-input .ant-sender-footer {
+  padding: 8px 12px;
+}
+
+.ai-chat-alert {
+  margin: 12px 16px 0;
+}
+
+/* 气泡相关样式（复用） */
+.ai-bubble-with-thought-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-bubble-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ai-bubble-footer .ant-btn {
+  font-size: 12px;
+  color: var(--text-secondary, #595959);
+}
+
+.ai-chat-container .ant-bubble-content,
+.ai-chat-container .ant-bubble-content-filled {
+  margin-bottom: 0 !important;
+}
+
+.ai-chat-container .ant-bubble-footer {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.ai-bubble-text {
+  line-height: 1.65;
+}
+
+/* 思维链样式 */
+.ai-thought-chain-wrapper {
+  padding-left: 0;
+}
+
+.ai-thought-chain-wrapper .ant-thought-chain-item-icon,
+.ai-thought-chain-wrapper .ant-avatar,
+.ai-thought-chain-wrapper .ant-x-thought-chain-icon,
+.ai-thought-chain-wrapper .ant-x-thought-chain-line,
+.ai-thought-chain-wrapper .ant-x-thought-chain-header {
+  display: none !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-item {
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-item::before,
+.ai-thought-chain-wrapper .ant-x-thought-chain-item::after {
+  display: none !important;
+}
+
+.ai-thought-chain-wrapper .ant-x-thought-chain-content {
+  padding-left: 0;
+}
+
+.ai-thought-chain-wrapper .ant-thought-chain-item-header::before {
+  display: none !important;
+}
+
+.ai-thought-chain-content {
+  line-height: 1.6;
+}
+
+.ai-thought-chain-block + .ai-thought-chain-block {
+  margin-top: 12px;
+}
+
+.ai-placeholder-text {
+  color: #999;
+}
+
+/* ==================== 暗色模式适配 ==================== */
+
+/* 暗色模式 - 容器 */
+:root[data-theme='dark'] .ai-chat-container {
+  background-color: #141414;
+}
+
+/* 暗色模式 - 顶部标题栏 */
+:root[data-theme='dark'] .ai-chat-header {
+  background-color: #1f1f1f;
+  border-bottom-color: #434343;
+}
+
+:root[data-theme='dark'] .ai-chat-header-title {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-chat-header-meta {
+  color: #8c8c8c;
+}
+
+/* 暗色模式 - 消息区域 */
+:root[data-theme='dark'] .ai-chat-messages {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ai-chat-messages-empty {
+  color: #595959;
+}
+
+/* 暗色模式 - 输入框 */
+:root[data-theme='dark'] .ai-chat-input {
+  background-color: #1f1f1f;
+  border-top-color: #434343;
+}
+
+/* 暗色模式 - 模型切换触发器 */
+:root[data-theme='dark'] .ai-chat-meta-trigger {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-chat-meta-trigger[role='button']:hover {
+  border-color: #177ddc;
+  background: rgba(23, 125, 220, 0.12);
+}
+
+:root[data-theme='dark'] .ai-chat-meta-provider {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-chat-meta-model {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - 元数据选项 */
+:root[data-theme='dark'] .ai-meta-option__provider {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-meta-option__model {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - Sender 输入框样式 */
+:root[data-theme='dark'] .ai-chat-input .ant-sender {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ai-chat-input .ant-sender-input {
+  background-color: #262626;
+  color: #e6e6e6;
+  border-color: #434343;
+}
+
+:root[data-theme='dark'] .ai-chat-input .ant-sender-input::placeholder {
+  color: #8c8c8c;
+}
+
+:root[data-theme='dark'] .ai-chat-input .ant-sender-footer {
+  background-color: #1f1f1f;
+  border-top-color: #434343;
+}
+
+/* 暗色模式 - 告警提示 */
+:root[data-theme='dark'] .ai-chat-alert {
+  background-color: #2f1515;
+  border-color: #58181c;
+}
+
+/* 暗色模式 - 气泡菜单 */
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu {
+  background-color: #262626;
+}
+
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item:hover {
+  background-color: #434343;
+}
+
+/* 暗色模式 - AI对话气泡 */
+:root[data-theme='dark'] .ai-chat-messages {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ant-bubble-content {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ant-bubble-footer {
+  color: #a6a6a6;
+}
+
+/* 暗色模式 - 思维链 */
+:root[data-theme='dark'] .ai-thought-chain-content {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-placeholder-text {
+  color: #595959;
+}

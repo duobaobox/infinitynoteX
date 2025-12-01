@@ -1,0 +1,101 @@
+/**
+ * AIChat Types - AI 对话核心类型定义
+ */
+
+import type { GetProp } from 'antd';
+import type { ThoughtChain } from '@ant-design/x';
+
+// Ant Design X 类型
+export type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
+
+/**
+ * 聊天消息项（UI 层使用）
+ */
+export interface ChatItem {
+  key: string;
+  role: 'user' | 'ai';
+  content: string;
+  timestamp: number;
+  thoughtChain?: ThoughtChainItems;
+  isStreaming?: boolean;
+  /** 流式思维链原始文本增量累积 */
+  thoughtChainText?: string;
+}
+
+/**
+ * AI 消息（存储层使用）
+ */
+export interface AIMessageData {
+  id?: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  reasoning?: string;
+}
+
+/**
+ * Provider 选项
+ */
+export interface ProviderOption {
+  providerId: string;
+  config: import('../../services/aiConfig').AIConfig;
+}
+
+/**
+ * 流式数据块
+ */
+export interface StreamChunkData {
+  delta: string;
+  reasoningDelta?: string;
+  finishReason?: string;
+}
+
+/**
+ * 流式错误
+ */
+export interface StreamErrorPayload {
+  error?: string;
+}
+
+/**
+ * AI Chat 组件 Props
+ */
+export interface AIChatPanelProps {
+  /** 对话 ID */
+  conversationId: string | null;
+  /** 对话标题 */
+  title?: string;
+  /** 标题变更回调 */
+  onTitleChange?: (title: string) => void;
+  /** 是否显示标题编辑功能 */
+  showTitleEditor?: boolean;
+  /** 自定义 className */
+  className?: string;
+}
+
+/**
+ * useAIChat Hook 返回值
+ */
+export interface UseAIChatReturn {
+  chatItems: ChatItem[];
+  isLoading: boolean;
+  error: string | null;
+  inputValue: string;
+  setInputValue: (value: string) => void;
+  sendMessage: (text: string) => Promise<void>;
+  clearChat: () => void;
+  clearError: () => void;
+}
+
+/**
+ * useAIConfig Hook 返回值
+ */
+export interface UseAIConfigReturn {
+  isConfigured: boolean;
+  isInitializing: boolean;
+  config: import('../../services/aiConfig').AIConfig | null;
+  providerOptions: ProviderOption[];
+  currentProviderId: string;
+  switchProvider: (providerId: string) => Promise<void>;
+  isSwitching: boolean;
+}

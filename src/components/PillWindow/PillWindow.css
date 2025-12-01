@@ -3,7 +3,7 @@
  * 药丸窗口样式
  */
 
-@import '../CardBackground/CardBackground.css';
+@import '../BaseCard/backgrounds/backgrounds.css';
 
 /* 固定宽度为 130px */
 .pill-window {

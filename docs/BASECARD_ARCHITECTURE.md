@@ -4,31 +4,25 @@
 
 ```
 components/
-├── BaseCard/                          ⭐ 卡片组件核心目录
-│   ├── BaseCard.tsx                   ✅ 通用卡片基础组件
-│   ├── BaseCard.css                   ✅ 通用样式
-│   ├── useCardTheme.ts                ✅ 主题 Hook（主题监听 + 暗色检测）
-│   ├── CardBackgroundRenderer.tsx     ✅ 背景渲染器（路由不同背景装饰）
-│   ├── types.ts                       ✅ 类型定义
-│   ├── index.ts                       ✅ 统一导出
-│   │
-│   └── cards/                         📦 所有特化卡片组件
-│       ├── index.ts                   (统一导出所有卡片)
-│       │
-│       ├── NoteCard/                  便签卡片
-│       │   ├── NoteCard.tsx           (34 行)
-│       │   ├── NoteCard.css           (6 行)
-│       │   └── index.ts
-│       │
-│       └── ConversationCard/          AI对话卡片
-│           ├── ConversationCard.tsx   (33 行)
-│           ├── ConversationCard.css   (6 行)
-│           └── index.ts
-│
-├── CardBackground/                    背景装饰组件
-│   ├── CardBackground.tsx             (堆叠卡片)
-│   ├── RobotBackground.tsx            (机器人)
-│   └── ...
+└── BaseCard/                          ⭐ 卡片组件核心目录（自包含）
+    ├── BaseCard.tsx                   ✅ 通用卡片基础组件
+    ├── BaseCard.css                   ✅ 通用样式
+    ├── index.ts                       ✅ 统一导出
+    │
+    ├── backgrounds/                   🎨 背景装饰系统
+    │   ├── index.tsx                  ✅ 背景注册表 + 统一导出
+    │   ├── backgrounds.css            ✅ 所有背景样式
+    │   ├── StackedBackground.tsx      ✅ 堆叠卡片背景
+    │   ├── RobotBackground.tsx        ✅ 机器人背景
+    │   └── ChecklistBackground.tsx    ✅ 清单背景
+    │
+    ├── NoteCard.tsx                   📝 便签卡片 (配置)
+    ├── ConversationCard.tsx           🤖 AI对话卡片 (配置)
+    └── TodoCard.tsx                   ✅ 待办卡片 (配置)
+
+├── CardBackground/                    ⚠️ 已废弃，重定向到 BaseCard/backgrounds
+│   ├── CardBackground.tsx             → StackedBackground
+│   └── RobotBackground.tsx            → RobotBackground
 ```
 
 ---
@@ -38,13 +32,12 @@ components/
 ### ✅ 标准导入
 
 ```typescript
-// 推荐：从 BaseCard 导入
-import { NoteCard, ConversationCard } from '@/components/BaseCard';
-import type { NoteCardProps, AIConversationCardProps } from '@/components/BaseCard';
+// 推荐：从 BaseCard 统一导入
+import { NoteCard, ConversationCard, TodoCard } from '@/components/BaseCard';
+import type { NoteCardProps, ConversationCardProps, TodoCardProps } from '@/components/BaseCard';
 
-// 或者从具体卡片文件夹导入
-import NoteCard from '@/components/BaseCard/cards/NoteCard';
-import ConversationCard from '@/components/BaseCard/cards/ConversationCard';
+// 导入背景组件（如需自定义）
+import { StackedBackground, RobotBackground, registerBackground } from '@/components/BaseCard';
 ```
 
 ---
@@ -61,39 +54,28 @@ import ConversationCard from '@/components/BaseCard/cards/ConversationCard';
 - 背景装饰渲染 ✅
 - 事件处理（点击、钉住等）✅
 
-### 2. useCardTheme（主题 Hook）
+### 2. backgrounds/ 背景系统
 
-统一管理主题逻辑，避免重复：
+统一管理所有背景装饰：
 
-- 监听 `theme-color-change` 事件
-- 检测暗色模式变化
-- 计算卡片背景色和边框色
+- **StackedBackground** - 堆叠卡片效果
+- **RobotBackground** - 机器人图标
+- **ChecklistBackground** - 清单勾选图标
+- **registerBackground()** - 运行时注册新背景
 
-### 3. CardBackgroundRenderer（背景渲染器）
-
-根据 `backgroundType` 渲染不同背景：
-
-```typescript
-type CardBackgroundType = 'stacked' | 'robot' | 'none';
-// 支持自定义：renderBackground={() => <Custom />}
-```
-
-### 4. 特化卡片（NoteCard、ConversationCard）
+### 3. 特化卡片
 
 轻量级封装，只需配置 BaseCard 参数：
 
 ```tsx
 // NoteCard：堆叠背景 + 支持颜色 + 支持钉住
-<BaseCard
-  backgroundType="stacked"
-  features={{ pinnable: true, colorable: true }}
-/>
+<BaseCard backgroundType="stacked" pinnable colorable />
 
-// ConversationCard：机器人背景 + 不支持颜色 + 不支持钉住
-<BaseCard
-  backgroundType="robot"
-  features={{ pinnable: false, colorable: false }}
-/>
+// ConversationCard：机器人背景 + 固定颜色 + 无钉住
+<BaseCard backgroundType="robot" pinnable={false} colorable={false} />
+
+// TodoCard：清单背景 + 支持颜色 + 支持钉住
+<BaseCard backgroundType="checklist" pinnable colorable />
 ```
 
 ---

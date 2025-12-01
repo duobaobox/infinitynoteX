@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
-import CardBackground from '../CardBackground/CardBackground';
+import { StackedBackground } from '../BaseCard/backgrounds';
 import type { NoteColor } from '../../services/types';
 import './PillWindow.css';
 
@@ -84,7 +84,7 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
           color: isDark ? '#ffffff' : '#2d2d2d',
         }}
       >
-        <CardBackground className="pill-window-pattern" />
+        <StackedBackground className="pill-window-pattern" />
         <span className="pill-title">加载中...</span>
       </div>
     );
@@ -98,7 +98,7 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
         color: isDark ? '#ffffff' : '#2d2d2d',
       }}
     >
-      <CardBackground className="pill-window-pattern" />
+      <StackedBackground className="pill-window-pattern" />
       <span className="pill-title" title={noteTitle || '无标题'}>
         {noteTitle || '无标题'}
       </span>

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import NoteCard from '../../../../components/BaseCard/cards/NoteCard/NoteCard';
-import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
+import { NoteCard, CardListContext } from '../../../../components/BaseCard';
 import { getThemeColor } from '../../../../theme/theme';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
@@ -185,7 +184,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
         />
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
-        <NoteCardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
+        <CardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableListRef}>
             {filteredNotes.map((note) => (
               <NoteCard
@@ -213,7 +212,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
               />
             ))}
           </div>
-        </NoteCardListContext.Provider>
+        </CardListContext.Provider>
       </div>
     </div>
   );

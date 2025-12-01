@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import ConversationCard from '../../../../components/BaseCard/cards/ConversationCard/ConversationCard';
-import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
+import { ConversationCard, CardListContext } from '../../../../components/BaseCard';
 import { getThemeColor } from '../../../../theme/theme';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
@@ -178,7 +177,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
         />
       </div>
       <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
-        <NoteCardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
+        <CardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableListRef}>
             {filteredAiConversations.map((session) => (
               <ConversationCard
@@ -206,7 +205,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
               />
             ))}
           </div>
-        </NoteCardListContext.Provider>
+        </CardListContext.Provider>
       </div>
     </div>
   );

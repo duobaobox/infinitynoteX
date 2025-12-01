@@ -3,353 +3,293 @@
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────┐
-│         BaseCard (通用基础组件)          │
-│  ✓ 主题管理 ✓ 选中检测 ✓ 事件处理      │
-└─────────────────────────────────────────┘
-        ↓                ↓               ↓
-   ┌────────┐      ┌──────────┐     ┌─────────┐
-   │NoteCard│      │Conversation│   │ XXXCard │
-   │(便签)   │      │Card(对话)  │   │(新增)   │
-   └────────┘      └──────────┘     └─────────┘
-       ↓                ↓               ↓
-   NoteListView  ConversationView  XXXListView
+┌─────────────────────────────────────────────────────┐
+│              BaseCard (通用基础组件)                 │
+│   ✓ 主题管理  ✓ 选中检测  ✓ 事件处理  ✓ 背景渲染   │
+└─────────────────────────────────────────────────────┘
+                         │
+         ┌───────────────┼───────────────┐
+         ↓               ↓               ↓
+   ┌──────────┐   ┌────────────┐   ┌──────────┐
+   │ NoteCard │   │Conversation│   │ TodoCard │
+   │ (便签)   │   │Card(对话)  │   │ (待办)   │
+   └──────────┘   └────────────┘   └──────────┘
+         │               │               │
+   backgroundType:  backgroundType:  backgroundType:
+    "stacked"        "robot"        "checklist"
 ```
 
-## 添加新卡片类型的完整步骤
+## 🚀 极简扩展流程
 
-### 例：添加 "任务卡片" (TaskCard)
+### 添加新卡片类型：只需 1 个文件！
 
-#### 第一步：添加背景装饰（如需要）
-
-**文件：** `src/components/CardBackground/TaskBackground.tsx`
+**示例：添加 "书签卡片" (BookmarkCard)**
 
 ```tsx
-import React from 'react';
-import { CheckCircleOutlined } from '@ant-design/icons';
-import './TaskBackground.css';
+// src/components/BaseCard/BookmarkCard.tsx
 
-export interface TaskBackgroundProps {
-  className?: string;
+import React from 'react';
+import BaseCard from './BaseCard';
+import type { NoteCardColor } from '../../hooks/useNoteCardTheme';
+
+export interface BookmarkCardProps {
+  id?: string;
+  title: string;
+  content: string;
+  color?: NoteCardColor;
+  onClick?: () => void;
+  onPin?: () => void;
+  actions?: React.ReactNode;
 }
 
-/**
- * 任务卡片背景装饰 - 勾选圆圈样式
- */
-const TaskBackground: React.FC<TaskBackgroundProps> = ({ className = '' }) => {
+const BookmarkCard: React.FC<BookmarkCardProps> = (props) => (
+  <BaseCard {...props} backgroundType="stacked" pinnable colorable />
+);
+
+export default BookmarkCard;
+```
+
+然后在 `index.ts` 中导出即可！
+
+---
+
+## 📦 目录结构
+
+```
+BaseCard/
+├── BaseCard.tsx              # 核心组件（所有逻辑）
+├── BaseCard.css              # 卡片主体样式
+├── index.ts                  # 统一导出
+│
+├── backgrounds/              # 🎨 背景装饰系统
+│   ├── index.ts              # 背景注册表 + 导出
+│   ├── backgrounds.css       # 所有背景样式
+│   ├── StackedBackground.tsx # 堆叠卡片背景
+│   ├── RobotBackground.tsx   # 机器人背景
+│   └── ChecklistBackground.tsx # 清单背景
+│
+├── NoteCard.tsx              # 便签卡片 (配置)
+├── ConversationCard.tsx      # 对话卡片 (配置)
+└── TodoCard.tsx              # 待办卡片 (配置)
+```
+
+---
+
+## 🎨 添加新背景类型
+
+如果内置背景不满足需求，添加新背景也很简单：
+
+### 步骤 1：创建背景组件
+
+```tsx
+// src/components/BaseCard/backgrounds/FolderBackground.tsx
+
+import React from 'react';
+import { FolderOutlined } from '@ant-design/icons';
+
+const FolderBackground: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <div className={`card-background-pattern task-card-wrapper ${className}`}>
-      <div className="task-card">
-        <CheckCircleOutlined />
+    <div className={`card-bg card-bg-folder ${className}`}>
+      <div className="card-bg-folder__icon">
+        <FolderOutlined />
       </div>
     </div>
   );
 };
 
-export default TaskBackground;
+export default FolderBackground;
 ```
 
-**文件：** `src/components/CardBackground/TaskBackground.css`
+### 步骤 2：添加样式
+
+在 `backgrounds/backgrounds.css` 中添加：
 
 ```css
-.task-card-wrapper {
+/* Folder 文件夹背景 */
+.card-bg-folder__icon {
   position: absolute;
-  right: -10px;
-  bottom: -10px;
-  width: 80px;
-  height: 80px;
-  opacity: 0.15;
-  transition: all 0.3s ease;
+  width: 50px;
+  height: 50px;
+  bottom: 10px;
+  left: 20px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: rotate(-12deg);
+  transition: all 0.3s ease-in-out;
+  background: linear-gradient(135deg, #fff7e6 30%, #ffe7ba 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #fa8c16;
 }
 
-.task-card {
-  font-size: 60px;
-  color: #52c41a;
-  transform: rotate(-20deg);
-}
-
-.note-card:hover .task-card {
+.base-card:hover .card-bg-folder__icon {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
   transform: rotate(-15deg) translateY(-2px);
 }
+
+/* 暗色模式 */
+[data-theme='dark'] .card-bg-folder__icon {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #2b1d11 30%, #3d2612 100%);
+  color: #d87a16;
+}
 ```
 
-#### 第二步：更新 BaseCard 类型
+### 步骤 3：注册背景
 
-**文件：** `src/components/BaseCard/types.ts`
+在 `backgrounds/index.ts` 中：
 
 ```typescript
-// 修改这一行
-export type CardBackgroundType = 'stacked' | 'robot' | 'task' | 'none';
-```
+import FolderBackground from './FolderBackground';
 
-#### 第三步：创建特化组件
+// 添加到类型
+export type CardBackgroundType = 'stacked' | 'robot' | 'checklist' | 'folder' | 'none';
 
-**文件：** `src/components/TaskCard/TaskCard.tsx`
-
-```tsx
-/**
- * TaskCard - 任务卡片组件
- *
- * 基于 BaseCard 的任务卡片特化组件
- * 特性：
- * - 任务勾选背景装饰
- * - 支持颜色主题
- * - 不支持钉住（可选，根据需求改 pinnable）
- */
-
-import React from 'react';
-import { BaseCard } from '../BaseCard';
-import type { NoteCardColor } from '../../hooks/useNoteCardTheme';
-import './TaskCard.css';
-
-export interface TaskCardProps {
-  title: string;
-  content: string;
-  color?: NoteCardColor;
-  onClick?: () => void;
-  actions?: React.ReactNode;
-  id?: string;
-  onPin?: () => void; // 可选：如果支持钉住
-}
-
-const TaskCard: React.FC<TaskCardProps> = ({
-  title,
-  content,
-  color = 'ffffff',
-  onClick,
-  actions,
-  id,
-  onPin,
-}) => {
-  return (
-    <BaseCard
-      id={id}
-      title={title}
-      content={content}
-      color={color}
-      backgroundType="task"
-      features={{
-        pinnable: true, // 改为 false 如果不需要
-        colorable: true,
-      }}
-      onClick={onClick}
-      onPin={onPin}
-      actions={actions}
-      className="task-card-wrapper"
-    />
-  );
+// 添加到注册表
+const BackgroundRegistry = {
+  stacked: StackedBackground,
+  robot: RobotBackground,
+  checklist: ChecklistBackground,
+  folder: FolderBackground, // ← 新增
 };
-
-export default TaskCard;
 ```
 
-**文件：** `src/components/TaskCard/TaskCard.css`
-
-```css
-@import '../BaseCard/BaseCard.css';
-
-.task-card-wrapper {
-  /* 继承 BaseCard 基础样式 */
-}
-
-.task-card-wrapper:hover .task-card {
-  opacity: 0.2;
-  transform: rotate(-15deg) translateY(-2px);
-}
-```
-
-**文件：** `src/components/TaskCard/index.ts`
-
-```typescript
-export { default as TaskCard } from './TaskCard';
-export { default } from './TaskCard';
-export type { TaskCardProps } from './TaskCard';
-```
-
-#### 第四步：在列表视图中使用
-
-**文件：** `src/features/task/views/TaskList/TaskListView.tsx`
+### 步骤 4：使用新背景
 
 ```tsx
-import TaskCard from '../../../../components/TaskCard/TaskCard';
-import { NoteCardListContext } from '../../../../components/CardContext/CardContext';
-
-// 使用方式与 NoteListView 完全相同
-<NoteCardListContext.Provider value={{ selectedId }}>
-  {tasks.map((task) => (
-    <TaskCard
-      key={task.id}
-      id={task.id}
-      title={task.title}
-      content={task.content}
-      color={task.color}
-      onClick={() => selectTask(task.id)}
-      onPin={() => pinTask(task.id)}
-      actions={<DeleteButton />}
-    />
-  ))}
-</NoteCardListContext.Provider>;
+const ProjectCard: React.FC<Props> = (props) => (
+  <BaseCard {...props} backgroundType="folder" pinnable colorable />
+);
 ```
 
 ---
 
-## 快速参考：卡片配置矩阵
+## 📋 卡片配置矩阵
 
-| 卡片类型             | backgroundType | pinnable | colorable | 背景装饰 | 备注         |
-| -------------------- | -------------- | -------- | --------- | -------- | ------------ |
-| **NoteCard**         | `stacked`      | ✅       | ✅        | 堆叠卡片 | 便签         |
-| **ConversationCard** | `robot`        | ❌       | ❌        | 机器人   | AI对话       |
-| **TaskCard**         | `task`         | ✅       | ✅        | 勾选圆圈 | 任务（示例） |
-| **ProjectCard**      | `project`      | ✅       | ❌        | 文件夹   | 项目（示例） |
-| **CustomCard**       | `none`         | ❌       | ❌        | 无       | 完全自定义   |
+| 卡片类型             | backgroundType | pinnable | colorable | 背景装饰 |
+| -------------------- | -------------- | -------- | --------- | -------- |
+| **NoteCard**         | `stacked`      | ✅       | ✅        | 堆叠卡片 |
+| **ConversationCard** | `robot`        | ❌       | ❌        | 机器人   |
+| **TodoCard**         | `checklist`    | ✅       | ✅        | 清单勾选 |
+| **自定义**           | `none`         | 可选     | 可选      | 无背景   |
 
 ---
 
-## 常见场景
+## 🔧 常见场景
 
-### 场景1：添加背景，支持颜色和钉住
+### 场景1：使用内置背景
 
 ```tsx
-<BaseCard
-  backgroundType="project"
-  features={{ pinnable: true, colorable: true }}
-  color={color}
-  onPin={onPin}
-  {...props}
-/>
+<BaseCard backgroundType="stacked" pinnable colorable {...props} />
 ```
 
-### 场景2：固定背景，不支持颜色和钉住（如对话卡片）
+### 场景2：不要背景
 
 ```tsx
-<BaseCard backgroundType="robot" features={{ pinnable: false, colorable: false }} {...props} />
+<BaseCard backgroundType="none" pinnable colorable {...props} />
 ```
 
 ### 场景3：完全自定义背景
 
 ```tsx
-<BaseCard
-  renderBackground={() => <MyCustomBackground />}
-  features={{ pinnable: false, colorable: true }}
-  {...props}
-/>
+<BaseCard renderBackground={() => <MyCustomBackground />} pinnable colorable {...props} />
 ```
 
-### 场景4：不要背景，只要基础卡片
+### 场景4：运行时注册新背景
 
-```tsx
-<BaseCard backgroundType="none" features={{ pinnable: true, colorable: true }} {...props} />
+```typescript
+import { registerBackground } from '@/components/BaseCard';
+
+// 在应用启动时注册
+registerBackground('custom', MyCustomBackground);
+
+// 然后使用
+<BaseCard backgroundType="custom" {...props} />
 ```
 
 ---
 
-## 最佳实践
+## ✅ 最佳实践
 
-### ✅ DO
+### DO ✅
 
 ```typescript
-// 1. 背景装饰统一放在 CardBackground/ 文件夹
-// 2. 特化组件放在自己的文件夹中
-// 3. 导出接口和类型供外部使用
-export { default as TaskCard } from './TaskCard';
-export type { TaskCardProps } from './TaskCard';
+// 1. 特化组件只做配置，不重复逻辑
+const MyCard = (props) => (
+  <BaseCard {...props} backgroundType="xxx" pinnable colorable />
+);
 
-// 4. 在特化组件中明确配置 BaseCard 参数
-<BaseCard
-  backgroundType="task"
-  features={{ pinnable: true, colorable: true }}
-/>
+// 2. 导出类型供外部使用
+export type { MyCardProps } from './MyCard';
+
+// 3. 背景样式统一放在 backgrounds.css
 ```
 
-### ❌ DON'T
+### DON'T ❌
 
 ```typescript
-// 1. 不要重复实现主题监听逻辑
-const [themeColor, setThemeColor] = useState(...)  // ❌
+// 1. 不要在特化组件中重复主题逻辑
+const [themeColor, setThemeColor] = useState(...) // ❌
 
-// 2. 不要在特化组件中处理暗色模式
-const isDark = document.documentElement.getAttribute(...)  // ❌
+// 2. 不要直接修改 BaseCard.tsx
+// 应该通过配置和背景注册表扩展
 
-// 3. 不要绕过 BaseCard 直接使用 hook
-useNoteCardTheme(...)  // ❌ 应该让 BaseCard 处理
-
-// 4. 不要忘记导出类型
-// export type { TaskCardProps }  // ❌ 必须导出
+// 3. 不要把背景组件散落在各处
+// 应该统一放在 backgrounds/ 目录
 ```
 
 ---
 
-## 文件结构对比
+## 📊 架构对比
 
-### 旧方式（2个组件，重复代码）
+### 旧架构（分散）
 
 ```
 components/
-├── NoteCard/
-│   ├── NoteCard.tsx        (97行，重复逻辑)
-│   └── NoteCard.css
-└── ConversationCard/
-    ├── ConversationCard.tsx (96行，重复逻辑)
-    └── ConversationCard.css
+├── CardBackground/           # 背景在这里
+│   ├── CardBackground.tsx
+│   └── RobotBackground.tsx
+├── BaseCard/                 # 卡片在这里
+│   ├── BaseCard.tsx
+│   ├── NoteCard.tsx
+│   └── ConversationCard.tsx
 ```
 
-### 新方式（BaseCard + 特化组件，零重复）
+**问题**：添加新卡片需要在两个目录操作
+
+### 新架构（自包含）
 
 ```
 components/
-├── BaseCard/
-│   ├── BaseCard.tsx           (核心逻辑)
-│   ├── useCardTheme.ts        (主题Hook)
-│   ├── CardBackgroundRenderer.tsx
-│   ├── types.ts
-│   └── BaseCard.css
-├── CardBackground/
-│   ├── CardBackground.tsx     (堆叠背景)
-│   ├── RobotBackground.tsx    (机器人背景)
-│   ├── TaskBackground.tsx     (任务背景 - 新增)
-│   └── ...
-├── NoteCard/
-│   ├── NoteCard.tsx          (49行，仅配置)
-│   └── NoteCard.css
-├── ConversationCard/
-│   ├── ConversationCard.tsx  (42行，仅配置)
-│   └── ConversationCard.css
-├── TaskCard/                 (新增)
-│   ├── TaskCard.tsx          (配置)
-│   ├── TaskCard.css
-│   └── index.ts
-└── ...
+└── BaseCard/                 # 一切都在这里
+    ├── BaseCard.tsx
+    ├── backgrounds/          # 背景作为子模块
+    │   ├── StackedBackground.tsx
+    │   ├── RobotBackground.tsx
+    │   └── backgrounds.css
+    ├── NoteCard.tsx
+    ├── ConversationCard.tsx
+    └── TodoCard.tsx
 ```
 
----
+**优势**：
 
-## 后续扩展思路
-
-### 如果要添加更多功能卡片，按这个顺序：
-
-1. **设计背景装饰** → `CardBackground/XxxBackground.tsx`
-2. **更新类型定义** → `BaseCard/types.ts` 的 `CardBackgroundType`
-3. **创建特化组件** → `XxxCard/XxxCard.tsx`
-4. **集成到列表** → 在对应的 ListView 中使用
-
-### 未来可能的卡片类型
-
-- 📋 **TodoCard** - 待办事项（后台任务或清单）
-- 📁 **FolderCard** - 文件夹/项目集
-- 🏷️ **TagCard** - 标签管理
-- 📊 **ReportCard** - 报告/分析
-- 🔖 **BookmarkCard** - 书签
-- 👥 **CollaboratorCard** - 协作者/分享
-
-每一个都可以按上面的步骤快速添加！
+- ✅ 单一目录，易于维护
+- ✅ 添加新卡片只需 1 个文件
+- ✅ 添加新背景只需修改 backgrounds/ 目录
+- ✅ 背景注册表支持运行时扩展
 
 ---
 
-## 总结
+## 🎯 总结
 
-**核心理念：** 一次设计，无限扩展
+| 操作                       | 需要修改的文件              |
+| -------------------------- | --------------------------- |
+| 添加新卡片（使用现有背景） | 1 个：`XxxCard.tsx`         |
+| 添加新卡片（新背景类型）   | 3 个：背景组件 + CSS + 注册 |
+| 修改背景样式               | 1 个：`backgrounds.css`     |
 
-- ✅ BaseCard 提供所有共通功能
-- ✅ 特化组件只需配置参数
-- ✅ 背景装饰完全独立，易于组合
-- ✅ 新增卡片类型无需修改现有代码
+**核心理念**：配置优于编码，注册优于硬编码

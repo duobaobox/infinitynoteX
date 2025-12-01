@@ -1,32 +1,43 @@
 /**
- * BaseCard 导出文件
+ * BaseCard 卡片组件系统
  *
- * 统一导出：
- * - BaseCard 核心组件
- * - 所有特化卡片组件（NoteCard、ConversationCard 等）
- * - 类型定义和 Hook
+ * 结构：
+ * - BaseCard.tsx         基础模板（所有核心逻辑）
+ * - backgrounds/         背景装饰组件（统一管理）
+ * - NoteCard.tsx         便签卡片（配置文件）
+ * - ConversationCard.tsx 对话卡片（配置文件）
+ * - TodoCard.tsx         待办卡片（配置文件）
+ *
+ * 扩展新卡片（只需 1 步）：
+ * 1. 复制 NoteCard.tsx，修改 backgroundType
+ * 2. 在此文件导出
+ *
+ * 扩展新背景（只需 2 步）：
+ * 1. 在 backgrounds/ 创建组件和样式
+ * 2. 在 backgrounds/index.ts 注册
  */
 
-// 核心组件
-export { default as BaseCard } from './BaseCard';
-export { default } from './BaseCard';
+// 基础组件
+export { default as BaseCard, default } from './BaseCard';
+export { CardListContext } from './BaseCard';
+export type { BaseCardProps, CardListContextValue } from './BaseCard';
 
-// 背景渲染器
-export { CardBackgroundRenderer } from './CardBackgroundRenderer';
+// 背景系统
+export {
+  renderCardBackground,
+  registerBackground,
+  StackedBackground,
+  RobotBackground,
+  ChecklistBackground,
+} from './backgrounds';
+export type { CardBackgroundType } from './backgrounds';
 
-// 卡片组件
-export { NoteCard } from './cards/NoteCard';
-export type { NoteCardProps } from './cards/NoteCard';
-export { ConversationCard } from './cards/ConversationCard';
-export type { AIConversationCardProps } from './cards/ConversationCard';
+// 特化卡片
+export { default as NoteCard } from './NoteCard';
+export type { NoteCardProps } from './NoteCard';
 
-// Hook
-export { useCardTheme } from './useCardTheme';
+export { default as ConversationCard } from './ConversationCard';
+export type { ConversationCardProps } from './ConversationCard';
 
-// 类型
-export type {
-  BaseCardProps,
-  CardBackgroundType,
-  CardFeatures,
-  ConversationCardProps,
-} from './types';
+export { default as TodoCard } from './TodoCard';
+export type { TodoCardProps } from './TodoCard';

@@ -4,6 +4,7 @@
 
 import type { StateCreator } from 'zustand';
 import type { Folder } from '../../services/types';
+import { folderService } from '../../services';
 
 export interface FolderSlice {
   // ============ 状态 ============
@@ -32,7 +33,7 @@ export const createFolderSlice: StateCreator<FolderSlice, [], [], FolderSlice> =
 
   loadFolders: async () => {
     try {
-      const folders = await window.storage.listFolders();
+      const folders = await folderService.listFolders();
       set({ folders });
     } catch (error) {
       console.error('[FolderSlice] Failed to load folders:', error);
@@ -41,7 +42,7 @@ export const createFolderSlice: StateCreator<FolderSlice, [], [], FolderSlice> =
 
   createFolder: async (name) => {
     try {
-      await window.storage.createFolder(name);
+      await folderService.createFolder(name);
       await get().loadFolders();
     } catch (error) {
       console.error('[FolderSlice] Failed to create folder:', error);
@@ -51,7 +52,7 @@ export const createFolderSlice: StateCreator<FolderSlice, [], [], FolderSlice> =
 
   deleteFolder: async (id) => {
     try {
-      await window.storage.deleteFolder(id);
+      await folderService.deleteFolder(id);
       await get().loadFolders();
       // 如果删除的是当前选中的文件夹，清空选中状态
       if (get().selectedFolderId === id) {
@@ -65,7 +66,7 @@ export const createFolderSlice: StateCreator<FolderSlice, [], [], FolderSlice> =
 
   renameFolder: async (id, name) => {
     try {
-      await window.storage.renameFolder(id, name);
+      await folderService.renameFolder(id, name);
       await get().loadFolders();
     } catch (error) {
       console.error('[FolderSlice] Failed to rename folder:', error);

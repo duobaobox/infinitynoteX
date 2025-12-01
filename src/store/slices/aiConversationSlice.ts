@@ -4,6 +4,7 @@
 
 import type { StateCreator } from 'zustand';
 import type { AIConversationPreview } from '../../constants/tools';
+import { aiConversationService } from '../../services';
 import type { UISlice } from './uiSlice';
 
 // 定义依赖的其他 slice 类型（setSelectedToolItem 需要访问 UISlice.showEditor）
@@ -50,7 +51,7 @@ export const createAIConversationSlice: StateCreator<
 
   loadAIConversations: async () => {
     try {
-      const conversations = await window.storage.getAIConversations();
+      const conversations = await aiConversationService.getConversations();
       set({ aiConversations: conversations });
     } catch (error) {
       console.error('[AIConversationSlice] Failed to load AI conversations:', error);
@@ -59,7 +60,7 @@ export const createAIConversationSlice: StateCreator<
 
   createAIConversation: async () => {
     try {
-      await window.storage.createAIConversation();
+      await aiConversationService.createConversation();
       await get().loadAIConversations();
     } catch (error) {
       console.error('[AIConversationSlice] Failed to create AI conversation:', error);
@@ -69,7 +70,7 @@ export const createAIConversationSlice: StateCreator<
 
   deleteAIConversation: async (id) => {
     try {
-      await window.storage.deleteAIConversation(id);
+      await aiConversationService.deleteConversation(id);
       await get().loadAIConversations();
       // 如果删除的是当前选中的对话，清空选中状态并关闭编辑器
       if (get().selectedToolItemId === id) {

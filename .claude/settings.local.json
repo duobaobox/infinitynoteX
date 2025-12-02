@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree -L 3 -I node_modules /Users/duobao/个人/ceshi-electron/infinitynotex/src)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

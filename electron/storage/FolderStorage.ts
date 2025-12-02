@@ -7,6 +7,7 @@ import type { StorageContext } from './StorageContext';
 import type { Folder } from './types';
 import { StorageError, StorageErrorCode } from './errors';
 import { generateId, readJsonFile, writeJsonFile } from './utils';
+import { FoldersArraySchema } from './schemas';
 
 export class FolderStorage {
   private cache: Folder[] | null = null;
@@ -144,10 +145,10 @@ export class FolderStorage {
   }
 
   /**
-   * 加载缓存
+   * 加载缓存（使用 Schema 校验）
    */
   async loadCache(): Promise<void> {
-    this.cache = await readJsonFile<Folder[]>(this.context.foldersPath, []);
+    this.cache = await readJsonFile<Folder[]>(this.context.foldersPath, [], FoldersArraySchema);
   }
 
   /**

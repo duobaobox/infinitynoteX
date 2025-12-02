@@ -30,6 +30,7 @@ import {
   validateMigrationPath,
   validateStorageIntegrity,
 } from './utils';
+import { CURRENT_SCHEMA_VERSION, needsMigration, getPendingMigrations } from './migrations';
 
 /**
  * 存储管理器
@@ -106,6 +107,9 @@ export class StorageManager {
     const metaExists = await fileExists(this.context.metaPath);
 
     if (metaExists) {
+      // 现有存储，检查是否需要迁移
+      await this.checkAndApplyMigrations();
+
       await this.context.ensureBaseDirectories();
       await this.ai.createEmptyIndex();
       await this.loadAllCaches();
@@ -120,9 +124,9 @@ export class StorageManager {
     // 创建目录结构
     await this.context.ensureBaseDirectories();
 
-    // 创建 meta.json
+    // 创建 meta.json（使用当前 Schema 版本）
     const meta: StorageMeta = {
-      schemaVersion: 1,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       storageId: generateId(),
       createdAt: Date.now(),
     };
@@ -153,6 +157,56 @@ export class StorageManager {
     this.folders.clearCache();
     this.notes.clearCache();
     this.ai.clearCache();
+  }
+
+  /**
+   * 检查并应用 Schema 迁移
+   */
+  private async checkAndApplyMigrations(): Promise<void> {
+    try {
+      const meta = await readJsonFile<StorageMeta>(this.context.metaPath);
+      const currentVersion = meta.schemaVersion || 1;
+
+      // 检查是否需要迁移
+      if (!needsMigration(currentVersion, CURRENT_SCHEMA_VERSION)) {
+        return;
+      }
+
+      console.log(
+        `[Storage] Schema migration needed: v${currentVersion} -> v${CURRENT_SCHEMA_VERSION}`,
+      );
+
+      // 获取待应用的迁移
+      const pendingMigrations = getPendingMigrations(currentVersion, CURRENT_SCHEMA_VERSION);
+      console.log(`[Storage] Found ${pendingMigrations.length} pending migration(s)`);
+
+      for (const migration of pendingMigrations) {
+        console.log(`[Storage] Will apply: v${migration.version} - ${migration.name}`);
+      }
+
+      // 执行迁移
+      await this.applyAllMigrations();
+
+      // 更新 meta.json 的版本号
+      meta.schemaVersion = CURRENT_SCHEMA_VERSION;
+      await writeJsonFile(this.context.metaPath, meta);
+
+      console.log(`[Storage] Migration completed successfully`);
+    } catch (error) {
+      console.error('[Storage] Migration failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 应用所有待执行的数据迁移
+   */
+  private async applyAllMigrations(): Promise<void> {
+    // 目前迁移列表为空，这里仅作为框架
+    // 未来添加迁移时，在这里遍历所有数据文件并应用迁移
+    console.log(`[Storage] No data migrations to apply (framework is ready)`);
+
+    // 示例：迁移所有便签（如果未来需要按版本迁移，可在此实现）
   }
 
   /**
@@ -441,6 +495,198 @@ export class StorageManager {
 
   async updateAIConversationTitle(id: string, title: string) {
     return this.ai.updateTitle(id, title);
+  }
+
+  //  ============ 数据一致性检查 ============
+
+  /**
+   * 启动时执行的完整性检查
+   * 检查并修复所有数据不一致问题
+   */
+  async performStartupChecks(): Promise<void> {
+    try {
+      console.log('[Storage] Performing startup integrity checks...');
+
+      // 校验便签索引一致性
+      const noteIssues = await this.validateNotesIntegrity();
+      if (noteIssues.length > 0) {
+        console.warn(`[Storage] Found ${noteIssues.length} note index issues, rebuilding...`);
+        await this.rebuildNotesIndex();
+      }
+
+      // 校验 AI 对话索引一致性
+      const aiIssues = await this.validateAIConversationsIntegrity();
+      if (aiIssues.length > 0) {
+        console.warn(`[Storage] Found ${aiIssues.length} AI conversation issues, rebuilding...`);
+        await this.rebuildAIConversationsIndex();
+      }
+
+      console.log('[Storage] Startup checks completed successfully');
+    } catch (error) {
+      console.error('[Storage] Startup checks failed:', error);
+    }
+  }
+
+  /**
+   * 校验便签索引完整性
+   * 返回发现的问题列表
+   */
+  private async validateNotesIntegrity(): Promise<string[]> {
+    const issues: string[] = [];
+    const index = await this.notes.list();
+
+    for (const item of index) {
+      try {
+        const note = await this.notes.get(item.id);
+
+        // 检查标题
+        if (note.title !== item.title) {
+          issues.push(`Note ${item.id}: title mismatch`);
+        }
+
+        // 检查更新时间
+        if (note.updatedAt !== item.updatedAt) {
+          issues.push(`Note ${item.id}: timestamp mismatch`);
+        }
+
+        // 检查 pinned 状态
+        if (note.pinned !== item.pinned) {
+          issues.push(`Note ${item.id}: pinned mismatch`);
+        }
+      } catch (error) {
+        issues.push(`Note ${item.id}: file missing or corrupted`);
+      }
+    }
+
+    return issues;
+  }
+
+  /**
+   * 校验 AI 对话索引完整性
+   */
+  private async validateAIConversationsIntegrity(): Promise<string[]> {
+    const issues: string[] = [];
+    const index = await this.ai.getIndex();
+
+    for (const item of index) {
+      try {
+        const conversation = await this.ai.get(item.id);
+
+        // 检查标题
+        if (conversation.title !== item.title) {
+          issues.push(`Conversation ${item.id}: title mismatch`);
+        }
+
+        // 检查更新时间
+        if (conversation.updatedAt !== item.updatedAt) {
+          issues.push(`Conversation ${item.id}: timestamp mismatch`);
+        }
+      } catch (error) {
+        issues.push(`Conversation ${item.id}: file missing or corrupted`);
+      }
+    }
+
+    return issues;
+  }
+
+  /**
+   * 重建便签索引
+   * 扫描所有便签文件并重新生成索引
+   */
+  private async rebuildNotesIndex(): Promise<void> {
+    console.log('[Storage] Rebuilding notes index...');
+
+    const notesDir = this.context.notesDir;
+    const files = await fs.readdir(notesDir);
+    const newIndex = [];
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+
+      const noteId = file.replace('.json', '');
+      try {
+        const note = await this.notes.get(noteId);
+        newIndex.push({
+          id: note.id,
+          folderId: note.folderId,
+          title: note.title,
+          excerpt: note.content ? this.generateExcerpt(note.content) : '',
+          updatedAt: note.updatedAt,
+          pinned: note.pinned,
+          tags: note.tags,
+          color: note.color,
+        });
+      } catch (error) {
+        console.warn(`[Storage] Skipping corrupted note file: ${file}`);
+      }
+    }
+
+    await writeJsonFile(this.context.notesIndexPath, newIndex);
+    await this.notes.loadCache();
+    console.log(`[Storage] Notes index rebuilt: ${newIndex.length} notes`);
+  }
+
+  /**
+   * 重建 AI 对话索引
+   */
+  private async rebuildAIConversationsIndex(): Promise<void> {
+    console.log('[Storage] Rebuilding AI conversations index...');
+
+    const aiDir = this.context.aiConversationsDir;
+    const files = await fs.readdir(aiDir);
+    const newIndex = [];
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+
+      const conversationId = file.replace('.json', '');
+      try {
+        const conversation = await this.ai.get(conversationId);
+        newIndex.push({
+          id: conversation.id,
+          title: conversation.title,
+          excerpt: conversation.excerpt,
+          createdAt: conversation.createdAt,
+          updatedAt: conversation.updatedAt,
+          isDefault: conversation.isDefault,
+        });
+      } catch (error) {
+        console.warn(`[Storage] Skipping corrupted conversation file: ${file}`);
+      }
+    }
+
+    await writeJsonFile(this.context.aiConversationsIndexPath, newIndex);
+    await this.ai.loadCache();
+    console.log(`[Storage] AI conversations index rebuilt: ${newIndex.length} conversations`);
+  }
+
+  /**
+   * 生成摘要（从 NoteStorage 复制）
+   */
+  private generateExcerpt(content: unknown): string {
+    try {
+      const isObj = (v: unknown): v is { [k: string]: unknown } =>
+        typeof v === 'object' && v !== null;
+      if (!isObj(content)) return '';
+      type MinimalNode = { type?: string; text?: string; content?: MinimalNode[] };
+      const root = content as unknown as MinimalNode;
+      if (!Array.isArray(root.content)) return '';
+
+      let text = '';
+      const extractText = (node: MinimalNode) => {
+        if (node.type === 'text' && typeof node.text === 'string') {
+          text += node.text;
+        }
+        if (node.content && Array.isArray(node.content)) {
+          node.content.forEach((n) => extractText(n));
+        }
+      };
+
+      extractText(root);
+      return text.slice(0, 100);
+    } catch {
+      return '';
+    }
   }
 }
 

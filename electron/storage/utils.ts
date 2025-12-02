@@ -29,14 +29,42 @@ export async function fileExists(filePath: string): Promise<boolean> {
 
 /**
  * 读取 JSON 文件
+ * @param filePath 文件路径
+ * @param defaultValue 默认值（文件不存在或读取失败时返回）
+ * @param schema 可选的 Zod Schema，用于数据校验
  */
-export async function readJsonFile<T>(filePath: string, defaultValue?: T): Promise<T> {
+export async function readJsonFile<T>(
+  filePath: string,
+  defaultValue?: T,
+  schema?: { parse: (data: unknown) => T },
+): Promise<T> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
+    const data = JSON.parse(content);
+
+    // 如果提供了 schema，进行校验
+    if (schema) {
+      try {
+        return schema.parse(data);
+      } catch (error) {
+        // Schema 校验失败
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        throw new StorageError(
+          StorageErrorCode.E_IO_READ,
+          `Data validation failed for file: ${filePath}\n${errorMsg}`,
+          error,
+        );
+      }
+    }
+
+    return data;
   } catch (error) {
     if (defaultValue !== undefined) {
       return defaultValue;
+    }
+    // 如果不是 StorageError，包装成 StorageError
+    if (error instanceof StorageError) {
+      throw error;
     }
     throw new StorageError(StorageErrorCode.E_IO_READ, `Failed to read file: ${filePath}`, error);
   }

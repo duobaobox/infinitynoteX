@@ -268,6 +268,9 @@ app.whenReady().then(async () => {
   // 初始化存储
   await storageManager.initialize();
 
+  // 执行启动时的数据一致性检查
+  await storageManager.performStartupChecks();
+
   createWindow();
   initAutoUpdater(() => win ?? null);
 });

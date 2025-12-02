@@ -15,6 +15,7 @@ import {
   fileExists,
   generateConversationTitle,
 } from './utils';
+import { AIConversationSchema, AIConversationsIndexArraySchema } from './schemas';
 
 export class AIStorage {
   private indexCache: AIConversationIndex[] | null = null;
@@ -206,12 +207,13 @@ export class AIStorage {
   }
 
   /**
-   * 加载缓存
+   * 加载缓存（使用 Schema 校验）
    */
   async loadCache(): Promise<void> {
     this.indexCache = await readJsonFile<AIConversationIndex[]>(
       this.context.aiConversationsIndexPath,
       [],
+      AIConversationsIndexArraySchema,
     );
   }
 
@@ -255,7 +257,7 @@ export class AIStorage {
   }
 
   /**
-   * 读取对话文件
+   * 读取对话文件（使用 Schema 校验）
    */
   private async readFile(id: string): Promise<AIConversation> {
     const filePath = this.context.getAIConversationPath(id);
@@ -265,7 +267,7 @@ export class AIStorage {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
     }
 
-    return await readJsonFile<AIConversation>(filePath);
+    return await readJsonFile<AIConversation>(filePath, undefined, AIConversationSchema);
   }
 
   /**

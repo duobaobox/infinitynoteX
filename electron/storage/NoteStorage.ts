@@ -10,6 +10,7 @@ import type { Note, NoteIndex, CreateNotePayload } from './types';
 import type { TipTapJSONContent } from '../../src/services/types';
 import { StorageError, StorageErrorCode } from './errors';
 import { generateId, readJsonFile, writeJsonFile, writeJsonFileAtomic, fileExists } from './utils';
+import { NoteSchema, NotesIndexArraySchema } from './schemas';
 
 export class NoteStorage {
   private indexCache: NoteIndex[] | null = null;
@@ -68,7 +69,7 @@ export class NoteStorage {
   }
 
   /**
-   * 获取便签完整内容
+   * 获取便签完整内容（使用 Schema 校验）
    */
   async get(id: string): Promise<Note> {
     const notePath = this.context.getNotePath(id);
@@ -78,7 +79,7 @@ export class NoteStorage {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Note not found: ${id}`);
     }
 
-    return await readJsonFile<Note>(notePath);
+    return await readJsonFile<Note>(notePath, undefined, NoteSchema);
   }
 
   /**
@@ -141,10 +142,14 @@ export class NoteStorage {
   }
 
   /**
-   * 加载缓存
+   * 加载缓存（使用 Schema 校验）
    */
   async loadCache(): Promise<void> {
-    this.indexCache = await readJsonFile<NoteIndex[]>(this.context.notesIndexPath, []);
+    this.indexCache = await readJsonFile<NoteIndex[]>(
+      this.context.notesIndexPath,
+      [],
+      NotesIndexArraySchema,
+    );
   }
 
   /**
@@ -181,16 +186,8 @@ export class NoteStorage {
     const index = this.indexCache || [];
     const existingIndex = index.findIndex((n) => n.id === note.id);
 
-    const noteIndex: NoteIndex = {
-      id: note.id,
-      folderId: note.folderId,
-      title: note.title,
-      excerpt: this.generateExcerpt(note.content),
-      updatedAt: note.updatedAt,
-      pinned: note.pinned,
-      tags: note.tags,
-      color: note.color ?? 'ffffff',
-    };
+    // 使用 toIndex 方法生成索引数据
+    const noteIndex = this.toIndex(note);
 
     if (existingIndex >= 0) {
       index[existingIndex] = noteIndex;
@@ -207,6 +204,23 @@ export class NoteStorage {
   private async saveIndex(index: NoteIndex[]): Promise<void> {
     await writeJsonFile(this.context.notesIndexPath, index);
     this.indexCache = index;
+  }
+
+  /**
+   * 从 Note 生成 NoteIndex
+   * 集中管理索引字段，便于未来扩展
+   */
+  private toIndex(note: Note): NoteIndex {
+    return {
+      id: note.id,
+      folderId: note.folderId,
+      title: note.title,
+      excerpt: this.generateExcerpt(note.content),
+      updatedAt: note.updatedAt,
+      pinned: note.pinned,
+      tags: note.tags,
+      color: note.color,
+    };
   }
 
   /**

@@ -141,6 +141,12 @@ declare global {
     appInfo?: {
       getVersion(): Promise<string>;
     };
+    sync: {
+      testConnection(providerId: string, config: any): Promise<{ ok: boolean; message: string }>;
+      execute(providerId: string, config: any): Promise<any>;
+      getConfig(providerId: string): Promise<any>;
+      setConfig(providerId: string, config: any): Promise<void>;
+    };
   }
 }
 

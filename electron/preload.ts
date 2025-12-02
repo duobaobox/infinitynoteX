@@ -158,3 +158,17 @@ contextBridge.exposeInMainWorld('ai', {
     return () => ipcRenderer.removeListener('ai:stream:error', listener);
   },
 });
+
+// --------- Expose Sync API ---------
+contextBridge.exposeInMainWorld('sync', {
+  testConnection: (providerId: string, config: any) =>
+    ipcRenderer.invoke('sync:testConnection', providerId, config) as Promise<{
+      ok: boolean;
+      message: string;
+    }>,
+  execute: (providerId: string, config: any) =>
+    ipcRenderer.invoke('sync:execute', providerId, config),
+  getConfig: (providerId: string) => ipcRenderer.invoke('sync:getConfig', providerId),
+  setConfig: (providerId: string, config: any) =>
+    ipcRenderer.invoke('sync:setConfig', providerId, config),
+});

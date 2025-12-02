@@ -653,6 +653,53 @@ ipcMain.handle(
   },
 );
 
+// ============ 数据同步 IPC 处理器 ============
+
+import { SyncManager } from './sync/syncManager';
+const syncManager = new SyncManager();
+
+/**
+ * 测试同步连接
+ */
+ipcMain.handle('sync:testConnection', async (_, providerId: string, config: any) => {
+  try {
+    if (providerId === 'webdav') {
+      return await syncManager.testWebDAVConnection(config);
+    }
+    return { ok: false, message: `Unknown provider: ${providerId}` };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `测试失败：${msg}` };
+  }
+});
+
+/**
+ * 执行同步
+ */
+ipcMain.handle('sync:execute', async (_, providerId: string, config: any) => {
+  try {
+    const storagePath = storageManager.getCurrentPath();
+    return await syncManager.sync(providerId, config, storagePath);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(`同步失败：${msg}`);
+  }
+});
+
+/**
+ * 获取同步配置
+ */
+ipcMain.handle('sync:getConfig', async (_, providerId: string) => {
+  return await syncManager.getConfig(providerId);
+});
+
+/**
+ * 保存同步配置
+ */
+ipcMain.handle('sync:setConfig', async (_, providerId: string, config: any) => {
+  await syncManager.setConfig(providerId, config);
+});
+
 // ============ AI IPC 处理器 ============
 
 /**

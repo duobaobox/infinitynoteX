@@ -413,11 +413,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       testSyncConnection: async (providerId, config) => {
         try {
-          // TODO: 实现IPC调用
-          // const result = await window.sync.testConnection(providerId, config);
-          // return result;
-          console.log('Testing sync connection:', providerId, config);
-          return { ok: true, message: '测试连接功能即将实现' };
+          const result = await window.sync.testConnection(providerId, config);
+          return result;
         } catch (error) {
           return { ok: false, message: getErrMsg(error) };
         }
@@ -427,9 +424,7 @@ export const useSettingsStore = create<SettingsState>()(
         const { setSyncStatus } = get();
         try {
           setSyncStatus({ syncing: true, error: null });
-          // TODO: 实现IPC调用
-          // await window.sync.execute(providerId, config);
-          console.log('Triggering sync:', providerId, config);
+          await window.sync.execute(providerId, config);
           setSyncStatus({
             syncing: false,
             lastSync: Date.now(),
@@ -446,12 +441,16 @@ export const useSettingsStore = create<SettingsState>()(
 
       loadSyncConfigs: async () => {
         try {
-          // TODO: 从localStorage或IPC加载配置
-          // const stored = localStorage.getItem('syncConfigs');
-          // if (stored) {
-          //   set({ syncConfigs: JSON.parse(stored) });
-          // }
-          console.log('Loading sync configs');
+          // 目前我们只支持 webdav，后续可以遍历所有 provider
+          const webdavConfig = await window.sync.getConfig('webdav');
+          if (webdavConfig) {
+            set((state) => ({
+              syncConfigs: {
+                ...state.syncConfigs,
+                webdav: webdavConfig,
+              },
+            }));
+          }
         } catch (error) {
           console.error('Failed to load sync configs:', error);
         }

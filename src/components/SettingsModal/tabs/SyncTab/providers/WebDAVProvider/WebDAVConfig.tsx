@@ -43,10 +43,22 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   };
 
   const updateConfig = (partial: Partial<WebDAVConfig>) => {
+    // 默认配置
+    const defaultConfig: WebDAVConfig = {
+      enabled: false,
+      url: '',
+      username: '',
+      password: '',
+      remotePath: '/InfinityNoteX',
+      syncInterval: 0,
+      conflictStrategy: 'ask',
+    };
+
     onConfigChange({
-      ...config,
-      ...partial,
-    } as WebDAVConfig);
+      ...defaultConfig, // 先应用默认值
+      ...(config || {}), // 再应用当前配置（如果有）
+      ...partial, // 最后应用新的变更
+    });
   };
 
   return (

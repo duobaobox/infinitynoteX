@@ -3,7 +3,7 @@
  * 统一导出所有自定义 Hooks
  */
 
-export { useEditorState } from './useEditorState';
+export { useEditorState, useEditorUpdate } from './useEditorState';
 export {
   useMenuState,
   useHeadingState,

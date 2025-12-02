@@ -3,7 +3,7 @@
  * 整合所有工具栏功能和菜单组件
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import type { Editor } from '@tiptap/core';
 import { ToolbarButton } from './ToolbarButton';
 import { ToolbarDivider } from './ToolbarDivider';
@@ -26,15 +26,15 @@ export interface MenuBarProps {
  * 按照 Tiptap 官方最佳实践重构的工具栏
  */
 const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
-  // 使用自定义 Hooks
-  useEditorState(editor); // 监听编辑器状态变化
+  // 使用自定义 Hooks 监听编辑器状态变化
+  useEditorState(editor);
   const { headingState, listState, alignState, tableState } = useMenuState(editor);
   const { triggerUpload } = useImageUpload(editor);
 
   // 关闭所有 Dropdown (用于滚动时)
-  const closeAllDropdown = () => {
+  const closeAllDropdown = useCallback(() => {
     document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-  };
+  }, []);
 
   // 编辑器未就绪时不渲染
   if (!editor) {

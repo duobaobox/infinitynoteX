@@ -17,7 +17,22 @@ import { useWorkspaceStore } from '../../../../store/workspaceStore';
 type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
 
 /**
+ * 待保存数据结构
+ */
+interface PendingSave {
+  noteId: string;
+  title: string;
+  content: TipTapJSONContent;
+}
+
+/**
  * NoteEditor - 便签编辑器组件
+ *
+ * 保存机制：
+ * 1. 编辑时防抖保存（1.5秒延迟）
+ * 2. 切换便签时立即保存当前内容
+ * 3. 页面关闭/刷新时保存
+ * 4. 脏数据追踪，避免重复保存
  */
 export const NoteEditor: React.FC = () => {
   // 从 Store 获取状态（优化：使用 selector）
@@ -30,20 +45,123 @@ export const NoteEditor: React.FC = () => {
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKeyType>('edit');
   const [noteColor, setNoteColor] = useState<NoteColorType>('ffffff');
+
+  // 保存相关的 refs
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentNoteIdRef = useRef<string | null>(null);
+  const pendingSaveRef = useRef<PendingSave | null>(null); // 待保存的数据
+  const isSavingRef = useRef<boolean>(false); // 防止并发保存
 
-  // 加载便签内容
-  useEffect(() => {
-    if (!selectedNoteId) {
-      setNoteTitle('');
-      setEditorContent(null);
-      return;
+  /**
+   * 立即执行保存（核心保存函数）
+   * @param data 要保存的数据，如果不传则使用 pendingSaveRef 中的数据
+   * @param silent 是否静默保存（不显示错误提示）
+   */
+  const saveImmediately = useCallback(
+    async (data?: PendingSave, silent = false): Promise<boolean> => {
+      const saveData = data || pendingSaveRef.current;
+
+      if (!saveData || !saveData.noteId) {
+        return false;
+      }
+
+      // 防止并发保存
+      if (isSavingRef.current) {
+        return false;
+      }
+
+      isSavingRef.current = true;
+
+      try {
+        await window.storage.updateNote(saveData.noteId, {
+          title: saveData.title,
+          content: saveData.content,
+        });
+
+        console.log('Note saved:', saveData.noteId);
+
+        // 清除待保存数据（仅当保存的是当前待保存数据时）
+        if (pendingSaveRef.current?.noteId === saveData.noteId) {
+          pendingSaveRef.current = null;
+        }
+
+        // 通知其他窗口
+        window.ipcRenderer?.send('note:updated', saveData.noteId);
+        triggerListRefresh();
+
+        return true;
+      } catch (error) {
+        console.error('Failed to save note:', error);
+        if (!silent) {
+          message.error('保存失败，请检查磁盘空间');
+        }
+        return false;
+      } finally {
+        isSavingRef.current = false;
+      }
+    },
+    [triggerListRefresh],
+  );
+
+  /**
+   * 防抖保存 - 编辑过程中使用
+   * 延迟 1.5 秒执行，减少 I/O 操作
+   */
+  const debouncedSave = useCallback(
+    (noteId: string, title: string, content: TipTapJSONContent) => {
+      // 更新待保存数据
+      pendingSaveRef.current = { noteId, title, content };
+
+      // 清除之前的定时器
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      // 设置新的防抖定时器
+      saveTimerRef.current = setTimeout(() => {
+        saveImmediately();
+      }, 1500); // 1.5 秒防抖
+    },
+    [saveImmediately],
+  );
+
+  /**
+   * 强制保存当前内容（切换便签前调用）
+   */
+  const flushPendingSave = useCallback(async () => {
+    // 清除防抖定时器
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
 
-    loadNote(selectedNoteId);
-    currentNoteIdRef.current = selectedNoteId;
-  }, [selectedNoteId]);
+    // 如果有待保存的数据，立即保存
+    if (pendingSaveRef.current) {
+      await saveImmediately(pendingSaveRef.current, true);
+    }
+  }, [saveImmediately]);
+
+  // 切换便签时：先保存当前便签，再加载新便签
+  useEffect(() => {
+    const switchNote = async () => {
+      // 1. 先保存当前便签的待保存内容
+      await flushPendingSave();
+
+      // 2. 更新当前便签 ID
+      currentNoteIdRef.current = selectedNoteId;
+
+      // 3. 加载新便签
+      if (!selectedNoteId) {
+        setNoteTitle('');
+        setEditorContent(null);
+        return;
+      }
+
+      await loadNote(selectedNoteId);
+    };
+
+    switchNote();
+  }, [selectedNoteId, flushPendingSave]);
 
   // 监听 tab 重置信号
   useEffect(() => {
@@ -65,10 +183,59 @@ export const NoteEditor: React.FC = () => {
       }
     };
 
-    // 统一使用 'note:updated' 事件
     window.ipcRenderer?.on('note:updated', handleFloatingNoteUpdate);
     return () => {
       window.ipcRenderer?.off('note:updated', handleFloatingNoteUpdate);
+    };
+  }, []);
+
+  // 页面关闭/刷新时保存
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 同步保存（使用 sendSync 如果可用，否则尽力保存）
+      if (pendingSaveRef.current) {
+        // 清除定时器
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+        }
+        // 尝试同步保存
+        const data = pendingSaveRef.current;
+        try {
+          // 使用 navigator.sendBeacon 或同步 XMLHttpRequest 作为备选
+          // 但在 Electron 中，我们可以直接调用同步保存
+          window.storage.updateNote(data.noteId, {
+            title: data.title,
+            content: data.content,
+          });
+        } catch (e) {
+          console.error('Failed to save on unload:', e);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // 组件卸载时保存并清理
+  useEffect(() => {
+    return () => {
+      // 清除定时器
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      // 尝试保存待保存的内容
+      if (pendingSaveRef.current) {
+        const data = pendingSaveRef.current;
+        window.storage
+          .updateNote(data.noteId, {
+            title: data.title,
+            content: data.content,
+          })
+          .catch((e) => console.error('Failed to save on unmount:', e));
+      }
     };
   }, []);
 
@@ -84,46 +251,20 @@ export const NoteEditor: React.FC = () => {
     }
   };
 
-  // 防抖保存函数 (2秒延迟，减少 I/O 操作频率)
-  const debouncedSave = useCallback(
-    (title: string, content: TipTapJSONContent) => {
-      if (!currentNoteIdRef.current) return;
-
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-
-      saveTimerRef.current = setTimeout(async () => {
-        try {
-          await window.storage.updateNote(currentNoteIdRef.current!, {
-            title,
-            content,
-          });
-          console.log('Note auto-saved');
-          // 统一使用 'note:updated' 事件通知
-          window.ipcRenderer?.send('note:updated', currentNoteIdRef.current);
-          triggerListRefresh();
-        } catch (error) {
-          console.error('Failed to save note:', error);
-          message.error('自动保存失败，请检查磁盘空间');
-        }
-      }, 2000); // 优化：2秒防抖，避免频繁 I/O
-    },
-    [triggerListRefresh],
-  );
-
   // 标题变更处理
   const handleTitleChange = (newTitle: string) => {
     setNoteTitle(newTitle);
-    if (editorContent && typeof editorContent !== 'string') {
-      debouncedSave(newTitle, editorContent);
+    if (currentNoteIdRef.current && editorContent && typeof editorContent !== 'string') {
+      debouncedSave(currentNoteIdRef.current, newTitle, editorContent);
     }
   };
 
   // 内容变更处理
   const handleContentChange = (newContent: TipTapJSONContent) => {
     setEditorContent(newContent);
-    debouncedSave(noteTitle, newContent);
+    if (currentNoteIdRef.current) {
+      debouncedSave(currentNoteIdRef.current, noteTitle, newContent);
+    }
   };
 
   // 颜色变更处理
@@ -131,28 +272,15 @@ export const NoteEditor: React.FC = () => {
     if (!currentNoteIdRef.current) return;
 
     try {
-      // 保存颜色到数据库
       await window.storage.updateNote(currentNoteIdRef.current, { color: newColor });
-      // 更新本地状态
       setNoteColor(newColor);
-      // 统一使用 'note:updated' 事件通知
       window.ipcRenderer?.send('note:updated', currentNoteIdRef.current);
-      // 触发列表刷新（使列表中的卡片颜色更新）
       triggerListRefresh();
     } catch (error) {
       console.error('Failed to update color:', error);
       message.error('更新颜色失败');
     }
   };
-
-  // 组件卸载时清除定时器
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-    };
-  }, []);
 
   const segmentOptions = [
     {

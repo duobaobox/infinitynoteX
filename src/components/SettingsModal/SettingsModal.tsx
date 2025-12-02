@@ -9,6 +9,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import AppearanceTab from './tabs/AppearanceTab';
 import AITab from './tabs/AITab';
 import DataTab from './tabs/DataTab';
+import SyncTab from './tabs/SyncTab';
 import AboutTab from './tabs/AboutTab';
 import './SettingsModal.css';
 
@@ -21,6 +22,7 @@ const menuItems = [
   { key: 'appearance', label: '外观' },
   { key: 'ai', label: 'AI 管理' },
   { key: 'data', label: '数据管理' },
+  { key: 'sync', label: '数据同步' },
   { key: 'about', label: '关于' },
 ];
 
@@ -43,6 +45,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         return <AITab />;
       case 'data':
         return <DataTab />;
+      case 'sync':
+        return <SyncTab />;
       case 'about':
         return <AboutTab />;
       default:

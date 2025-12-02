@@ -1,0 +1,157 @@
+/* SyncTab 样式 - 参考AITab设计 */
+
+.sync-settings-panel {
+  gap: 20px;
+}
+
+/* 状态卡片 */
+.sync-status-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: var(--panel-bg, rgba(255, 255, 255, 0.98));
+  box-shadow: none;
+}
+
+.sync-status-card .ant-card-body {
+  padding: 20px;
+}
+
+.sync-status-card-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+}
+
+.sync-status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sync-status-error {
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
+/* 两栏布局 */
+.sync-config-grid {
+  display: flex;
+  gap: 16px;
+  min-height: 420px;
+  flex-wrap: wrap;
+}
+
+/* 左侧Provider列表卡片 */
+.sync-provider-card {
+  width: 240px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.sync-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Provider卡片项 */
+.sync-provider-item {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.sync-provider-item:hover {
+  border-color: var(--toolbar-divider, #e0e0e0);
+}
+
+.sync-provider-item.active {
+  border-color: var(--primary-color, #1677ff);
+  background: var(--panel-hover-bg, rgba(22, 119, 255, 0.08));
+}
+
+.sync-provider-item[data-status='upcoming'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-provider-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sync-provider-item__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sync-provider-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sync-provider-name {
+  font-size: 14px;
+}
+
+.sync-provider-item__description {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  line-height: 1.4;
+}
+
+/* 右侧配置区域 */
+.sync-config-forms {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 280px;
+}
+
+.sync-card {
+  border-radius: 12px;
+}
+
+.sync-card .ant-card-head {
+  border-bottom: none;
+}
+
+.sync-card .ant-card-body {
+  padding-top: 12px;
+}
+
+/* 即将推出卡片 */
+.coming-soon-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  border-radius: 12px;
+}
+
+.coming-soon-card .ant-empty-description {
+  font-size: 14px;
+}
+
+.coming-soon-card h4 {
+  margin: 12px 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}

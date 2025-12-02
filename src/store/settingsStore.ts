@@ -74,6 +74,15 @@ interface SettingsState {
   stats: StorageStats | null;
   migrating: boolean;
 
+  // ============ 数据同步 ============
+  selectedSyncProvider: string | null;
+  syncConfigs: Record<string, any>; // 各provider的配置
+  syncStatus: {
+    syncing: boolean;
+    lastSync: number | null;
+    error: string | null;
+  };
+
   // ============ 应用信息 ============
   appVersion: string;
 
@@ -114,6 +123,17 @@ interface SettingsState {
   setMigrating: (migrating: boolean) => void;
   loadStorageInfo: () => Promise<void>;
 
+  // 数据同步
+  setSelectedSyncProvider: (id: string | null) => void;
+  setSyncConfig: (providerId: string, config: any) => void;
+  setSyncStatus: (status: Partial<SettingsState['syncStatus']>) => void;
+  testSyncConnection: (
+    providerId: string,
+    config: any,
+  ) => Promise<{ ok: boolean; message: string }>;
+  triggerSync: (providerId: string, config: any) => Promise<void>;
+  loadSyncConfigs: () => Promise<void>;
+
   // 应用信息
   setAppVersion: (version: string) => void;
   loadAppInfo: () => Promise<void>;
@@ -149,6 +169,15 @@ export const useSettingsStore = create<SettingsState>()(
       currentPath: '',
       stats: null,
       migrating: false,
+
+      // 数据同步
+      selectedSyncProvider: null,
+      syncConfigs: {},
+      syncStatus: {
+        syncing: false,
+        lastSync: null,
+        error: null,
+      },
 
       // 应用信息
       appVersion: '0.0.0',
@@ -355,6 +384,76 @@ export const useSettingsStore = create<SettingsState>()(
           set({ currentPath: path, stats: storageStats });
         } catch (error) {
           console.error('Failed to load storage info:', error);
+        }
+      },
+
+      // 数据同步
+      setSelectedSyncProvider: (id) => set({ selectedSyncProvider: id }),
+
+      setSyncConfig: (providerId, config) => {
+        const { syncConfigs } = get();
+        set({
+          syncConfigs: {
+            ...syncConfigs,
+            [providerId]: config,
+          },
+        });
+        // TODO: 持久化到本地
+        // localStorage.setItem('syncConfigs', JSON.stringify(get().syncConfigs));
+      },
+
+      setSyncStatus: (status) => {
+        set({
+          syncStatus: {
+            ...get().syncStatus,
+            ...status,
+          },
+        });
+      },
+
+      testSyncConnection: async (providerId, config) => {
+        try {
+          // TODO: 实现IPC调用
+          // const result = await window.sync.testConnection(providerId, config);
+          // return result;
+          console.log('Testing sync connection:', providerId, config);
+          return { ok: true, message: '测试连接功能即将实现' };
+        } catch (error) {
+          return { ok: false, message: getErrMsg(error) };
+        }
+      },
+
+      triggerSync: async (providerId, config) => {
+        const { setSyncStatus } = get();
+        try {
+          setSyncStatus({ syncing: true, error: null });
+          // TODO: 实现IPC调用
+          // await window.sync.execute(providerId, config);
+          console.log('Triggering sync:', providerId, config);
+          setSyncStatus({
+            syncing: false,
+            lastSync: Date.now(),
+            error: null,
+          });
+        } catch (error) {
+          setSyncStatus({
+            syncing: false,
+            error: getErrMsg(error),
+          });
+          throw error;
+        }
+      },
+
+      loadSyncConfigs: async () => {
+        try {
+          // TODO: 从localStorage或IPC加载配置
+          // const stored = localStorage.getItem('syncConfigs');
+          // if (stored) {
+          //   set({ syncConfigs: JSON.parse(stored) });
+          // }
+          console.log('Loading sync configs');
+        } catch (error) {
+          console.error('Failed to load sync configs:', error);
         }
       },
 

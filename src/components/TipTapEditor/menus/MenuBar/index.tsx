@@ -25,7 +25,7 @@ export interface MenuBarProps {
  * MenuBar 组件
  * 按照 Tiptap 官方最佳实践重构的工具栏
  */
-export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
+const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
   // 使用自定义 Hooks
   useEditorState(editor); // 监听编辑器状态变化
   const { headingState, listState, alignState, tableState } = useMenuState(editor);
@@ -175,5 +175,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     </div>
   );
 };
+
+// 使用 React.memo 优化性能，避免编辑器频繁更新时工具栏不必要的重渲染
+export const MenuBar = React.memo(MenuBarComponent);
 
 export default MenuBar;

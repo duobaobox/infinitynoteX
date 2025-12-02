@@ -39,22 +39,20 @@ function App() {
     return 'main';
   }, []);
 
-  // ============ 使用 Zustand Store 管理状态 ============
-  const {
-    showEditor,
-    showSidebar,
-    selectedToolId,
-    selectedToolItemId,
-    workspaceView,
-    isFirstLaunch,
-    loadFolders, // 获取 loadFolders
-    loadAIConversations, // 获取 loadAIConversations
-    toggleSidebar,
-    toggleEditor,
-    setSelectedTool,
-    setSelectedToolItem,
-    setIsFirstLaunch,
-  } = useWorkspaceStore();
+  // ============ 使用 Zustand Store 管理状态（优化：使用 selector 减少重渲染） ============
+  const showEditor = useWorkspaceStore((state) => state.showEditor);
+  const showSidebar = useWorkspaceStore((state) => state.showSidebar);
+  const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
+  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
+  const workspaceView = useWorkspaceStore((state) => state.workspaceView);
+  const isFirstLaunch = useWorkspaceStore((state) => state.isFirstLaunch);
+  const loadFolders = useWorkspaceStore((state) => state.loadFolders);
+  const loadAIConversations = useWorkspaceStore((state) => state.loadAIConversations);
+  const toggleSidebar = useWorkspaceStore((state) => state.toggleSidebar);
+  const toggleEditor = useWorkspaceStore((state) => state.toggleEditor);
+  const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
+  const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
+  const setIsFirstLaunch = useWorkspaceStore((state) => state.setIsFirstLaunch);
 
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);

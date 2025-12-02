@@ -16,7 +16,9 @@ interface ListPanelProps {
  * 根据 workspaceView 渲染不同的列表视图
  */
 const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
-  const { workspaceView, selectedToolId, setSelectedTool } = useWorkspaceStore();
+  const workspaceView = useWorkspaceStore((state) => state.workspaceView);
+  const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
+  const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
   const [themeColor, setThemeColor] = useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);

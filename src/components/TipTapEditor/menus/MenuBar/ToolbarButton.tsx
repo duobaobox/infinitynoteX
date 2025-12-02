@@ -17,7 +17,7 @@ export interface ToolbarButtonProps {
 /**
  * 工具栏按钮
  */
-export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
+const ToolbarButtonComponent: React.FC<ToolbarButtonProps> = ({
   onClick,
   isActive = false,
   disabled = false,
@@ -36,3 +36,6 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     </button>
   );
 };
+
+// 使用 React.memo 优化性能，避免编辑器状态更新时不必要的按钮重渲染
+export const ToolbarButton = React.memo(ToolbarButtonComponent);

@@ -5,12 +5,16 @@
  * 微软便签风格：头部颜色根据便签卡片颜色动态变动
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { message } from 'antd';
-import { TipTapEditor } from '../TipTapEditor';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { message, Spin } from 'antd';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
 import './FloatingNoteWindow.css';
+
+// 懒加载编辑器（优化：减少初始 bundle 体积）
+const TipTapEditor = lazy(() =>
+  import('../TipTapEditor').then((module) => ({ default: module.TipTapEditor })),
+);
 
 interface FloatingNoteWindowProps {
   noteId: string;
@@ -72,7 +76,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     };
   }, [noteId, editorContent]);
 
-  // 节流保存函数 (800ms)
+  // 防抖保存函数 (2秒延迟，减少 I/O 操作频率)
   const debouncedSave = useCallback(
     (title: string, content: TipTapJSONContent) => {
       if (!noteId) return;
@@ -94,7 +98,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');
         }
-      }, 800);
+      }, 2000); // 优化：2秒防抖，避免频繁 I/O
     },
     [noteId],
   );
@@ -166,14 +170,22 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
 
       {/* 编辑器内容 */}
       <div className="floating-note-editor">
-        <TipTapEditor
-          initialContent={editorContent || { type: 'doc', content: [] }}
-          onContentChange={handleContentChange}
-          placeholder="开始输入..."
-          editable={true}
-          showMenuBar={true}
-          showTitleInput={false}
-        />
+        <Suspense
+          fallback={
+            <div style={{ padding: '16px', textAlign: 'center' }}>
+              <Spin />
+            </div>
+          }
+        >
+          <TipTapEditor
+            initialContent={editorContent || { type: 'doc', content: [] }}
+            onContentChange={handleContentChange}
+            placeholder="开始输入..."
+            editable={true}
+            showMenuBar={true}
+            showTitleInput={false}
+          />
+        </Suspense>
       </div>
     </div>
   );

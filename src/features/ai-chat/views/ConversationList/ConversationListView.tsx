@@ -16,17 +16,17 @@ interface ConversationListViewProps {
  * 专门负责展示和管理AI对话列表
  */
 export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex }) => {
-  // Store 状态
-  const {
-    selectedToolItemId,
-    aiConversations, // 从 Store 获取 aiConversations
-    refreshAIConversationsTrigger, // 监听刷新触发器
-    createAIConversation, // 从 Store 获取 createAIConversation
-    deleteAIConversation, // 从 Store 获取 deleteAIConversation
-    loadAIConversations, // 从 Store 获取 loadAIConversations
-    setSelectedToolItem,
-    resetEditorTab,
-  } = useWorkspaceStore();
+  // Store 状态（优化：使用 selector）
+  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
+  const aiConversations = useWorkspaceStore((state) => state.aiConversations);
+  const refreshAIConversationsTrigger = useWorkspaceStore(
+    (state) => state.refreshAIConversationsTrigger,
+  );
+  const createAIConversation = useWorkspaceStore((state) => state.createAIConversation);
+  const deleteAIConversation = useWorkspaceStore((state) => state.deleteAIConversation);
+  const loadAIConversations = useWorkspaceStore((state) => state.loadAIConversations);
+  const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
+  const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
 
   // 本地状态（仅 UI 状态）
   const [themeColor, setThemeColor] = useState(getThemeColor());

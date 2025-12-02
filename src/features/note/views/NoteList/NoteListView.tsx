@@ -14,26 +14,26 @@ interface NoteListViewProps {
  * 专门负责展示和管理便签列表
  */
 export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
-  // Store 状态
-  const {
-    selectedFolderId,
-    selectedNoteId,
-    notes, // 从 Store 获取 notes
-    currentFolderName, // 从 Store 获取 currentFolderName
-    refreshListTrigger, // 监听刷新触发器
-    loadNotes, // 用于重新加载 notes
-    createNote, // 从 Store 获取 createNote
-    deleteNote, // 从 Store 获取 deleteNote
-    setSelectedNote,
-    resetEditorTab,
-  } = useWorkspaceStore();
+  // Store 状态（优化：使用 selector 减少重渲染）
+  const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
+  const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
+  const notes = useWorkspaceStore((state) => state.notes);
+  const currentFolderName = useWorkspaceStore((state) => state.currentFolderName);
+  const refreshListTrigger = useWorkspaceStore((state) => state.refreshListTrigger);
+  const loadNotes = useWorkspaceStore((state) => state.loadNotes);
+  const createNote = useWorkspaceStore((state) => state.createNote);
+  const deleteNote = useWorkspaceStore((state) => state.deleteNote);
+  const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
+  const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
 
   // 本地状态（仅 UI 状态）
   const [themeColor, setThemeColor] = useState(getThemeColor());
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // 即时输入状态
+  const [searchQuery, setSearchQuery] = useState(''); // 实际用于过滤的搜索字符串
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 监听主题色变化
   useEffect(() => {
@@ -51,6 +51,23 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
       loadNotes(selectedFolderId);
     }
   }, [refreshListTrigger, selectedFolderId, loadNotes]);
+
+  // 防抖搜索：300ms 延迟
+  useEffect(() => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300);
+
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, [searchInput]);
 
   // 创建便签
   const handleCreateNote = async () => {
@@ -176,8 +193,8 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
         </div>
         <Input
           allowClear
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder="搜索"
           prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
           style={{ width: '100%' }}

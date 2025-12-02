@@ -20,8 +20,10 @@ type TabKeyType = 'edit' | 'tools' | 'ai' | 'other';
  * NoteEditor - 便签编辑器组件
  */
 export const NoteEditor: React.FC = () => {
-  // 从 Store 获取状态
-  const { selectedNoteId, triggerListRefresh, resetEditorTabTrigger } = useWorkspaceStore();
+  // 从 Store 获取状态（优化：使用 selector）
+  const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
+  const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
+  const resetEditorTabTrigger = useWorkspaceStore((state) => state.resetEditorTabTrigger);
 
   // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
@@ -82,7 +84,7 @@ export const NoteEditor: React.FC = () => {
     }
   };
 
-  // 节流保存函数 (800ms)
+  // 防抖保存函数 (2秒延迟，减少 I/O 操作频率)
   const debouncedSave = useCallback(
     (title: string, content: TipTapJSONContent) => {
       if (!currentNoteIdRef.current) return;
@@ -105,7 +107,7 @@ export const NoteEditor: React.FC = () => {
           console.error('Failed to save note:', error);
           message.error('自动保存失败，请检查磁盘空间');
         }
-      }, 800);
+      }, 2000); // 优化：2秒防抖，避免频繁 I/O
     },
     [triggerListRefresh],
   );

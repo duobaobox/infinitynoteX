@@ -9,14 +9,16 @@ import BaseCard, { CardListContext } from '../../index';
 import type { BaseCardProps } from '../../index';
 import './ConversationCard.css';
 
-// 机器人图标组件
-const RobotIcon: React.FC = () => (
+// 机器人图标组件 - 使用 memo 避免不必要的重渲染
+const RobotIcon: React.FC = React.memo(() => (
   <div className="robot-icon">
     <div className="robot-icon__box">
       <RobotOutlined />
     </div>
   </div>
-);
+));
+
+RobotIcon.displayName = 'RobotIcon';
 
 export interface ConversationCardProps
   extends Omit<BaseCardProps, 'renderIcon' | 'colorable' | 'pinnable' | 'color'> {}
@@ -31,5 +33,6 @@ const ConversationCard: React.FC<ConversationCardProps> = (props) => (
   />
 );
 
-export default ConversationCard;
+// 使用 React.memo 优化性能
+export default React.memo(ConversationCard);
 export { CardListContext };

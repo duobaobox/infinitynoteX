@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Segmented, Button, message, Modal, Input, Menu, Dropdown } from 'antd';
 import {
   AppstoreOutlined,
@@ -12,26 +12,26 @@ import {
 } from '@ant-design/icons';
 import { DEFAULT_TOOLS } from '../../../constants/tools';
 import type { Folder } from '../../../services/types';
-import SettingsModal from '../../../components/SettingsModal/SettingsModal';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './Sidebar.css';
 
+// 懒加载设置面板（优化：减少初始 bundle 体积）
+const SettingsModal = lazy(() => import('../../../components/SettingsModal/SettingsModal'));
+
 // Sidebar 组件不再需要 props，直接使用 Store
 const Sidebar: React.FC = () => {
-  // 从 Store 获取状态和操作
-  const {
-    selectedFolderId,
-    selectedToolId,
-    workspaceView,
-    folders, // 从 Store 获取 folders
-    loadFolders, // 从 Store 获取 loadFolders
-    createFolder, // 从 Store 获取 createFolder
-    deleteFolder, // 从 Store 获取 deleteFolder
-    renameFolder, // 从 Store 获取 renameFolder
-    setSelectedFolder,
-    setSelectedTool,
-    setWorkspaceView,
-  } = useWorkspaceStore();
+  // 从 Store 获取状态和操作（优化：使用 selector）
+  const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
+  const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
+  const workspaceView = useWorkspaceStore((state) => state.workspaceView);
+  const folders = useWorkspaceStore((state) => state.folders);
+  const loadFolders = useWorkspaceStore((state) => state.loadFolders);
+  const createFolder = useWorkspaceStore((state) => state.createFolder);
+  const deleteFolder = useWorkspaceStore((state) => state.deleteFolder);
+  const renameFolder = useWorkspaceStore((state) => state.renameFolder);
+  const setSelectedFolder = useWorkspaceStore((state) => state.setSelectedFolder);
+  const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
+  const setWorkspaceView = useWorkspaceStore((state) => state.setWorkspaceView);
 
   // 本地状态（仅 UI 状态）
   const scrollableListRef = useRef<HTMLDivElement>(null);
@@ -350,7 +350,10 @@ const Sidebar: React.FC = () => {
           设置
         </Button>
       </div>
-      <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {/* 懒加载的设置面板 */}
+      <Suspense fallback={null}>
+        <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      </Suspense>
       {/* 新建文件夹对话框 */}
       <Modal
         title="新建文件夹"

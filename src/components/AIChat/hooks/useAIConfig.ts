@@ -11,6 +11,7 @@ import { detectProviderIdFromConfig, ensureAIConfigDefaults } from '../../../ser
 import {
   readStoredProviderConfigs,
   subscribeAIConfigChanged,
+  initializeAIConfigCache,
 } from '../../../services/aiConfigStore';
 import type { ProviderOption, UseAIConfigReturn } from '../types';
 
@@ -59,6 +60,9 @@ export const useAIConfig = (): UseAIConfigReturn => {
   useEffect(() => {
     const checkConfig = async () => {
       try {
+        // 确保 AI 配置缓存已初始化
+        await initializeAIConfigCache();
+
         const aiConfig = await window.ai.getConfig();
         const normalizedConfig = aiConfig ? ensureAIConfigDefaults(aiConfig) : null;
         setConfig(normalizedConfig);

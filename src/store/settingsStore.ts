@@ -18,6 +18,7 @@ import {
   emitAIConfigChanged,
   persistProviderConfigs,
   readStoredProviderConfigs,
+  initializeAIConfigCache,
 } from '../services/aiConfigStore';
 import {
   getThemeColor,
@@ -285,6 +286,10 @@ export const useSettingsStore = create<SettingsState>()(
       loadAIConfig: async () => {
         try {
           set({ aiLoading: true });
+
+          // 初始化 AI 配置缓存（从 app-config.json 读取）
+          await initializeAIConfigCache();
+
           const stored = readStoredProviderConfigs();
           const normalizedStored: Record<string, AIConfig> = {};
           Object.entries(stored).forEach(([id, cfg]) => {
@@ -398,8 +403,17 @@ export const useSettingsStore = create<SettingsState>()(
             [providerId]: config,
           },
         });
-        // TODO: 持久化到本地
-        // localStorage.setItem('syncConfigs', JSON.stringify(get().syncConfigs));
+
+        // 持久化到主进程（主进程将保存到 app.getPath('userData')/sync-config.json）
+        // 采用无阻塞调用，失败时在控制台记录错误
+        try {
+          // window.sync.setConfig 返回 Promise
+          window.sync.setConfig(providerId, config).catch((e) => {
+            console.error('Failed to persist sync config to main process:', e);
+          });
+        } catch (e) {
+          console.error('Failed to call window.sync.setConfig:', e);
+        }
       },
 
       setSyncStatus: (status) => {

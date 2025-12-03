@@ -12,6 +12,77 @@ import type {
   OpenDialogOptions,
 } from './services/types';
 
+// ============ 统一配置类型定义 ============
+
+interface WindowConfig {
+  width: number;
+  height: number;
+  x?: number;
+  y?: number;
+  isMaximized: boolean;
+}
+
+interface ThemeConfig {
+  colorPrimary: string;
+  mode: 'light' | 'dark' | 'auto';
+  bgLight: string;
+  bgDark: string;
+}
+
+interface AIProviderConfig {
+  provider: string;
+  baseURL: string;
+  apiKey: string;
+  model: string;
+  temperature?: number;
+  max_tokens?: number;
+  timeoutMs?: number;
+  systemPrompt?: string;
+}
+
+interface AIAppConfig {
+  activeProviderId: string;
+  providers: Record<string, AIProviderConfig>;
+  /** 前端使用的完整 provider 配置缓存 */
+  providerConfigs?: Record<string, any>;
+}
+
+interface WebDAVProviderConfig {
+  url: string;
+  username: string;
+  password: string;
+  remotePath: string;
+  conflictStrategy: 'newest' | 'local' | 'remote';
+}
+
+interface SyncAppConfig {
+  enabled: boolean;
+  activeProvider: string;
+  providers: {
+    webdav?: WebDAVProviderConfig;
+    [key: string]: any;
+  };
+}
+
+interface StorageAppConfig {
+  dataPath: string | null;
+}
+
+interface AppConfig {
+  schemaVersion: number;
+  storage: StorageAppConfig;
+  window: WindowConfig;
+  theme: ThemeConfig;
+  ai: AIAppConfig;
+  sync: SyncAppConfig;
+  features: Record<string, unknown>;
+  plugins: Record<string, unknown>;
+}
+
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -169,6 +240,13 @@ declare global {
       ): () => void;
       onCompleted(callback: (result: any) => void): () => void;
       onDataChanged(callback: () => void): () => void;
+    };
+    // 统一配置 API
+    app: {
+      getConfig(): Promise<AppConfig>;
+      setConfig(partial: DeepPartial<AppConfig>): Promise<AppConfig>;
+      getConfigPath(): Promise<string>;
+      onConfigChanged(callback: (config: AppConfig) => void): () => void;
     };
   }
 }

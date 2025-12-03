@@ -199,3 +199,15 @@ contextBridge.exposeInMainWorld('sync', {
     return () => ipcRenderer.removeListener('sync:dataChanged', listener);
   },
 });
+
+// --------- Expose Unified App Config API ---------
+contextBridge.exposeInMainWorld('app', {
+  getConfig: () => ipcRenderer.invoke('app:getConfig'),
+  setConfig: (partial: unknown) => ipcRenderer.invoke('app:setConfig', partial),
+  getConfigPath: () => ipcRenderer.invoke('app:getConfigPath') as Promise<string>,
+  onConfigChanged: (callback: (config: unknown) => void) => {
+    const listener = (_event: unknown, config: unknown) => callback(config);
+    ipcRenderer.on('app:configChanged', listener);
+    return () => ipcRenderer.removeListener('app:configChanged', listener);
+  },
+});

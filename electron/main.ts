@@ -8,10 +8,18 @@ import type {
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import fs from 'node:fs';
 import { storageManager } from './storage';
 import { initAutoUpdater } from './updater';
-import { readAIConfig, writeAIConfig, createAdapter } from './ai';
+import { readAIConfig, writeAIConfig } from './ai';
+import { createAdapter } from './ai/adapter';
+import {
+  readAppConfig,
+  writeAppConfig,
+  getConfigPath,
+  migrateFromLegacyConfigs,
+  type AppConfig,
+  type DeepPartial,
+} from './config';
 
 type AIConversationMessage = {
   role: 'user' | 'assistant';
@@ -44,14 +52,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 let win: BrowserWindow | null;
 let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
-// 窗口状态接口
-interface WindowState {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-  isMaximized?: boolean;
-}
+// 窗口状态接口（保持向后兼容，实际使用 config.window）
 
 // 悬浮窗口管理
 const floatingWindows = new Map<string, BrowserWindow>();
@@ -74,64 +75,55 @@ let defaultFloatingWindowSize = {
 };
 
 /**
- * 获取窗口状态文件路径
+ * 加载窗口状态（从统一配置）
  */
-function getWindowStateFilePath(): string {
-  return path.join(app.getPath('userData'), 'window-state.json');
+function loadWindowState() {
+  const config = readAppConfig();
+  return config.window;
 }
 
 /**
- * 加载窗口状态
- */
-function loadWindowState(): WindowState | null {
-  try {
-    const filePath = getWindowStateFilePath();
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf-8');
-      return JSON.parse(data) as WindowState;
-    }
-  } catch (error) {
-    console.error('[Window] Failed to load window state:', error);
-  }
-  return null;
-}
-
-/**
- * 保存窗口状态
+ * 保存窗口状态（到统一配置）
  */
 function saveWindowState(): void {
   if (!win || win.isDestroyed()) return;
 
   try {
-    const state: WindowState = {
+    const isMaximized = win.isMaximized();
+    const windowConfig: {
+      width: number;
+      height: number;
+      x?: number;
+      y?: number;
+      isMaximized: boolean;
+    } = {
       width: win.getSize()[0],
       height: win.getSize()[1],
-      isMaximized: win.isMaximized(),
+      isMaximized,
     };
 
     // 如果窗口未最大化，保存位置信息
-    if (!state.isMaximized) {
+    if (!isMaximized) {
       const [x, y] = win.getPosition();
-      state.x = x;
-      state.y = y;
+      windowConfig.x = x;
+      windowConfig.y = y;
     }
 
-    const filePath = getWindowStateFilePath();
-    fs.writeFileSync(filePath, JSON.stringify(state), 'utf-8');
+    writeAppConfig({ window: windowConfig });
   } catch (error) {
     console.error('[Window] Failed to save window state:', error);
   }
 }
 
 function createWindow() {
-  // 加载保存的窗口状态
+  // 加载保存的窗口状态（从统一配置）
   const savedState = loadWindowState();
 
   const windowOptions: BrowserWindowConstructorOptions = {
-    width: savedState?.width ?? 700,
-    height: savedState?.height ?? 560,
-    x: savedState?.x,
-    y: savedState?.y,
+    width: savedState.width || 700,
+    height: savedState.height || 560,
+    x: savedState.x,
+    y: savedState.y,
     minWidth: 700,
     minHeight: 560,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
@@ -156,7 +148,7 @@ function createWindow() {
   win.once('ready-to-show', () => {
     win?.show();
     // 如果之前窗口是最大化的，恢复最大化状态
-    if (savedState?.isMaximized) {
+    if (savedState.isMaximized) {
       win?.maximize();
     }
   });
@@ -265,6 +257,9 @@ app.on('before-quit', () => {
 });
 
 app.whenReady().then(async () => {
+  // 从旧配置文件迁移（首次升级时执行）
+  await migrateFromLegacyConfigs();
+
   // 初始化存储
   await storageManager.initialize();
 
@@ -815,4 +810,33 @@ ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
+});
+
+// ============ 统一配置 IPC 处理器 ============
+
+/**
+ * 获取完整配置
+ */
+ipcMain.handle('app:getConfig', () => {
+  return readAppConfig();
+});
+
+/**
+ * 更新配置（深度合并 + 广播）
+ */
+ipcMain.handle('app:setConfig', (_, partial: DeepPartial<AppConfig>) => {
+  writeAppConfig(partial);
+  const newConfig = readAppConfig();
+  // 广播给所有窗口
+  BrowserWindow.getAllWindows().forEach((w) => {
+    w.webContents.send('app:configChanged', newConfig);
+  });
+  return newConfig;
+});
+
+/**
+ * 获取配置文件路径
+ */
+ipcMain.handle('app:getConfigPath', () => {
+  return getConfigPath();
 });

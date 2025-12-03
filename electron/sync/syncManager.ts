@@ -3,11 +3,9 @@
  * 管理 WebDAV 同步的配置和执行
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { app } from 'electron';
 import { WebDAVSyncClient } from './webdavClient';
 import { SyncEngine } from './syncEngine';
+import { readAppConfig, writeAppConfig } from '../config';
 import type {
   WebDAVConfig,
   SyncConfig,
@@ -16,18 +14,12 @@ import type {
   SyncOptions,
 } from './types';
 
-interface StoredSyncConfig {
-  webdav?: SyncConfig;
-}
-
 export class SyncManager {
-  private configPath: string;
   private webdavClient: WebDAVSyncClient;
   private syncEngine: SyncEngine | null = null;
   private progressCallback: SyncProgressCallback | null = null;
 
   constructor() {
-    this.configPath = path.join(app.getPath('userData'), 'sync-config.json');
     this.webdavClient = new WebDAVSyncClient();
   }
 
@@ -42,39 +34,45 @@ export class SyncManager {
   }
 
   /**
-   * 读取配置文件
-   */
-  private async readConfigs(): Promise<StoredSyncConfig> {
-    try {
-      const data = await fs.readFile(this.configPath, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return {};
-    }
-  }
-
-  /**
-   * 写入配置文件
-   */
-  private async writeConfigs(configs: StoredSyncConfig): Promise<void> {
-    await fs.writeFile(this.configPath, JSON.stringify(configs, null, 2), 'utf-8');
-  }
-
-  /**
-   * 获取 WebDAV 配置
+   * 获取 WebDAV 配置（从统一配置读取）
    */
   async getConfig(providerId: string): Promise<SyncConfig | undefined> {
-    const configs = await this.readConfigs();
-    return configs[providerId as keyof StoredSyncConfig] as SyncConfig | undefined;
+    const appConfig = readAppConfig();
+    if (providerId === 'webdav') {
+      const webdav = appConfig.sync.providers.webdav;
+      if (webdav) {
+        return {
+          url: webdav.url,
+          username: webdav.username,
+          password: webdav.password,
+          remotePath: webdav.remotePath,
+          enabled: appConfig.sync.enabled,
+          conflictStrategy: webdav.conflictStrategy,
+        };
+      }
+    }
+    return undefined;
   }
 
   /**
-   * 保存 WebDAV 配置
+   * 保存 WebDAV 配置（写入统一配置）
    */
   async setConfig(providerId: string, config: SyncConfig): Promise<void> {
-    const configs = await this.readConfigs();
-    configs[providerId as keyof StoredSyncConfig] = config;
-    await this.writeConfigs(configs);
+    if (providerId === 'webdav') {
+      writeAppConfig({
+        sync: {
+          providers: {
+            webdav: {
+              url: config.url || '',
+              username: config.username || '',
+              password: config.password || '',
+              remotePath: config.remotePath || '/InfinityNoteX',
+              conflictStrategy: (config.conflictStrategy as any) || 'newest',
+            },
+          },
+        },
+      });
+    }
   }
 
   /**

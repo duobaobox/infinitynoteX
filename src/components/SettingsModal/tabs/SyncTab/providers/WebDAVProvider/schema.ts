@@ -10,8 +10,7 @@ export const WebDAVConfigSchema = z.object({
   username: z.string().min(1, '请输入用户名'),
   password: z.string().min(1, '请输入密码'),
   remotePath: z.string().default('/InfinityNoteX'),
-  syncInterval: z.number().min(0).default(0), // 0 = 仅手动同步
-  conflictStrategy: z.enum(['local', 'remote', 'ask']).default('ask'),
+  conflictStrategy: z.enum(['local', 'remote', 'newest']).default('newest'),
 });
 
 export type WebDAVConfig = z.infer<typeof WebDAVConfigSchema>;
@@ -23,6 +22,5 @@ export const createDefaultWebDAVConfig = (): Partial<WebDAVConfig> => ({
   username: '',
   password: '',
   remotePath: '/InfinityNoteX',
-  syncInterval: 0,
-  conflictStrategy: 'ask',
+  conflictStrategy: 'newest',
 });

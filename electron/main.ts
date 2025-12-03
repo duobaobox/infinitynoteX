@@ -656,6 +656,7 @@ ipcMain.handle(
 // ============ 数据同步 IPC 处理器 ============
 
 import { SyncManager } from './sync/syncManager';
+import type { SyncProgress } from './sync/types';
 const syncManager = new SyncManager();
 
 /**
@@ -674,15 +675,49 @@ ipcMain.handle('sync:testConnection', async (_, providerId: string, config: any)
 });
 
 /**
- * 执行同步
+ * 执行同步（带进度回调）
  */
-ipcMain.handle('sync:execute', async (_, providerId: string, config: any) => {
+ipcMain.handle('sync:execute', async (event, providerId: string, config: any) => {
   try {
     const storagePath = storageManager.getCurrentPath();
-    return await syncManager.sync(providerId, config, storagePath);
+
+    // 设置进度回调，通过 IPC 发送给渲染进程
+    const progressCallback = (progress: SyncProgress) => {
+      event.sender.send('sync:progress', progress);
+    };
+
+    syncManager.setProgressCallback(progressCallback);
+
+    const result = await syncManager.execute(providerId, config, storagePath);
+
+    // 同步完成后通知渲染进程刷新数据
+    event.sender.send('sync:completed', result);
+
+    // 同步完成后，通知主窗口刷新列表
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('sync:dataChanged');
+    }
+
+    return result;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     throw new Error(`同步失败：${msg}`);
+  }
+});
+
+/**
+ * 获取同步预览（不实际执行同步）
+ */
+ipcMain.handle('sync:preview', async (_, providerId: string, config: any) => {
+  try {
+    if (providerId !== 'webdav') {
+      throw new Error(`Unknown provider: ${providerId}`);
+    }
+    const storagePath = storageManager.getCurrentPath();
+    return await syncManager.preview(config, storagePath);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(`预览失败：${msg}`);
   }
 });
 

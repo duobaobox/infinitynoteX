@@ -168,7 +168,34 @@ contextBridge.exposeInMainWorld('sync', {
     }>,
   execute: (providerId: string, config: any) =>
     ipcRenderer.invoke('sync:execute', providerId, config),
+  preview: (providerId: string, config: any) =>
+    ipcRenderer.invoke('sync:preview', providerId, config) as Promise<{
+      toUpload: string[];
+      toDownload: string[];
+      toDeleteRemote: string[];
+      toDeleteLocal: string[];
+      conflicts: string[];
+      unchanged: number;
+    }>,
   getConfig: (providerId: string) => ipcRenderer.invoke('sync:getConfig', providerId),
   setConfig: (providerId: string, config: any) =>
     ipcRenderer.invoke('sync:setConfig', providerId, config),
+  // 进度回调
+  onProgress: (callback: (progress: any) => void) => {
+    const listener = (_event: unknown, progress: any) => callback(progress);
+    ipcRenderer.on('sync:progress', listener);
+    return () => ipcRenderer.removeListener('sync:progress', listener);
+  },
+  // 同步完成回调
+  onCompleted: (callback: (result: any) => void) => {
+    const listener = (_event: unknown, result: any) => callback(result);
+    ipcRenderer.on('sync:completed', listener);
+    return () => ipcRenderer.removeListener('sync:completed', listener);
+  },
+  // 数据变化通知（同步后需要刷新）
+  onDataChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('sync:dataChanged', listener);
+    return () => ipcRenderer.removeListener('sync:dataChanged', listener);
+  },
 });

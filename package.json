@@ -44,6 +44,7 @@
     "marked": "^17.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "uuid": "^13.0.0",
     "webdav": "^5.8.0",
     "zod": "^4.1.13",
     "zustand": "^5.0.9"
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
+    "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
     "@vitejs/plugin-react": "^4.2.1",

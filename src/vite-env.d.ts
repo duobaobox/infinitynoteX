@@ -144,8 +144,31 @@ declare global {
     sync: {
       testConnection(providerId: string, config: any): Promise<{ ok: boolean; message: string }>;
       execute(providerId: string, config: any): Promise<any>;
+      preview(
+        providerId: string,
+        config: any,
+      ): Promise<{
+        toUpload: string[];
+        toDownload: string[];
+        toDeleteRemote: string[];
+        toDeleteLocal: string[];
+        conflicts: string[];
+        unchanged: number;
+      }>;
       getConfig(providerId: string): Promise<any>;
       setConfig(providerId: string, config: any): Promise<void>;
+      onProgress(
+        callback: (progress: {
+          stage: string;
+          percent: number;
+          currentFile?: string;
+          processed: number;
+          total: number;
+          message: string;
+        }) => void,
+      ): () => void;
+      onCompleted(callback: (result: any) => void): () => void;
+      onDataChanged(callback: () => void): () => void;
     };
   }
 }

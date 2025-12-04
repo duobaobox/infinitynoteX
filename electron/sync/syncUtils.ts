@@ -12,13 +12,15 @@ import type { LocalFileInfo, LocalSyncState, RemoteSyncManifest } from './types'
 
 /**
  * 需要同步的文件列表（相对路径）
+ * 注意：索引文件（notes.index.json, ai-conversations.index.json）不参与同步
+ * 索引是本地缓存，启动/同步后自动从目录扫描重建
  */
-export const SYNC_FILES = ['folders.json', 'notes.index.json'];
+export const SYNC_FILES = ['folders.json'];
 
 /**
  * 需要同步的目录
  */
-export const SYNC_DIRS = ['notes'];
+export const SYNC_DIRS = ['notes', 'ai-conversations'];
 
 /**
  * 远程同步目录名

@@ -265,6 +265,15 @@ export class WebDAVSyncClient {
   }
 
   /**
+   * 检查数据文件是否存在
+   */
+  async existsDataFile(relativePath: string): Promise<boolean> {
+    const config = this.config!;
+    const remotePath = toRemotePath(config.remotePath, relativePath);
+    return await this.exists(remotePath);
+  }
+
+  /**
    * 删除数据文件
    */
   async deleteDataFile(relativePath: string): Promise<void> {

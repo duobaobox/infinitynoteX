@@ -53,6 +53,7 @@ function App() {
   const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
   const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
   const setIsFirstLaunch = useWorkspaceStore((state) => state.setIsFirstLaunch);
+  const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
 
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
@@ -63,6 +64,20 @@ function App() {
     loadFolders(); // 加载文件夹列表
     loadAIConversations(); // 加载 AI 对话列表
   }, [loadFolders, loadAIConversations]);
+
+  // 监听同步数据变化事件，同步完成后刷新数据
+  useEffect(() => {
+    if (!window.sync?.onDataChanged) return;
+
+    const unsubscribe = window.sync.onDataChanged(() => {
+      console.log('[App] Sync data changed, reloading data...');
+      loadFolders(); // 重新加载文件夹列表
+      loadAIConversations(); // 重新加载 AI 对话列表
+      triggerListRefresh(); // 触发便签列表刷新
+    });
+
+    return unsubscribe;
+  }, [loadFolders, loadAIConversations, triggerListRefresh]);
 
   // 初始化数据同步机制：监听 selectedFolderId 变化，自动加载 notes
   useEffect(() => {

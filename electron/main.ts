@@ -685,6 +685,28 @@ ipcMain.handle('sync:execute', async (event, providerId: string, config: any) =>
 
     const result = await syncManager.execute(providerId, config, storagePath);
 
+    // 同步完成后清除缓存
+    storageManager.clearAllCaches();
+
+    // 重建所有索引（确保索引与实际文件一致）
+    console.log('[Sync] Rebuilding all indexes after sync...');
+    const rebuildResult = await storageManager.rebuildAllIndexes();
+    console.log(
+      `[Sync] Indexes rebuilt: ${rebuildResult.notes.rebuilt} notes, ${rebuildResult.conversations.rebuilt} conversations`,
+    );
+    if (rebuildResult.notes.errors.length > 0) {
+      console.warn('[Sync] Notes index rebuild had errors:', rebuildResult.notes.errors);
+    }
+    if (rebuildResult.conversations.errors.length > 0) {
+      console.warn(
+        '[Sync] Conversations index rebuild had errors:',
+        rebuildResult.conversations.errors,
+      );
+    }
+
+    // 重新加载缓存
+    await storageManager.reloadAllCaches();
+
     // 同步完成后通知渲染进程刷新数据
     event.sender.send('sync:completed', result);
 

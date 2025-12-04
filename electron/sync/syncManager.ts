@@ -61,6 +61,8 @@ export class SyncManager {
     if (providerId === 'webdav') {
       writeAppConfig({
         sync: {
+          // 保存启用状态到顶层 sync.enabled
+          enabled: config.enabled ?? false,
           providers: {
             webdav: {
               url: config.url || '',

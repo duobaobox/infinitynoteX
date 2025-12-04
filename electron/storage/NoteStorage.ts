@@ -174,6 +174,61 @@ export class NoteStorage {
   }
 
   /**
+   * 重建索引
+   * 扫描 notes/ 目录下的所有便签文件，从中提取元信息重建 notes.index.json
+   * 用于同步后确保索引与实际文件一致
+   */
+  async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
+    const errors: string[] = [];
+    const newIndex: NoteIndex[] = [];
+
+    try {
+      const notesDir = this.context.notesDir;
+
+      // 检查目录是否存在
+      const dirExists = await fileExists(notesDir);
+      if (!dirExists) {
+        console.log('[NoteStorage] Notes directory does not exist, creating empty index');
+        await this.saveIndex([]);
+        return { rebuilt: 0, errors: [] };
+      }
+
+      // 读取目录中的所有文件
+      const files = await fs.readdir(notesDir);
+      const jsonFiles = files.filter((f) => f.endsWith('.json'));
+
+      console.log(`[NoteStorage] Rebuilding index from ${jsonFiles.length} note files`);
+
+      for (const fileName of jsonFiles) {
+        const filePath = this.context.getNotePath(fileName.replace('.json', ''));
+        try {
+          const note = await readJsonFile<Note>(filePath, undefined, NoteSchema);
+          const noteIndex = this.toIndex(note);
+          newIndex.push(noteIndex);
+        } catch (error) {
+          const errorMsg = `Failed to read note ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error(`[NoteStorage] ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }
+
+      // 按更新时间倒序排列
+      newIndex.sort((a, b) => b.updatedAt - a.updatedAt);
+
+      // 保存新索引
+      await this.saveIndex(newIndex);
+      console.log(`[NoteStorage] Index rebuilt successfully: ${newIndex.length} notes`);
+
+      return { rebuilt: newIndex.length, errors };
+    } catch (error) {
+      const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(`[NoteStorage] ${errorMsg}`);
+      errors.push(errorMsg);
+      return { rebuilt: 0, errors };
+    }
+  }
+
+  /**
    * 保存便签
    * 先写正文，再更新索引
    */

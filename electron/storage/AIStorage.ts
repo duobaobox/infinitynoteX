@@ -235,6 +235,61 @@ export class AIStorage {
   }
 
   /**
+   * 重建索引
+   * 扫描 ai-conversations/ 目录下的所有对话文件，重建索引
+   * 用于启动时和同步后确保索引与实际文件一致
+   */
+  async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
+    const errors: string[] = [];
+    const newIndex: AIConversationIndex[] = [];
+
+    try {
+      const conversationsDir = this.context.aiConversationsDir;
+
+      // 检查目录是否存在
+      const dirExists = await fileExists(conversationsDir);
+      if (!dirExists) {
+        console.log('[AIStorage] Conversations directory does not exist, creating empty index');
+        await this.saveIndex([]);
+        return { rebuilt: 0, errors: [] };
+      }
+
+      // 读取目录中的所有文件
+      const files = await fs.readdir(conversationsDir);
+      const jsonFiles = files.filter((f) => f.endsWith('.json'));
+
+      console.log(`[AIStorage] Rebuilding index from ${jsonFiles.length} conversation files`);
+
+      for (const fileName of jsonFiles) {
+        const id = fileName.replace('.json', '');
+        try {
+          const conversation = await this.readFile(id);
+          const indexItem = this.toIndex(conversation);
+          newIndex.push(indexItem);
+        } catch (error) {
+          const errorMsg = `Failed to read conversation ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error(`[AIStorage] ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }
+
+      // 按更新时间倒序排列
+      newIndex.sort((a, b) => b.updatedAt - a.updatedAt);
+
+      // 保存新索引
+      await this.saveIndex(newIndex);
+      console.log(`[AIStorage] Index rebuilt successfully: ${newIndex.length} conversations`);
+
+      return { rebuilt: newIndex.length, errors };
+    } catch (error) {
+      const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(`[AIStorage] ${errorMsg}`);
+      errors.push(errorMsg);
+      return { rebuilt: 0, errors };
+    }
+  }
+
+  /**
    * 保存索引
    */
   private async saveIndex(index: AIConversationIndex[]): Promise<void> {

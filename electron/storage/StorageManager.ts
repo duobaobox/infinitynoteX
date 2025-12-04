@@ -111,7 +111,12 @@ export class StorageManager {
       await this.checkAndApplyMigrations();
 
       await this.context.ensureBaseDirectories();
-      await this.ai.createEmptyIndex();
+
+      // 重建索引（从目录扫描，确保索引与实际文件一致）
+      console.log('[Storage] Rebuilding indexes from directory scan...');
+      await this.notes.rebuildIndex();
+      await this.ai.rebuildIndex();
+
       await this.loadAllCaches();
       // 仅在既存存储中检查并修复默认对话重复问题
       await this.ai.ensureSingleDefault();
@@ -144,6 +149,13 @@ export class StorageManager {
   }
 
   /**
+   * 加载所有缓存（公开方法，用于同步后重新加载）
+   */
+  async reloadAllCaches(): Promise<void> {
+    await this.loadAllCaches();
+  }
+
+  /**
    * 加载所有缓存
    */
   private async loadAllCaches(): Promise<void> {
@@ -151,9 +163,9 @@ export class StorageManager {
   }
 
   /**
-   * 清空所有缓存
+   * 清空所有缓存（公开方法，用于同步后清除缓存）
    */
-  private clearAllCaches(): void {
+  clearAllCaches(): void {
     this.folders.clearCache();
     this.notes.clearCache();
     this.ai.clearCache();
@@ -361,6 +373,33 @@ export class StorageManager {
       noteCount: this.notes.getCacheCount(),
       dataSize,
     };
+  }
+
+  /**
+   * 重建所有索引
+   * 扫描目录，从实际文件重建索引
+   * 用于同步后确保数据一致性
+   */
+  async rebuildAllIndexes(): Promise<{
+    notes: { rebuilt: number; errors: string[] };
+    conversations: { rebuilt: number; errors: string[] };
+  }> {
+    const [notesResult, conversationsResult] = await Promise.all([
+      this.notes.rebuildIndex(),
+      this.ai.rebuildIndex(),
+    ]);
+
+    return {
+      notes: notesResult,
+      conversations: conversationsResult,
+    };
+  }
+
+  /**
+   * 重建便签索引（保持向后兼容）
+   */
+  async rebuildNotesIndex(): Promise<{ rebuilt: number; errors: string[] }> {
+    return await this.notes.rebuildIndex();
   }
 
   // ============ 备份与导出 ============

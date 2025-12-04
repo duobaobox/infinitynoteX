@@ -170,6 +170,8 @@ export interface SyncResult {
   skipped: number;
   /** 冲突并解决的文件数 */
   conflictsResolved: number;
+  /** 冲突备份文件列表（保留的被覆盖版本） */
+  conflictBackups?: string[];
   /** 错误列表 */
   errors: SyncError[];
 }
@@ -178,6 +180,27 @@ export interface SyncError {
   path?: string;
   code: string;
   message: string;
+  /** 是否可重试 */
+  retryable?: boolean;
+}
+
+// ============ 同步日志 ============
+
+export type SyncLogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+export interface SyncLogEntry {
+  /** 时间戳 */
+  timestamp: number;
+  /** 日志级别 */
+  level: SyncLogLevel;
+  /** 操作类型 */
+  action: string;
+  /** 文件路径 */
+  path?: string;
+  /** 消息 */
+  message: string;
+  /** 额外数据 */
+  data?: Record<string, unknown>;
 }
 
 // ============ 同步选项 ============
@@ -189,4 +212,8 @@ export interface SyncOptions {
   onProgress?: SyncProgressCallback;
   /** 试运行（不实际修改文件，仅返回差异） */
   dryRun?: boolean;
+  /** 最大重试次数，默认 3 */
+  maxRetries?: number;
+  /** 是否保留冲突版本备份，默认 true */
+  keepConflictBackup?: boolean;
 }

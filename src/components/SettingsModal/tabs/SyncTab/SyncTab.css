@@ -1,37 +1,70 @@
 /* SyncTab 样式 - 参考AITab设计 */
 
 .sync-settings-panel {
-  gap: 20px;
+  gap: 16px;
 }
 
 /* 状态卡片 */
 .sync-status-card {
-  margin-bottom: 16px;
+  margin-bottom: 0;
   border-radius: 12px;
   background: var(--panel-bg, rgba(255, 255, 255, 0.98));
   box-shadow: none;
 }
 
 .sync-status-card .ant-card-body {
-  padding: 20px;
+  padding: 16px 20px;
 }
 
 .sync-status-card-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 16px;
   align-items: center;
+  justify-content: space-between;
 }
 
-.sync-status-field {
+/* 左侧主要信息区 */
+.sync-status-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.sync-status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--panel-hover-bg, rgba(22, 119, 255, 0.06));
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.sync-status-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
 }
 
-.sync-status-error {
-  flex-basis: 100%;
-  margin-top: 8px;
+.sync-status-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sync-status-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 400px;
 }
 
 /* 两栏布局 */

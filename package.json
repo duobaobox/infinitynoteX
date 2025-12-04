@@ -40,6 +40,7 @@
     "@tiptap/react": "^3.8.0",
     "@tiptap/starter-kit": "^3.8.0",
     "antd": "^6.0.0",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "marked": "^17.0.1",
     "react": "^18.2.0",

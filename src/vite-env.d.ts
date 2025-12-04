@@ -248,6 +248,29 @@ declare global {
       getConfigPath(): Promise<string>;
       onConfigChanged(callback: (config: AppConfig) => void): () => void;
     };
+    // 日志 API
+    log?: {
+      openDir(): Promise<void>;
+      getPath(): Promise<string>;
+      readRecent(lines?: number): Promise<string>;
+      readByLevel(
+        level: 'error' | 'warn' | 'info' | 'debug' | 'all',
+        lines?: number,
+      ): Promise<string>;
+      search(keyword: string, lines?: number): Promise<string>;
+      cleanOld(): Promise<number>;
+      getStats(): Promise<{
+        totalSize: number;
+        fileCount: number;
+        oldestFile?: string;
+        newestFile?: string;
+      }>;
+      // 渲染进程日志上报
+      error(...args: unknown[]): void;
+      warn(...args: unknown[]): void;
+      info(...args: unknown[]): void;
+      debug(...args: unknown[]): void;
+    };
   }
 }
 

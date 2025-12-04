@@ -2,13 +2,17 @@
  * AboutTab - 关于 Tab 组件
  */
 
-import React, { useMemo, useEffect } from 'react';
-import { Space, Typography, Button, Progress } from 'antd';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
+import { Space, Typography, Button, Progress, Modal, message, Select, Input, Tooltip } from 'antd';
+import { ReloadOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { useAutoUpdater } from '../../../../hooks/useAutoUpdater';
 import './AboutTab.css';
 
 const { Text, Paragraph } = Typography;
+const { Search } = Input;
+
+type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'all';
 
 const formatBytes = (value?: number) => {
   if (!value || Number.isNaN(value)) return '0 B';
@@ -20,6 +24,18 @@ const formatBytes = (value?: number) => {
 
 const AboutTab: React.FC = () => {
   const { appVersion, loadAppInfo } = useSettingsStore();
+  const [logModalVisible, setLogModalVisible] = useState(false);
+  const [logContent, setLogContent] = useState('');
+  const [logPath, setLogPath] = useState('');
+  const [logLevel, setLogLevel] = useState<LogLevel>('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [logStats, setLogStats] = useState<{
+    totalSize: number;
+    fileCount: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     status: updaterStatus,
@@ -34,6 +50,117 @@ const AboutTab: React.FC = () => {
   useEffect(() => {
     loadAppInfo();
   }, [loadAppInfo]);
+
+  // 双击 Logo 打开日志
+  const handleLogoClick = () => {
+    clickCountRef.current += 1;
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+
+    if (clickCountRef.current >= 2) {
+      // 双击触发
+      clickCountRef.current = 0;
+      openLogViewer();
+    } else {
+      // 单击后 300ms 重置计数
+      clickTimerRef.current = setTimeout(() => {
+        clickCountRef.current = 0;
+      }, 300);
+    }
+  };
+
+  // 加载日志内容
+  const loadLogs = useCallback(
+    async (level: LogLevel = logLevel, keyword: string = searchKeyword) => {
+      setLoading(true);
+      try {
+        let content: string | undefined;
+
+        if (keyword.trim()) {
+          // 有搜索关键字时使用搜索
+          content = await window.log?.search(keyword, 500);
+        } else if (level !== 'all') {
+          // 有级别筛选时使用级别筛选
+          content = await window.log?.readByLevel(level, 500);
+        } else {
+          // 默认读取最近日志
+          content = await window.log?.readRecent(500);
+        }
+
+        setLogContent(content || '暂无日志');
+
+        // 获取统计信息
+        const stats = await window.log?.getStats();
+        if (stats) {
+          setLogStats({ totalSize: stats.totalSize, fileCount: stats.fileCount });
+        }
+      } catch (error) {
+        message.error('无法读取日志');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [logLevel, searchKeyword],
+  );
+
+  const openLogViewer = async () => {
+    try {
+      setLoading(true);
+      const path = await window.log?.getPath();
+      setLogPath(path || '');
+      setLogLevel('all');
+      setSearchKeyword('');
+      await loadLogs('all', '');
+      setLogModalVisible(true);
+    } catch (error) {
+      message.error('无法读取日志');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenLogDir = async () => {
+    try {
+      await window.log?.openDir();
+    } catch (error) {
+      message.error('无法打开日志目录');
+    }
+  };
+
+  const handleCopyLogs = async () => {
+    try {
+      await navigator.clipboard.writeText(logContent);
+      message.success('日志已复制到剪贴板');
+    } catch {
+      message.error('复制失败');
+    }
+  };
+
+  const handleCleanOldLogs = async () => {
+    try {
+      const count = await window.log?.cleanOld();
+      if (count && count > 0) {
+        message.success(`已清理 ${count} 个过期日志文件`);
+        await loadLogs();
+      } else {
+        message.info('没有需要清理的过期日志');
+      }
+    } catch {
+      message.error('清理失败');
+    }
+  };
+
+  const handleLevelChange = (level: LogLevel) => {
+    setLogLevel(level);
+    loadLogs(level, searchKeyword);
+  };
+
+  const handleSearch = (keyword: string) => {
+    setSearchKeyword(keyword);
+    loadLogs(logLevel, keyword);
+  };
 
   const updaterStatusText = useMemo(() => {
     const state = updaterStatus?.state;
@@ -80,8 +207,8 @@ const AboutTab: React.FC = () => {
   return (
     <div className="settings-panel about-panel">
       <div className="about-content">
-        {/* Logo */}
-        <div className="about-logo">
+        {/* Logo - 双击打开日志 */}
+        <div className="about-logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
           <img
             src={new URL('../../../../assets/logo.png', import.meta.url).href}
             alt="InfinityNoteX"
@@ -211,6 +338,83 @@ const AboutTab: React.FC = () => {
           <p>© 2025 InfinityNoteX. 保留所有权利。</p>
         </div>
       </div>
+
+      {/* 日志查看弹窗 */}
+      <Modal
+        title="应用日志"
+        open={logModalVisible}
+        onCancel={() => setLogModalVisible(false)}
+        width={900}
+        footer={[
+          <Button key="clean" icon={<DeleteOutlined />} onClick={handleCleanOldLogs}>
+            清理过期日志
+          </Button>,
+          <Button key="open" onClick={handleOpenLogDir}>
+            打开日志目录
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setLogModalVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+      >
+        {/* 工具栏 */}
+        <div style={{ marginBottom: 12, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Select
+            value={logLevel}
+            onChange={handleLevelChange}
+            style={{ width: 120 }}
+            options={[
+              { value: 'all', label: '全部级别' },
+              { value: 'error', label: '❌ Error' },
+              { value: 'warn', label: '⚠️ Warn' },
+              { value: 'info', label: 'ℹ️ Info' },
+              { value: 'debug', label: '🔍 Debug' },
+            ]}
+          />
+          <Search
+            placeholder="搜索日志内容..."
+            allowClear
+            onSearch={handleSearch}
+            style={{ width: 250 }}
+          />
+          <Tooltip title="刷新">
+            <Button icon={<ReloadOutlined />} onClick={() => loadLogs()} loading={loading} />
+          </Tooltip>
+          <Tooltip title="复制全部">
+            <Button icon={<CopyOutlined />} onClick={handleCopyLogs} />
+          </Tooltip>
+          {logStats && (
+            <Text type="secondary" style={{ lineHeight: '32px', marginLeft: 'auto' }}>
+              {logStats.fileCount} 个文件 · {formatBytes(logStats.totalSize)}
+            </Text>
+          )}
+        </div>
+
+        {/* 日志路径 */}
+        <div style={{ marginBottom: 8 }}>
+          <Text type="secondary" copyable={{ text: logPath }}>
+            日志路径: {logPath}
+          </Text>
+        </div>
+
+        {/* 日志内容 */}
+        <pre
+          style={{
+            maxHeight: 450,
+            overflow: 'auto',
+            backgroundColor: '#1a1a1a',
+            color: '#e0e0e0',
+            padding: 12,
+            borderRadius: 6,
+            fontSize: 11,
+            fontFamily: 'Consolas, Monaco, monospace',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+          }}
+        >
+          {loading ? '加载中...' : logContent}
+        </pre>
+      </Modal>
     </div>
   );
 };

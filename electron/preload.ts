@@ -211,3 +211,27 @@ contextBridge.exposeInMainWorld('app', {
     return () => ipcRenderer.removeListener('app:configChanged', listener);
   },
 });
+
+// --------- Expose Log API ---------
+contextBridge.exposeInMainWorld('log', {
+  openDir: () => ipcRenderer.invoke('log:openDir'),
+  getPath: () => ipcRenderer.invoke('log:getPath') as Promise<string>,
+  readRecent: (lines?: number) => ipcRenderer.invoke('log:readRecent', lines) as Promise<string>,
+  readByLevel: (level: 'error' | 'warn' | 'info' | 'debug' | 'all', lines?: number) =>
+    ipcRenderer.invoke('log:readByLevel', level, lines) as Promise<string>,
+  search: (keyword: string, lines?: number) =>
+    ipcRenderer.invoke('log:search', keyword, lines) as Promise<string>,
+  cleanOld: () => ipcRenderer.invoke('log:cleanOld') as Promise<number>,
+  getStats: () =>
+    ipcRenderer.invoke('log:getStats') as Promise<{
+      totalSize: number;
+      fileCount: number;
+      oldestFile?: string;
+      newestFile?: string;
+    }>,
+  // 渲染进程日志上报
+  error: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'error', ...args),
+  warn: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'warn', ...args),
+  info: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'info', ...args),
+  debug: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'debug', ...args),
+});

@@ -20,6 +20,15 @@ import {
   type AppConfig,
   type DeepPartial,
 } from './config';
+import log, {
+  openLogDir,
+  readRecentLogs,
+  readLogsByLevel,
+  searchLogs,
+  cleanOldLogs,
+  getLogPath,
+  getLogStats,
+} from './logger';
 
 type AIConversationMessage = {
   role: 'user' | 'assistant';
@@ -268,9 +277,65 @@ app.whenReady().then(async () => {
 
   createWindow();
   initAutoUpdater(() => win ?? null);
+
+  // 启动时记录日志
+  log.info('App started', { version: app.getVersion() });
 });
 
 ipcMain.handle('app:getVersion', () => app.getVersion());
+
+// ============ 日志 IPC 处理器 ============
+
+ipcMain.handle('log:openDir', async () => {
+  await openLogDir();
+});
+
+ipcMain.handle('log:getPath', () => {
+  return getLogPath();
+});
+
+ipcMain.handle('log:readRecent', async (_, lines?: number) => {
+  return await readRecentLogs(lines);
+});
+
+ipcMain.handle(
+  'log:readByLevel',
+  async (_, level: 'error' | 'warn' | 'info' | 'debug' | 'all', lines?: number) => {
+    return await readLogsByLevel(level, lines);
+  },
+);
+
+ipcMain.handle('log:search', async (_, keyword: string, lines?: number) => {
+  return await searchLogs(keyword, lines);
+});
+
+ipcMain.handle('log:cleanOld', async () => {
+  return await cleanOldLogs();
+});
+
+ipcMain.handle('log:getStats', async () => {
+  return await getLogStats();
+});
+
+// 渲染进程日志收集
+ipcMain.on('log:renderer', (_, level: string, ...args: unknown[]) => {
+  switch (level) {
+    case 'error':
+      log.error('[Renderer]', ...args);
+      break;
+    case 'warn':
+      log.warn('[Renderer]', ...args);
+      break;
+    case 'info':
+      log.info('[Renderer]', ...args);
+      break;
+    case 'debug':
+      log.debug('[Renderer]', ...args);
+      break;
+    default:
+      log.log('[Renderer]', ...args);
+  }
+});
 
 // ============ 存储 IPC 处理器 ============
 

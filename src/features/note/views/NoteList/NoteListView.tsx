@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import NoteCard, { CardListContext } from '../../../../components/BaseCard/cards/NoteCard';
-import { getThemeColor } from '../../../../theme/theme';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
+import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
+import { useThemeColor } from '../../../../hooks/useThemeColor';
+import { useDebouncedSearch } from '../../../../hooks/useDebouncedSearch';
 
 interface NoteListViewProps {
   flex: string | number;
@@ -26,48 +28,17 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
   const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
 
-  // 本地状态（仅 UI 状态）
-  const [themeColor, setThemeColor] = useState(getThemeColor());
-  const scrollableListRef = useRef<HTMLDivElement>(null);
-  const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
-  const [isOverflow, setIsOverflow] = useState(false);
-  const [searchInput, setSearchInput] = useState(''); // 即时输入状态
-  const [searchQuery, setSearchQuery] = useState(''); // 实际用于过滤的搜索字符串
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 使用公共 hooks
+  const themeColor = useThemeColor();
+  const { scrollableRef, containerRef } = useScrollOverflow();
+  const { searchInput, setSearchInput, searchQuery } = useDebouncedSearch();
 
-  // 监听主题色变化
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const color = (e as unknown as CustomEvent<string>).detail;
-      if (typeof color === 'string' && color) setThemeColor(color);
-    };
-    window.addEventListener('theme-color-change', handler as EventListener);
-    return () => window.removeEventListener('theme-color-change', handler as EventListener);
-  }, []);
-
-  // 监听刷新触发器，自动重新加载 notes（修复颜色和内容更新问题）
+  // 监听刷新触发器，自动重新加载 notes
   useEffect(() => {
     if (selectedFolderId) {
       loadNotes(selectedFolderId);
     }
   }, [refreshListTrigger, selectedFolderId, loadNotes]);
-
-  // 防抖搜索：300ms 延迟
-  useEffect(() => {
-    if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
-    }
-
-    searchTimerRef.current = setTimeout(() => {
-      setSearchQuery(searchInput);
-    }, 300);
-
-    return () => {
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-    };
-  }, [searchInput]);
 
   // 创建便签
   const handleCreateNote = async () => {
@@ -77,7 +48,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     }
 
     try {
-      const newNote = await createNote(selectedFolderId); // 使用 Store Action
+      const newNote = await createNote(selectedFolderId);
       setSelectedNote(newNote.id);
     } catch (error) {
       console.error('Failed to create note:', error);
@@ -95,7 +66,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
       okButtonProps: { danger: true },
       async onOk() {
         try {
-          await deleteNote(id); // 使用 Store Action
+          await deleteNote(id);
           if (selectedNoteId === id) {
             setSelectedNote(null);
           }
@@ -127,45 +98,6 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   const filteredNotes = notes.filter((note) =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-
-  // 检测滚动条
-  useEffect(() => {
-    const scrollableElement = scrollableListRef.current;
-    if (!scrollableElement) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
-      setIsOverflow(hasVerticalScroll);
-    });
-
-    resizeObserver.observe(scrollableElement);
-
-    const mutationObserver = new MutationObserver(() => {
-      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
-      setIsOverflow(hasVerticalScroll);
-    });
-
-    mutationObserver.observe(scrollableElement, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => {
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-    };
-  }, []);
-
-  // 动态更新 padding
-  useEffect(() => {
-    if (flexVerticalEqualRef.current) {
-      if (isOverflow) {
-        flexVerticalEqualRef.current.style.paddingRight = '0px';
-      } else {
-        flexVerticalEqualRef.current.style.paddingRight = '10px';
-      }
-    }
-  }, [isOverflow]);
 
   return (
     <div className="layout-panel list-container" style={{ flex }}>
@@ -200,9 +132,9 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
           style={{ width: '100%' }}
         />
       </div>
-      <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
+      <div className="flex-vertical-equal" ref={containerRef}>
         <CardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
-          <div className="scrollable-list" ref={scrollableListRef}>
+          <div className="scrollable-list" ref={scrollableRef}>
             {filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}

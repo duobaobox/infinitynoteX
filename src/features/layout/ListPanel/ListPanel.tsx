@@ -1,10 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { Badge } from 'antd';
 import { DEFAULT_TOOLS } from '../../../constants/tools';
-import { getThemeColor } from '../../../theme/theme';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import { NoteListView } from '../../note/views/NoteList/NoteListView';
 import { ConversationListView } from '../../ai-chat/views/ConversationList/ConversationListView';
+import { useScrollOverflow } from '../../../hooks/useScrollOverflow';
+import { useThemeColor } from '../../../hooks/useThemeColor';
 import './ListPanel.css';
 
 interface ListPanelProps {
@@ -19,64 +20,15 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
   const workspaceView = useWorkspaceStore((state) => state.workspaceView);
   const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
   const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
-  const [themeColor, setThemeColor] = useState(getThemeColor());
-  const scrollableListRef = useRef<HTMLDivElement>(null);
-  const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
-  const [isOverflow, setIsOverflow] = useState(false);
+
+  // 使用公共 hooks
+  const themeColor = useThemeColor();
+  const { scrollableRef, containerRef } = useScrollOverflow();
 
   const isNoteView = workspaceView === 'note';
   const toolList = DEFAULT_TOOLS;
   const effectiveToolId = selectedToolId || toolList[0]?.id || null;
   const isAiChatView = !isNoteView && effectiveToolId === 'ai-chat';
-
-  // 监听主题色变化
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const color = (e as unknown as CustomEvent<string>).detail;
-      if (typeof color === 'string' && color) setThemeColor(color);
-    };
-    window.addEventListener('theme-color-change', handler as EventListener);
-    return () => window.removeEventListener('theme-color-change', handler as EventListener);
-  }, []);
-
-  // 检测滚动条
-  useEffect(() => {
-    const scrollableElement = scrollableListRef.current;
-    if (!scrollableElement) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
-      setIsOverflow(hasVerticalScroll);
-    });
-
-    resizeObserver.observe(scrollableElement);
-
-    const mutationObserver = new MutationObserver(() => {
-      const hasVerticalScroll = scrollableElement.scrollHeight > scrollableElement.clientHeight;
-      setIsOverflow(hasVerticalScroll);
-    });
-
-    mutationObserver.observe(scrollableElement, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => {
-      resizeObserver.disconnect();
-      mutationObserver.disconnect();
-    };
-  }, []);
-
-  // 动态更新 padding
-  useEffect(() => {
-    if (flexVerticalEqualRef.current) {
-      if (isOverflow) {
-        flexVerticalEqualRef.current.style.paddingRight = '0px';
-      } else {
-        flexVerticalEqualRef.current.style.paddingRight = '10px';
-      }
-    }
-  }, [isOverflow]);
 
   // 便签列表视图
   if (isNoteView) {
@@ -107,8 +59,8 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
           </div>
         </div>
       </div>
-      <div className="flex-vertical-equal" ref={flexVerticalEqualRef}>
-        <div className="scrollable-list" ref={scrollableListRef}>
+      <div className="flex-vertical-equal" ref={containerRef}>
+        <div className="scrollable-list" ref={scrollableRef}>
           {toolList.map((tool) => (
             <div
               key={tool.id}

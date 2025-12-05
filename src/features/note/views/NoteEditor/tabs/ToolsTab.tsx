@@ -64,21 +64,13 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
       });
   };
 
-  const handleChangeColor = async (color: NoteColorType) => {
+  const handleChangeColor = (color: NoteColorType) => {
     if (!noteId) {
       message.warning('请先选择便签');
       return;
     }
-    try {
-      await window.storage.updateNote(noteId, { color });
-      onColorChange(color);
-      // 统一使用 'note:updated' 事件通知所有窗口更新该便签的数据
-      window.ipcRenderer?.send('note:updated', noteId);
-      // 颜色更改成功不再弹窗提醒
-    } catch (e) {
-      console.error('Failed to update color:', e);
-      message.error('更新颜色失败');
-    }
+    // 直接调用父组件的回调，由父组件统一处理保存和通知
+    onColorChange(color);
   };
 
   return (

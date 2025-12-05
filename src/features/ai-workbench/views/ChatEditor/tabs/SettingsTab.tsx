@@ -15,14 +15,17 @@ import {
   message,
 } from 'antd';
 import { ReloadOutlined, SaveOutlined } from '@ant-design/icons';
-import type { AIConfig } from '../../../services/aiConfig';
+import type { AIConfig } from '../../../../../services/aiConfig';
 import {
   detectProviderIdFromConfig,
   ensureAIConfigDefaults,
   getProviderBrandColor,
-} from '../../../services/aiProviders';
-import { emitAIConfigChanged, subscribeAIConfigChanged } from '../../../services/aiConfigStore';
-import './AISettingsTab.css';
+} from '../../../../../services/aiProviders';
+import {
+  emitAIConfigChanged,
+  subscribeAIConfigChanged,
+} from '../../../../../services/aiConfigStore';
+import './SettingsTab.css';
 
 const { Paragraph, Text } = Typography;
 

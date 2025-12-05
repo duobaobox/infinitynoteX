@@ -1,20 +1,18 @@
 /**
- * AITab - AI 工作台 Tab 页
+ * AITab - AI 对话 Tab 页
  *
- * 使用 AIChatPanel 组件渲染 AI 对话界面。
- * 负责从 Store 获取对话 ID 并传递给 AIChatPanel。
+ * 轻量级包装器，引用共享的 AIChatPanel 组件
  */
 
 import { useCallback } from 'react';
-import { AIChatPanel } from '../../../components/AIChat';
-import { useWorkspaceStore } from '../../../store/workspaceStore';
-import './AITab.css';
+import { AIChatPanel } from '../../../../components/AIChat';
+import { useWorkspaceStore } from '../../../../store/workspaceStore';
 
 interface AITabProps {
-  noteId: string | null;
+  conversationId: string | null;
 }
 
-export const AITab = ({ noteId }: AITabProps) => {
+export const AITab = ({ conversationId }: AITabProps) => {
   const { triggerAIConversationsRefresh } = useWorkspaceStore();
 
   // 标题变更时刷新对话列表
@@ -24,7 +22,7 @@ export const AITab = ({ noteId }: AITabProps) => {
 
   return (
     <AIChatPanel
-      conversationId={noteId}
+      conversationId={conversationId}
       onTitleChange={handleTitleChange}
       showTitleEditor={true}
       className="ai-tab-wrapper"

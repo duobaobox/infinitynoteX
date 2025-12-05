@@ -9,7 +9,10 @@ interface OtherTabProps {
   noteId: string | null;
 }
 
-export const OtherTab: React.FC<OtherTabProps> = () => {
+export const OtherTab: React.FC<OtherTabProps> = ({ noteId }) => {
+  // noteId 保留用于后续功能扩展
+  void noteId;
+
   return (
     <div style={{ padding: '16px' }}>
       <div style={{ fontWeight: 600, marginBottom: 12 }}>其他面板</div>

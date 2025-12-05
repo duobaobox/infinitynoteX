@@ -3,7 +3,7 @@ import './App.css';
 import Sidebar from './features/layout/Sidebar';
 import ListPanel from './features/layout/ListPanel';
 import EditorPanel from './features/layout/EditorPanel';
-import { ToolPanel } from './features/layout/ToolPanel';
+import ToolPanel from './features/layout/ToolPanel';
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import PillWindow from './components/PillWindow/PillWindow';

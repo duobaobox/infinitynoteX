@@ -1,0 +1,20 @@
+.tool-panel-placeholder {
+  border: 1px dashed var(--ant-color-border, #d9d9d9);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--ant-color-text-secondary, #595959);
+  background: var(--ant-color-bg-container, #fff);
+}
+
+.tool-panel-placeholder-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.tool-panel-placeholder-desc {
+  font-size: 13px;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  line-height: 1.6;
+}

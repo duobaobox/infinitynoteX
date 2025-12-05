@@ -3,10 +3,10 @@ import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import ConversationCard, {
   CardListContext,
-} from '../../../../components/BaseCard/cards/ConversationCard';
-import { useWorkspaceStore } from '../../../../store/workspaceStore';
-import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
-import { useThemeColor } from '../../../../hooks/useThemeColor';
+} from '../../../../../components/BaseCard/cards/ConversationCard';
+import { useWorkspaceStore } from '../../../../../store/workspaceStore';
+import { useScrollOverflow } from '../../../../../hooks/useScrollOverflow';
+import { useThemeColor } from '../../../../../hooks/useThemeColor';
 
 interface ConversationListViewProps {
   flex: string | number;

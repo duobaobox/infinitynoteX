@@ -87,6 +87,10 @@ interface SettingsState {
   // ============ 应用信息 ============
   appVersion: string;
 
+  // ============ 设置弹窗刷新触发器 ============
+  /** 设置弹窗打开时递增，用于触发 Tab 组件刷新数据 */
+  settingsModalOpenTrigger: number;
+
   // ============ Actions ============
 
   // 外观设置
@@ -138,6 +142,10 @@ interface SettingsState {
   // 应用信息
   setAppVersion: (version: string) => void;
   loadAppInfo: () => Promise<void>;
+
+  // 设置弹窗
+  /** 触发设置弹窗内 Tab 刷新数据 */
+  triggerSettingsModalRefresh: () => void;
 }
 
 // 内部引用，用于存储上一次激活的配置
@@ -182,6 +190,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 应用信息
       appVersion: '0.0.0',
+
+      // 设置弹窗刷新触发器
+      settingsModalOpenTrigger: 0,
 
       // ============ Actions 实现 ============
 
@@ -481,6 +492,11 @@ export const useSettingsStore = create<SettingsState>()(
           console.error('Failed to load app info:', error);
           set({ appVersion: '0.0.0' });
         }
+      },
+
+      // 设置弹窗刷新
+      triggerSettingsModalRefresh: () => {
+        set((state) => ({ settingsModalOpenTrigger: state.settingsModalOpenTrigger + 1 }));
       },
     }),
     {

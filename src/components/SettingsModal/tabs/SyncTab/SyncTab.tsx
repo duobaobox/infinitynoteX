@@ -11,7 +11,12 @@ import ProviderCard from './components/ProviderCard';
 import SyncStatus from './components/SyncStatus';
 import './SyncTab.css';
 
-const SyncTab: React.FC = () => {
+interface SyncTabProps {
+  /** @deprecated 不再使用，保留兼容性 */
+  isVisible?: boolean;
+}
+
+const SyncTab: React.FC<SyncTabProps> = () => {
   const {
     selectedSyncProvider,
     syncConfigs,
@@ -20,16 +25,19 @@ const SyncTab: React.FC = () => {
     testSyncConnection,
     triggerSync,
     loadSyncConfigs,
+    settingsModalOpenTrigger,
   } = useSettingsStore();
 
   const [localProvider, setLocalProvider] = useState(
     selectedSyncProvider || SYNC_PROVIDERS[0]?.id || null,
   );
 
-  // 初始加载同步配置
+  // 弹窗打开时刷新同步配置
   useEffect(() => {
-    loadSyncConfigs();
-  }, [loadSyncConfigs]);
+    if (settingsModalOpenTrigger > 0) {
+      loadSyncConfigs();
+    }
+  }, [settingsModalOpenTrigger, loadSyncConfigs]);
 
   const handleProviderClick = (providerId: string) => {
     setLocalProvider(providerId);

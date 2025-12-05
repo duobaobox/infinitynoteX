@@ -3,7 +3,7 @@
  * 只负责菜单切换和 Tab 渲染，各 Tab 的状态和逻辑由各自组件管理
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Menu } from 'antd';
 import { useSettingsStore } from '../../store/settingsStore';
 import AppearanceTab from './tabs/AppearanceTab';
@@ -30,14 +30,15 @@ const menuItems = [
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   const [selectedMenu, setSelectedMenu] = useState('appearance');
-  const { initAppearance } = useSettingsStore();
+  const { initAppearance, triggerSettingsModalRefresh } = useSettingsStore();
 
-  // Modal 打开时初始化外观状态
-  React.useEffect(() => {
+  // Modal 打开时初始化外观状态并触发 Tab 数据刷新
+  useEffect(() => {
     if (open) {
       initAppearance();
+      triggerSettingsModalRefresh();
     }
-  }, [open, initAppearance]);
+  }, [open, initAppearance, triggerSettingsModalRefresh]);
 
   const renderTabContent = () => {
     switch (selectedMenu) {

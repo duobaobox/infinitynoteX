@@ -12,6 +12,8 @@ import {
   RestOutlined,
 } from '@ant-design/icons';
 import type { TrashIndex } from '../../../../services/types';
+import { useWorkspaceStore } from '../../../../store/workspaceStore';
+import { useSettingsStore } from '../../../../store/settingsStore';
 import './TrashTab.css';
 
 const { Text, Paragraph } = Typography;
@@ -42,10 +44,23 @@ const formatDeletedAt = (deletedAt: number): string => {
   }
 };
 
-const TrashTab: React.FC = () => {
+interface TrashTabProps {
+  /** @deprecated 不再使用，保留兼容性 */
+  isVisible?: boolean;
+}
+
+const TrashTab: React.FC<TrashTabProps> = () => {
   const [trashItems, setTrashItems] = useState<TrashIndex[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // 从 settingsStore 获取弹窗打开触发器
+  const settingsModalOpenTrigger = useSettingsStore((state) => state.settingsModalOpenTrigger);
+
+  // 从 workspaceStore 获取便签列表刷新触发器
+  const refreshListTrigger = useWorkspaceStore((state) => state.refreshListTrigger);
+  const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
+  const loadNotes = useWorkspaceStore((state) => state.loadNotes);
 
   // 加载回收站列表
   const loadTrashItems = useCallback(async () => {
@@ -61,9 +76,19 @@ const TrashTab: React.FC = () => {
     }
   }, []);
 
+  // 弹窗打开时刷新数据（监听 settingsStore 的触发器）
   useEffect(() => {
-    loadTrashItems();
-  }, [loadTrashItems]);
+    if (settingsModalOpenTrigger > 0) {
+      loadTrashItems();
+    }
+  }, [settingsModalOpenTrigger, loadTrashItems]);
+
+  // 监听便签列表刷新（删除便签时会触发）
+  useEffect(() => {
+    if (refreshListTrigger > 0) {
+      loadTrashItems();
+    }
+  }, [refreshListTrigger, loadTrashItems]);
 
   // 恢复便签
   const handleRestore = async (item: TrashIndex) => {
@@ -72,6 +97,10 @@ const TrashTab: React.FC = () => {
       await window.storage.restoreNote(item.id);
       message.success(`"${item.title || '无标题'}" 已恢复`);
       await loadTrashItems();
+      // 刷新便签列表（恢复的便签会出现在列表中）
+      if (selectedFolderId) {
+        await loadNotes(selectedFolderId);
+      }
     } catch (error) {
       console.error('Failed to restore note:', error);
       message.error('恢复失败');

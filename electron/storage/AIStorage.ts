@@ -1,39 +1,34 @@
 /**
  * AI 对话存储模块
- * 负责 AI 对话的 CRUD 操作
+ * 继承 BaseDirectoryStorage，添加 AI 对话特有的逻辑
  */
 
-import fs from 'node:fs/promises';
 import type { StorageContext } from './StorageContext';
 import type { AIConversation, AIConversationIndex, AIMessage } from './types';
 import { StorageError, StorageErrorCode } from './errors';
-import {
-  generateId,
-  readJsonFile,
-  writeJsonFile,
-  writeJsonFileAtomic,
-  fileExists,
-  generateConversationTitle,
-} from './utils';
-import { AIConversationSchema, AIConversationsIndexArraySchema } from './schemas';
+import { BaseDirectoryStorage } from './core/BaseStorage';
+import { getModuleConfig } from './core/moduleRegistry';
+import { generateId, generateConversationTitle } from './utils';
 
-export class AIStorage {
-  private indexCache: AIConversationIndex[] | null = null;
-  private context: StorageContext;
+// 获取 ai-conversations 模块配置
+const aiConfig = getModuleConfig('ai-conversations')!;
 
+export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversationIndex> {
   constructor(context: StorageContext) {
-    this.context = context;
+    super(context.currentPath, context.tempDir, aiConfig);
   }
 
+  // ============ AI 对话特有方法 ============
+
   /**
-   * 获取所有 AI 对话
+   * 获取所有 AI 对话（完整内容）
    */
   async getAll(): Promise<AIConversation[]> {
-    const index = await this.getIndex();
+    const index = await this.list();
     const conversations = await Promise.all(
       index.map(async (item) => {
         try {
-          return await this.readFile(item.id);
+          return await this.get(item.id);
         } catch (error) {
           console.error(`[AIStorage] Failed to read conversation ${item.id}:`, error);
           return null;
@@ -45,24 +40,13 @@ export class AIStorage {
   }
 
   /**
-   * 获取对话索引列表
-   */
-  async getIndex(): Promise<AIConversationIndex[]> {
-    if (!this.indexCache) {
-      await this.loadCache();
-    }
-    return this.indexCache || [];
-  }
-
-  /**
    * 创建 AI 对话
    */
-  async create(title?: string): Promise<AIConversation> {
+  async createConversation(title?: string): Promise<AIConversation> {
     const now = Date.now();
-    const index = await this.getIndex();
-    const isDefaultConversation = index.length === 0; // 如果没有对话，这是第一个（默认对话）
+    const index = await this.list();
+    const isDefaultConversation = index.length === 0;
 
-    // 生成默认标题
     const defaultTitle = generateConversationTitle();
 
     const newConversation: AIConversation = {
@@ -72,29 +56,20 @@ export class AIStorage {
       messages: [],
       createdAt: now,
       updatedAt: now,
-      isDefault: isDefaultConversation, // 标记为默认对话
+      isDefault: isDefaultConversation,
     };
 
-    await this.writeFile(newConversation);
-
-    index.push(this.toIndex(newConversation));
-    await this.saveIndex(index);
+    await this['writeFile'](newConversation);
+    await this['addToIndex'](newConversation);
 
     return newConversation;
   }
 
   /**
-   * 获取单个对话
-   */
-  async get(id: string): Promise<AIConversation> {
-    return await this.readFile(id);
-  }
-
-  /**
-   * 删除 AI 对话
+   * 删除 AI 对话（禁止删除默认对话）
    */
   async delete(id: string): Promise<void> {
-    const index = await this.getIndex();
+    const index = await this.list();
     const metaIndex = index.findIndex((c) => c.id === id);
 
     if (metaIndex < 0) {
@@ -106,20 +81,15 @@ export class AIStorage {
       throw new StorageError(StorageErrorCode.E_FOLDER_SYSTEM, '无法删除默认对话');
     }
 
-    const filePath = this.context.getAIConversationPath(id);
-    if (await fileExists(filePath)) {
-      await fs.unlink(filePath);
-    }
-
-    index.splice(metaIndex, 1);
-    await this.saveIndex(index);
+    // 调用父类删除方法
+    await super.delete(id);
   }
 
   /**
    * 保存 AI 对话消息
    */
   async saveMessages(id: string, messages: AIMessage[]): Promise<AIConversation> {
-    const conversation = await this.readFile(id);
+    const conversation = await this.get(id);
 
     conversation.messages = messages.map((message, index) => ({
       ...message,
@@ -133,8 +103,8 @@ export class AIStorage {
       conversation.excerpt = lastUserMessage.content.slice(0, 100);
     }
 
-    await this.writeFile(conversation);
-    await this.updateIndexEntry(conversation);
+    await this['writeFile'](conversation);
+    await this['updateIndex'](conversation);
 
     return conversation;
   }
@@ -143,23 +113,14 @@ export class AIStorage {
    * 更新 AI 对话标题
    */
   async updateTitle(id: string, title: string): Promise<AIConversation> {
-    const conversation = await this.readFile(id);
-
-    conversation.title = title;
-    conversation.updatedAt = Date.now();
-    await this.writeFile(conversation);
-
-    await this.updateIndexEntry(conversation);
-
-    return conversation;
+    return await this.update(id, { title } as Partial<AIConversation>);
   }
 
   /**
-   * 确保只有一个默认对话
-   * 用于修复可能存在的数据异常
+   * 确保只有一个默认对话（修复数据异常）
    */
   async ensureSingleDefault(): Promise<void> {
-    const index = await this.getIndex();
+    const index = await this.list();
     const defaultEntries = index.filter((item) => item.isDefault);
 
     if (defaultEntries.length <= 1) {
@@ -168,12 +129,12 @@ export class AIStorage {
 
     // 按创建时间排序，保留最早的默认对话
     const sortedDefaults = [...defaultEntries].sort((a, b) => a.createdAt - b.createdAt);
-    const keeperId = sortedDefaults[0].id;
+    // 保留第一个（最早的），降级其他的
     const demotedIds = sortedDefaults.slice(1).map((item) => item.id);
 
     for (const id of demotedIds) {
       try {
-        const conversation = await this.readFile(id);
+        const conversation = await this.get(id);
         let updatedTitle = conversation.title;
         if (updatedTitle === '默认对话') {
           updatedTitle = generateConversationTitle(conversation.createdAt);
@@ -183,124 +144,29 @@ export class AIStorage {
         conversation.title = updatedTitle;
         conversation.updatedAt = Date.now();
 
-        await this.writeFile(conversation);
-
-        const meta = index.find((item) => item.id === id);
-        if (meta) {
-          meta.isDefault = false;
-          meta.title = updatedTitle;
-          meta.updatedAt = conversation.updatedAt;
-          meta.excerpt = conversation.excerpt;
-        }
+        await this['writeFile'](conversation);
+        await this['updateIndex'](conversation);
       } catch (error) {
         console.warn(`[AIStorage] Failed to normalize default conversation ${id}:`, error);
       }
     }
-
-    // 确保保留的默认对话标记正确
-    const keeper = index.find((item) => item.id === keeperId);
-    if (keeper && !keeper.isDefault) {
-      keeper.isDefault = true;
-    }
-
-    await this.saveIndex(index);
   }
 
+  // ============ 向后兼容方法 ============
+
   /**
-   * 加载缓存（使用 Schema 校验）
+   * 获取对话索引列表（别名）
    */
-  async loadCache(): Promise<void> {
-    this.indexCache = await readJsonFile<AIConversationIndex[]>(
-      this.context.aiConversationsIndexPath,
-      [],
-      AIConversationsIndexArraySchema,
-    );
+  async getIndex(): Promise<AIConversationIndex[]> {
+    return await this.list();
   }
 
-  /**
-   * 清空缓存
-   */
-  clearCache(): void {
-    this.indexCache = null;
-  }
+  // ============ 实现抽象方法 ============
 
   /**
-   * 创建空索引文件
+   * 将 AIConversation 转换为 AIConversationIndex
    */
-  async createEmptyIndex(): Promise<void> {
-    const exists = await fileExists(this.context.aiConversationsIndexPath);
-    if (!exists) {
-      await writeJsonFile(this.context.aiConversationsIndexPath, []);
-    }
-  }
-
-  /**
-   * 重建索引
-   * 扫描 ai-conversations/ 目录下的所有对话文件，重建索引
-   * 用于启动时和同步后确保索引与实际文件一致
-   */
-  async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
-    const errors: string[] = [];
-    const newIndex: AIConversationIndex[] = [];
-
-    try {
-      const conversationsDir = this.context.aiConversationsDir;
-
-      // 检查目录是否存在
-      const dirExists = await fileExists(conversationsDir);
-      if (!dirExists) {
-        console.log('[AIStorage] Conversations directory does not exist, creating empty index');
-        await this.saveIndex([]);
-        return { rebuilt: 0, errors: [] };
-      }
-
-      // 读取目录中的所有文件
-      const files = await fs.readdir(conversationsDir);
-      const jsonFiles = files.filter((f) => f.endsWith('.json'));
-
-      console.log(`[AIStorage] Rebuilding index from ${jsonFiles.length} conversation files`);
-
-      for (const fileName of jsonFiles) {
-        const id = fileName.replace('.json', '');
-        try {
-          const conversation = await this.readFile(id);
-          const indexItem = this.toIndex(conversation);
-          newIndex.push(indexItem);
-        } catch (error) {
-          const errorMsg = `Failed to read conversation ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`[AIStorage] ${errorMsg}`);
-          errors.push(errorMsg);
-        }
-      }
-
-      // 按更新时间倒序排列
-      newIndex.sort((a, b) => b.updatedAt - a.updatedAt);
-
-      // 保存新索引
-      await this.saveIndex(newIndex);
-      console.log(`[AIStorage] Index rebuilt successfully: ${newIndex.length} conversations`);
-
-      return { rebuilt: newIndex.length, errors };
-    } catch (error) {
-      const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error(`[AIStorage] ${errorMsg}`);
-      errors.push(errorMsg);
-      return { rebuilt: 0, errors };
-    }
-  }
-
-  /**
-   * 保存索引
-   */
-  private async saveIndex(index: AIConversationIndex[]): Promise<void> {
-    await writeJsonFile(this.context.aiConversationsIndexPath, index);
-    this.indexCache = index;
-  }
-
-  /**
-   * 转换为索引项
-   */
-  private toIndex(conversation: AIConversation): AIConversationIndex {
+  protected toIndex(conversation: AIConversation): AIConversationIndex {
     return {
       id: conversation.id,
       title: conversation.title,
@@ -312,41 +178,21 @@ export class AIStorage {
   }
 
   /**
-   * 读取对话文件（使用 Schema 校验）
+   * 创建默认数据
    */
-  private async readFile(id: string): Promise<AIConversation> {
-    const filePath = this.context.getAIConversationPath(id);
-    const exists = await fileExists(filePath);
-
-    if (!exists) {
-      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
-    }
-
-    return await readJsonFile<AIConversation>(filePath, undefined, AIConversationSchema);
-  }
-
-  /**
-   * 写入对话文件
-   */
-  private async writeFile(conversation: AIConversation): Promise<void> {
-    const filePath = this.context.getAIConversationPath(conversation.id);
-    await writeJsonFileAtomic(filePath, conversation, this.context.tempDir);
-  }
-
-  /**
-   * 更新索引条目
-   */
-  private async updateIndexEntry(conversation: AIConversation): Promise<void> {
-    const index = await this.getIndex();
-    const meta = this.toIndex(conversation);
-    const existingIndex = index.findIndex((item) => item.id === conversation.id);
-
-    if (existingIndex >= 0) {
-      index[existingIndex] = meta;
-    } else {
-      index.push(meta);
-    }
-
-    await this.saveIndex(index);
+  protected createDefaultData(
+    id: string,
+    now: number,
+    payload: Partial<AIConversation>,
+  ): AIConversation {
+    return {
+      id,
+      title: payload.title || generateConversationTitle(),
+      excerpt: payload.excerpt || '开始对话',
+      messages: payload.messages || [],
+      createdAt: now,
+      updatedAt: now,
+      isDefault: payload.isDefault || false,
+    };
   }
 }

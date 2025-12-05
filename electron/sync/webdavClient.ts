@@ -6,6 +6,7 @@
 import { createClient, type WebDAVClient, type FileStat } from 'webdav';
 import type { WebDAVConfig, RemoteSyncManifest } from './types';
 import { SYNC_META_DIR, MANIFEST_FILE, toRemotePath } from './syncUtils';
+import { STORAGE_MODULES } from '../storage/core/moduleRegistry';
 
 export class WebDAVSyncClient {
   private client: WebDAVClient | null = null;
@@ -112,6 +113,7 @@ export class WebDAVSyncClient {
 
   /**
    * 确保远程目录结构存在
+   * 自动为所有注册的目录类型模块创建远程目录
    */
   async ensureRemoteDirectories(): Promise<void> {
     const client = this.ensureClient();
@@ -128,16 +130,15 @@ export class WebDAVSyncClient {
       await client.createDirectory(syncDir, { recursive: true });
     }
 
-    // 确保 notes 目录存在
-    const notesDir = `${config.remotePath}/notes`;
-    if (!(await client.exists(notesDir))) {
-      await client.createDirectory(notesDir, { recursive: true });
-    }
-
-    // 确保 ai-conversations 目录存在
-    const aiConversationsDir = `${config.remotePath}/ai-conversations`;
-    if (!(await client.exists(aiConversationsDir))) {
-      await client.createDirectory(aiConversationsDir, { recursive: true });
+    // 自动为所有注册的目录类型同步模块创建远程目录
+    for (const mod of STORAGE_MODULES) {
+      if (mod.sync.type === 'directory' && mod.sync.enabled) {
+        const dir = `${config.remotePath}/${mod.path}`;
+        if (!(await client.exists(dir))) {
+          await client.createDirectory(dir, { recursive: true });
+          console.log(`[WebDAV] Created remote directory: ${mod.path}`);
+        }
+      }
     }
   }
 

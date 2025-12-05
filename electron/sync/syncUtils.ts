@@ -9,18 +9,19 @@ import path from 'node:path';
 import os from 'node:os';
 import { v4 as uuidv4 } from 'uuid';
 import type { LocalFileInfo, LocalSyncState, RemoteSyncManifest } from './types';
+import { getSyncFiles, getSyncDirectories } from '../storage/core/moduleRegistry';
 
 /**
- * 需要同步的文件列表（相对路径）
- * 注意：索引文件（notes.index.json, ai-conversations.index.json）不参与同步
- * 索引是本地缓存，启动/同步后自动从目录扫描重建
+ * 需要同步的文件列表（从统一注册中心自动获取）
+ * @see storage/core/moduleRegistry.ts 添加新的同步模块
  */
-export const SYNC_FILES = ['folders.json'];
+export const SYNC_FILES = getSyncFiles();
 
 /**
- * 需要同步的目录
+ * 需要同步的目录（从统一注册中心自动获取）
+ * @see storage/core/moduleRegistry.ts 添加新的同步模块
  */
-export const SYNC_DIRS = ['notes', 'ai-conversations'];
+export const SYNC_DIRS = getSyncDirectories();
 
 /**
  * 远程同步目录名
@@ -214,26 +215,10 @@ export function toRelativePath(remotePath: string, fullPath: string): string {
 
 /**
  * 检查路径是否在同步范围内
- * 排除冲突备份文件（.conflict-xxx.json）
+ * 使用统一注册中心的实现
+ * @see storage/core/moduleRegistry.ts
  */
-export function isPathInSyncScope(relativePath: string): boolean {
-  // 排除冲突备份文件（格式：xxx.conflict-2025-01-01T12-00-00.json）
-  if (relativePath.includes('.conflict-')) {
-    return false;
-  }
-
-  // 检查是否是同步文件
-  if (SYNC_FILES.includes(relativePath)) {
-    return true;
-  }
-  // 检查是否在同步目录中
-  for (const dir of SYNC_DIRS) {
-    if (relativePath.startsWith(`${dir}/`) && relativePath.endsWith('.json')) {
-      return true;
-    }
-  }
-  return false;
-}
+export { isPathInSyncScope } from '../storage/core/moduleRegistry';
 
 /**
  * 确保目录存在

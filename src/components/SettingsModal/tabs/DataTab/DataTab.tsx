@@ -13,13 +13,23 @@ const { Text, Paragraph } = Typography;
 const getErrMsg = (e: unknown) =>
   e instanceof Error ? e.message : typeof e === 'string' ? e : '未知错误';
 
-const DataTab: React.FC = () => {
+interface DataTabProps {
+  /** @deprecated 不再使用，保留兼容性 */
+  isVisible?: boolean;
+}
+
+const DataTab: React.FC<DataTabProps> = () => {
   const { currentPath, stats, migrating, setMigrating, loadStorageInfo } = useSettingsStore();
 
-  // 初始加载
+  // 监听弹窗打开触发器
+  const settingsModalOpenTrigger = useSettingsStore((state) => state.settingsModalOpenTrigger);
+
+  // 弹窗打开时刷新数据
   useEffect(() => {
-    loadStorageInfo();
-  }, [loadStorageInfo]);
+    if (settingsModalOpenTrigger > 0) {
+      loadStorageInfo();
+    }
+  }, [settingsModalOpenTrigger, loadStorageInfo]);
 
   return (
     <div className="settings-panel data-tab">

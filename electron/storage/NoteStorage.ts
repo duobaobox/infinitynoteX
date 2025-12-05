@@ -1,36 +1,36 @@
 /**
  * 便签存储模块
- * 负责便签的 CRUD 操作
+ * 继承 BaseDirectoryStorage，添加便签特有的逻辑
  */
 
-import fs from 'node:fs/promises';
 import type { StorageContext } from './StorageContext';
 import type { FolderStorage } from './FolderStorage';
 import type { Note, NoteIndex, CreateNotePayload } from './types';
 import type { TipTapJSONContent } from '../../src/services/types';
 import { StorageError, StorageErrorCode } from './errors';
-import { generateId, readJsonFile, writeJsonFile, writeJsonFileAtomic, fileExists } from './utils';
-import { NoteSchema, NotesIndexArraySchema } from './schemas';
+import { BaseDirectoryStorage } from './core/BaseStorage';
+import { getModuleConfig } from './core/moduleRegistry';
+import { generateId } from './utils';
 
-export class NoteStorage {
-  private indexCache: NoteIndex[] | null = null;
-  private context: StorageContext;
+// 获取 notes 模块配置
+const notesConfig = getModuleConfig('notes')!;
+
+export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
   private folderStorage: FolderStorage;
 
   constructor(context: StorageContext, folderStorage: FolderStorage) {
-    this.context = context;
+    super(context.currentPath, context.tempDir, notesConfig);
     this.folderStorage = folderStorage;
   }
 
+  // ============ 重写列表方法以支持按文件夹筛选 ============
+
   /**
    * 列出便签索引
+   * @param folderId 可选，按文件夹筛选
    */
   async list(folderId?: string): Promise<NoteIndex[]> {
-    if (!this.indexCache) {
-      await this.loadCache();
-    }
-
-    const allNotes = this.indexCache || [];
+    const allNotes = await super.list();
 
     if (folderId) {
       return allNotes.filter((n) => n.folderId === folderId);
@@ -39,10 +39,12 @@ export class NoteStorage {
     return allNotes;
   }
 
+  // ============ 重写创建方法以支持文件夹验证 ============
+
   /**
    * 创建便签
    */
-  async create(folderId: string, payload?: CreateNotePayload): Promise<Note> {
+  async createNote(folderId: string, payload?: CreateNotePayload): Promise<Note> {
     // 验证文件夹存在
     const folderExists = await this.folderStorage.exists(folderId);
     if (!folderExists) {
@@ -50,7 +52,7 @@ export class NoteStorage {
     }
 
     const now = Date.now();
-    const newNote: Note = {
+    const note: Note = {
       id: generateId(),
       folderId,
       title: payload?.title || '无标题',
@@ -62,74 +64,20 @@ export class NoteStorage {
       updatedAt: now,
     };
 
-    // 保存完整便签
-    await this.save(newNote);
-
-    return newNote;
-  }
-
-  /**
-   * 获取便签完整内容（使用 Schema 校验）
-   */
-  async get(id: string): Promise<Note> {
-    const notePath = this.context.getNotePath(id);
-    const exists = await fileExists(notePath);
-
-    if (!exists) {
-      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Note not found: ${id}`);
-    }
-
-    return await readJsonFile<Note>(notePath, undefined, NoteSchema);
-  }
-
-  /**
-   * 更新便签
-   */
-  async update(id: string, patch: Partial<Note>): Promise<Note> {
-    const note = await this.get(id);
-
-    // 更新字段
-    Object.assign(note, patch);
-    note.updatedAt = Date.now();
-
-    // 保存
-    await this.save(note);
+    // 使用基类的写入和索引更新方法
+    await this['writeFile'](note);
+    await this['addToIndex'](note);
 
     return note;
   }
 
-  /**
-   * 删除便签
-   */
-  async delete(id: string): Promise<void> {
-    const notePath = this.context.getNotePath(id);
-    const exists = await fileExists(notePath);
-
-    if (!exists) {
-      throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Note not found: ${id}`);
-    }
-
-    // 删除文件
-    await fs.unlink(notePath);
-
-    // 从索引中移除
-    const index = this.indexCache || [];
-    const noteIndex = index.findIndex((n) => n.id === id);
-    if (noteIndex >= 0) {
-      index.splice(noteIndex, 1);
-      await this.saveIndex(index);
-    }
-  }
+  // ============ 便签特有方法 ============
 
   /**
    * 将便签移动到指定文件夹
    */
   async moveToFolder(noteId: string, targetFolderId: string): Promise<Note> {
-    const note = await this.get(noteId);
-    note.folderId = targetFolderId;
-    note.updatedAt = Date.now();
-    await this.save(note);
-    return note;
+    return await this.update(noteId, { folderId: targetFolderId } as Partial<Note>);
   }
 
   /**
@@ -141,136 +89,17 @@ export class NoteStorage {
     }
   }
 
-  /**
-   * 加载缓存（使用 Schema 校验）
-   */
-  async loadCache(): Promise<void> {
-    this.indexCache = await readJsonFile<NoteIndex[]>(
-      this.context.notesIndexPath,
-      [],
-      NotesIndexArraySchema,
-    );
-  }
+  // ============ 实现抽象方法 ============
 
   /**
-   * 清空缓存
+   * 将 Note 转换为 NoteIndex
    */
-  clearCache(): void {
-    this.indexCache = null;
-  }
-
-  /**
-   * 获取缓存数量（用于统计）
-   */
-  getCacheCount(): number {
-    return this.indexCache?.length || 0;
-  }
-
-  /**
-   * 创建空索引文件
-   */
-  async createEmptyIndex(): Promise<void> {
-    await writeJsonFile(this.context.notesIndexPath, []);
-  }
-
-  /**
-   * 重建索引
-   * 扫描 notes/ 目录下的所有便签文件，从中提取元信息重建 notes.index.json
-   * 用于同步后确保索引与实际文件一致
-   */
-  async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
-    const errors: string[] = [];
-    const newIndex: NoteIndex[] = [];
-
-    try {
-      const notesDir = this.context.notesDir;
-
-      // 检查目录是否存在
-      const dirExists = await fileExists(notesDir);
-      if (!dirExists) {
-        console.log('[NoteStorage] Notes directory does not exist, creating empty index');
-        await this.saveIndex([]);
-        return { rebuilt: 0, errors: [] };
-      }
-
-      // 读取目录中的所有文件
-      const files = await fs.readdir(notesDir);
-      const jsonFiles = files.filter((f) => f.endsWith('.json'));
-
-      console.log(`[NoteStorage] Rebuilding index from ${jsonFiles.length} note files`);
-
-      for (const fileName of jsonFiles) {
-        const filePath = this.context.getNotePath(fileName.replace('.json', ''));
-        try {
-          const note = await readJsonFile<Note>(filePath, undefined, NoteSchema);
-          const noteIndex = this.toIndex(note);
-          newIndex.push(noteIndex);
-        } catch (error) {
-          const errorMsg = `Failed to read note ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`[NoteStorage] ${errorMsg}`);
-          errors.push(errorMsg);
-        }
-      }
-
-      // 按更新时间倒序排列
-      newIndex.sort((a, b) => b.updatedAt - a.updatedAt);
-
-      // 保存新索引
-      await this.saveIndex(newIndex);
-      console.log(`[NoteStorage] Index rebuilt successfully: ${newIndex.length} notes`);
-
-      return { rebuilt: newIndex.length, errors };
-    } catch (error) {
-      const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error(`[NoteStorage] ${errorMsg}`);
-      errors.push(errorMsg);
-      return { rebuilt: 0, errors };
-    }
-  }
-
-  /**
-   * 保存便签
-   * 先写正文，再更新索引
-   */
-  private async save(note: Note): Promise<void> {
-    // 1. 保存完整便签（原子写入）
-    const notePath = this.context.getNotePath(note.id);
-    await writeJsonFileAtomic(notePath, note, this.context.tempDir);
-
-    // 2. 更新索引
-    const index = this.indexCache || [];
-    const existingIndex = index.findIndex((n) => n.id === note.id);
-
-    // 使用 toIndex 方法生成索引数据
-    const noteIndex = this.toIndex(note);
-
-    if (existingIndex >= 0) {
-      index[existingIndex] = noteIndex;
-    } else {
-      index.push(noteIndex);
-    }
-
-    await this.saveIndex(index);
-  }
-
-  /**
-   * 保存便签索引
-   */
-  private async saveIndex(index: NoteIndex[]): Promise<void> {
-    await writeJsonFile(this.context.notesIndexPath, index);
-    this.indexCache = index;
-  }
-
-  /**
-   * 从 Note 生成 NoteIndex
-   * 集中管理索引字段，便于未来扩展
-   */
-  private toIndex(note: Note): NoteIndex {
+  protected toIndex(note: Note): NoteIndex {
     return {
       id: note.id,
       folderId: note.folderId,
       title: note.title,
-      excerpt: this.generateExcerpt(note.content),
+      excerpt: this.generateNoteExcerpt(note.content),
       updatedAt: note.updatedAt,
       pinned: note.pinned,
       tags: note.tags,
@@ -279,9 +108,28 @@ export class NoteStorage {
   }
 
   /**
-   * 生成摘要
+   * 创建默认数据（基类抽象方法，这里不使用，通过 createNote 覆盖）
    */
-  private generateExcerpt(content: unknown): string {
+  protected createDefaultData(id: string, now: number, payload: Partial<Note>): Note {
+    return {
+      id,
+      folderId: payload.folderId || 'default',
+      title: payload.title || '无标题',
+      content: payload.content || { type: 'doc', content: [] },
+      tags: payload.tags || [],
+      pinned: payload.pinned || false,
+      color: payload.color || 'ffffff',
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  // ============ 私有方法 ============
+
+  /**
+   * 生成便签摘要
+   */
+  private generateNoteExcerpt(content: unknown): string {
     try {
       const isObj = (v: unknown): v is { [k: string]: unknown } =>
         typeof v === 'object' && v !== null;

@@ -6,6 +6,7 @@
 import { app } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { getAllDirectories, getModuleConfig } from './core/moduleRegistry';
 
 export interface StorageContextConfig {
   defaultPath?: string;
@@ -60,27 +61,6 @@ export class StorageContext {
   }
 
   /**
-   * 获取便签目录路径
-   */
-  get notesDir(): string {
-    return path.join(this._currentPath, 'notes');
-  }
-
-  /**
-   * 获取 AI 对话目录路径
-   */
-  get aiConversationsDir(): string {
-    return path.join(this._currentPath, 'ai-conversations');
-  }
-
-  /**
-   * 获取回收站目录路径
-   */
-  get trashDir(): string {
-    return path.join(this._currentPath, 'trash');
-  }
-
-  /**
    * 获取元数据文件路径
    */
   get metaPath(): string {
@@ -88,48 +68,90 @@ export class StorageContext {
   }
 
   /**
-   * 获取文件夹索引文件路径
+   * 获取文件夹配置文件路径
    */
   get foldersPath(): string {
     return path.join(this._currentPath, 'folders.json');
   }
 
+  // ============ 动态路径获取 ============
+
   /**
-   * 获取便签索引文件路径
+   * 获取模块目录路径
    */
+  getModuleDir(moduleId: string): string {
+    const config = getModuleConfig(moduleId);
+    if (!config || config.sync.type !== 'directory') {
+      throw new Error(`Module ${moduleId} is not a directory module`);
+    }
+    return path.join(this._currentPath, config.path);
+  }
+
+  /**
+   * 获取模块索引文件路径
+   */
+  getModuleIndexPath(moduleId: string): string {
+    const config = getModuleConfig(moduleId);
+    if (!config?.indexFile) {
+      throw new Error(`Module ${moduleId} does not have index file`);
+    }
+    return path.join(this._currentPath, config.indexFile);
+  }
+
+  /**
+   * 获取模块内单个文件的路径
+   */
+  getModuleFilePath(moduleId: string, fileId: string): string {
+    const config = getModuleConfig(moduleId);
+    if (!config || config.sync.type !== 'directory') {
+      throw new Error(`Module ${moduleId} is not a directory module`);
+    }
+    return path.join(this._currentPath, config.path, `${fileId}${config.extension}`);
+  }
+
+  // ============ 向后兼容的快捷属性 ============
+
+  get notesDir(): string {
+    return this.getModuleDir('notes');
+  }
+
+  get aiConversationsDir(): string {
+    return this.getModuleDir('ai-conversations');
+  }
+
+  get trashDir(): string {
+    return this.getModuleDir('trash');
+  }
+
   get notesIndexPath(): string {
-    return path.join(this._currentPath, 'notes.index.json');
+    return this.getModuleIndexPath('notes');
   }
 
-  /**
-   * 获取 AI 对话索引文件路径
-   */
   get aiConversationsIndexPath(): string {
-    return path.join(this._currentPath, 'ai-conversations.index.json');
+    return this.getModuleIndexPath('ai-conversations');
   }
 
+  getNotePath(noteId: string): string {
+    return this.getModuleFilePath('notes', noteId);
+  }
+
+  getAIConversationPath(conversationId: string): string {
+    return this.getModuleFilePath('ai-conversations', conversationId);
+  }
+
+  // ============ 目录管理 ============
+
   /**
-   * 确保基础目录结构存在
+   * 确保所有目录结构存在
+   * 自动根据注册表创建所需目录
    */
   async ensureBaseDirectories(): Promise<void> {
     await fs.mkdir(this._currentPath, { recursive: true });
-    const subDirs = ['notes', 'temp', 'backups', 'ai-conversations', 'trash'];
-    for (const dir of subDirs) {
+
+    // 从注册表获取所有目录并创建
+    const directories = getAllDirectories();
+    for (const dir of directories) {
       await fs.mkdir(path.join(this._currentPath, dir), { recursive: true });
     }
-  }
-
-  /**
-   * 获取便签文件路径
-   */
-  getNotePath(noteId: string): string {
-    return path.join(this.notesDir, `${noteId}.json`);
-  }
-
-  /**
-   * 获取 AI 对话文件路径
-   */
-  getAIConversationPath(conversationId: string): string {
-    return path.join(this.aiConversationsDir, `${conversationId}.json`);
   }
 }

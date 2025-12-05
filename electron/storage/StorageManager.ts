@@ -516,7 +516,7 @@ export class StorageManager {
   }
 
   async createNote(folderId: string, payload?: { title?: string; content?: Note['content'] }) {
-    return this.notes.create(folderId, payload);
+    return this.notes.createNote(folderId, payload);
   }
 
   async getNote(id: string) {
@@ -574,7 +574,7 @@ export class StorageManager {
     }
 
     // 保存恢复的便签
-    await this.notes.create(restoredNote.folderId, {
+    await this.notes.createNote(restoredNote.folderId, {
       title: restoredNote.title,
       content: restoredNote.content,
     });
@@ -637,7 +637,7 @@ export class StorageManager {
   }
 
   async createAIConversation(title?: string) {
-    return this.ai.create(title);
+    return this.ai.createConversation(title);
   }
 
   async deleteAIConversation(id: string) {

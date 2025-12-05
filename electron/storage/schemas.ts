@@ -53,6 +53,39 @@ export const NotesIndexArraySchema = z.array(NoteIndexSchema);
 export type Note = z.infer<typeof NoteSchema>;
 export type NoteIndex = z.infer<typeof NoteIndexSchema>;
 
+// ============ 回收站 Schema ============
+
+export const TrashItemSchema = z.object({
+  id: z.string(),
+  originalId: z.string(), // 原便签 ID
+  originalFolderId: z.string(), // 原所属文件夹 ID
+  title: z.string(),
+  content: z.any(),
+  tags: z.array(z.string()),
+  pinned: z.boolean(),
+  color: z.enum(['bae0ff', 'd9f7be', 'ffd6e7', 'd6e4ff', 'ffd666', 'ffffff']).optional(),
+  createdAt: z.number(), // 便签原创建时间
+  updatedAt: z.number(), // 便签原更新时间
+  deletedAt: z.number(), // 删除时间
+  expiresAt: z.number(), // 过期时间（自动永久删除）
+});
+
+export const TrashIndexSchema = z.object({
+  id: z.string(),
+  originalId: z.string(),
+  originalFolderId: z.string(),
+  title: z.string(),
+  excerpt: z.string(),
+  deletedAt: z.number(),
+  expiresAt: z.number(),
+});
+
+export const TrashIndexArraySchema = z.array(TrashIndexSchema);
+
+// 从 Schema 推导类型
+export type TrashItem = z.infer<typeof TrashItemSchema>;
+export type TrashIndex = z.infer<typeof TrashIndexSchema>;
+
 // 便签操作相关类型（非存储数据，手动定义）
 export type CreateNotePayload = {
   title?: string;

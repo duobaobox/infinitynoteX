@@ -133,6 +133,12 @@ export class WebDAVSyncClient {
     if (!(await client.exists(notesDir))) {
       await client.createDirectory(notesDir, { recursive: true });
     }
+
+    // 确保 ai-conversations 目录存在
+    const aiConversationsDir = `${config.remotePath}/ai-conversations`;
+    if (!(await client.exists(aiConversationsDir))) {
+      await client.createDirectory(aiConversationsDir, { recursive: true });
+    }
   }
 
   /**

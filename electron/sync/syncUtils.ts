@@ -214,8 +214,14 @@ export function toRelativePath(remotePath: string, fullPath: string): string {
 
 /**
  * 检查路径是否在同步范围内
+ * 排除冲突备份文件（.conflict-xxx.json）
  */
 export function isPathInSyncScope(relativePath: string): boolean {
+  // 排除冲突备份文件（格式：xxx.conflict-2025-01-01T12-00-00.json）
+  if (relativePath.includes('.conflict-')) {
+    return false;
+  }
+
   // 检查是否是同步文件
   if (SYNC_FILES.includes(relativePath)) {
     return true;

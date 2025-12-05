@@ -16,6 +16,10 @@ export type {
   NoteIndex,
   CreateNotePayload,
 
+  // 回收站
+  TrashItem,
+  TrashIndex,
+
   // AI 对话
   AIMessage,
   AIConversation,

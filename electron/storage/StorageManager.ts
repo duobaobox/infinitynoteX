@@ -11,6 +11,7 @@ import { StorageContext } from './StorageContext';
 import { FolderStorage } from './FolderStorage';
 import { NoteStorage } from './NoteStorage';
 import { AIStorage } from './AIStorage';
+import { TrashStorage } from './TrashStorage';
 import type {
   StorageMeta,
   HealthCheckResult,
@@ -43,12 +44,14 @@ export class StorageManager {
   readonly folders: FolderStorage;
   readonly notes: NoteStorage;
   readonly ai: AIStorage;
+  readonly trash: TrashStorage;
 
   constructor() {
     this.context = new StorageContext();
     this.folders = new FolderStorage(this.context);
     this.notes = new NoteStorage(this.context, this.folders);
     this.ai = new AIStorage(this.context);
+    this.trash = new TrashStorage(this.context);
   }
 
   // ============ 初始化 ============
@@ -116,10 +119,18 @@ export class StorageManager {
       console.log('[Storage] Rebuilding indexes from directory scan...');
       await this.notes.rebuildIndex();
       await this.ai.rebuildIndex();
+      await this.trash.rebuildIndex();
 
       await this.loadAllCaches();
       // 仅在既存存储中检查并修复默认对话重复问题
       await this.ai.ensureSingleDefault();
+
+      // 检查并修复孤儿便签（文件夹不存在的便签）
+      await this.fixOrphanNotes();
+
+      // 清理过期的回收站项目
+      await this.trash.cleanupExpired();
+
       return;
     }
 
@@ -143,6 +154,7 @@ export class StorageManager {
     // 创建空的索引文件
     await this.notes.createEmptyIndex();
     await this.ai.createEmptyIndex();
+    await this.trash.createEmptyIndex();
 
     // 加载缓存
     await this.loadAllCaches();
@@ -159,7 +171,12 @@ export class StorageManager {
    * 加载所有缓存
    */
   private async loadAllCaches(): Promise<void> {
-    await Promise.all([this.folders.loadCache(), this.notes.loadCache(), this.ai.loadCache()]);
+    await Promise.all([
+      this.folders.loadCache(),
+      this.notes.loadCache(),
+      this.ai.loadCache(),
+      this.trash.loadCache(),
+    ]);
   }
 
   /**
@@ -169,6 +186,7 @@ export class StorageManager {
     this.folders.clearCache();
     this.notes.clearCache();
     this.ai.clearCache();
+    this.trash.clearCache();
   }
 
   /**
@@ -509,8 +527,109 @@ export class StorageManager {
     return this.notes.update(id, patch);
   }
 
+  /**
+   * 删除便签（软删除，移入回收站）
+   */
   async deleteNote(id: string) {
+    const note = await this.notes.get(id);
+    // 移入回收站
+    await this.trash.moveToTrash(note);
+    // 从便签列表中删除
     return this.notes.delete(id);
+  }
+
+  /**
+   * 永久删除便签（跳过回收站）
+   */
+  async deleteNotePermanently(id: string) {
+    return this.notes.delete(id);
+  }
+
+  // ============ 回收站操作 ============
+
+  async listTrash() {
+    return this.trash.list();
+  }
+
+  async getTrashItem(id: string) {
+    return this.trash.get(id);
+  }
+
+  /**
+   * 从回收站恢复便签
+   * @param trashItemId 回收站项目 ID
+   * @param targetFolderId 目标文件夹 ID（可选，默认恢复到原文件夹）
+   */
+  async restoreNote(trashItemId: string, targetFolderId?: string): Promise<Note> {
+    const restoredNote = await this.trash.restore(trashItemId);
+
+    // 检查原文件夹是否存在
+    const originalFolderExists = await this.folders.exists(restoredNote.folderId);
+
+    // 如果指定了目标文件夹或原文件夹不存在，使用目标文件夹或默认文件夹
+    if (targetFolderId) {
+      restoredNote.folderId = targetFolderId;
+    } else if (!originalFolderExists) {
+      restoredNote.folderId = 'default';
+    }
+
+    // 保存恢复的便签
+    await this.notes.create(restoredNote.folderId, {
+      title: restoredNote.title,
+      content: restoredNote.content,
+    });
+
+    // 获取刚创建的便签并更新其他属性
+    const notes = await this.notes.list(restoredNote.folderId);
+    const newNote = notes.find((n) => n.title === restoredNote.title);
+    if (newNote) {
+      await this.notes.update(newNote.id, {
+        tags: restoredNote.tags,
+        pinned: restoredNote.pinned,
+        color: restoredNote.color,
+      });
+    }
+
+    return restoredNote;
+  }
+
+  async deleteTrashItemPermanently(trashItemId: string) {
+    return this.trash.permanentDelete(trashItemId);
+  }
+
+  async emptyTrash() {
+    return this.trash.emptyTrash();
+  }
+
+  // ============ 孤儿便签修复 ============
+
+  /**
+   * 修复孤儿便签（所属文件夹不存在的便签）
+   * 将它们移动到默认文件夹
+   */
+  private async fixOrphanNotes(): Promise<void> {
+    try {
+      const notes = await this.notes.list();
+      const folders = await this.folders.list();
+      const folderIds = new Set(folders.map((f) => f.id));
+
+      let fixedCount = 0;
+      for (const note of notes) {
+        if (!folderIds.has(note.folderId)) {
+          console.log(
+            `[Storage] Found orphan note ${note.id} (folderId: ${note.folderId}), moving to default`,
+          );
+          await this.notes.moveToFolder(note.id, 'default');
+          fixedCount++;
+        }
+      }
+
+      if (fixedCount > 0) {
+        console.log(`[Storage] Fixed ${fixedCount} orphan note(s)`);
+      }
+    } catch (error) {
+      console.error('[Storage] Failed to fix orphan notes:', error);
+    }
   }
 
   async getAIConversations() {
@@ -550,14 +669,14 @@ export class StorageManager {
       const noteIssues = await this.validateNotesIntegrity();
       if (noteIssues.length > 0) {
         console.warn(`[Storage] Found ${noteIssues.length} note index issues, rebuilding...`);
-        await this.rebuildNotesIndex();
+        await this.notes.rebuildIndex();
       }
 
       // 校验 AI 对话索引一致性
       const aiIssues = await this.validateAIConversationsIntegrity();
       if (aiIssues.length > 0) {
         console.warn(`[Storage] Found ${aiIssues.length} AI conversation issues, rebuilding...`);
-        await this.rebuildAIConversationsIndex();
+        await this.ai.rebuildIndex();
       }
 
       console.log('[Storage] Startup checks completed successfully');
@@ -626,106 +745,6 @@ export class StorageManager {
     }
 
     return issues;
-  }
-
-  /**
-   * 重建便签索引
-   * 扫描所有便签文件并重新生成索引
-   */
-  private async rebuildNotesIndex(): Promise<void> {
-    console.log('[Storage] Rebuilding notes index...');
-
-    const notesDir = this.context.notesDir;
-    const files = await fs.readdir(notesDir);
-    const newIndex = [];
-
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-
-      const noteId = file.replace('.json', '');
-      try {
-        const note = await this.notes.get(noteId);
-        newIndex.push({
-          id: note.id,
-          folderId: note.folderId,
-          title: note.title,
-          excerpt: note.content ? this.generateExcerpt(note.content) : '',
-          updatedAt: note.updatedAt,
-          pinned: note.pinned,
-          tags: note.tags,
-          color: note.color,
-        });
-      } catch (error) {
-        console.warn(`[Storage] Skipping corrupted note file: ${file}`);
-      }
-    }
-
-    await writeJsonFile(this.context.notesIndexPath, newIndex);
-    await this.notes.loadCache();
-    console.log(`[Storage] Notes index rebuilt: ${newIndex.length} notes`);
-  }
-
-  /**
-   * 重建 AI 对话索引
-   */
-  private async rebuildAIConversationsIndex(): Promise<void> {
-    console.log('[Storage] Rebuilding AI conversations index...');
-
-    const aiDir = this.context.aiConversationsDir;
-    const files = await fs.readdir(aiDir);
-    const newIndex = [];
-
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-
-      const conversationId = file.replace('.json', '');
-      try {
-        const conversation = await this.ai.get(conversationId);
-        newIndex.push({
-          id: conversation.id,
-          title: conversation.title,
-          excerpt: conversation.excerpt,
-          createdAt: conversation.createdAt,
-          updatedAt: conversation.updatedAt,
-          isDefault: conversation.isDefault,
-        });
-      } catch (error) {
-        console.warn(`[Storage] Skipping corrupted conversation file: ${file}`);
-      }
-    }
-
-    await writeJsonFile(this.context.aiConversationsIndexPath, newIndex);
-    await this.ai.loadCache();
-    console.log(`[Storage] AI conversations index rebuilt: ${newIndex.length} conversations`);
-  }
-
-  /**
-   * 生成摘要（从 NoteStorage 复制）
-   */
-  private generateExcerpt(content: unknown): string {
-    try {
-      const isObj = (v: unknown): v is { [k: string]: unknown } =>
-        typeof v === 'object' && v !== null;
-      if (!isObj(content)) return '';
-      type MinimalNode = { type?: string; text?: string; content?: MinimalNode[] };
-      const root = content as unknown as MinimalNode;
-      if (!Array.isArray(root.content)) return '';
-
-      let text = '';
-      const extractText = (node: MinimalNode) => {
-        if (node.type === 'text' && typeof node.text === 'string') {
-          text += node.text;
-        }
-        if (node.content && Array.isArray(node.content)) {
-          node.content.forEach((n) => extractText(n));
-        }
-      };
-
-      extractText(root);
-      return text.slice(0, 100);
-    } catch {
-      return '';
-    }
   }
 }
 

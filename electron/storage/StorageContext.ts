@@ -74,6 +74,13 @@ export class StorageContext {
   }
 
   /**
+   * 获取回收站目录路径
+   */
+  get trashDir(): string {
+    return path.join(this._currentPath, 'trash');
+  }
+
+  /**
    * 获取元数据文件路径
    */
   get metaPath(): string {
@@ -106,7 +113,7 @@ export class StorageContext {
    */
   async ensureBaseDirectories(): Promise<void> {
     await fs.mkdir(this._currentPath, { recursive: true });
-    const subDirs = ['notes', 'temp', 'backups', 'ai-conversations'];
+    const subDirs = ['notes', 'temp', 'backups', 'ai-conversations', 'trash'];
     for (const dir of subDirs) {
       await fs.mkdir(path.join(this._currentPath, dir), { recursive: true });
     }

@@ -449,6 +449,27 @@ ipcMain.handle('storage:updateAIConversationTitle', async (_, id: string, title:
   return await storageManager.updateAIConversationTitle(id, title);
 });
 
+// 回收站操作
+ipcMain.handle('storage:listTrash', async () => {
+  return await storageManager.listTrash();
+});
+
+ipcMain.handle('storage:getTrashItem', async (_, id: string) => {
+  return await storageManager.getTrashItem(id);
+});
+
+ipcMain.handle('storage:restoreNote', async (_, trashItemId: string, targetFolderId?: string) => {
+  return await storageManager.restoreNote(trashItemId, targetFolderId);
+});
+
+ipcMain.handle('storage:deleteTrashItemPermanently', async (_, id: string) => {
+  await storageManager.deleteTrashItemPermanently(id);
+});
+
+ipcMain.handle('storage:emptyTrash', async () => {
+  return await storageManager.emptyTrash();
+});
+
 // ============ 系统对话框 IPC 处理器 ============
 
 ipcMain.handle('dialog:showOpenDialog', async (_, options: OpenDialogOptions) => {

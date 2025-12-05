@@ -56,6 +56,37 @@ export interface NoteIndex {
 }
 
 /**
+ * 回收站项目（完整内容）
+ */
+export interface TrashItem {
+  id: string;
+  originalId: string;
+  originalFolderId: string;
+  title: string;
+  content: TipTapJSONContent;
+  tags: string[];
+  pinned: boolean;
+  color?: NoteColor;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt: number;
+  expiresAt: number;
+}
+
+/**
+ * 回收站索引（用于列表展示）
+ */
+export interface TrashIndex {
+  id: string;
+  originalId: string;
+  originalFolderId: string;
+  title: string;
+  excerpt: string;
+  deletedAt: number;
+  expiresAt: number;
+}
+
+/**
  * 存储元信息
  */
 export interface StorageMeta {

@@ -93,6 +93,15 @@ contextBridge.exposeInMainWorld('storage', {
     ipcRenderer.invoke('storage:saveAIConversationMessages', id, messages),
   updateAIConversationTitle: (id: string, title: string) =>
     ipcRenderer.invoke('storage:updateAIConversationTitle', id, title),
+
+  // 回收站操作
+  listTrash: () => ipcRenderer.invoke('storage:listTrash'),
+  getTrashItem: (id: string) => ipcRenderer.invoke('storage:getTrashItem', id),
+  restoreNote: (trashItemId: string, targetFolderId?: string) =>
+    ipcRenderer.invoke('storage:restoreNote', trashItemId, targetFolderId),
+  deleteTrashItemPermanently: (id: string) =>
+    ipcRenderer.invoke('storage:deleteTrashItemPermanently', id),
+  emptyTrash: () => ipcRenderer.invoke('storage:emptyTrash'),
 });
 
 // --------- Expose floating window API ---------

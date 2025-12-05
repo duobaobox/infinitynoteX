@@ -218,6 +218,20 @@ declare global {
       getLastStatus(): Promise<UpdateStatusPayload>;
       onStatusChange(callback: (status: UpdateStatusPayload) => void): () => void;
     };
+    storageEvents?: {
+      /**
+       * 监听存储事件
+       * @returns 取消监听的函数
+       */
+      onEvent(
+        callback: (event: {
+          type: 'created' | 'updated' | 'deleted';
+          entity: 'note' | 'aiConversation' | 'folder' | 'trash';
+          id: string;
+          data?: unknown;
+        }) => void,
+      ): () => void;
+    };
     appInfo?: {
       getVersion(): Promise<string>;
     };

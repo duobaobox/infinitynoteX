@@ -32,6 +32,7 @@ import {
   validateStorageIntegrity,
 } from './utils';
 import { CURRENT_SCHEMA_VERSION, needsMigration, getPendingMigrations } from './migrations';
+import { emitDeleted, emitCreated } from './storageEvents';
 
 /**
  * 存储管理器
@@ -503,12 +504,13 @@ export class StorageManager {
   }
 
   async deleteFolder(id: string) {
-    return this.folders.delete(id, async (folderId) => {
+    await this.folders.delete(id, async (folderId) => {
       const notes = await this.notes.list(folderId);
       for (const note of notes) {
         await this.notes.moveToFolder(note.id, 'default');
       }
     });
+    emitDeleted('folder', id);
   }
 
   async listNotes(folderId?: string) {
@@ -516,7 +518,9 @@ export class StorageManager {
   }
 
   async createNote(folderId: string, payload?: { title?: string; content?: Note['content'] }) {
-    return this.notes.createNote(folderId, payload);
+    const note = await this.notes.createNote(folderId, payload);
+    emitCreated('note', note.id);
+    return note;
   }
 
   async getNote(id: string) {
@@ -535,7 +539,9 @@ export class StorageManager {
     // 移入回收站
     await this.trash.moveToTrash(note);
     // 从便签列表中删除
-    return this.notes.delete(id);
+    await this.notes.delete(id);
+    // 发送删除事件
+    emitDeleted('note', id);
   }
 
   /**
@@ -637,11 +643,14 @@ export class StorageManager {
   }
 
   async createAIConversation(title?: string) {
-    return this.ai.createConversation(title);
+    const conversation = await this.ai.createConversation(title);
+    emitCreated('aiConversation', conversation.id);
+    return conversation;
   }
 
   async deleteAIConversation(id: string) {
-    return this.ai.delete(id);
+    await this.ai.delete(id);
+    emitDeleted('aiConversation', id);
   }
 
   async saveAIConversationMessages(

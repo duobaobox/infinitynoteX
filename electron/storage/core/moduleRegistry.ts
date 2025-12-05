@@ -113,7 +113,7 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     features: {
       softDelete: true,
       generateExcerpt: true,
-      sortField: 'updatedAt',
+      sortField: 'createdAt',
       hasIndex: true,
     },
     description: '便签内容',
@@ -133,7 +133,7 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     features: {
       softDelete: false,
       generateExcerpt: true,
-      sortField: 'updatedAt',
+      sortField: 'createdAt',
       hasIndex: true,
     },
     description: 'AI 助手对话记录',

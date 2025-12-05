@@ -233,13 +233,13 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
         }
       }
 
-      // 按 sortField 排序
+      // 按 sortField 排序（升序：从旧到新）
       if (this.config.features.sortField) {
         const sortField = this.config.features.sortField as keyof TIndex;
         newIndex.sort((a, b) => {
           const aVal = a[sortField] as number;
           const bVal = b[sortField] as number;
-          return bVal - aVal; // 降序
+          return aVal - bVal; // 升序（旧的在前，新的在后）
         });
       }
 
@@ -325,7 +325,7 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    */
   protected async addToIndex(data: TData): Promise<void> {
     const index = await this.list();
-    index.unshift(this.toIndex(data)); // 添加到开头
+    index.push(this.toIndex(data)); // 添加到末尾（新的在后面）
     await this.saveIndex(index);
   }
 
@@ -339,16 +339,16 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     if (itemIndex >= 0) {
       index[itemIndex] = this.toIndex(data);
     } else {
-      index.unshift(this.toIndex(data));
+      index.push(this.toIndex(data)); // 添加到末尾
     }
 
-    // 重新排序
+    // 重新排序（升序：从旧到新）
     if (this.config.features.sortField) {
       const sortField = this.config.features.sortField as keyof TIndex;
       index.sort((a, b) => {
         const aVal = a[sortField] as number;
         const bVal = b[sortField] as number;
-        return bVal - aVal;
+        return aVal - bVal; // 升序
       });
     }
 

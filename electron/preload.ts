@@ -104,6 +104,36 @@ contextBridge.exposeInMainWorld('storage', {
   emptyTrash: () => ipcRenderer.invoke('storage:emptyTrash'),
 });
 
+// --------- Expose storage events API ---------
+contextBridge.exposeInMainWorld('storageEvents', {
+  /**
+   * 监听存储事件（创建、更新、删除）
+   * @returns 取消监听的函数
+   */
+  onEvent: (
+    callback: (event: {
+      type: 'created' | 'updated' | 'deleted';
+      entity: 'note' | 'aiConversation' | 'folder' | 'trash';
+      id: string;
+      data?: unknown;
+    }) => void,
+  ) => {
+    const listener = (
+      _: Electron.IpcRendererEvent,
+      event: {
+        type: 'created' | 'updated' | 'deleted';
+        entity: 'note' | 'aiConversation' | 'folder' | 'trash';
+        id: string;
+        data?: unknown;
+      },
+    ) => callback(event);
+    ipcRenderer.on('storage:event', listener);
+    return () => {
+      ipcRenderer.removeListener('storage:event', listener);
+    };
+  },
+});
+
 // --------- Expose floating window API ---------
 contextBridge.exposeInMainWorld('floatingWindow', {
   createWindow: (noteId: string) => ipcRenderer.invoke('floating:createWindow', noteId),

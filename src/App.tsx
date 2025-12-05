@@ -11,6 +11,7 @@ import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 import { DEFAULT_TOOLS } from './constants/tools';
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
+import { useStorageEvents } from './hooks/useStorageEvents';
 
 declare global {
   interface Window {
@@ -58,6 +59,9 @@ function App() {
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
   const isInitializingAIConversationRef = useRef(false);
+
+  // 全局监听存储事件（删除、创建等），自动清理失效引用
+  useStorageEvents();
 
   // 应用启动时加载数据
   useEffect(() => {

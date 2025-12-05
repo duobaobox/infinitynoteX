@@ -10,6 +10,7 @@ import AppearanceTab from './tabs/AppearanceTab';
 import AITab from './tabs/AITab';
 import DataTab from './tabs/DataTab';
 import SyncTab from './tabs/SyncTab';
+import TrashTab from './tabs/TrashTab';
 import AboutTab from './tabs/AboutTab';
 import './SettingsModal.css';
 
@@ -23,6 +24,7 @@ const menuItems = [
   { key: 'ai', label: 'AI 管理' },
   { key: 'data', label: '数据管理' },
   { key: 'sync', label: '数据同步' },
+  { key: 'trash', label: '回收站' },
   { key: 'about', label: '关于' },
 ];
 
@@ -47,6 +49,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         return <DataTab />;
       case 'sync':
         return <SyncTab />;
+      case 'trash':
+        return <TrashTab />;
       case 'about':
         return <AboutTab />;
       default:

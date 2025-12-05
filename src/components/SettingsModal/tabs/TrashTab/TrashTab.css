@@ -1,0 +1,118 @@
+/* TrashTab 样式 */
+
+.trash-tab {
+  /* 继承 settings-panel 的基础样式 */
+  padding: 0;
+}
+
+.trash-tab .trash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.trash-tab .trash-header h3 {
+  margin: 0;
+}
+
+.trash-tab .trash-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--ant-color-fill-quaternary);
+  border-radius: 8px;
+}
+
+.trash-tab .trash-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trash-tab .trash-stat-item .stat-label {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.trash-tab .trash-stat-item .stat-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.trash-tab .trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.trash-tab .trash-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.trash-tab .trash-item:hover {
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.trash-tab .trash-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trash-tab .trash-item-title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trash-tab .trash-item-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
+}
+
+.trash-tab .trash-item-excerpt {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.trash-tab .trash-item-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.trash-tab .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 0;
+  color: var(--ant-color-text-secondary);
+}
+
+.trash-tab .empty-state .anticon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}

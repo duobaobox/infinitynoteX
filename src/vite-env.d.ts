@@ -4,6 +4,8 @@ import type {
   Folder,
   Note,
   NoteIndex,
+  TrashIndex,
+  TrashItem,
   HealthCheckResult,
   StorageStats,
   CreateNotePayload,
@@ -122,6 +124,13 @@ declare global {
       getNote(id: string): Promise<Note>;
       updateNote(id: string, patch: Partial<Note>): Promise<Note>;
       deleteNote(id: string): Promise<void>;
+
+      // 回收站操作
+      listTrash(): Promise<TrashIndex[]>;
+      getTrashItem(id: string): Promise<TrashItem>;
+      restoreNote(trashItemId: string, targetFolderId?: string): Promise<Note>;
+      deleteTrashItemPermanently(id: string): Promise<void>;
+      emptyTrash(): Promise<number>;
 
       // AI 对话操作
       getAIConversations(): Promise<

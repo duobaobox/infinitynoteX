@@ -5,12 +5,12 @@
  */
 
 import React from 'react';
-import { DEFAULT_TOOLS } from '../../../../../constants/tools';
+import { getFeatureById } from '../../../../../config/featureRegistry';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 
 export const KitTab: React.FC = () => {
   const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
-  const activeTool = DEFAULT_TOOLS.find((tool) => tool.id === selectedToolId);
+  const activeTool = selectedToolId ? getFeatureById(selectedToolId) : null;
 
   return (
     <div className="tool-panel-placeholder">

@@ -10,7 +10,11 @@ import {
   EditOutlined,
   MoreOutlined,
 } from '@ant-design/icons';
-import { DEFAULT_TOOLS } from '../../../constants/tools';
+import { getFeaturesByWorkspaceView } from '../../../config/featureRegistry';
+
+// 确保 Feature 模块被加载并完成注册
+import '../../note';
+import '../../ai-workbench';
 import type { Folder } from '../../../services/types';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './Sidebar.css';
@@ -326,12 +330,12 @@ const Sidebar: React.FC = () => {
                       ),
                     };
                   })
-                : DEFAULT_TOOLS.map((tool) => ({
-                    key: tool.id,
-                    icon: tool.icon,
+                : getFeaturesByWorkspaceView('tool').map((feature) => ({
+                    key: feature.id,
+                    icon: feature.icon,
                     label: (
-                      <div className="menu-item-row" title={tool.name}>
-                        <span className="item-name">{tool.name}</span>
+                      <div className="menu-item-row" title={feature.name}>
+                        <span className="item-name">{feature.name}</span>
                       </div>
                     ),
                   }))

@@ -3,13 +3,17 @@ import './App.css';
 import Sidebar from './features/layout/Sidebar';
 import ListPanel from './features/layout/ListPanel';
 import EditorPanel from './features/layout/EditorPanel';
-import ToolPanel from './features/layout/ToolPanel';
+
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import PillWindow from './components/PillWindow/PillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
-import { DEFAULT_TOOLS } from './constants/tools';
+import { getFeaturesByWorkspaceView } from './config/featureRegistry';
+
+// 确保 Feature 模块被加载并完成注册
+import './features/note';
+import './features/ai-workbench';
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 import { useStorageEvents } from './hooks/useStorageEvents';
 
@@ -108,8 +112,11 @@ function App() {
   const isMac = useMemo(() => /Mac|Macintosh|Mac OS X/.test(navigator.userAgent), []);
 
   useEffect(() => {
-    if (workspaceView === 'tool' && !selectedToolId && DEFAULT_TOOLS.length > 0) {
-      setSelectedTool(DEFAULT_TOOLS[0].id);
+    if (workspaceView === 'tool' && !selectedToolId) {
+      const toolFeatures = getFeaturesByWorkspaceView('tool');
+      if (toolFeatures.length > 0) {
+        setSelectedTool(toolFeatures[0].id);
+      }
     }
   }, [workspaceView, selectedToolId, setSelectedTool]);
 
@@ -327,7 +334,7 @@ function App() {
           )}
           <ListPanel flex={showEditor ? '0 0 250px' : 1} />
           {showEditor && <div className="gap-panel" />}
-          {showEditor && (workspaceView === 'note' ? <EditorPanel /> : <ToolPanel />)}
+          {showEditor && <EditorPanel />}
         </div>
       )}
     </>

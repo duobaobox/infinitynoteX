@@ -1,25 +1,33 @@
 /**
  * EditorPanel/index.tsx
- * 编辑器面板容器 - 根据 workspaceView 渲染对应编辑器
+ * 编辑器面板容器 - 根据 Feature Registry 动态渲染对应编辑器
  */
 
 import React from 'react';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
-import { NoteEditor } from '../../note/views/NoteEditor';
+import { getActiveFeature } from '../../../config/featureRegistry';
+
+// 确保 Feature 模块被加载并完成注册
+import '../../note';
+import '../../ai-workbench';
 
 /**
  * EditorPanel - 编辑器面板容器
+ * 使用 Feature Registry 动态查找并渲染编辑器组件
  */
 const EditorPanel: React.FC = () => {
-  const { workspaceView } = useWorkspaceStore();
+  const workspaceView = useWorkspaceStore((state) => state.workspaceView);
+  const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
 
-  // 便签编辑器
-  if (workspaceView === 'note') {
-    return <NoteEditor />;
+  // 从 Registry 获取当前激活的 Feature
+  const feature = getActiveFeature(workspaceView, selectedToolId);
+
+  if (!feature) {
+    return null;
   }
 
-  // 其他视图可在此扩展
-  return null;
+  const EditorComponent = feature.EditorView;
+  return <EditorComponent />;
 };
 
 export default EditorPanel;

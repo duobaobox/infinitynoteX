@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
-import { NoteEditor } from '../../note/views/NoteEditor/NoteEditor';
+import { NoteEditor } from '../../note/views/NoteEditor';
 
 /**
  * EditorPanel - 编辑器面板容器

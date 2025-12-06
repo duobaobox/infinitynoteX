@@ -29,6 +29,7 @@ import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import type { TabKeyType } from './types';
 import { useNoteSave } from './hooks/useNoteSave';
 import { EditTab, ToolsTab, AITab, OtherTab, TAB_CONFIG } from './tabs';
+import './tabs/AITab.css';
 
 /**
  * NoteEditor - 便签编辑器组件
@@ -193,10 +194,11 @@ export const NoteEditor: React.FC = () => {
   // 使用配置生成 Segmented 选项
   const segmentOptions = useMemo(
     () =>
-      TAB_CONFIG.map(({ key, icon: Icon }) => ({
+      TAB_CONFIG.map(({ key, icon: Icon, label }) => ({
         label: (
           <span>
             <Icon style={{ marginRight: 4 }} />
+            {label}
           </span>
         ),
         value: key,
@@ -226,7 +228,7 @@ export const NoteEditor: React.FC = () => {
           />
         );
       case 'ai':
-        return <AITab noteId={selectedNoteId} />;
+        return null; // AI Tab 的内容在主渲染中处理
       case 'other':
         return <OtherTab noteId={selectedNoteId} />;
       default:
@@ -234,6 +236,45 @@ export const NoteEditor: React.FC = () => {
     }
   };
 
+  // AI Tab 激活时使用左右分栏布局
+  const isAITabActive = activeTab === 'ai';
+
+  // 渲染左侧编辑器内容（AI Tab 激活时用）
+  const renderEditorContent = () => {
+    // AI 分栏模式下，左侧始终显示编辑器
+    return (
+      <EditTab
+        noteId={selectedNoteId}
+        noteTitle={noteTitle}
+        editorContent={editorContent}
+        onTitleChange={handleTitleChange}
+        onContentChange={handleContentChange}
+      />
+    );
+  };
+
+  // AI Tab 激活时：左右分栏布局
+  if (isAITabActive) {
+    return (
+      <div className="layout-panel editor-container">
+        <div className="flex-vertical-equal">
+          {/* Tab 栏 */}
+          <div style={{ display: 'inline-block' }}>
+            <Segmented options={segmentOptions} value={activeTab} onChange={setActiveTab} />
+          </div>
+          {/* 内容区：编辑器 + AI 对话 左右分栏 */}
+          <div className="editor-inner-tab-container ai-split-layout">
+            <div className="editor-content-side">{renderEditorContent()}</div>
+            <div className="ai-side">
+              <AITab noteId={selectedNoteId} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 默认布局：单栏
   return (
     <div className="layout-panel editor-container">
       <div className="flex-vertical-equal">

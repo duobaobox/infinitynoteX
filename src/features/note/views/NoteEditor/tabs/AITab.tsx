@@ -1,10 +1,17 @@
 /**
  * AITab - AI 对话 Tab 页
  *
- * 轻量级包装器，引用共享的 AIChatPanel 组件
+ * 【组件职责】
+ * 仅作为 AI 对话面板的轻量包装器
+ * 用于在 NoteEditor 右侧显示 AI 对话
+ *
+ * 【布局说明】
+ * 当 AI Tab 激活时，NoteEditor 会切换到左右分栏布局：
+ * - 左侧：编辑器 (EditTab)
+ * - 右侧：本组件 (AITab)
  */
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { AIChatPanel } from '../../../../../components/AIChat';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 
@@ -12,7 +19,7 @@ interface AITabProps {
   noteId: string | null;
 }
 
-export const AITab = ({ noteId }: AITabProps) => {
+export const AITab: React.FC<AITabProps> = ({ noteId }) => {
   const { triggerAIConversationsRefresh } = useWorkspaceStore();
 
   // 标题变更时刷新对话列表
@@ -24,8 +31,8 @@ export const AITab = ({ noteId }: AITabProps) => {
     <AIChatPanel
       conversationId={noteId}
       onTitleChange={handleTitleChange}
-      showTitleEditor={true}
-      className="ai-tab-wrapper"
+      showTitleEditor={false}
+      className="ai-tab-panel"
     />
   );
 };

@@ -36,10 +36,10 @@ export { OtherTab } from './OtherTab';
 export const TAB_CONFIG: Array<{
   key: TabKeyType;
   icon: typeof EditOutlined;
-  label?: string;
+  label: string;
 }> = [
-  { key: 'edit', icon: EditOutlined }, // 编辑
-  { key: 'tools', icon: ToolOutlined }, // 工具
-  { key: 'ai', icon: RobotOutlined }, // AI 对话
-  { key: 'other', icon: AppstoreOutlined }, // 其他
+  { key: 'edit', icon: EditOutlined, label: '编辑' },
+  { key: 'ai', icon: RobotOutlined, label: 'AI' },
+  { key: 'other', icon: AppstoreOutlined, label: '其他' },
+  { key: 'tools', icon: ToolOutlined, label: '工具' },
 ];

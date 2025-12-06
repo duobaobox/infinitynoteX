@@ -1,32 +1,43 @@
 /**
  * TrashTab - 回收站 Tab 组件
- * 显示已删除的便签，支持恢复和永久删除
+ *
+ * 【组件职责】
+ * - 显示已删除的便签列表
+ * - 支持恢复和永久删除操作
+ * - 支持清空回收站
+ *
+ * 【数据流】
+ * 1. 从 storage API 加载回收站列表
+ * 2. 恢复/删除操作后刷新列表
+ * 3. 恢复便签时同步刷新便签列表
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button, Space, Typography, Divider, Modal, message, Spin, Tooltip } from 'antd';
+import { Button, Modal, message, Spin, Tooltip, Empty } from 'antd';
 import {
   DeleteOutlined,
-  RedoOutlined,
+  UndoOutlined,
   ExclamationCircleOutlined,
-  RestOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import type { TrashIndex } from '../../../../services/types';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import './TrashTab.css';
 
-const { Text, Paragraph } = Typography;
 const { confirm } = Modal;
 
-// 计算剩余天数
+// ============ 工具函数 ============
+
+/** 计算剩余天数 */
 const getDaysRemaining = (expiresAt: number): number => {
   const now = Date.now();
   const remaining = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
   return Math.max(0, remaining);
 };
 
-// 格式化删除时间
+/** 格式化删除时间 */
 const formatDeletedAt = (deletedAt: number): string => {
   const date = new Date(deletedAt);
   const now = new Date();
@@ -44,6 +55,8 @@ const formatDeletedAt = (deletedAt: number): string => {
   }
 };
 
+// ============ 组件 ============
+
 interface TrashTabProps {
   /** @deprecated 不再使用，保留兼容性 */
   isVisible?: boolean;
@@ -54,15 +67,14 @@ const TrashTab: React.FC<TrashTabProps> = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // 从 settingsStore 获取弹窗打开触发器
+  // Store 状态
   const settingsModalOpenTrigger = useSettingsStore((state) => state.settingsModalOpenTrigger);
-
-  // 从 workspaceStore 获取便签列表刷新触发器
   const refreshListTrigger = useWorkspaceStore((state) => state.refreshListTrigger);
   const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
   const loadNotes = useWorkspaceStore((state) => state.loadNotes);
 
-  // 加载回收站列表
+  // ============ 数据加载 ============
+
   const loadTrashItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -76,28 +88,29 @@ const TrashTab: React.FC<TrashTabProps> = () => {
     }
   }, []);
 
-  // 弹窗打开时刷新数据（监听 settingsStore 的触发器）
+  // 弹窗打开时刷新
   useEffect(() => {
     if (settingsModalOpenTrigger > 0) {
       loadTrashItems();
     }
   }, [settingsModalOpenTrigger, loadTrashItems]);
 
-  // 监听便签列表刷新（删除便签时会触发）
+  // 监听便签列表刷新（删除便签时触发）
   useEffect(() => {
     if (refreshListTrigger > 0) {
       loadTrashItems();
     }
   }, [refreshListTrigger, loadTrashItems]);
 
-  // 恢复便签
+  // ============ 操作处理 ============
+
+  /** 恢复便签 */
   const handleRestore = async (item: TrashIndex) => {
     try {
       setActionLoading(item.id);
       await window.storage.restoreNote(item.id);
       message.success(`"${item.title || '无标题'}" 已恢复`);
       await loadTrashItems();
-      // 刷新便签列表（恢复的便签会出现在列表中）
       if (selectedFolderId) {
         await loadNotes(selectedFolderId);
       }
@@ -109,7 +122,7 @@ const TrashTab: React.FC<TrashTabProps> = () => {
     }
   };
 
-  // 永久删除
+  /** 永久删除 */
   const handlePermanentDelete = (item: TrashIndex) => {
     confirm({
       title: '永久删除',
@@ -119,7 +132,7 @@ const TrashTab: React.FC<TrashTabProps> = () => {
           <p>
             确定要永久删除 "<strong>{item.title || '无标题'}</strong>" 吗？
           </p>
-          <p style={{ color: '#ff4d4f' }}>此操作不可撤销！</p>
+          <p style={{ color: '#ff4d4f', marginBottom: 0 }}>此操作不可撤销！</p>
         </div>
       ),
       okText: '永久删除',
@@ -141,7 +154,7 @@ const TrashTab: React.FC<TrashTabProps> = () => {
     });
   };
 
-  // 清空回收站
+  /** 清空回收站 */
   const handleEmptyTrash = () => {
     if (trashItems.length === 0) {
       message.info('回收站已经是空的');
@@ -156,7 +169,7 @@ const TrashTab: React.FC<TrashTabProps> = () => {
           <p>
             确定要永久删除回收站中的 <strong>{trashItems.length}</strong> 个便签吗？
           </p>
-          <p style={{ color: '#ff4d4f' }}>此操作不可撤销！</p>
+          <p style={{ color: '#ff4d4f', marginBottom: 0 }}>此操作不可撤销！</p>
         </div>
       ),
       okText: '清空回收站',
@@ -178,82 +191,99 @@ const TrashTab: React.FC<TrashTabProps> = () => {
     });
   };
 
+  // ============ 渲染 ============
+
   return (
     <div className="settings-panel trash-tab">
+      {/* 头部 */}
       <div className="trash-header">
-        <h3>回收站</h3>
-        <Button danger icon={<DeleteOutlined />} onClick={handleEmptyTrash} disabled={loading}>
-          清空回收站
-        </Button>
-      </div>
-
-      <div className="trash-stats">
-        <div className="trash-stat-item">
-          <span className="stat-label">已删除便签</span>
-          <span className="stat-value">{trashItems.length}</span>
-        </div>
-        <div className="trash-stat-item">
-          <span className="stat-label">自动清理</span>
-          <span className="stat-value">30 天</span>
+        <div className="trash-header-left">
+          <h3>回收站</h3>
+          <span className="trash-count">{trashItems.length} 项</span>
         </div>
       </div>
 
-      <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        删除的便签会在回收站保留 30 天，之后将自动永久删除。您可以随时恢复或永久删除它们。
-      </Paragraph>
+      {/* 提示信息 + 清空按钮 */}
+      <div className="trash-hint">
+        <div className="trash-hint-left">
+          <ClockCircleOutlined />
+          <span>便签将在删除 30 天后自动永久清理</span>
+        </div>
+        {trashItems.length > 0 && (
+          <Button
+            danger
+            ghost
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={handleEmptyTrash}
+            disabled={loading}
+          >
+            清空
+          </Button>
+        )}
+      </div>
 
-      <Divider />
-
+      {/* 列表区 */}
       <Spin spinning={loading}>
         {trashItems.length === 0 ? (
-          <div className="empty-state">
-            <RestOutlined />
-            <Text type="secondary">回收站是空的</Text>
-          </div>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="回收站是空的"
+            className="trash-empty"
+          />
         ) : (
           <div className="trash-list">
-            {trashItems.map((item) => (
-              <div key={item.id} className="trash-item">
-                <div className="trash-item-info">
-                  <div className="trash-item-title">{item.title || '无标题'}</div>
-                  <div className="trash-item-meta">
-                    <span>删除于 {formatDeletedAt(item.deletedAt)}</span>
-                    <Tooltip title={`${new Date(item.expiresAt).toLocaleDateString()} 自动删除`}>
-                      <span
-                        style={{
-                          color: getDaysRemaining(item.expiresAt) <= 7 ? '#ff4d4f' : undefined,
-                        }}
-                      >
-                        {getDaysRemaining(item.expiresAt)} 天后过期
-                      </span>
+            {trashItems.map((item) => {
+              const daysRemaining = getDaysRemaining(item.expiresAt);
+              const isExpiringSoon = daysRemaining <= 7;
+
+              return (
+                <div key={item.id} className="trash-item">
+                  {/* 左侧图标 */}
+                  <div className="trash-item-icon">
+                    <FileTextOutlined />
+                  </div>
+
+                  {/* 中间内容 */}
+                  <div className="trash-item-content">
+                    <div className="trash-item-title">{item.title || '无标题'}</div>
+                    <div className="trash-item-meta">
+                      <span>{formatDeletedAt(item.deletedAt)}</span>
+                      <span className="meta-separator">·</span>
+                      <Tooltip title={`${new Date(item.expiresAt).toLocaleDateString()} 自动删除`}>
+                        <span className={isExpiringSoon ? 'expiring-soon' : ''}>
+                          {daysRemaining} 天后过期
+                        </span>
+                      </Tooltip>
+                    </div>
+                    {item.excerpt && <div className="trash-item-excerpt">{item.excerpt}</div>}
+                  </div>
+
+                  {/* 右侧操作 */}
+                  <div className="trash-item-actions">
+                    <Tooltip title="恢复">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<UndoOutlined />}
+                        onClick={() => handleRestore(item)}
+                        loading={actionLoading === item.id}
+                      />
+                    </Tooltip>
+                    <Tooltip title="永久删除">
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handlePermanentDelete(item)}
+                        loading={actionLoading === item.id}
+                      />
                     </Tooltip>
                   </div>
-                  {item.excerpt && <div className="trash-item-excerpt">{item.excerpt}</div>}
                 </div>
-                <div className="trash-item-actions">
-                  <Space>
-                    <Button
-                      type="primary"
-                      size="small"
-                      icon={<RedoOutlined />}
-                      onClick={() => handleRestore(item)}
-                      loading={actionLoading === item.id}
-                    >
-                      恢复
-                    </Button>
-                    <Button
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handlePermanentDelete(item)}
-                      loading={actionLoading === item.id}
-                    >
-                      删除
-                    </Button>
-                  </Space>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Spin>

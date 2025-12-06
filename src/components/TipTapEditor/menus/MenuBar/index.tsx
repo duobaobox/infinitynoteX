@@ -93,6 +93,30 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
         title="行内代码"
         icon="ri-code-line"
       />
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHighlight().run()}
+        isActive={editor.isActive('highlight')}
+        title="高亮"
+        icon="ri-mark-pen-line"
+      />
+      <ToolbarButton
+        onClick={() => {
+          const previousUrl = editor.getAttributes('link').href || '';
+          const url = window.prompt('输入链接地址:', previousUrl);
+          // 取消操作
+          if (url === null) return;
+          // 清空链接
+          if (url === '') {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+            return;
+          }
+          // 设置链接
+          editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        }}
+        isActive={editor.isActive('link')}
+        title="插入链接"
+        icon="ri-link"
+      />
 
       <ToolbarDivider />
 

@@ -3,21 +3,21 @@
  * 包含图片、表格、占位符等内容类扩展
  */
 
-import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
+import { ResizableImage } from './ResizableImage';
 import type { EditorConfig } from './basic';
 
 /**
  * 获取内容扩展
- * - Image: 图片
+ * - ResizableImage: 可调整大小的图片（仿官方 TipTap demo 风格）
  * - Placeholder: 占位符
  * - TableKit: 表格套件
  */
 export const getContentExtensions = (config?: EditorConfig) => {
   return [
-    // 图片扩展
-    Image.configure({
+    // 使用自定义的可调整大小图片扩展
+    ResizableImage.configure({
       inline: true,
       allowBase64: true,
       HTMLAttributes: {

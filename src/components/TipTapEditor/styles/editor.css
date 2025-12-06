@@ -276,6 +276,98 @@
   margin: 0.5em 0;
 }
 
+/* ==================== 自定义 ResizableImage 组件样式 - 官方 TipTap 风格 ==================== */
+
+/* 外层包装器 (NodeViewWrapper) */
+.tiptap-editor .resizable-image-wrapper {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: bottom;
+  line-height: 0;
+}
+
+/* 图片容器 */
+.tiptap-editor .resizable-image-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+/* 图片本身 */
+.tiptap-editor .resizable-image-container img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 选中状态 - 不显示边框，只显示手柄 */
+/* .tiptap-editor .resizable-image-wrapper.selected .resizable-image-container {
+  box-shadow: 0 0 0 3px #6366f1;
+} */
+
+/* 拖拽调整时的状态 - 不显示边框 */
+/* .tiptap-editor .resizable-image-wrapper.resizing .resizable-image-container {
+  box-shadow: 0 0 0 3px #4f46e5;
+} */
+
+/* ===== 左右竖条手柄 - 使用主题色 ===== */
+.tiptap-editor .resize-handle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 56px;
+  max-height: 40%;
+  min-height: 24px;
+  background: var(--theme-color, #1890ff);
+  border-radius: 3px;
+  cursor: ew-resize;
+  z-index: 20;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+/* 左侧手柄 */
+.tiptap-editor .resize-handle-left {
+  left: 8px;
+}
+
+/* 右侧手柄 */
+.tiptap-editor .resize-handle-right {
+  right: 8px;
+}
+
+/* 选中或悬停时显示手柄 */
+.tiptap-editor .resizable-image-wrapper:hover .resize-handle,
+.tiptap-editor .resizable-image-wrapper.selected .resize-handle {
+  opacity: 1;
+}
+
+/* 手柄悬停效果 - 颜色加深 */
+.tiptap-editor .resize-handle:hover {
+  filter: brightness(0.85);
+  transform: translateY(-50%) scaleY(1.1);
+}
+
+/* 拖拽时手柄高亮 */
+.tiptap-editor .resizable-image-wrapper.resizing .resize-handle {
+  opacity: 1;
+  filter: brightness(0.85);
+}
+
+/* 拖拽时禁止选择 */
+.tiptap-editor .resizable-image-wrapper.resizing {
+  user-select: none;
+}
+
 /* 文本对齐 */
 .tiptap-editor [style*='text-align: left'] {
   text-align: left;

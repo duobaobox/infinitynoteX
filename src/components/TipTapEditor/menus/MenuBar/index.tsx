@@ -14,7 +14,6 @@ import {
   getListMenuItems,
   getAlignMenuItems,
   getTableMenuItems,
-  ImageUploader,
 } from '../components';
 
 export interface MenuBarProps {
@@ -29,7 +28,7 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
   // 使用自定义 Hooks 监听编辑器状态变化
   useEditorState(editor);
   const { headingState, listState, alignState, tableState } = useMenuState(editor);
-  const { triggerUpload } = useImageUpload(editor);
+  const { fileInputRef, handleImageUpload, triggerUpload } = useImageUpload(editor);
 
   // 关闭所有 Dropdown (用于滚动时)
   const closeAllDropdown = useCallback(() => {
@@ -180,8 +179,14 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       />
       <ToolbarButton onClick={triggerUpload} title="插入图片" icon="ri-image-line" />
 
-      {/* 隐藏的图片上传组件 */}
-      <ImageUploader editor={editor} />
+      {/* 隐藏的图片上传 input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleImageUpload}
+      />
 
       <ToolbarDivider />
 

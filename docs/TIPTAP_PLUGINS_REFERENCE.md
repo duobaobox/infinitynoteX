@@ -211,13 +211,24 @@ npm install @tiptap/starter-kit
 Image.configure({
   inline: true, // 是否行内显示
   allowBase64: true, // 允许 Base64 编码
+  // TipTap v3 新增：图片缩放功能
+  resize: {
+    enabled: true,
+    // 可选方向: 'top', 'bottom', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+    directions: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+    minWidth: 50,
+    minHeight: 50,
+    alwaysPreserveAspectRatio: true, // 保持宽高比
+  },
   HTMLAttributes: {
     class: 'editor-image',
   },
 });
 ```
 
-**命令**: `setImage({ src, alt, title })`
+**命令**: `setImage({ src, alt, title, width, height })`
+
+> **CSS 要求**: 启用 resize 后需要为 `[data-resize-handle]` 选择器添加样式（手柄定位、光标等）。
 
 #### Table 表格扩展
 

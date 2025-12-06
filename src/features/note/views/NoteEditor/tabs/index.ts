@@ -1,29 +1,45 @@
 /**
  * NoteEditor Tabs 配置和导出
  *
- * 统一管理所有 Tab 组件，方便扩展
+ * 【文件职责】
+ * - 统一管理所有 Tab 组件的导出
+ * - 定义 Tab 配置 (TAB_CONFIG)，使得添加新 Tab 只需修改此处
+ *
+ * 【如何添加新 Tab】
+ * 1. 在本目录创建 NewTab.tsx 组件
+ * 2. 在下方 export 该组件
+ * 3. 在 ../types.ts 的 TabKeyType 中添加新 key
+ * 4. 在 TAB_CONFIG 数组中添加配置项
+ * 5. 在 NoteEditor/index.tsx 的 renderTabContent() 中添加 case
  */
 
 import { EditOutlined, ToolOutlined, RobotOutlined, AppstoreOutlined } from '@ant-design/icons';
 import type { TabKeyType } from '../types';
 
-// 导出所有 Tab 组件
+// ============ 组件导出 ============
+
 export { EditTab } from './EditTab';
 export { ToolsTab } from './ToolsTab';
 export { AITab } from './AITab';
 export { OtherTab } from './OtherTab';
 
+// ============ Tab 配置 ============
+
 /**
- * Tab 配置
- * 新增 Tab 只需在此处添加配置
+ * Tab 配置数组
+ * - key: Tab 标识，与 TabKeyType 对应
+ * - icon: Tab 图标组件
+ * - label: 可选的文字标签
+ *
+ * 新增 Tab 只需在此添加配置项
  */
 export const TAB_CONFIG: Array<{
   key: TabKeyType;
   icon: typeof EditOutlined;
   label?: string;
 }> = [
-  { key: 'edit', icon: EditOutlined },
-  { key: 'tools', icon: ToolOutlined },
-  { key: 'ai', icon: RobotOutlined },
-  { key: 'other', icon: AppstoreOutlined },
+  { key: 'edit', icon: EditOutlined }, // 编辑
+  { key: 'tools', icon: ToolOutlined }, // 工具
+  { key: 'ai', icon: RobotOutlined }, // AI 对话
+  { key: 'other', icon: AppstoreOutlined }, // 其他
 ];

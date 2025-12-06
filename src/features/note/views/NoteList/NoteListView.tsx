@@ -1,3 +1,22 @@
+/**
+ * NoteListView - 便签列表视图组件
+ *
+ * 【组件职责】
+ * - 展示当前文件夹下的便签列表
+ * - 支持新建、删除、搜索便签
+ * - 支持"钉住"便签（创建悬浮窗口）
+ * - 作为 Note 模块的左侧列表区
+ *
+ * 【数据流】
+ * 1. 从 workspaceStore 获取便签列表 (notes) 和当前文件夹 (selectedFolderId)
+ * 2. 用户点击便签卡片 → 设置 selectedNoteId → 右侧编辑器加载对应便签
+ * 3. 新建/删除便签 → 调用 store action → 刷新列表
+ *
+ * 【使用的共享组件】
+ * - NoteCard: 便签卡片组件
+ * - CardListContext: 用于传递选中状态
+ */
+
 import React, { useEffect } from 'react';
 import { Input, Badge, Button, message, Modal } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
@@ -8,15 +27,15 @@ import { useThemeColor } from '../../../../hooks/useThemeColor';
 import { useDebouncedSearch } from '../../../../hooks/useDebouncedSearch';
 
 interface NoteListViewProps {
+  /** 列表容器的 flex 值，由父组件传入 */
   flex: string | number;
 }
 
 /**
- * NoteListView - 便签列表视图组件
- * 专门负责展示和管理便签列表
+ * NoteListView 主组件
  */
 export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
-  // Store 状态（优化：使用 selector 减少重渲染）
+  // ============ Store 状态 ============
   const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
   const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
   const notes = useWorkspaceStore((state) => state.notes);
@@ -28,10 +47,12 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
   const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
 
-  // 使用公共 hooks
+  // ============ Hooks ============
   const themeColor = useThemeColor();
   const { scrollableRef, containerRef } = useScrollOverflow();
   const { searchInput, setSearchInput, searchQuery } = useDebouncedSearch();
+
+  // ============ 副作用 ============
 
   // 监听刷新触发器，自动重新加载 notes
   useEffect(() => {
@@ -40,7 +61,9 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     }
   }, [refreshListTrigger, selectedFolderId, loadNotes]);
 
-  // 创建便签
+  // ============ 事件处理 ============
+
+  /** 创建新便签 */
   const handleCreateNote = async () => {
     if (!selectedFolderId) {
       message.warning('请先选择文件夹');
@@ -49,14 +72,14 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
 
     try {
       const newNote = await createNote(selectedFolderId);
-      setSelectedNote(newNote.id);
+      setSelectedNote(newNote.id); // 自动选中新建的便签
     } catch (error) {
       console.error('Failed to create note:', error);
       message.error('创建便签失败');
     }
   };
 
-  // 删除便签
+  /** 删除便签 */
   const handleDeleteNote = async (id: string, title: string) => {
     Modal.confirm({
       title: '删除便签',
@@ -67,6 +90,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
       async onOk() {
         try {
           await deleteNote(id);
+          // 如果删除的是当前选中的便签，清空选中状态
           if (selectedNoteId === id) {
             setSelectedNote(null);
           }
@@ -79,7 +103,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     });
   };
 
-  // 钉住便签 - 创建悬浮窗口
+  /** 钉住便签 - 创建悬浮窗口 */
   const handlePinNote = async (noteId: string) => {
     try {
       const result = await window.floatingWindow.createWindow(noteId);
@@ -94,13 +118,18 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     }
   };
 
-  // 筛选便签
+  // ============ 派生数据 ============
+
+  // 根据搜索关键词过滤便签列表
   const filteredNotes = notes.filter((note) =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // ============ 主渲染 ============
+
   return (
     <div className="layout-panel list-container" style={{ flex }}>
+      {/* 头部区域：文件夹名 + 操作按钮 */}
       <div className="flex-vertical-auto">
         <div
           style={{
@@ -123,6 +152,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
             />
           </div>
         </div>
+        {/* 搜索框 */}
         <Input
           allowClear
           value={searchInput}
@@ -132,6 +162,8 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
           style={{ width: '100%' }}
         />
       </div>
+
+      {/* 列表区域 */}
       <div className="flex-vertical-equal" ref={containerRef}>
         <CardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableRef}>
@@ -143,7 +175,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
                 color={note.color || 'ffffff'}
                 onClick={() => {
                   setSelectedNote(note.id);
-                  resetEditorTab();
+                  resetEditorTab(); // 切换便签时重置 Tab 到默认
                 }}
                 onPin={() => handlePinNote(note.id)}
                 actions={

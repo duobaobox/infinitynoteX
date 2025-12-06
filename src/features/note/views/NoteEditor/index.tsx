@@ -1,6 +1,22 @@
 /**
  * NoteEditor - 便签编辑器容器
- * 管理编辑器 tabs 切换和数据流
+ *
+ * 【组件职责】
+ * - 管理便签编辑区域的多 Tab 切换 (编辑 / 工具 / AI / 其他)
+ * - 协调便签数据的加载和保存
+ * - 作为 Note 模块的右侧主编辑区
+ *
+ * 【数据流】
+ * 1. 从 workspaceStore 获取当前选中的便签 ID (selectedNoteId)
+ * 2. 加载便签数据 (标题、内容、颜色)
+ * 3. 编辑时通过 useNoteSave Hook 防抖保存
+ * 4. 切换便签时先保存当前内容，再加载新便签
+ *
+ * 【如何添加新 Tab】
+ * 1. 在 tabs/ 目录创建新组件 (如 MyTab.tsx)
+ * 2. 在 tabs/index.ts 的 TAB_CONFIG 中添加配置
+ * 3. 在 types.ts 的 TabKeyType 中添加新 key
+ * 4. 在本文件的 renderTabContent() 中添加 case
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';

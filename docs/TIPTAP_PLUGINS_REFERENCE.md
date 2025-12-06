@@ -175,7 +175,7 @@ npm install @tiptap/starter-kit
 ### 免费扩展
 
 | 扩展名                 | 包名                                    | 功能说明                     | StarterKit | 本项目 |
-| ---------------------- | --------------------------------------- | ---------------------------- | :--------: | :----: |
+| ---------------------- | --------------------------------------- | :--------------------------- | :--------: | :----: |
 | **Document**           | `@tiptap/extension-document`            | 必需的文档根节点             |     ✅     |   ✅   |
 | **Paragraph**          | `@tiptap/extension-paragraph`           | 普通段落 `<p>`               |     ✅     |   ✅   |
 | **Text**               | `@tiptap/extension-text`                | 纯文本，必需                 |     ✅     |   ✅   |
@@ -399,22 +399,22 @@ extensions: [TextStyle, Color];
 
 ## 六、Functionality 功能扩展完整列表
 
-| 扩展名             | 包名                                | 功能说明                   | StarterKit | 本项目 |
-| ------------------ | ----------------------------------- | -------------------------- | :--------: | :----: |
-| **History**        | `@tiptap/extension-history`         | 撤销/重做 `Ctrl+Z/Y`       |     ✅     |   ✅   |
-| **Dropcursor**     | `@tiptap/extension-dropcursor`      | 拖拽时显示光标位置         |     ✅     |   ✅   |
-| **Gapcursor**      | `@tiptap/extension-gapcursor`       | 在间隙位置创建光标         |     ✅     |   ✅   |
-| **ListKeymap**     | `@tiptap/extension-list-keymap`     | 列表键盘操作优化           |   ✅(v3)   |   ✅   |
-| **TrailingNode**   | `@tiptap/extension-trailing-node`   | 末尾自动添加空段落         |   ✅(v3)   |   ✅   |
-| **Placeholder**    | `@tiptap/extension-placeholder`     | 空编辑器占位提示           |     ❌     |   ✅   |
-| **TextAlign**      | `@tiptap/extension-text-align`      | 文本对齐（左/中/右/两端）  |     ❌     |   ✅   |
-| **BubbleMenu**     | `@tiptap/extension-bubble-menu`     | 选中文字时弹出工具栏       |     ❌     |   ❌   |
-| **FloatingMenu**   | `@tiptap/extension-floating-menu`   | 空行时弹出快捷菜单         |     ❌     |   ❌   |
-| **CharacterCount** | `@tiptap/extension-character-count` | 字符/单词计数              |     ❌     |   ❌   |
-| **Focus**          | `@tiptap/extension-focus`           | 追踪编辑器焦点状态         |     ❌     |   ❌   |
-| **Color**          | `@tiptap/extension-color`           | 文字颜色（需 TextStyle）   |     ❌     |   ❌   |
-| **FontFamily**     | `@tiptap/extension-font-family`     | 字体选择（需 TextStyle）   |     ❌     |   ❌   |
-| **Typography**     | `@tiptap/extension-typography`      | 自动排版优化（智能引号等） |     ❌     |   ❌   |
+| 扩展名             | 包名                                | 功能说明                   | StarterKit | [本项目]() |
+| ------------------ | ----------------------------------- | -------------------------- | :--------: | :--------: |
+| **History**        | `@tiptap/extension-history`         | 撤销/重做 `Ctrl+Z/Y`       |     ✅     |     ✅     |
+| **Dropcursor**     | `@tiptap/extension-dropcursor`      | 拖拽时显示光标位置         |     ✅     |     ✅     |
+| **Gapcursor**      | `@tiptap/extension-gapcursor`       | 在间隙位置创建光标         |     ✅     |     ✅     |
+| **ListKeymap**     | `@tiptap/extension-list-keymap`     | 列表键盘操作优化           |   ✅(v3)   |     ✅     |
+| **TrailingNode**   | `@tiptap/extension-trailing-node`   | 末尾自动添加空段落         |   ✅(v3)   |     ✅     |
+| **Placeholder**    | `@tiptap/extension-placeholder`     | 空编辑器占位提示           |     ❌     |     ✅     |
+| **TextAlign**      | `@tiptap/extension-text-align`      | 文本对齐（左/中/右/两端）  |     ❌     |     ✅     |
+| **BubbleMenu**     | `@tiptap/extension-bubble-menu`     | 选中文字时弹出工具栏       |     ❌     |     ❌     |
+| **FloatingMenu**   | `@tiptap/extension-floating-menu`   | 空行时弹出快捷菜单         |     ❌     |     ❌     |
+| **CharacterCount** | `@tiptap/extension-character-count` | 字符/单词计数              |     ❌     |     ❌     |
+| **Focus**          | `@tiptap/extension-focus`           | 追踪编辑器焦点状态         |     ❌     |     ❌     |
+| **Color**          | `@tiptap/extension-color`           | 文字颜色（需 TextStyle）   |     ❌     |     ❌     |
+| **FontFamily**     | `@tiptap/extension-font-family`     | 字体选择（需 TextStyle）   |     ❌     |     ❌     |
+| **Typography**     | `@tiptap/extension-typography`      | 自动排版优化（智能引号等） |     ❌     |     ❌     |
 
 ### 各扩展详细说明
 
@@ -506,13 +506,26 @@ Color.configure({
 └── 🔧 Extensions: History, Dropcursor, Gapcursor, ListKeymap, TrailingNode
 
 📦 额外安装的扩展
-├── 📄 @tiptap/extension-image
-├── 📄 @tiptap/extension-table (TableKit)
-├── 📄 @tiptap/extension-task-list
-├── 📄 @tiptap/extension-task-item
-├── ✍️ @tiptap/extension-highlight
-├── 🔧 @tiptap/extension-placeholder
-└── 🔧 @tiptap/extension-text-align
+├── 📄 @tiptap/extension-image          (图片)
+├── 📄 @tiptap/extension-table          (TableKit 表格套件)
+├── 📄 @tiptap/extension-task-list      (任务列表)
+├── 📄 @tiptap/extension-task-item      (任务项)
+├── ✍️ @tiptap/extension-highlight      (文字高亮)
+├── 🔧 @tiptap/extension-placeholder    (占位符)
+├── 🔧 @tiptap/extension-text-align     (文本对齐)
+├── 🔧 @tiptap/extension-character-count (字符计数) ✨新增
+├── 🔧 @tiptap/extension-typography     (自动排版) ✨新增
+├── 🔧 @tiptap/extension-bubble-menu    (气泡菜单) ✨新增
+└── 🔧 @tiptap/suggestion               (斜杠命令) ✨新增
+```
+
+### 自定义扩展
+
+```
+🛠️ 项目自定义扩展
+├── ResizableImage      (可调整大小图片，自定义 NodeView)
+├── ImagePasteHandler   (图片粘贴/拖放处理，保存为附件)
+└── SlashCommands       (Notion 风格 "/" 命令菜单)
 ```
 
 ### 统计
@@ -521,54 +534,112 @@ Color.configure({
 | ---------- | ------ | ---------- | ------- |
 | Nodes      | 18     | 25         | 72%     |
 | Marks      | 8      | 10         | 80%     |
-| Extensions | 9      | 14         | 64%     |
-| **总计**   | **35** | **49**     | **71%** |
+| Extensions | 13     | 18+        | 72%     |
+| **总计**   | **39** | **53+**    | **74%** |
 
 ---
 
-## 八、扩展规划建议
+## 八、开源与付费说明
 
-### 🔴 强烈推荐添加
+### 许可证信息
 
-| 扩展                        | 理由                       | 安装命令                                                          |
-| --------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| **CodeBlock Lowlight**      | 代码语法高亮，开发者必备   | `npm i @tiptap/extension-code-block-lowlight lowlight`            |
-| **CharacterCount**          | 字数统计，写作应用常见需求 | `npm i @tiptap/extension-character-count`                         |
-| **Subscript + Superscript** | 数学/化学公式需要          | `npm i @tiptap/extension-subscript @tiptap/extension-superscript` |
+TipTap 采用**双重许可模式**：
+
+| 类型              | 许可证   | 费用 | 说明                   |
+| ----------------- | -------- | ---- | ---------------------- |
+| **核心扩展**      | MIT      | 免费 | 开源，可商用           |
+| **Platform 功能** | 商业授权 | 付费 | 需订阅 TipTap Platform |
+
+### ✅ 免费开源扩展 (MIT License)
+
+以下扩展**完全免费**，可用于商业项目：
+
+**Nodes（节点）**
+
+- Document, Paragraph, Text, Heading, Blockquote
+- BulletList, OrderedList, ListItem, TaskList, TaskItem
+- CodeBlock, CodeBlock Lowlight, HardBreak, HorizontalRule
+- Image, Table, TableRow, TableCell, TableHeader
+- Details, DetailsContent, DetailsSummary
+- YouTube, Mention, Emoji, Mathematics
+
+**Marks（标记）**
+
+- Bold, Italic, Strike, Code, Underline, Link
+- Highlight, Subscript, Superscript, TextStyle
+
+**Extensions（功能）**
+
+- StarterKit, History, Dropcursor, Gapcursor
+- Placeholder, TextAlign, CharacterCount, Typography
+- BubbleMenu, FloatingMenu, Focus, Color, FontFamily
+- ListKeymap, TrailingNode, Suggestion
+
+### ❌ 付费 Platform 功能
+
+以下功能需要 **TipTap Platform 订阅**（$每月付费）：
+
+| 功能                     | 订阅级别 | 说明                    |
+| ------------------------ | -------- | ----------------------- |
+| **AI Toolkit**           | Add-on   | AI 驱动的文档编辑和代理 |
+| **AI Generation**        | Start+   | 内联 AI 文本生成        |
+| **Comments**             | Start+   | 文档批注/评论功能       |
+| **Import**               | Start+   | DOCX/ODT/Markdown 导入  |
+| **Export**               | Start+   | DOCX/ODT/Markdown 导出  |
+| **Collaboration**        | Start+   | 实时多人协作 (CRDT)     |
+| **Collaboration Caret**  | Start+   | 协作者光标显示          |
+| **Pages**                | Team+    | 分页布局功能            |
+| **Snapshot**             | Team+    | 文档版本历史快照        |
+| **Compare Snapshots**    | Team+    | 版本对比差异            |
+| **Drag Handle**          | Start+   | 节点拖拽排序手柄        |
+| **File Handler**         | Start+   | 文件拖放上传处理        |
+| **UniqueID**             | Team+    | 节点唯一标识符          |
+| **Invisible Characters** | Team+    | 显示隐藏字符            |
+
+> **TipTap Platform 定价**（2025年）
+>
+> - **Start**: $99/月起
+> - **Team**: $299/月起
+> - **Business**: 定制价格
+> - **Enterprise**: 联系销售
+
+### 开源替代方案
+
+如果需要付费功能但不想订阅，可以考虑开源替代：
+
+| 付费功能       | 开源替代                                                                                  | 说明          |
+| -------------- | ----------------------------------------------------------------------------------------- | ------------- |
+| Collaboration  | [Yjs](https://github.com/yjs/yjs) + [y-prosemirror](https://github.com/yjs/y-prosemirror) | CRDT 实时协作 |
+| AI Integration | 自行集成 OpenAI/Claude API                                                                | 需自己开发    |
+| Import/Export  | [prosemirror-docx](https://github.com/benrbray/prosemirror-docx)                          | 社区方案      |
+
+---
+
+## 九、扩展规划建议
+
+### � 强烈推荐添加
+
+| 扩展                        | 理由                     | 安装命令                                                          |
+| --------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| **CodeBlock Lowlight**      | 代码语法高亮，开发者必备 | `npm i @tiptap/extension-code-block-lowlight lowlight`            |
+| **Subscript + Superscript** | 数学/化学公式需要        | `npm i @tiptap/extension-subscript @tiptap/extension-superscript` |
 
 ### 🟡 建议考虑添加
 
-| 扩展             | 理由                         | 安装命令                                |
-| ---------------- | ---------------------------- | --------------------------------------- |
-| **BubbleMenu**   | 选中文字时快捷格式化         | `npm i @tiptap/extension-bubble-menu`   |
-| **FloatingMenu** | 空行快捷插入内容             | `npm i @tiptap/extension-floating-menu` |
-| **Typography**   | 自动优化排版（引号、破折号） | `npm i @tiptap/extension-typography`    |
-| **YouTube**      | 嵌入视频，多媒体笔记         | `npm i @tiptap/extension-youtube`       |
+| 扩展                  | 理由                 | 安装命令                                                     |
+| --------------------- | -------------------- | ------------------------------------------------------------ |
+| **YouTube**           | 嵌入视频，多媒体笔记 | `npm i @tiptap/extension-youtube`                            |
+| **Color + TextStyle** | 文字颜色             | `npm i @tiptap/extension-color @tiptap/extension-text-style` |
+| **FontFamily**        | 字体选择             | `npm i @tiptap/extension-font-family`                        |
 
 ### 🟢 可选添加
 
-| 扩展                  | 理由       | 安装命令                                                                                              |
-| --------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| **Color + TextStyle** | 文字颜色   | `npm i @tiptap/extension-color @tiptap/extension-text-style`                                          |
-| **FontFamily**        | 字体选择   | `npm i @tiptap/extension-font-family`                                                                 |
-| **Details**           | 折叠内容块 | `npm i @tiptap/extension-details @tiptap/extension-details-content @tiptap/extension-details-summary` |
-| **Mention**           | @提及功能  | `npm i @tiptap/extension-mention`                                                                     |
-| **Mathematics**       | LaTeX 公式 | `npm i @tiptap/extension-mathematics katex`                                                           |
-
-### ❌ 付费扩展（Pro）
-
-以下需要商业授权，目前不建议使用：
-
-- Collaboration (实时协作)
-- Comments (评论批注)
-- AI Toolkit (AI 助手)
-- Import/Export (Word 导入导出)
-- File Handler (文件拖放)
-- Drag Handle (拖拽排序)
-- UniqueID (节点唯一 ID)
-- Invisible Characters (显示空格/换行)
-- Pages (分页)
-- Snapshot (版本快照)
+| 扩展            | 理由       | 安装命令                                                                                              |
+| --------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| **Details**     | 折叠内容块 | `npm i @tiptap/extension-details @tiptap/extension-details-content @tiptap/extension-details-summary` |
+| **Mention**     | @提及功能  | `npm i @tiptap/extension-mention`                                                                     |
+| **Mathematics** | LaTeX 公式 | `npm i @tiptap/extension-mathematics katex`                                                           |
+| **Emoji**       | 表情符号   | `npm i @tiptap/extension-emoji`                                                                       |
 
 ---
 
@@ -576,6 +647,8 @@ Color.configure({
 
 - [TipTap 官方文档](https://tiptap.dev/docs)
 - [扩展列表](https://tiptap.dev/docs/editor/extensions)
-- [GitHub 仓库](https://github.com/ueberdosis/tiptap)
+- [GitHub 仓库](https://github.com/ueberdosis/tiptap) (MIT License)
+- [定价页面](https://tiptap.dev/pricing)
+- [功能对比](https://tiptap.dev/feature-comparison)
 - [API 参考](https://tiptap.dev/docs/editor/api)
 - [社区扩展 (Awesome TipTap)](https://github.com/ueberdosis/awesome-tiptap)

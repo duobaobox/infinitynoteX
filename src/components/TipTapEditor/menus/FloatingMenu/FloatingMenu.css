@@ -1,0 +1,78 @@
+/**
+ * FloatingMenu 浮动菜单样式
+ */
+
+.floating-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 按钮通用样式 */
+.floating-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.floating-menu button:hover {
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary, #333);
+}
+
+.floating-menu button.is-active {
+  background: rgba(var(--theme-color-rgb, 24, 144, 255), 0.15);
+  color: var(--theme-color, #1890ff);
+}
+
+/* 分隔线 */
+.floating-menu .divider {
+  width: 20px;
+  height: 1px;
+  margin: 4px auto;
+  background: var(--border-color, #e0e0e0);
+}
+
+/* 暗色主题适配 */
+[data-theme='dark'] .floating-menu {
+  background: var(--panel-bg, #1a1a1a);
+  border-color: var(--border-color, #333);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .floating-menu button {
+  color: var(--text-secondary, #aaa);
+}
+
+[data-theme='dark'] .floating-menu button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+[data-theme='dark'] .floating-menu button.is-active {
+  background: rgba(var(--theme-color-rgb, 24, 144, 255), 0.25);
+  color: var(--theme-color, #1890ff);
+}
+
+[data-theme='dark'] .floating-menu .divider {
+  background: var(--border-color, #444);
+}

@@ -80,23 +80,20 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({ node, updateAttribut
       const maxWidth = Math.max(containerWidth, originalWidth);
       newWidth = Math.min(newWidth, maxWidth);
 
-      // 计算对应高度（保持宽高比）
-      const newHeight = Math.round(newWidth / aspectRatioRef.current);
-
       if (imgRef.current) {
-        imgRef.current.style.width = `${newWidth}px`;
-        imgRef.current.style.height = `${newHeight}px`;
+        // 拖拽时设置 maxWidth，允许响应式缩小
+        imgRef.current.style.maxWidth = `${newWidth}px`;
       }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeSide(null);
-      // 保存最终尺寸到节点属性
+      // 只保存宽度，高度自动根据宽高比计算
       if (imgRef.current) {
         updateAttributes({
           width: imgRef.current.offsetWidth,
-          height: imgRef.current.offsetHeight,
+          height: null, // 不固定高度，让 CSS 自动保持宽高比
         });
       }
     };
@@ -131,8 +128,10 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({ node, updateAttribut
           alt={node.attrs.alt || ''}
           title={node.attrs.title || ''}
           style={{
-            width: node.attrs.width ? `${node.attrs.width}px` : 'auto',
-            height: node.attrs.height ? `${node.attrs.height}px` : 'auto',
+            // 使用 max-width 确保图片不会超过设定宽度，同时允许响应式缩小
+            maxWidth: node.attrs.width ? `${node.attrs.width}px` : '100%',
+            width: '100%', // 让图片填满容器，但受 max-width 限制
+            height: 'auto', // 保持宽高比
           }}
           draggable={false}
         />

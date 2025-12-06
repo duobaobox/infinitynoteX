@@ -7,6 +7,7 @@ import { getBasicExtensions, type EditorConfig } from './basic';
 import { getFormattingExtensions } from './formatting';
 import { getContentExtensions } from './content';
 import { getTaskExtensions } from './task';
+import { getEnhancementExtensions } from './enhancements';
 
 /**
  * 获取所有编辑器扩展
@@ -18,6 +19,7 @@ export const getExtensions = (config?: EditorConfig) => {
     ...getFormattingExtensions(),
     ...getContentExtensions(config),
     ...getTaskExtensions(),
+    ...getEnhancementExtensions(),
   ];
 };
 

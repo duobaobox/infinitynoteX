@@ -1,0 +1,38 @@
+/**
+ * CharacterCount 字符计数组件样式
+ */
+
+.character-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary, #999);
+  user-select: none;
+}
+
+.character-count .count {
+  transition: color 0.2s ease;
+}
+
+.character-count .count.near-limit {
+  color: var(--warning-color, #faad14);
+}
+
+.character-count .count.over-limit {
+  color: var(--error-color, #ff4d4f);
+  font-weight: 500;
+}
+
+.character-count .separator {
+  color: var(--text-tertiary, #999);
+}
+
+/* 暗色主题适配 */
+[data-theme='dark'] .character-count {
+  color: var(--text-tertiary, #666);
+}
+
+[data-theme='dark'] .character-count .separator {
+  color: var(--text-tertiary, #666);
+}

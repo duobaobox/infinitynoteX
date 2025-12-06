@@ -9,6 +9,8 @@ import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Input } from 'antd';
 import { MenuBar } from '../menus/MenuBar';
+import { BubbleMenu } from '../menus/BubbleMenu';
+import { CharacterCount } from '../menus/components/CharacterCount';
 import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
 import { getThemeColor } from '../../../theme/theme';
@@ -22,6 +24,9 @@ import '../styles/table.css';
  * - 完整的富文本编辑功能
  * - 支持任务列表、图片、代码块等
  * - 响应式工具栏
+ * - BubbleMenu 选中文字时弹出格式化工具栏
+ * - SlashCommands 输入 "/" 时弹出命令菜单
+ * - 字符计数
  * - TypeScript 类型安全
  */
 const TipTapEditor: React.FC<TipTapEditorProps> = ({
@@ -190,7 +195,17 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
       {/* 编辑器内容区域 */}
       <div className="tiptap-editor-wrapper">
+        {/* BubbleMenu - 选中文字时弹出格式化工具栏 */}
+        {editable && <BubbleMenu editor={editor} />}
+
+        {/* SlashCommands - 输入 "/" 时弹出命令菜单（通过 extensions 集成，无需 JSX） */}
+
         <EditorContent editor={editor} />
+
+        {/* 字符计数 - 显示在编辑器底部 */}
+        <div className="editor-footer">
+          <CharacterCount editor={editor} showWords={true} />
+        </div>
       </div>
     </div>
   );

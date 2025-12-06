@@ -96,6 +96,17 @@
   padding: 8px 18px;
   background: var(--panel-bg);
   border-radius: 0 0 6px 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 编辑器底部区域（字符计数等） */
+.editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
+  margin-top: auto;
+  border-top: 1px solid var(--toolbar-divider);
 }
 
 /* ==================== ProseMirror 编辑器样式 ==================== */
@@ -438,10 +449,21 @@ ul[data-type='taskList'] li[data-checked='true'] > div {
   color: #6a737d;
 }
 
-/* ==================== Placeholder 样式 ==================== */
+/* ==================== Placeholder 样式（官方 TipTap 推荐） ==================== */
 
-.tiptap-editor.is-editor-empty::before {
-  color: var(--placeholder);
+/* 空编辑器中的第一个段落显示占位符 */
+.tiptap-editor p.is-editor-empty:first-child::before {
+  color: var(--placeholder, #adb5bd);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* 也支持空编辑器的 is-empty 类（兼容不同版本） */
+.tiptap-editor.is-empty > .ProseMirror > p:first-child::before,
+.tiptap-editor > .ProseMirror.is-editor-empty > p:first-child::before {
+  color: var(--placeholder, #adb5bd);
   content: attr(data-placeholder);
   float: left;
   height: 0;

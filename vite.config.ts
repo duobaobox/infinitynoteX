@@ -15,6 +15,15 @@ export default defineConfig({
       main: {
         // `build.lib.entry` 的快捷方式。
         entry: 'electron/main.ts',
+        // 配置主进程的构建选项
+        vite: {
+          build: {
+            rollupOptions: {
+              // 将原生模块作为外部依赖，避免打包问题
+              external: ['sharp'],
+            },
+          },
+        },
       },
       preload: {
         // `build.rollupOptions.input` 的快捷方式。

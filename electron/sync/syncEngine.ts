@@ -10,7 +10,7 @@
  */
 
 import path from 'node:path';
-import fs from 'node:fs/promises';
+import fsNode from 'node:fs/promises';
 import type {
   LocalSyncState,
   RemoteSyncManifest,
@@ -34,6 +34,7 @@ import {
   safeWriteFile,
   safeDeleteFile,
   isPathInSyncScope,
+  ensureDir,
 } from './syncUtils';
 import { WebDAVSyncClient } from './webdavClient';
 
@@ -98,20 +99,22 @@ class SyncLogger {
     if (this.logs.length === 0) return;
 
     const logDir = path.join(this.storagePath, '.sync-logs');
-    await fs.mkdir(logDir, { recursive: true });
+    await fsNode.mkdir(logDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const logFile = path.join(logDir, `sync-${timestamp}.json`);
 
-    await fs.writeFile(logFile, JSON.stringify(this.logs, null, 2), 'utf-8');
+    await fsNode.writeFile(logFile, JSON.stringify(this.logs, null, 2), 'utf-8');
 
     // 只保留最近 10 个日志文件
     try {
-      const files = await fs.readdir(logDir);
-      const logFiles = files.filter((f) => f.startsWith('sync-') && f.endsWith('.json')).sort();
+      const files = await fsNode.readdir(logDir);
+      const logFiles = files
+        .filter((f: string) => f.startsWith('sync-') && f.endsWith('.json'))
+        .sort();
       if (logFiles.length > 10) {
         for (const oldFile of logFiles.slice(0, logFiles.length - 10)) {
-          await fs.unlink(path.join(logDir, oldFile));
+          await fsNode.unlink(path.join(logDir, oldFile));
         }
       }
     } catch {
@@ -564,7 +567,7 @@ export class SyncEngine {
       } else {
         // 备份本地版本
         const localPath = path.join(this.storagePath, diff.path);
-        const localContent = await fs.readFile(localPath, 'utf-8');
+        const localContent = await fsNode.readFile(localPath, 'utf-8');
         await safeWriteFile(backupFullPath, localContent);
       }
 
@@ -727,8 +730,16 @@ export class SyncEngine {
   ): Promise<void> {
     const local = diff.local!;
 
-    // 上传到远程
-    await this.webdavClient.uploadDataFile(diff.path, local.content);
+    // 根据文件类型选择上传方式
+    if (local.isBinary) {
+      // 二进制文件：从磁盘读取后上传
+      const localPath = path.join(this.storagePath, diff.path);
+      const buffer = await fsNode.readFile(localPath);
+      await this.webdavClient.uploadDataFileBinary(diff.path, buffer);
+    } else {
+      // 文本文件：直接使用已读取的内容
+      await this.webdavClient.uploadDataFile(diff.path, local.content!);
+    }
 
     // 更新远程清单
     manifest.files[diff.path] = {
@@ -744,7 +755,7 @@ export class SyncEngine {
       syncedAt: Date.now(),
     };
 
-    console.log(`[Sync] Uploaded: ${diff.path}`);
+    console.log(`[Sync] Uploaded: ${diff.path}${local.isBinary ? ' (binary)' : ''}`);
   }
 
   /**
@@ -756,13 +767,21 @@ export class SyncEngine {
     localState: LocalSyncState,
   ): Promise<void> {
     const remote = diff.remote!;
-
-    // 从远程下载
-    const content = await this.webdavClient.downloadDataFile(diff.path);
-
-    // 保存到本地
     const localPath = path.join(this.storagePath, diff.path);
-    await safeWriteFile(localPath, content);
+
+    // 检查是否为二进制文件（根据路径判断）
+    const isBinary = !diff.path.endsWith('.json');
+
+    if (isBinary) {
+      // 二进制文件：下载并保存为 Buffer
+      const buffer = await this.webdavClient.downloadDataFileBinary(diff.path);
+      await ensureDir(path.dirname(localPath));
+      await fsNode.writeFile(localPath, buffer);
+    } else {
+      // 文本文件：下载并保存为字符串
+      const content = await this.webdavClient.downloadDataFile(diff.path);
+      await safeWriteFile(localPath, content);
+    }
 
     // 更新本地同步状态
     localState.files[diff.path] = {
@@ -770,7 +789,7 @@ export class SyncEngine {
       syncedAt: Date.now(),
     };
 
-    console.log(`[Sync] Downloaded: ${diff.path}`);
+    console.log(`[Sync] Downloaded: ${diff.path}${isBinary ? ' (binary)' : ''}`);
   }
 
   /**

@@ -12,6 +12,7 @@ import { FolderStorage } from './FolderStorage';
 import { NoteStorage } from './NoteStorage';
 import { AIStorage } from './AIStorage';
 import { TrashStorage } from './TrashStorage';
+import { AttachmentStorage } from './AttachmentStorage';
 import type {
   StorageMeta,
   HealthCheckResult,
@@ -46,6 +47,7 @@ export class StorageManager {
   readonly notes: NoteStorage;
   readonly ai: AIStorage;
   readonly trash: TrashStorage;
+  readonly attachments: AttachmentStorage;
 
   constructor() {
     this.context = new StorageContext();
@@ -53,6 +55,7 @@ export class StorageManager {
     this.notes = new NoteStorage(this.context, this.folders);
     this.ai = new AIStorage(this.context);
     this.trash = new TrashStorage(this.context);
+    this.attachments = new AttachmentStorage(this.context.currentPath);
   }
 
   // ============ 初始化 ============
@@ -322,6 +325,7 @@ export class StorageManager {
 
     if (!migrate) {
       this.context.setCurrentPath(nextPath);
+      this.attachments.setStoragePath(nextPath);
       this.clearAllCaches();
       await this.ensureStorageInitialized();
       return;
@@ -347,6 +351,7 @@ export class StorageManager {
       await validateStorageIntegrity(toPath);
 
       this.context.setCurrentPath(toPath);
+      this.attachments.setStoragePath(toPath);
       this.clearAllCaches();
       await this.loadAllCaches();
 
@@ -754,6 +759,119 @@ export class StorageManager {
     }
 
     return issues;
+  }
+
+  // ============ 附件垃圾回收 ============
+
+  /**
+   * 清理孤立附件
+   * 扫描所有便签和回收站中的 attachment:// 引用，删除未被引用的附件文件
+   * @returns 删除统计
+   */
+  async cleanupOrphanedAttachments(): Promise<{
+    deleted: number;
+    freedBytes: number;
+    errors: string[];
+  }> {
+    console.log('[Storage] Starting attachment garbage collection...');
+    const errors: string[] = [];
+
+    try {
+      // 1. 收集所有被引用的附件 ID
+      const usedAttachmentIds = new Set<string>();
+
+      // 扫描便签
+      const notes = await this.notes.list();
+      for (const noteIndex of notes) {
+        try {
+          const note = await this.notes.get(noteIndex.id);
+          this.extractAttachmentIds(note.content, usedAttachmentIds);
+        } catch (error) {
+          errors.push(`Failed to scan note ${noteIndex.id}`);
+        }
+      }
+
+      // 扫描回收站
+      const trashItems = await this.trash.list();
+      for (const trashIndex of trashItems) {
+        try {
+          const item = await this.trash.get(trashIndex.id);
+          this.extractAttachmentIds(item.content, usedAttachmentIds);
+        } catch (error) {
+          errors.push(`Failed to scan trash item ${trashIndex.id}`);
+        }
+      }
+
+      console.log(`[Storage] Found ${usedAttachmentIds.size} referenced attachments`);
+
+      // 2. 获取所有附件
+      const allAttachments = await this.attachments.list();
+      console.log(`[Storage] Found ${allAttachments.length} total attachments`);
+
+      // 3. 找出孤立附件
+      const orphanedAttachments = allAttachments.filter((att) => !usedAttachmentIds.has(att.id));
+
+      if (orphanedAttachments.length === 0) {
+        console.log('[Storage] No orphaned attachments found');
+        return { deleted: 0, freedBytes: 0, errors };
+      }
+
+      // 4. 删除孤立附件
+      let deleted = 0;
+      let freedBytes = 0;
+
+      for (const attachment of orphanedAttachments) {
+        try {
+          await this.attachments.delete(attachment.id);
+          deleted++;
+          freedBytes += attachment.size;
+          console.log(`[Storage] Deleted orphaned attachment: ${attachment.id}`);
+        } catch (error) {
+          errors.push(`Failed to delete attachment ${attachment.id}`);
+        }
+      }
+
+      console.log(
+        `[Storage] Garbage collection completed: ${deleted} files deleted, ${(freedBytes / 1024 / 1024).toFixed(2)} MB freed`,
+      );
+
+      return { deleted, freedBytes, errors };
+    } catch (error) {
+      console.error('[Storage] Garbage collection failed:', error);
+      errors.push(`Fatal error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return { deleted: 0, freedBytes: 0, errors };
+    }
+  }
+
+  /**
+   * 从 TipTap 内容中提取 attachment:// 引用
+   */
+  private extractAttachmentIds(content: unknown, ids: Set<string>): void {
+    if (!content || typeof content !== 'object') return;
+
+    const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+    const traverse = (node: unknown) => {
+      if (!isObj(node)) return;
+
+      // 检查图片节点的 src 属性
+      if (node.type === 'image' && typeof node.attrs === 'object' && node.attrs) {
+        const attrs = node.attrs as Record<string, unknown>;
+        if (typeof attrs.src === 'string' && attrs.src.startsWith('attachment://')) {
+          const id = attrs.src.replace('attachment://', '');
+          ids.add(id);
+        }
+      }
+
+      // 递归遍历子节点
+      if (Array.isArray(node.content)) {
+        for (const child of node.content) {
+          traverse(child);
+        }
+      }
+    };
+
+    traverse(content);
   }
 }
 

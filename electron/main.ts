@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron';
 import type { BrowserWindowConstructorOptions, OpenDialogOptions } from 'electron';
 import type {
   SetStoragePathOptions,
@@ -265,7 +265,40 @@ app.on('before-quit', () => {
   saveWindowState();
 });
 
+// ============ 注册自定义协议 attachment:// ============
+// 必须在 app.ready 之前配置
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'attachment',
+    privileges: {
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+    },
+  },
+]);
+
 app.whenReady().then(async () => {
+  // 注册 attachment:// 协议处理器
+  protocol.handle('attachment', async (request) => {
+    try {
+      const url = new URL(request.url);
+      // URL 格式: attachment://img-xxx (不含扩展名)
+      const id = url.hostname || url.pathname.replace(/^\//, '');
+
+      // 获取附件完整路径
+      const filePath = await storageManager.attachments.getPath(id);
+      if (!filePath) {
+        console.warn(`[Attachment] File not found: ${id}`);
+        return new Response('Not Found', { status: 404 });
+      }
+
+      return net.fetch(`file://${filePath}`);
+    } catch (error) {
+      console.error('[Attachment] Protocol handler error:', error);
+      return new Response('Internal Error', { status: 500 });
+    }
+  });
   // 从旧配置文件迁移（首次升级时执行）
   await migrateFromLegacyConfigs();
 
@@ -468,6 +501,58 @@ ipcMain.handle('storage:deleteTrashItemPermanently', async (_, id: string) => {
 
 ipcMain.handle('storage:emptyTrash', async () => {
   return await storageManager.emptyTrash();
+});
+
+// ============ 附件 IPC 处理器 ============
+
+/**
+ * 保存附件（从 Base64 Data URL）
+ * @returns 附件 ID
+ */
+ipcMain.handle('attachments:save', async (_, dataUrl: string) => {
+  try {
+    const id = await storageManager.attachments.saveFromDataUrl(dataUrl);
+    return { success: true, id };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[Attachments] Save failed:', msg);
+    return { success: false, error: msg };
+  }
+});
+
+/**
+ * 获取附件路径
+ */
+ipcMain.handle('attachments:getPath', async (_, id: string) => {
+  return await storageManager.attachments.getPath(id);
+});
+
+/**
+ * 删除附件
+ */
+ipcMain.handle('attachments:delete', async (_, id: string) => {
+  try {
+    await storageManager.attachments.delete(id);
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, error: msg };
+  }
+});
+
+/**
+ * 列出所有附件
+ */
+ipcMain.handle('attachments:list', async () => {
+  return await storageManager.attachments.list();
+});
+
+/**
+ * 附件垃圾回收
+ * 清理未被任何便签引用的孤立附件
+ */
+ipcMain.handle('attachments:cleanup', async () => {
+  return await storageManager.cleanupOrphanedAttachments();
 });
 
 // ============ 系统对话框 IPC 处理器 ============

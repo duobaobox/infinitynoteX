@@ -167,12 +167,21 @@ export class WebDAVSyncClient {
   }
 
   /**
-   * 下载文件
+   * 下载文件（文本）
    */
   async downloadFile(remotePath: string): Promise<string> {
     const client = this.ensureClient();
     const result = await client.getFileContents(remotePath, { format: 'text' });
     return result as string;
+  }
+
+  /**
+   * 下载文件（二进制）
+   */
+  async downloadFileBinary(remotePath: string): Promise<Buffer> {
+    const client = this.ensureClient();
+    const result = await client.getFileContents(remotePath, { format: 'binary' });
+    return Buffer.from(result as ArrayBuffer);
   }
 
   /**
@@ -263,12 +272,37 @@ export class WebDAVSyncClient {
   }
 
   /**
+   * 上传二进制数据文件（如图片）
+   */
+  async uploadDataFileBinary(relativePath: string, buffer: Buffer): Promise<void> {
+    const config = this.config!;
+    const remotePath = toRemotePath(config.remotePath, relativePath);
+
+    // 确保目录存在
+    const dir = remotePath.substring(0, remotePath.lastIndexOf('/'));
+    if (!(await this.exists(dir))) {
+      await this.createDirectory(dir);
+    }
+
+    await this.uploadFile(remotePath, buffer);
+  }
+
+  /**
    * 下载数据文件
    */
   async downloadDataFile(relativePath: string): Promise<string> {
     const config = this.config!;
     const remotePath = toRemotePath(config.remotePath, relativePath);
     return await this.downloadFile(remotePath);
+  }
+
+  /**
+   * 下载二进制数据文件（如图片）
+   */
+  async downloadDataFileBinary(relativePath: string): Promise<Buffer> {
+    const config = this.config!;
+    const remotePath = toRemotePath(config.remotePath, relativePath);
+    return await this.downloadFileBinary(remotePath);
   }
 
   /**

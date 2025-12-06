@@ -46,6 +46,13 @@ export function md5(content: string): string {
 }
 
 /**
+ * 计算二进制数据的 MD5 哈希
+ */
+export function md5Binary(buffer: Buffer): string {
+  return crypto.createHash('md5').update(buffer).digest('hex');
+}
+
+/**
  * 计算 JSON 内容的哈希（先规范化）
  */
 export function hashJsonContent(content: string): string {
@@ -90,7 +97,7 @@ export function generateDeviceId(): string {
 export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo[]> {
   const files: LocalFileInfo[] = [];
 
-  // 扫描单独的文件
+  // 扫描单独的文件（如 folders.json）
   for (const fileName of SYNC_FILES) {
     const filePath = path.join(storagePath, fileName);
     try {
@@ -102,6 +109,7 @@ export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo
         modifiedAt: stat.mtimeMs,
         size: stat.size,
         content,
+        isBinary: false,
       });
     } catch (error) {
       // 文件不存在则跳过
@@ -117,21 +125,39 @@ export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
       for (const entry of entries) {
-        if (!entry.isFile() || !entry.name.endsWith('.json')) {
+        if (!entry.isFile()) {
           continue;
         }
+
         const relativePath = `${dirName}/${entry.name}`;
         const filePath = path.join(dirPath, entry.name);
+
         try {
           const stat = await fs.stat(filePath);
-          const content = await fs.readFile(filePath, 'utf-8');
-          files.push({
-            path: relativePath,
-            hash: hashJsonContent(content),
-            modifiedAt: stat.mtimeMs,
-            size: stat.size,
-            content,
-          });
+          const isJson = entry.name.endsWith('.json');
+
+          if (isJson) {
+            // JSON 文件：读取内容并计算规范化哈希
+            const content = await fs.readFile(filePath, 'utf-8');
+            files.push({
+              path: relativePath,
+              hash: hashJsonContent(content),
+              modifiedAt: stat.mtimeMs,
+              size: stat.size,
+              content,
+              isBinary: false,
+            });
+          } else {
+            // 二进制文件（如图片）：只计算哈希，不加载内容
+            const buffer = await fs.readFile(filePath);
+            files.push({
+              path: relativePath,
+              hash: md5Binary(buffer),
+              modifiedAt: stat.mtimeMs,
+              size: stat.size,
+              isBinary: true,
+            });
+          }
         } catch (error) {
           console.warn(`[Sync] Failed to scan file: ${relativePath}`, error);
         }

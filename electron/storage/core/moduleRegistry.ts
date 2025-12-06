@@ -159,6 +159,22 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     description: '已删除便签（30天后自动清理）',
   },
 
+  // ============ 附件（图片等二进制文件） ============
+  {
+    id: 'attachments',
+    name: '附件',
+    path: 'attachments',
+    extension: '', // 允许任意扩展名（.webp, .png, .jpg 等）
+    schema: z.any(), // 二进制文件不需要 schema 验证
+    sync: { enabled: true, type: 'directory' },
+    features: {
+      softDelete: false,
+      generateExcerpt: false,
+      hasIndex: false,
+    },
+    description: '图片等附件文件',
+  },
+
   // ============ 待办事项（预留，暂未启用） ============
   // {
   //   id: 'todos',

@@ -6,6 +6,7 @@
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
 import { ResizableImage } from './ResizableImage';
+import { ImagePasteHandler } from './ImagePasteHandler';
 import type { EditorConfig } from './basic';
 
 /**
@@ -62,5 +63,9 @@ export const getContentExtensions = (config?: EditorConfig) => {
         },
       },
     }),
+
+    // 图片粘贴/拖放处理扩展
+    // 拦截粘贴和拖放事件，将图片保存到 attachments 目录
+    ImagePasteHandler,
   ];
 };

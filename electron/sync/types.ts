@@ -87,8 +87,10 @@ export interface LocalFileInfo {
   modifiedAt: number;
   /** 文件大小 */
   size: number;
-  /** 文件内容 */
-  content: string;
+  /** 文件内容（仅文本文件） */
+  content?: string;
+  /** 是否为二进制文件 */
+  isBinary?: boolean;
 }
 
 // ============ 同步差异分析 ============

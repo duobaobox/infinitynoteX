@@ -162,6 +162,58 @@ contextBridge.exposeInMainWorld('appInfo', {
   getVersion: () => ipcRenderer.invoke('app:getVersion') as Promise<string>,
 });
 
+// --------- Expose Attachments API ---------
+contextBridge.exposeInMainWorld('attachments', {
+  /**
+   * 保存附件（从 Base64 Data URL）
+   * @param dataUrl 形如 data:image/png;base64,xxxxx 的字符串
+   * @returns 附件 ID（用于构建 attachment://xxx URL）
+   */
+  save: (dataUrl: string) =>
+    ipcRenderer.invoke('attachments:save', dataUrl) as Promise<{
+      success: boolean;
+      id?: string;
+      error?: string;
+    }>,
+
+  /**
+   * 获取附件的完整文件路径
+   */
+  getPath: (id: string) => ipcRenderer.invoke('attachments:getPath', id) as Promise<string | null>,
+
+  /**
+   * 删除附件
+   */
+  delete: (id: string) =>
+    ipcRenderer.invoke('attachments:delete', id) as Promise<{
+      success: boolean;
+      error?: string;
+    }>,
+
+  /**
+   * 列出所有附件
+   */
+  list: () =>
+    ipcRenderer.invoke('attachments:list') as Promise<
+      Array<{
+        id: string;
+        filename: string;
+        size: number;
+        createdAt: number;
+      }>
+    >,
+
+  /**
+   * 清理未被引用的附件（垃圾回收）
+   */
+  cleanup: () =>
+    ipcRenderer.invoke('attachments:cleanup') as Promise<{
+      deleted: number;
+      freedBytes: number;
+      errors: string[];
+    }>,
+});
+
 // --------- Expose AI API ---------
 contextBridge.exposeInMainWorld('ai', {
   getConfig: () => ipcRenderer.invoke('ai:getConfig') as Promise<AIConfig | null>,

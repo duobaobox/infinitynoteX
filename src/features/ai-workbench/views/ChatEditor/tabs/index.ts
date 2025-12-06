@@ -5,15 +5,19 @@
  */
 
 import { RobotOutlined, AppstoreOutlined, SettingOutlined } from '@ant-design/icons';
-import type { TabKeyType } from './types';
 
-// 导出所有 Tab 组件
+// ============ 类型定义 ============
+
+/** Tab 键类型 */
+export type TabKeyType = 'ai' | 'kit' | 'settings';
+
+// ============ 组件导出 ============
+
 export { AITab } from './AITab';
 export { KitTab } from './KitTab';
 export { default as SettingsTab } from './SettingsTab';
 
-// 导出类型
-export type { TabKeyType };
+// ============ Tab 配置 ============
 
 /**
  * Tab 配置

@@ -7,7 +7,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Segmented } from 'antd';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { AITab, KitTab, SettingsTab, TAB_CONFIG, type TabKeyType } from './tabs';
-import './ChatEditor.css';
 
 /**
  * ChatEditor - AI 工作台编辑器组件

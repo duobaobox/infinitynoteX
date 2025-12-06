@@ -1,3 +1,13 @@
+/**
+ * SettingsTab - AI 参数设置面板
+ *
+ * 功能概述:
+ * - 显示当前 AI 模型配置状态
+ * - 调节温度、最大 Token、超时时间等参数
+ * - 管理系统提示词（支持预设模板）
+ * - 本地即时生效，保存后同步到全局配置
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -29,6 +39,9 @@ import './SettingsTab.css';
 
 const { Paragraph, Text } = Typography;
 
+// ============ 常量配置 ============
+
+/** 系统提示词预设模板 */
 const PROMPT_TEMPLATES = [
   {
     key: 'default',
@@ -71,6 +84,7 @@ const PROMPT_TEMPLATES = [
   },
 ];
 
+/** 参数边界值 */
 const MAX_PROMPT_LENGTH = 2000;
 const TEMPERATURE_MIN = 0;
 const TEMPERATURE_MAX = 2;
@@ -79,6 +93,9 @@ const MAX_TOKEN_MAX = 128000;
 const TIMEOUT_MIN_SECONDS = 5;
 const TIMEOUT_MAX_SECONDS = 600;
 
+// ============ 工具函数 ============
+
+/** 提取用于比较的配置字段 */
 const pickRelevantConfig = (config: AIConfig | null) => ({
   temperature: Number((config?.temperature ?? 0.7).toFixed(2)),
   max_tokens: config?.max_tokens ?? 3500,
@@ -86,10 +103,12 @@ const pickRelevantConfig = (config: AIConfig | null) => ({
   systemPrompt: config?.systemPrompt ?? '',
 });
 
+/** 比较两个配置是否相等（仅比较可编辑字段） */
 const areConfigsEqual = (a: AIConfig | null, b: AIConfig | null) => {
   return JSON.stringify(pickRelevantConfig(a)) === JSON.stringify(pickRelevantConfig(b));
 };
 
+/** 检查配置是否已完成基础设置 */
 const isConfigReady = (config?: AIConfig | null) => {
   if (!config) {
     return false;
@@ -97,7 +116,10 @@ const isConfigReady = (config?: AIConfig | null) => {
   return !!config.baseURL?.trim() && !!config.model?.trim() && !!config.apiKey?.trim();
 };
 
+// ============ 主组件 ============
+
 const AISettingsTab = () => {
+  // -------- State --------
   const [config, setConfig] = useState<AIConfig | null>(null);
   const [draftConfig, setDraftConfig] = useState<AIConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,11 +127,15 @@ const AISettingsTab = () => {
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState(false);
 
+  // -------- 配置加载与订阅 --------
+
+  /** 强制启用流式响应 */
   const enforceStreamEnabled = useCallback((value: AIConfig | null) => {
     if (!value) return null;
     return { ...value, stream: true };
   }, []);
 
+  /** 加载 AI 配置 */
   const loadConfig = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -131,10 +157,12 @@ const AISettingsTab = () => {
     }
   }, [enforceStreamEnabled]);
 
+  // 初始化加载
   useEffect(() => {
     void loadConfig();
   }, [loadConfig]);
 
+  // 订阅配置变更事件
   useEffect(() => {
     const unsubscribe = subscribeAIConfigChanged((nextConfig) => {
       const normalized = ensureAIConfigDefaults(nextConfig);
@@ -146,6 +174,9 @@ const AISettingsTab = () => {
     return unsubscribe;
   }, [enforceStreamEnabled]);
 
+  // -------- 草稿状态管理 --------
+
+  /** 检测是否有未保存的修改 */
   const hasUnsavedChanges = useMemo(() => {
     if (!config && !draftConfig) {
       return false;
@@ -153,6 +184,7 @@ const AISettingsTab = () => {
     return !areConfigsEqual(config, draftConfig);
   }, [config, draftConfig]);
 
+  /** 更新草稿配置 */
   const updateDraft = useCallback((patch: Partial<AIConfig>) => {
     setDraftConfig((prev) => {
       if (!prev) {
@@ -162,10 +194,12 @@ const AISettingsTab = () => {
     });
   }, []);
 
+  /** 重置草稿到已保存状态 */
   const handleReset = useCallback(() => {
     setDraftConfig(config ? { ...config } : null);
   }, [config]);
 
+  /** 保存配置 */
   const handleSave = useCallback(async () => {
     if (!draftConfig) {
       return;
@@ -190,14 +224,28 @@ const AISettingsTab = () => {
     } finally {
       setSaving(false);
     }
-  }, [draftConfig]);
+  }, [draftConfig, enforceStreamEnabled]);
 
+  // -------- 提示词模板处理 --------
+
+  /** 应用提示词模板 */
   const applyPromptTemplate = useCallback(
     (value: string) => {
       updateDraft({ systemPrompt: value });
     },
     [updateDraft],
   );
+
+  /** 处理模板选择 */
+  const handleTemplateSelect = useCallback(
+    (key?: string) => {
+      const template = PROMPT_TEMPLATES.find((item) => item.key === key);
+      applyPromptTemplate(template?.value ?? '');
+    },
+    [applyPromptTemplate],
+  );
+
+  // -------- 派生状态 (Derived State) --------
 
   const providerColor = useMemo(() => {
     if (!draftConfig) {
@@ -228,20 +276,15 @@ const AISettingsTab = () => {
     [],
   );
 
-  const handleTemplateSelect = useCallback(
-    (key?: string) => {
-      const template = PROMPT_TEMPLATES.find((item) => item.key === key);
-      applyPromptTemplate(template?.value ?? '');
-    },
-    [applyPromptTemplate],
-  );
-
   const temperatureLabel = useMemo(() => {
     if (temperature <= 0.5) return '更精确稳健';
     if (temperature >= 1.2) return '更具创意';
     return '平衡输出';
   }, [temperature]);
 
+  // ============ 渲染函数 ============
+
+  /** 渲染加载状态 */
   const renderLoading = () => (
     <div className="ai-settings-empty">
       <Spin />
@@ -251,6 +294,7 @@ const AISettingsTab = () => {
     </div>
   );
 
+  /** 渲染未配置状态 */
   const renderUnconfigured = () => (
     <div className="ai-settings-empty">
       <Alert
@@ -270,6 +314,7 @@ const AISettingsTab = () => {
     </div>
   );
 
+  /** 渲染错误状态 */
   const renderError = () => (
     <Alert
       message="加载失败"
@@ -285,8 +330,10 @@ const AISettingsTab = () => {
     />
   );
 
+  /** 渲染参数配置卡片 */
   const renderParameterCards = () => (
     <>
+      {/* 状态卡片 */}
       <Card className="ai-settings-card ai-settings-status-card" size="small" bordered>
         <div className="ai-settings-status">
           <div className="ai-settings-status-main">
@@ -316,6 +363,7 @@ const AISettingsTab = () => {
       </Card>
 
       <div className="ai-settings-grid">
+        {/* 回答控制卡片 */}
         <Card title="回答控制" size="small" className="ai-settings-card" bordered>
           <Form layout="vertical" colon={false} className="ai-settings-form">
             <Form.Item
@@ -388,6 +436,7 @@ const AISettingsTab = () => {
           </Form>
         </Card>
 
+        {/* 系统提示词卡片 */}
         <Card title="系统提示词" size="small" className="ai-settings-card" bordered>
           <Form layout="vertical" colon={false} className="ai-settings-form">
             <Form.Item label="提示词模板" extra="选择预设后可在下方继续微调。">
@@ -420,6 +469,8 @@ const AISettingsTab = () => {
       </div>
     </>
   );
+
+  // ============ 主渲染 ============
 
   return (
     <div className="ai-settings-tab">

@@ -7,6 +7,7 @@
 import React from 'react';
 import { getFeatureById } from '../../../../../config/featureRegistry';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
+import './KitTab.css';
 
 export const KitTab: React.FC = () => {
   const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);

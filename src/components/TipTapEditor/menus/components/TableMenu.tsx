@@ -134,6 +134,42 @@ export const getTableMenuItems = (editor: Editor) => {
       key: 'divider-4',
       node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
     },
+    // 表头切换
+    {
+      key: 'toggle-header-row',
+      node: (
+        <MenuItemRow
+          icon="ri-layout-row-line"
+          text="切换表头行"
+          onClick={() => editor.commands.toggleHeaderRow()}
+        />
+      ),
+    },
+    {
+      key: 'toggle-header-column',
+      node: (
+        <MenuItemRow
+          icon="ri-layout-column-line"
+          text="切换表头列"
+          onClick={() => editor.commands.toggleHeaderColumn()}
+        />
+      ),
+    },
+    {
+      key: 'toggle-header-cell',
+      node: (
+        <MenuItemRow
+          icon="ri-checkbox-blank-line"
+          text="切换单元格表头"
+          onClick={() => editor.commands.toggleHeaderCell()}
+        />
+      ),
+    },
+    // 分隔符
+    {
+      key: 'divider-5',
+      node: <div style={{ borderTop: '1px solid #f0f0f0', margin: '4px 0' }} />,
+    },
     // 删除表格
     {
       key: 'delete-table',

@@ -5,6 +5,7 @@
  * - 悬浮在表格区域时显示所有行/列手柄
  * - 点击手柄显示操作菜单（添加/删除行列等）
  * - 延迟隐藏机制（防止鼠标移动到手柄时手柄消失）
+ * - 实时更新手柄位置（表格尺寸变化时）
  */
 
 import { Extension } from '@tiptap/core';
@@ -39,7 +40,6 @@ function createMenu(items: MenuItem[]): HTMLDivElement {
   items.forEach((item) => {
     const button = document.createElement('button');
     button.className = `table-handle-menu-item${item.danger ? ' danger' : ''}`;
-    // 使用 Remix Icon 风格
     button.innerHTML = `<i class="${item.icon}"></i><span class="menu-label">${item.label}</span>`;
     button.addEventListener('click', (e) => {
       e.preventDefault();
@@ -68,6 +68,9 @@ export const TableHandles = Extension.create({
     let currentTable: HTMLTableElement | null = null;
     let hideTimeout: ReturnType<typeof setTimeout> | null = null;
     let isMouseOverHandles = false;
+    let resizeObserver: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
+    let updateHandlesFrame: number | null = null;
 
     /**
      * 清除隐藏定时器
@@ -83,6 +86,20 @@ export const TableHandles = Extension.create({
      * 移除所有手柄
      */
     const removeHandles = () => {
+      if (updateHandlesFrame !== null) {
+        cancelAnimationFrame(updateHandlesFrame);
+        updateHandlesFrame = null;
+      }
+
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+      if (mutationObserver) {
+        mutationObserver.disconnect();
+        mutationObserver = null;
+      }
+
       if (handlesContainer) {
         handlesContainer.remove();
         handlesContainer = null;
@@ -118,12 +135,10 @@ export const TableHandles = Extension.create({
     const showRowMenu = (rowIndex: number, x: number, y: number) => {
       removeMenu();
 
-      // 先选中该行的第一个单元格，确保命令作用于正确的行
       if (currentTable) {
         const row = currentTable.rows[rowIndex];
         if (row && row.cells[0]) {
           const cell = row.cells[0];
-          // 获取单元格的位置并聚焦
           const pos = editor.view.posAtDOM(cell, 0);
           editor.commands.setTextSelection(pos);
         }
@@ -160,7 +175,6 @@ export const TableHandles = Extension.create({
       currentMenu.style.top = `${y}px`;
       document.body.appendChild(currentMenu);
 
-      // 点击外部关闭菜单
       setTimeout(() => {
         const closeHandler = (e: MouseEvent) => {
           if (currentMenu && !currentMenu.contains(e.target as Node)) {
@@ -178,7 +192,6 @@ export const TableHandles = Extension.create({
     const showColumnMenu = (colIndex: number, x: number, y: number) => {
       removeMenu();
 
-      // 先选中该列的第一个单元格，确保命令作用于正确的列
       if (currentTable) {
         const firstRow = currentTable.rows[0];
         if (firstRow && firstRow.cells[colIndex]) {
@@ -219,7 +232,6 @@ export const TableHandles = Extension.create({
       currentMenu.style.top = `${y}px`;
       document.body.appendChild(currentMenu);
 
-      // 点击外部关闭菜单
       setTimeout(() => {
         const closeHandler = (e: MouseEvent) => {
           if (currentMenu && !currentMenu.contains(e.target as Node)) {
@@ -232,11 +244,56 @@ export const TableHandles = Extension.create({
     };
 
     /**
+     * 更新手柄位置
+     */
+    const updateHandlesPosition = () => {
+      if (!currentTable || !handlesContainer) return;
+
+      if (updateHandlesFrame !== null) {
+        cancelAnimationFrame(updateHandlesFrame);
+      }
+
+      updateHandlesFrame = requestAnimationFrame(() => {
+        if (!currentTable || !handlesContainer) return;
+
+        const tableRect = currentTable.getBoundingClientRect();
+        const rows = currentTable.rows;
+
+        const rowHandles = handlesContainer.querySelectorAll('.table-handle-row');
+        rowHandles.forEach((handle, i) => {
+          if (i < rows.length) {
+            const row = rows[i];
+            const rowRect = row.getBoundingClientRect();
+            (handle as HTMLElement).style.left = `${tableRect.left - 10}px`;
+            (handle as HTMLElement).style.top = `${rowRect.top}px`;
+            (handle as HTMLElement).style.height = `${rowRect.height}px`;
+          }
+        });
+
+        const colHandles = handlesContainer.querySelectorAll('.table-handle-column');
+        const firstRow = rows[0];
+        if (firstRow) {
+          colHandles.forEach((handle, i) => {
+            if (i < firstRow.cells.length) {
+              const cell = firstRow.cells[i];
+              const cellRect = cell.getBoundingClientRect();
+              (handle as HTMLElement).style.left = `${cellRect.left}px`;
+              (handle as HTMLElement).style.top = `${tableRect.top - 10}px`;
+              (handle as HTMLElement).style.width = `${cellRect.width}px`;
+            }
+          });
+        }
+
+        updateHandlesFrame = null;
+      });
+    };
+
+    /**
      * 为表格显示所有手柄
      */
     const showHandlesForTable = (table: HTMLTableElement) => {
-      // 如果已经显示了同一个表格的手柄，不重复创建
       if (currentTable === table && handlesContainer) {
+        updateHandlesPosition();
         return;
       }
 
@@ -244,15 +301,14 @@ export const TableHandles = Extension.create({
       currentTable = table;
 
       const tableRect = table.getBoundingClientRect();
+      const rows = table.rows;
 
-      // 创建手柄容器
       handlesContainer = document.createElement('div');
       handlesContainer.className = 'table-handles-container';
       handlesContainer.style.position = 'fixed';
       handlesContainer.style.pointerEvents = 'auto';
       handlesContainer.style.zIndex = '100';
 
-      // 监听容器的鼠标事件
       handlesContainer.addEventListener('mouseenter', () => {
         isMouseOverHandles = true;
         clearHideTimeout();
@@ -263,8 +319,7 @@ export const TableHandles = Extension.create({
         scheduleHide();
       });
 
-      // 创建行手柄（左侧）
-      const rows = table.rows;
+      // 创建行手柄
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const rowRect = row.getBoundingClientRect();
@@ -284,7 +339,7 @@ export const TableHandles = Extension.create({
         handlesContainer.appendChild(handle);
       }
 
-      // 创建列手柄（顶部）- 使用第一行的单元格
+      // 创建列手柄
       const firstRow = rows[0];
       if (firstRow) {
         for (let i = 0; i < firstRow.cells.length; i++) {
@@ -308,6 +363,49 @@ export const TableHandles = Extension.create({
       }
 
       document.body.appendChild(handlesContainer);
+
+      // 监听表格尺寸变化
+      resizeObserver = new ResizeObserver(() => {
+        updateHandlesPosition();
+      });
+      resizeObserver.observe(table);
+
+      for (let i = 0; i < rows.length; i++) {
+        for (let j = 0; j < rows[i].cells.length; j++) {
+          resizeObserver.observe(rows[i].cells[j]);
+        }
+      }
+
+      // 监听 DOM 变化
+      mutationObserver = new MutationObserver((mutations) => {
+        let needsUpdate = false;
+
+        for (const mutation of mutations) {
+          if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+            needsUpdate = true;
+            break;
+          }
+          if (mutation.type === 'attributes') {
+            needsUpdate = true;
+            break;
+          }
+        }
+
+        if (needsUpdate && currentTable) {
+          const table = currentTable;
+          removeHandles();
+          requestAnimationFrame(() => {
+            showHandlesForTable(table);
+          });
+        }
+      });
+
+      mutationObserver.observe(table, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['colspan', 'rowspan'],
+      });
     };
 
     return [
@@ -317,8 +415,6 @@ export const TableHandles = Extension.create({
           handleDOMEvents: {
             mouseover: (_view, event) => {
               const target = event.target as HTMLElement;
-
-              // 检查鼠标是否在表格区域
               const table = target.closest('table') as HTMLTableElement | null;
 
               if (table) {
@@ -333,11 +429,9 @@ export const TableHandles = Extension.create({
               const target = event.target as HTMLElement;
               const relatedTarget = event.relatedTarget as HTMLElement | null;
 
-              // 检查是否真正离开了表格区域
               const table = target.closest('table');
               const toTable = relatedTarget?.closest('table');
 
-              // 如果移动到了手柄上，不隐藏
               if (
                 relatedTarget?.closest('.table-handles-container') ||
                 relatedTarget?.closest('.table-handle')
@@ -345,7 +439,6 @@ export const TableHandles = Extension.create({
                 return false;
               }
 
-              // 如果离开表格，延迟隐藏
               if (table && table !== toTable) {
                 scheduleHide();
               }
@@ -355,7 +448,30 @@ export const TableHandles = Extension.create({
           },
         },
 
-        // 编辑器销毁时清理
+        view() {
+          const handleScroll = () => {
+            if (currentTable && handlesContainer) {
+              updateHandlesPosition();
+            }
+          };
+
+          const handleResize = () => {
+            if (currentTable && handlesContainer) {
+              updateHandlesPosition();
+            }
+          };
+
+          window.addEventListener('scroll', handleScroll, { passive: true });
+          window.addEventListener('resize', handleResize, { passive: true });
+
+          return {
+            destroy() {
+              window.removeEventListener('scroll', handleScroll);
+              window.removeEventListener('resize', handleResize);
+            },
+          };
+        },
+
         destroy() {
           clearHideTimeout();
           removeHandles();

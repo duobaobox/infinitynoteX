@@ -5,8 +5,9 @@
 
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
-import { SlashCommands, getFlatCommands, type CommandItem } from './SlashCommands';
-import { createSuggestionRenderer } from '../menus/SlashCommandMenu/suggestion';
+// 临时禁用 SlashCommands 以排查 localsInner 错误
+// import { SlashCommands, getFlatCommands, type CommandItem } from './SlashCommands';
+// import { createSuggestionRenderer } from '../menus/SlashCommandMenu/suggestion';
 
 /**
  * 获取增强扩展
@@ -53,22 +54,23 @@ export const getEnhancementExtensions = () => {
     }),
 
     // 斜杠命令扩展（类似 Notion 的 "/" 命令菜单）
-    SlashCommands.configure({
-      suggestion: {
-        char: '/',
-        startOfLine: false,
-        items: ({ query }: { query: string }): CommandItem[] => {
-          const commands = getFlatCommands();
-          if (!query) return commands;
-          const lowerQuery = query.toLowerCase();
-          return commands.filter(
-            (cmd) =>
-              cmd.title.toLowerCase().includes(lowerQuery) ||
-              cmd.description.toLowerCase().includes(lowerQuery),
-          );
-        },
-        render: createSuggestionRenderer,
-      },
-    }),
+    // 临时禁用以排查 localsInner 错误
+    // SlashCommands.configure({
+    //   suggestion: {
+    //     char: '/',
+    //     startOfLine: false,
+    //     items: ({ query }: { query: string }): CommandItem[] => {
+    //       const commands = getFlatCommands();
+    //       if (!query) return commands;
+    //       const lowerQuery = query.toLowerCase();
+    //       return commands.filter(
+    //         (cmd) =>
+    //           cmd.title.toLowerCase().includes(lowerQuery) ||
+    //           cmd.description.toLowerCase().includes(lowerQuery),
+    //       );
+    //     },
+    //     render: createSuggestionRenderer,
+    //   },
+    // }),
   ];
 };

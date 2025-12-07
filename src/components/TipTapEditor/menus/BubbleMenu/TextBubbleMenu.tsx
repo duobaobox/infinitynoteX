@@ -6,8 +6,9 @@
 import React from 'react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { Editor } from '@tiptap/react';
-import { Bold, Italic, Underline, Strikethrough, Code, Highlighter } from 'lucide-react';
+import { Bold, Italic, Underline, Strikethrough, Code } from 'lucide-react';
 import { LinkEditor } from './components/LinkEditor';
+import { HighlightPicker } from './components/HighlightPicker';
 import './BubbleMenu.css';
 
 interface TextBubbleMenuProps {
@@ -30,6 +31,15 @@ export const TextBubbleMenu: React.FC<TextBubbleMenuProps> = ({ editor }) => {
 
   const handleUnsetLink = () => {
     editor.chain().focus().extendMarkRange('link').unsetLink().run();
+  };
+
+  // 高亮操作
+  const handleSetHighlight = (color: string) => {
+    editor.chain().focus().toggleHighlight({ color }).run();
+  };
+
+  const handleUnsetHighlight = () => {
+    editor.chain().focus().unsetHighlight().run();
   };
 
   return (
@@ -103,15 +113,13 @@ export const TextBubbleMenu: React.FC<TextBubbleMenuProps> = ({ editor }) => {
 
       <span className="divider" />
 
-      {/* 高亮 */}
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleHighlight().run()}
-        className={editor.isActive('highlight') ? 'is-active' : ''}
-        title="高亮"
-      >
-        <Highlighter size={16} />
-      </button>
+      {/* 高亮颜色选择器 */}
+      <HighlightPicker
+        currentColor={editor.getAttributes('highlight').color}
+        isActive={editor.isActive('highlight')}
+        onSetHighlight={handleSetHighlight}
+        onUnsetHighlight={handleUnsetHighlight}
+      />
 
       {/* 链接编辑器 */}
       <LinkEditor

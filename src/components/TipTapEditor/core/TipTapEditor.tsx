@@ -17,6 +17,7 @@ import { getThemeColor } from '../../../theme/theme';
 import '../styles/editor.css';
 import '../styles/table.css';
 import '../styles/table-handles.css';
+import '../styles/code-highlight.css';
 
 /**
  * TipTap 编辑器组件

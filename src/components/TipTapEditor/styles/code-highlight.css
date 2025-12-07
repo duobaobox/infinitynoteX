@@ -1,0 +1,154 @@
+/**
+ * 代码块语法高亮样式
+ * 基于 highlight.js 的 GitHub 主题
+ */
+
+/* 代码块容器 */
+.code-block-lowlight {
+  position: relative;
+  margin: 1em 0;
+  padding: 0.75rem 1rem;
+  background: var(--code-bg, #f6f8fa);
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.code-block-lowlight code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary, #24292e);
+  font-family: inherit;
+  white-space: pre;
+}
+
+/* 语法高亮 - 亮色主题 (GitHub 风格) */
+.code-block-lowlight .hljs-comment,
+.code-block-lowlight .hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.code-block-lowlight .hljs-keyword,
+.code-block-lowlight .hljs-selector-tag,
+.code-block-lowlight .hljs-addition {
+  color: #d73a49;
+}
+
+.code-block-lowlight .hljs-number,
+.code-block-lowlight .hljs-string,
+.code-block-lowlight .hljs-meta .hljs-meta-string,
+.code-block-lowlight .hljs-literal,
+.code-block-lowlight .hljs-doctag,
+.code-block-lowlight .hljs-regexp {
+  color: #032f62;
+}
+
+.code-block-lowlight .hljs-title,
+.code-block-lowlight .hljs-section,
+.code-block-lowlight .hljs-name,
+.code-block-lowlight .hljs-selector-id,
+.code-block-lowlight .hljs-selector-class {
+  color: #6f42c1;
+}
+
+.code-block-lowlight .hljs-attribute,
+.code-block-lowlight .hljs-attr,
+.code-block-lowlight .hljs-variable,
+.code-block-lowlight .hljs-template-variable,
+.code-block-lowlight .hljs-class .hljs-title,
+.code-block-lowlight .hljs-type {
+  color: #005cc5;
+}
+
+.code-block-lowlight .hljs-symbol,
+.code-block-lowlight .hljs-bullet,
+.code-block-lowlight .hljs-subst,
+.code-block-lowlight .hljs-meta,
+.code-block-lowlight .hljs-link {
+  color: #e36209;
+}
+
+.code-block-lowlight .hljs-built_in,
+.code-block-lowlight .hljs-deletion {
+  color: #22863a;
+}
+
+.code-block-lowlight .hljs-formula {
+  background: #f6f8fa;
+}
+
+.code-block-lowlight .hljs-emphasis {
+  font-style: italic;
+}
+
+.code-block-lowlight .hljs-strong {
+  font-weight: bold;
+}
+
+/* 暗色主题 */
+[data-theme='dark'] .code-block-lowlight {
+  background: var(--code-bg, #161b22);
+}
+
+[data-theme='dark'] .code-block-lowlight code {
+  color: #c9d1d9;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-comment,
+[data-theme='dark'] .code-block-lowlight .hljs-quote {
+  color: #8b949e;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-keyword,
+[data-theme='dark'] .code-block-lowlight .hljs-selector-tag,
+[data-theme='dark'] .code-block-lowlight .hljs-addition {
+  color: #ff7b72;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-number,
+[data-theme='dark'] .code-block-lowlight .hljs-string,
+[data-theme='dark'] .code-block-lowlight .hljs-meta .hljs-meta-string,
+[data-theme='dark'] .code-block-lowlight .hljs-literal,
+[data-theme='dark'] .code-block-lowlight .hljs-doctag,
+[data-theme='dark'] .code-block-lowlight .hljs-regexp {
+  color: #a5d6ff;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-title,
+[data-theme='dark'] .code-block-lowlight .hljs-section,
+[data-theme='dark'] .code-block-lowlight .hljs-name,
+[data-theme='dark'] .code-block-lowlight .hljs-selector-id,
+[data-theme='dark'] .code-block-lowlight .hljs-selector-class {
+  color: #d2a8ff;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-attribute,
+[data-theme='dark'] .code-block-lowlight .hljs-attr,
+[data-theme='dark'] .code-block-lowlight .hljs-variable,
+[data-theme='dark'] .code-block-lowlight .hljs-template-variable,
+[data-theme='dark'] .code-block-lowlight .hljs-class .hljs-title,
+[data-theme='dark'] .code-block-lowlight .hljs-type {
+  color: #79c0ff;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-symbol,
+[data-theme='dark'] .code-block-lowlight .hljs-bullet,
+[data-theme='dark'] .code-block-lowlight .hljs-subst,
+[data-theme='dark'] .code-block-lowlight .hljs-meta,
+[data-theme='dark'] .code-block-lowlight .hljs-link {
+  color: #ffa657;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-built_in,
+[data-theme='dark'] .code-block-lowlight .hljs-deletion {
+  color: #7ee787;
+}
+
+[data-theme='dark'] .code-block-lowlight .hljs-formula {
+  background: #161b22;
+}

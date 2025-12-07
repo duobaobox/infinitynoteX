@@ -1,6 +1,6 @@
 # TipTap 编辑器插件完整参考手册
 
-> 📅 更新日期: 2025-12-06\
+> 📅 更新日期: 2025-12-07\
 > 📦 当前项目版本: @tiptap/\* v3.13.0
 
 ---
@@ -399,22 +399,22 @@ extensions: [TextStyle, Color];
 
 ## 六、Functionality 功能扩展完整列表
 
-| 扩展名             | 包名                                | 功能说明                   | StarterKit | [本项目]() |
-| ------------------ | ----------------------------------- | -------------------------- | :--------: | :--------: |
-| **History**        | `@tiptap/extension-history`         | 撤销/重做 `Ctrl+Z/Y`       |     ✅     |     ✅     |
-| **Dropcursor**     | `@tiptap/extension-dropcursor`      | 拖拽时显示光标位置         |     ✅     |     ✅     |
-| **Gapcursor**      | `@tiptap/extension-gapcursor`       | 在间隙位置创建光标         |     ✅     |     ✅     |
-| **ListKeymap**     | `@tiptap/extension-list-keymap`     | 列表键盘操作优化           |   ✅(v3)   |     ✅     |
-| **TrailingNode**   | `@tiptap/extension-trailing-node`   | 末尾自动添加空段落         |   ✅(v3)   |     ✅     |
-| **Placeholder**    | `@tiptap/extension-placeholder`     | 空编辑器占位提示           |     ❌     |     ✅     |
-| **TextAlign**      | `@tiptap/extension-text-align`      | 文本对齐（左/中/右/两端）  |     ❌     |     ✅     |
-| **BubbleMenu**     | `@tiptap/extension-bubble-menu`     | 选中文字时弹出工具栏       |     ❌     |     ❌     |
-| **FloatingMenu**   | `@tiptap/extension-floating-menu`   | 空行时弹出快捷菜单         |     ❌     |     ❌     |
-| **CharacterCount** | `@tiptap/extension-character-count` | 字符/单词计数              |     ❌     |     ❌     |
-| **Focus**          | `@tiptap/extension-focus`           | 追踪编辑器焦点状态         |     ❌     |     ❌     |
-| **Color**          | `@tiptap/extension-color`           | 文字颜色（需 TextStyle）   |     ❌     |     ❌     |
-| **FontFamily**     | `@tiptap/extension-font-family`     | 字体选择（需 TextStyle）   |     ❌     |     ❌     |
-| **Typography**     | `@tiptap/extension-typography`      | 自动排版优化（智能引号等） |     ❌     |     ❌     |
+| 扩展名             | 包名                                | 功能说明                   | StarterKit | 本项目 |
+| ------------------ | ----------------------------------- | -------------------------- | :--------: | :----: |
+| **History**        | `@tiptap/extension-history`         | 撤销/重做 `Ctrl+Z/Y`       |     ✅     |   ✅   |
+| **Dropcursor**     | `@tiptap/extension-dropcursor`      | 拖拽时显示光标位置         |     ✅     |   ✅   |
+| **Gapcursor**      | `@tiptap/extension-gapcursor`       | 在间隙位置创建光标         |     ✅     |   ✅   |
+| **ListKeymap**     | `@tiptap/extension-list-keymap`     | 列表键盘操作优化           |   ✅(v3)   |   ✅   |
+| **TrailingNode**   | `@tiptap/extension-trailing-node`   | 末尾自动添加空段落         |   ✅(v3)   |   ✅   |
+| **Placeholder**    | `@tiptap/extension-placeholder`     | 空编辑器占位提示           |     ❌     |   ✅   |
+| **TextAlign**      | `@tiptap/extension-text-align`      | 文本对齐（左/中/右/两端）  |     ❌     |   ✅   |
+| **BubbleMenu**     | `@tiptap/extension-bubble-menu`     | 选中文字时弹出工具栏       |     ❌     |   ✅   |
+| **FloatingMenu**   | `@tiptap/extension-floating-menu`   | 空行时弹出快捷菜单         |     ❌     |   ✅   |
+| **CharacterCount** | `@tiptap/extension-character-count` | 字符/单词计数              |     ❌     |   ✅   |
+| **Focus**          | `@tiptap/extension-focus`           | 追踪编辑器焦点状态         |     ❌     |   ❌   |
+| **Color**          | `@tiptap/extension-color`           | 文字颜色（需 TextStyle）   |     ❌     |   ❌   |
+| **FontFamily**     | `@tiptap/extension-font-family`     | 字体选择（需 TextStyle）   |     ❌     |   ❌   |
+| **Typography**     | `@tiptap/extension-typography`      | 自动排版优化（智能引号等） |     ❌     |   ✅   |
 
 ### 各扩展详细说明
 
@@ -510,22 +510,35 @@ Color.configure({
 ├── 📄 @tiptap/extension-table          (TableKit 表格套件)
 ├── 📄 @tiptap/extension-task-list      (任务列表)
 ├── 📄 @tiptap/extension-task-item      (任务项)
-├── ✍️ @tiptap/extension-highlight      (文字高亮)
+├── ✍️ @tiptap/extension-highlight      (文字高亮 - 支持多色)
 ├── 🔧 @tiptap/extension-placeholder    (占位符)
 ├── 🔧 @tiptap/extension-text-align     (文本对齐)
-├── 🔧 @tiptap/extension-character-count (字符计数) ✨新增
-├── 🔧 @tiptap/extension-typography     (自动排版) ✨新增
-├── 🔧 @tiptap/extension-bubble-menu    (气泡菜单) ✨新增
-└── 🔧 @tiptap/suggestion               (斜杠命令) ✨新增
+├── 🔧 @tiptap/extension-character-count (字符计数)
+├── 🔧 @tiptap/extension-typography     (自动排版)
+├── 🔧 @tiptap/extension-bubble-menu    (上下文感知气泡菜单)
+├── 🔧 @tiptap/extension-floating-menu  (斜杠命令浮动菜单)
+└── 🔧 @tiptap/suggestion               (Suggestion 建议列表)
 ```
 
 ### 自定义扩展
 
 ```
 🛠️ 项目自定义扩展
-├── ResizableImage      (可调整大小图片，自定义 NodeView)
-├── ImagePasteHandler   (图片粘贴/拖放处理，保存为附件)
+├── ResizableImage      (可调整大小图片，仿官方 demo 风格)
+├── ImagePasteHandler   (图片粘贴/拖放处理，保存到 attachments)
+├── TableHandles        (Notion 风格表格行/列手柄)
 └── SlashCommands       (Notion 风格 "/" 命令菜单)
+```
+
+### 上下文感知菜单系统
+
+```
+🎯 BubbleMenu 组件 (shouldShow 逻辑)
+├── TextBubbleMenu      (选中文本: 加粗/斜体/下划线/高亮/链接)
+├── ImageBubbleMenu     (选中图片: 对齐/查看原图/删除)
+├── LinkBubbleMenu      (光标在链接上: 编辑/打开/复制/取消链接)
+├── CodeBlockBubbleMenu (光标在代码块: 语言选择/复制/删除)
+└── TableBubbleMenu     (光标在表格: 行列操作/合并拆分)
 ```
 
 ### 统计
@@ -534,8 +547,8 @@ Color.configure({
 | ---------- | ------ | ---------- | ------- |
 | Nodes      | 18     | 25         | 72%     |
 | Marks      | 8      | 10         | 80%     |
-| Extensions | 13     | 18+        | 72%     |
-| **总计**   | **39** | **53+**    | **74%** |
+| Extensions | 15     | 18+        | 83%     |
+| **总计**   | **41** | **53+**    | **77%** |
 
 ---
 
@@ -617,20 +630,20 @@ TipTap 采用**双重许可模式**：
 
 ## 九、扩展规划建议
 
-### � 强烈推荐添加
+### 🔴 强烈推荐添加
 
-| 扩展                        | 理由                     | 安装命令                                                          |
-| --------------------------- | ------------------------ | ----------------------------------------------------------------- |
-| **CodeBlock Lowlight**      | 代码语法高亮，开发者必备 | `npm i @tiptap/extension-code-block-lowlight lowlight`            |
-| **Subscript + Superscript** | 数学/化学公式需要        | `npm i @tiptap/extension-subscript @tiptap/extension-superscript` |
+| 扩展                        | 理由                       | 安装命令                                                          |
+| --------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| **CodeBlock Lowlight**      | 代码语法高亮，开发者必备   | `npm i @tiptap/extension-code-block-lowlight lowlight`            |
+| **Subscript + Superscript** | 数学/化学公式需要          | `npm i @tiptap/extension-subscript @tiptap/extension-superscript` |
+| **Color + TextStyle**       | 文字颜色，已有高亮但缺颜色 | `npm i @tiptap/extension-color @tiptap/extension-text-style`      |
 
 ### 🟡 建议考虑添加
 
-| 扩展                  | 理由                 | 安装命令                                                     |
-| --------------------- | -------------------- | ------------------------------------------------------------ |
-| **YouTube**           | 嵌入视频，多媒体笔记 | `npm i @tiptap/extension-youtube`                            |
-| **Color + TextStyle** | 文字颜色             | `npm i @tiptap/extension-color @tiptap/extension-text-style` |
-| **FontFamily**        | 字体选择             | `npm i @tiptap/extension-font-family`                        |
+| 扩展           | 理由                 | 安装命令                              |
+| -------------- | -------------------- | ------------------------------------- |
+| **YouTube**    | 嵌入视频，多媒体笔记 | `npm i @tiptap/extension-youtube`     |
+| **FontFamily** | 字体选择             | `npm i @tiptap/extension-font-family` |
 
 ### 🟢 可选添加
 

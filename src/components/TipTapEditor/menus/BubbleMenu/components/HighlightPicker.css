@@ -1,0 +1,158 @@
+/**
+ * HighlightPicker 高亮颜色选择器样式
+ */
+
+.highlight-picker-container {
+  position: relative;
+}
+
+.highlight-picker-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 1px;
+}
+
+.highlight-picker-trigger:hover,
+.highlight-picker-trigger.is-open {
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary, #333);
+}
+
+.highlight-picker-trigger.is-active {
+  background: rgba(var(--theme-color-rgb, 24, 144, 255), 0.15);
+  color: var(--theme-color, #1890ff);
+}
+
+.highlight-indicator {
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+/* 下拉面板 */
+.highlight-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  z-index: 1000;
+  min-width: 120px;
+  animation: highlightPickerFadeIn 0.15s ease;
+}
+
+@keyframes highlightPickerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* 颜色网格 */
+.highlight-color-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.highlight-color-swatch {
+  width: 32px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.highlight-color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.highlight-color-swatch.is-active {
+  border-color: var(--theme-color, #1890ff);
+}
+
+/* 清除高亮图标按钮 */
+.highlight-color-swatch.clear-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.04));
+  color: var(--text-secondary, #666);
+}
+
+.highlight-color-swatch.clear-swatch:hover {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+/* 清除高亮按钮 */
+.clear-highlight-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  background: transparent;
+  border-radius: 0 0 4px 4px;
+  margin-top: 8px;
+  padding-top: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  transition: all 0.1s ease;
+}
+
+.clear-highlight-btn:hover {
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary, #333);
+}
+
+/* 暗色主题 */
+[data-theme='dark'] .highlight-picker-dropdown {
+  background: var(--panel-bg, #1a1a1a);
+  border-color: var(--border-color, #333);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .highlight-picker-trigger {
+  color: var(--text-secondary, #aaa);
+}
+
+[data-theme='dark'] .highlight-picker-trigger:hover,
+[data-theme='dark'] .highlight-picker-trigger.is-open {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+[data-theme='dark'] .clear-highlight-btn {
+  color: var(--text-secondary, #aaa);
+  border-top-color: var(--border-color, #333);
+}
+
+[data-theme='dark'] .clear-highlight-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #fff);
+}

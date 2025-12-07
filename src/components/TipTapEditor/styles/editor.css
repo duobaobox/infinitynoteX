@@ -193,8 +193,9 @@
   color: #d63384;
 }
 
-/* 代码块 */
-.tiptap-editor pre {
+/* 代码块 - 使用 code-block-lowlight 类的样式在 code-highlight.css 中定义 */
+/* 这里只处理没有 lowlight 类的代码块(兜底) */
+.tiptap-editor pre:not(.code-block-lowlight) {
   background: var(--code-bg);
   padding: 12px;
   border-radius: 4px;
@@ -202,7 +203,7 @@
   margin: 0.5em 0;
 }
 
-.tiptap-editor pre code {
+.tiptap-editor pre:not(.code-block-lowlight) code {
   background: transparent;
   padding: 0;
   font-size: 0.85em;

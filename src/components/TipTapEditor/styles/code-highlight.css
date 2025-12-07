@@ -3,8 +3,8 @@
  * 基于 highlight.js 的 GitHub 主题
  */
 
-/* 代码块容器 */
-.code-block-lowlight {
+/* 代码块容器 - 使用更高优先级的选择器 */
+.tiptap-editor pre.code-block-lowlight {
   position: relative;
   margin: 1em 0;
   padding: 0.75rem 1rem;
@@ -17,7 +17,7 @@
   tab-size: 2;
 }
 
-.code-block-lowlight code {
+.tiptap-editor pre.code-block-lowlight code {
   display: block;
   padding: 0;
   background: transparent;

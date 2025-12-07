@@ -15,14 +15,15 @@ interface CodeBlockBubbleMenuProps {
 }
 
 // 常用编程语言
+// 注意：HTML 使用 xml 作为 lowlight 语言值
 const LANGUAGES = [
-  { value: null, label: '纯文本' },
+  { value: '', label: '纯文本' },
   { value: 'javascript', label: 'JavaScript' },
   { value: 'typescript', label: 'TypeScript' },
   { value: 'python', label: 'Python' },
   { value: 'java', label: 'Java' },
   { value: 'css', label: 'CSS' },
-  { value: 'html', label: 'HTML' },
+  { value: 'xml', label: 'HTML' }, // HTML 使用 xml 处理
   { value: 'json', label: 'JSON' },
   { value: 'bash', label: 'Bash' },
   { value: 'sql', label: 'SQL' },
@@ -41,13 +42,17 @@ export const CodeBlockBubbleMenu: React.FC<CodeBlockBubbleMenuProps> = ({ editor
     return null;
   }
 
-  // 获取当前语言
-  const currentLanguage = editor.getAttributes('codeBlock').language || null;
+  // 获取当前语言（确保返回空字符串而非 null/undefined）
+  const currentLanguage = editor.getAttributes('codeBlock').language || '';
 
   // 设置语言
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const lang = e.target.value || null;
-    editor.chain().focus().updateAttributes('codeBlock', { language: lang }).run();
+    const lang = e.target.value;
+    editor
+      .chain()
+      .focus()
+      .updateAttributes('codeBlock', { language: lang || null })
+      .run();
   };
 
   // 复制代码

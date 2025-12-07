@@ -55,6 +55,9 @@ export const getBasicExtensions = () => {
     // 代码块语法高亮扩展
     CodeBlockLowlight.configure({
       lowlight,
+      HTMLAttributes: {
+        class: 'code-block-lowlight',
+      },
     }),
   ];
 };

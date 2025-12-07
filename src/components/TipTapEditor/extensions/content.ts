@@ -7,6 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
 import { ResizableImage } from './ResizableImage';
 import { ImagePasteHandler } from './ImagePasteHandler';
+import { TableHandles } from './TableHandles';
 import type { EditorConfig } from './basic';
 
 /**
@@ -14,6 +15,7 @@ import type { EditorConfig } from './basic';
  * - ResizableImage: 可调整大小的图片（仿官方 TipTap demo 风格）
  * - Placeholder: 占位符
  * - TableKit: 表格套件
+ * - TableHandles: Notion 风格表格行/列手柄
  */
 export const getContentExtensions = (config?: EditorConfig) => {
   return [
@@ -63,6 +65,10 @@ export const getContentExtensions = (config?: EditorConfig) => {
         },
       },
     }),
+
+    // Notion 风格表格手柄扩展
+    // 悬停行/列边缘显示手柄，点击弹出操作菜单
+    TableHandles,
 
     // 图片粘贴/拖放处理扩展
     // 拦截粘贴和拖放事件，将图片保存到 attachments 目录

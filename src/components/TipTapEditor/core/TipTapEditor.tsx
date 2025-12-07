@@ -10,13 +10,13 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import { Input } from 'antd';
 import { MenuBar } from '../menus/MenuBar';
 import { BubbleMenu } from '../menus/BubbleMenu';
-import { TableBubbleMenu } from '../menus/TableBubbleMenu';
 import { CharacterCount } from '../menus/components/CharacterCount';
 import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
 import { getThemeColor } from '../../../theme/theme';
 import '../styles/editor.css';
 import '../styles/table.css';
+import '../styles/table-handles.css';
 
 /**
  * TipTap 编辑器组件
@@ -26,7 +26,7 @@ import '../styles/table.css';
  * - 支持任务列表、图片、代码块等
  * - 响应式工具栏
  * - BubbleMenu 选中文字时弹出格式化工具栏
- * - TableBubbleMenu 选中表格时弹出表格操作菜单
+ * - TableHandles Notion 风格表格行/列手柄（悬停显示，点击弹出菜单）
  * - SlashCommands 输入 "/" 时弹出命令菜单
  * - TypeScript 类型安全
  */
@@ -199,8 +199,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         {/* BubbleMenu - 选中文字时弹出格式化工具栏 */}
         {editable && <BubbleMenu editor={editor} />}
 
-        {/* TableBubbleMenu - 选中表格时弹出操作菜单 */}
-        {editable && <TableBubbleMenu editor={editor} />}
+        {/* TableHandles - Notion 风格表格手柄，通过扩展实现 */}
 
         {/* SlashCommands - 输入 "/" 时弹出命令菜单（通过 extensions 集成，无需 JSX） */}
 

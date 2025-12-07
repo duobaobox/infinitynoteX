@@ -114,6 +114,21 @@
 .tiptap-editor {
   outline: none;
   min-height: 200px;
+  /* 光标样式 - 按照 TipTap 官方推荐 */
+  caret-color: var(--theme-color, #1890ff); /* 光标颜色使用主题色 */
+  cursor: text; /* 编辑器内显示文本光标 */
+}
+
+/* 编辑器聚焦时的光标样式 */
+.tiptap-editor:focus {
+  outline: none;
+  caret-color: var(--theme-color, #1890ff);
+}
+
+/* 编辑器不可编辑时隐藏光标 */
+.tiptap-editor[contenteditable='false'] {
+  caret-color: transparent;
+  cursor: default;
 }
 
 /* 段落 */
@@ -474,12 +489,6 @@ ul[data-type='taskList'] li[data-checked='true'] > div {
 
 .tiptap-editor ::selection {
   background-color: rgba(24, 144, 255, 0.2);
-}
-
-/* ==================== 焦点样式 ==================== */
-
-.tiptap-editor:focus {
-  outline: none;
 }
 
 /* ==================== 响应式优化 ==================== */

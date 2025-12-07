@@ -16,7 +16,7 @@ table {
   border-collapse: separate;
   border-spacing: 0;
   margin: 0;
-  width: 100%;
+  width: 99.8%;
   table-layout: fixed;
   background: #fff;
 }
@@ -171,8 +171,27 @@ th:hover::after {
 .tableWrapper {
   position: relative;
   margin: 1em 0;
+  /* 保留横向滚动，手动拖宽列后可用 */
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+/* 隐藏不必要的滚动条轨道（仅在真正需要滚动时显示） */
+.tableWrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* ============ 空单元格占位 ============ */

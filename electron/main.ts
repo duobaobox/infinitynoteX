@@ -143,6 +143,7 @@ function createWindow() {
     backgroundColor: '#FFFFFF',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
+      webviewTag: true, // 启用 webview 标签支持
     },
   };
 
@@ -501,6 +502,53 @@ ipcMain.handle('storage:deleteTrashItemPermanently', async (_, id: string) => {
 
 ipcMain.handle('storage:emptyTrash', async () => {
   return await storageManager.emptyTrash();
+});
+
+// ============ 浏览器卡片 IPC 处理器 ============
+
+/**
+ * 获取所有浏览器卡片
+ */
+ipcMain.handle('browserCards:list', async () => {
+  return await storageManager.browserCards.getAll();
+});
+
+/**
+ * 创建浏览器卡片
+ */
+ipcMain.handle(
+  'browserCards:create',
+  async (_, card: { name: string; url: string; icon?: string }) => {
+    const nextOrder = await storageManager.browserCards.getNextOrder();
+    return await storageManager.browserCards.create({
+      ...card,
+      order: nextOrder,
+    });
+  },
+);
+
+/**
+ * 更新浏览器卡片
+ */
+ipcMain.handle(
+  'browserCards:update',
+  async (_, id: string, patch: { name?: string; url?: string; icon?: string }) => {
+    return await storageManager.browserCards.update(id, patch);
+  },
+);
+
+/**
+ * 删除浏览器卡片
+ */
+ipcMain.handle('browserCards:delete', async (_, id: string) => {
+  await storageManager.browserCards.delete(id);
+});
+
+/**
+ * 重新排序浏览器卡片
+ */
+ipcMain.handle('browserCards:reorder', async (_, orderedIds: string[]) => {
+  await storageManager.browserCards.reorder(orderedIds);
 });
 
 // ============ 附件 IPC 处理器 ============

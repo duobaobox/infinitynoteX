@@ -162,6 +162,48 @@ contextBridge.exposeInMainWorld('appInfo', {
   getVersion: () => ipcRenderer.invoke('app:getVersion') as Promise<string>,
 });
 
+// --------- Expose Browser Cards API ---------
+contextBridge.exposeInMainWorld('browserCards', {
+  /**
+   * 获取所有浏览器卡片
+   */
+  list: () =>
+    ipcRenderer.invoke('browserCards:list') as Promise<
+      Array<{
+        id: string;
+        name: string;
+        url: string;
+        icon?: string;
+        isBuiltIn?: boolean;
+        order: number;
+        createdAt: number;
+        updatedAt: number;
+      }>
+    >,
+
+  /**
+   * 创建浏览器卡片
+   */
+  create: (card: { name: string; url: string; icon?: string }) =>
+    ipcRenderer.invoke('browserCards:create', card),
+
+  /**
+   * 更新浏览器卡片
+   */
+  update: (id: string, patch: { name?: string; url?: string; icon?: string }) =>
+    ipcRenderer.invoke('browserCards:update', id, patch),
+
+  /**
+   * 删除浏览器卡片
+   */
+  delete: (id: string) => ipcRenderer.invoke('browserCards:delete', id),
+
+  /**
+   * 重新排序浏览器卡片
+   */
+  reorder: (orderedIds: string[]) => ipcRenderer.invoke('browserCards:reorder', orderedIds),
+});
+
 // --------- Expose Attachments API ---------
 contextBridge.exposeInMainWorld('attachments', {
   /**

@@ -14,6 +14,7 @@ import { getFeaturesByWorkspaceView } from './config/featureRegistry';
 // 确保 Feature 模块被加载并完成注册
 import './features/note';
 import './features/ai-workbench';
+import './features/browser';
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 import { useStorageEvents } from './hooks/useStorageEvents';
 

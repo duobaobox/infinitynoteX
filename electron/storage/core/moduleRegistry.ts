@@ -16,6 +16,9 @@ import {
   TrashItemSchema,
   TrashIndexSchema,
   TrashIndexArraySchema,
+  BrowserCardSchema,
+  BrowserCardIndexSchema,
+  BrowserCardsIndexArraySchema,
 } from '../schemas';
 
 // ============ 类型定义 ============
@@ -173,6 +176,26 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
       hasIndex: false,
     },
     description: '图片等附件文件',
+  },
+
+  // ============ 浏览器卡片 ============
+  {
+    id: 'browser-cards',
+    name: '浏览器卡片',
+    path: 'browser-cards',
+    indexFile: 'browser-cards.index.json',
+    extension: '.json',
+    schema: BrowserCardSchema,
+    indexSchema: BrowserCardIndexSchema,
+    indexArraySchema: BrowserCardsIndexArraySchema,
+    sync: { enabled: true, type: 'directory' },
+    features: {
+      softDelete: false,
+      generateExcerpt: false,
+      sortField: 'order',
+      hasIndex: true,
+    },
+    description: '内置浏览器网页卡片',
   },
 
   // ============ 待办事项（预留，暂未启用） ============

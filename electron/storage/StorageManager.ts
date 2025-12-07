@@ -13,6 +13,7 @@ import { NoteStorage } from './NoteStorage';
 import { AIStorage } from './AIStorage';
 import { TrashStorage } from './TrashStorage';
 import { AttachmentStorage } from './AttachmentStorage';
+import { BrowserCardStorage } from './BrowserCardStorage';
 import type {
   StorageMeta,
   HealthCheckResult,
@@ -48,6 +49,7 @@ export class StorageManager {
   readonly ai: AIStorage;
   readonly trash: TrashStorage;
   readonly attachments: AttachmentStorage;
+  readonly browserCards: BrowserCardStorage;
 
   constructor() {
     this.context = new StorageContext();
@@ -56,6 +58,7 @@ export class StorageManager {
     this.ai = new AIStorage(this.context);
     this.trash = new TrashStorage(this.context);
     this.attachments = new AttachmentStorage(this.context.currentPath);
+    this.browserCards = new BrowserCardStorage(this.context);
   }
 
   // ============ 初始化 ============
@@ -124,6 +127,7 @@ export class StorageManager {
       await this.notes.rebuildIndex();
       await this.ai.rebuildIndex();
       await this.trash.rebuildIndex();
+      await this.browserCards.rebuildIndex();
 
       await this.loadAllCaches();
 
@@ -132,6 +136,9 @@ export class StorageManager {
 
       // 清理过期的回收站项目
       await this.trash.cleanupExpired();
+
+      // 初始化预设浏览器卡片（如果尚未初始化）
+      await this.browserCards.initializePresets();
 
       return;
     }
@@ -157,6 +164,10 @@ export class StorageManager {
     await this.notes.createEmptyIndex();
     await this.ai.createEmptyIndex();
     await this.trash.createEmptyIndex();
+    await this.browserCards.createEmptyIndex();
+
+    // 初始化预设浏览器卡片
+    await this.browserCards.initializePresets();
 
     // 加载缓存
     await this.loadAllCaches();
@@ -178,6 +189,7 @@ export class StorageManager {
       this.notes.loadCache(),
       this.ai.loadCache(),
       this.trash.loadCache(),
+      this.browserCards.loadCache(),
     ]);
   }
 
@@ -189,6 +201,7 @@ export class StorageManager {
     this.notes.clearCache();
     this.ai.clearCache();
     this.trash.clearCache();
+    this.browserCards.clearCache();
   }
 
   /**

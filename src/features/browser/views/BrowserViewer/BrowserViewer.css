@@ -1,0 +1,62 @@
+/**
+ * BrowserViewer 样式
+ */
+
+.browser-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.browser-viewer-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-bg-container, #fff);
+  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+}
+
+.browser-toolbar-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.browser-toolbar-url {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--color-bg-layout, rgba(0, 0, 0, 0.02));
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.browser-url-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-text-secondary, rgba(0, 0, 0, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browser-webview-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  background: #fff;
+}
+
+.browser-webview {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

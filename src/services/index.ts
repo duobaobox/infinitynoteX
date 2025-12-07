@@ -28,6 +28,9 @@ export type { FolderService } from './folderService';
 export { aiConversationService } from './aiConversationService';
 export type { AIConversationService, AIMessage } from './aiConversationService';
 
+export { browserCardService } from './browserCardService';
+export type { BrowserCardService, BrowserCard } from './browserCardService';
+
 // 存储管理服务
 export { storageService } from './storageService';
 export type { StorageService } from './storageService';

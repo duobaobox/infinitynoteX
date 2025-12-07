@@ -235,6 +235,45 @@ declare global {
     appInfo?: {
       getVersion(): Promise<string>;
     };
+    browserCards: {
+      list(): Promise<
+        Array<{
+          id: string;
+          name: string;
+          url: string;
+          icon?: string;
+          isBuiltIn?: boolean;
+          order: number;
+          createdAt: number;
+          updatedAt: number;
+        }>
+      >;
+      create(card: { name: string; url: string; icon?: string }): Promise<{
+        id: string;
+        name: string;
+        url: string;
+        icon?: string;
+        isBuiltIn?: boolean;
+        order: number;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+      update(
+        id: string,
+        patch: { name?: string; url?: string; icon?: string },
+      ): Promise<{
+        id: string;
+        name: string;
+        url: string;
+        icon?: string;
+        isBuiltIn?: boolean;
+        order: number;
+        createdAt: number;
+        updatedAt: number;
+      }>;
+      delete(id: string): Promise<void>;
+      reorder(orderedIds: string[]): Promise<void>;
+    };
     sync: {
       testConnection(providerId: string, config: any): Promise<{ ok: boolean; message: string }>;
       execute(providerId: string, config: any): Promise<any>;

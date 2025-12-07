@@ -1,0 +1,67 @@
+/**
+ * BrowserCardListView 样式
+ */
+
+.browser-card-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 4px;
+}
+
+.browser-card-item:hover {
+  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.browser-card-item.selected {
+  background-color: var(--color-bg-selected, rgba(22, 119, 255, 0.1));
+}
+
+.browser-card-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 18px;
+}
+
+.browser-card-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.browser-card-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-primary, rgba(0, 0, 0, 0.88));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browser-card-url {
+  font-size: 12px;
+  color: var(--color-text-secondary, rgba(0, 0, 0, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.browser-card-delete {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.browser-card-item:hover .browser-card-delete {
+  opacity: 1;
+}

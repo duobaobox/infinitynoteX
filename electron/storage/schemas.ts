@@ -186,3 +186,31 @@ export const TodoIndexSchema = z.object({
 // 从 Schema 推导类型（预留）
 export type Todo = z.infer<typeof TodoSchema>;
 export type TodoIndex = z.infer<typeof TodoIndexSchema>;
+
+// ============ 浏览器卡片 Schema ============
+
+export const BrowserCardSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  url: z.string(),
+  icon: z.string().optional(),
+  isBuiltIn: z.boolean().optional(),
+  order: z.number(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+export const BrowserCardIndexSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  url: z.string(),
+  icon: z.string().optional(),
+  order: z.number(),
+  updatedAt: z.number(),
+});
+
+export const BrowserCardsIndexArraySchema = z.array(BrowserCardIndexSchema);
+
+// 从 Schema 推导类型
+export type BrowserCard = z.infer<typeof BrowserCardSchema>;
+export type BrowserCardIndex = z.infer<typeof BrowserCardIndexSchema>;

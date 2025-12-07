@@ -20,6 +20,8 @@ import {
   createNoteSlice,
   AIConversationSlice,
   createAIConversationSlice,
+  BrowserCardsSlice,
+  createBrowserCardsSlice,
   WorkspaceViewSlice,
   createWorkspaceViewSlice,
 } from './slices';
@@ -29,6 +31,7 @@ export type WorkspaceState = UISlice &
   FolderSlice &
   NoteSlice &
   AIConversationSlice &
+  BrowserCardsSlice &
   WorkspaceViewSlice;
 
 // 为了向后兼容，保留 WorkspaceView 类型导出
@@ -42,6 +45,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       ...createFolderSlice(...a),
       ...createNoteSlice(...a),
       ...createAIConversationSlice(...a),
+      ...createBrowserCardsSlice(...a),
       ...createWorkspaceViewSlice(...a),
     }),
     {

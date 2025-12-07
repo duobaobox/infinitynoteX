@@ -1,0 +1,36 @@
+/* ============================================
+   BrowserCard - 浏览器网页卡片特有样式
+   ============================================ */
+
+/* 网页图标 */
+.web-icon__box {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  bottom: 10px;
+  left: 20px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: rotate(-12deg);
+  transition: all 0.3s ease-in-out;
+  background: linear-gradient(135deg, #fff1e6 30%, #ffd8bf 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #fa8c16;
+}
+
+.base-card:hover .web-icon__box {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
+  transform: rotate(-15deg) translateY(-2px);
+}
+
+/* ==================== 暗色模式 ==================== */
+[data-theme='dark'] .web-icon__box {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #2b1d0d 30%, #3d2610 100%);
+  color: #d87a16;
+}

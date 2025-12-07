@@ -14,11 +14,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { Input, Badge, Button, message, Modal, Empty, Form } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined, GlobalOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import BrowserCard, { CardListContext } from '../../../../components/BaseCard/cards/BrowserCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
 import { useThemeColor } from '../../../../hooks/useThemeColor';
-import './BrowserCardListView.css';
 
 interface BrowserCardListViewProps {
   /** 列表容器的 flex 值，由父组件传入 */
@@ -139,43 +139,40 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
 
       {/* 列表区域 */}
       <div className="flex-vertical-equal" ref={containerRef}>
-        <div className="scrollable-list" ref={scrollableRef}>
-          {filteredCards.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={searchQuery ? '没有找到匹配的网页' : '点击 + 添加网页'}
-              style={{ marginTop: 40 }}
-            />
-          ) : (
-            filteredCards.map((card) => (
-              <div
-                key={card.id}
-                className={`browser-card-item ${selectedBrowserCardId === card.id ? 'selected' : ''}`}
-                onClick={() => selectBrowserCard(card.id)}
-              >
-                <div className="browser-card-icon">
-                  <GlobalOutlined />
-                </div>
-                <div className="browser-card-content">
-                  <div className="browser-card-name">{card.name}</div>
-                  <div className="browser-card-url">{card.url}</div>
-                </div>
-                {!card.isBuiltIn && (
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCard(card.id, card.name);
-                    }}
-                    className="browser-card-delete"
-                  />
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        <CardListContext.Provider value={{ selectedId: selectedBrowserCardId ?? undefined }}>
+          <div className="scrollable-list" ref={scrollableRef}>
+            {filteredCards.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={searchQuery ? '没有找到匹配的网页' : '点击 + 添加网页'}
+                style={{ marginTop: 40 }}
+              />
+            ) : (
+              filteredCards.map((card) => (
+                <BrowserCard
+                  key={card.id}
+                  id={card.id}
+                  title={card.name}
+                  content={card.url}
+                  onClick={() => selectBrowserCard(card.id)}
+                  actions={
+                    !card.isBuiltIn && (
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCard(card.id, card.name);
+                        }}
+                      />
+                    )
+                  }
+                />
+              ))
+            )}
+          </div>
+        </CardListContext.Provider>
       </div>
 
       {/* 添加卡片弹窗 */}

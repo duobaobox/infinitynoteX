@@ -13,7 +13,7 @@ const browserCardsConfig = getModuleConfig('browser-cards')!;
 
 // 预设的 AI 网站列表
 const PRESET_BROWSER_CARDS: Omit<BrowserCard, 'id' | 'createdAt' | 'updatedAt'>[] = [
-  { name: '通义 Qwen', url: 'https://tongyi.aliyun.com', isBuiltIn: true, order: 0 },
+  { name: '通义千问', url: 'https://www.qianwen.com', isBuiltIn: true, order: 0 },
   { name: 'DeepSeek', url: 'https://chat.deepseek.com', isBuiltIn: true, order: 1 },
   { name: '豆包', url: 'https://www.doubao.com', isBuiltIn: true, order: 2 },
   { name: '智谱清言', url: 'https://chatglm.cn', isBuiltIn: true, order: 3 },

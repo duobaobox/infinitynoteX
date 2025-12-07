@@ -509,3 +509,33 @@ ul[data-type='taskList'] li[data-checked='true'] > div {
     padding: 8px 12px;
   }
 }
+
+/* ==================== YouTube 嵌入样式 ==================== */
+
+.tiptap-editor .tiptap-youtube {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  margin: 12px 0;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* YouTube 容器居中 */
+.tiptap-editor div:has(> .tiptap-youtube) {
+  display: flex;
+  justify-content: center;
+}
+
+/* ==================== 上标/下标样式 ==================== */
+
+.tiptap-editor sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.tiptap-editor sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}

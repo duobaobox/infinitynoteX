@@ -5,6 +5,7 @@
 
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Dropcursor from '@tiptap/extension-dropcursor';
 import { common, createLowlight } from 'lowlight';
 
 // 创建 lowlight 实例，使用常用语言包
@@ -48,10 +49,13 @@ export const getBasicExtensions = () => {
     // 代码块语法高亮扩展
     CodeBlockLowlight.configure({
       lowlight,
-      defaultLanguage: 'plaintext',
-      HTMLAttributes: {
-        class: 'code-block-lowlight',
-      },
+    }),
+
+    // 拖拽光标指示扩展
+    Dropcursor.configure({
+      color: 'var(--theme-color, #1890ff)',
+      width: 2,
+      class: 'tiptap-dropcursor',
     }),
   ];
 };

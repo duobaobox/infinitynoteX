@@ -15,6 +15,7 @@ import {
   getAlignMenuItems,
   getTableMenuItems,
   getHighlightMenuItems,
+  getTextColorMenuItems,
 } from '../components';
 
 export interface MenuBarProps {
@@ -93,12 +94,33 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
         title="行内代码"
         icon="ri-code-line"
       />
+      {/* 下标按钮 */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleSubscript().run()}
+        isActive={editor.isActive('subscript')}
+        title="下标"
+        icon="ri-subscript-2"
+      />
+      {/* 上标按钮 */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleSuperscript().run()}
+        isActive={editor.isActive('superscript')}
+        title="上标"
+        icon="ri-superscript-2"
+      />
       {/* 高亮下拉菜单 */}
       <GroupDropdown
         label="高亮"
         icon="ri-mark-pen-line"
         active={editor.isActive('highlight')}
         items={getHighlightMenuItems(editor)}
+      />
+      {/* 文字颜色下拉菜单 */}
+      <GroupDropdown
+        label="颜色"
+        icon="ri-font-color"
+        active={!!editor.getAttributes('textStyle')?.color}
+        items={getTextColorMenuItems(editor)}
       />
 
       <ToolbarDivider />

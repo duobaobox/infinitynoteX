@@ -141,7 +141,7 @@ const SyncStatus: React.FC = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <Card className="sync-status-card" size="small" bordered>
+    <Card className="sync-status-card" size="small" variant="outlined">
       <div className="sync-status-card-inner">
         <div className="sync-status-main">
           <div className="sync-status-icon">

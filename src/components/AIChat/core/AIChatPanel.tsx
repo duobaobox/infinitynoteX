@@ -518,7 +518,7 @@ export const AIChatPanel = ({
                 disabled={chatItems.length === 0}
               />
             </Tooltip>
-            <Divider type="vertical" style={{ margin: '0' }} />
+            <Divider orientation="vertical" style={{ margin: '0' }} />
             <Tooltip title="打开设置">
               <Button
                 type="text"
@@ -576,7 +576,7 @@ export const AIChatPanel = ({
                     menu={dropdownMenuProps}
                     trigger={['click']}
                     placement="topLeft"
-                    overlayClassName="ai-meta-dropdown"
+                    classNames={{ root: 'ai-meta-dropdown' }}
                   >
                     {renderMetaTrigger(true)}
                   </Dropdown>

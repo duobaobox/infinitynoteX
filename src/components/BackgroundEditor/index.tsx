@@ -108,7 +108,7 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                         className={`preset-card ${value === preset.value ? 'preset-card-active' : ''}`}
                         hoverable
                         onClick={() => handlePresetSelect(preset.value)}
-                        bodyStyle={{ padding: 0 }}
+                        styles={{ body: { padding: 0 } }}
                         style={{ cursor: 'pointer', height: '100%' }}
                       >
                         <div className="preset-preview" style={{ background: preset.value }} />
@@ -156,10 +156,12 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                         />
                         <Card
                           className="custom-preview"
-                          bodyStyle={{
-                            background: solidColor,
-                            height: 100,
-                            padding: 0,
+                          styles={{
+                            body: {
+                              background: solidColor,
+                              height: 100,
+                              padding: 0,
+                            },
                           }}
                         />
                       </Space>
@@ -222,10 +224,12 @@ const BackgroundEditor: React.FC<BackgroundEditorProps> = ({ value, onChange, mo
                       <Form.Item label="预览">
                         <Card
                           className="custom-preview"
-                          bodyStyle={{
-                            background: `linear-gradient(${gradAngle}deg, ${gradColor1} 0%, ${gradColor2} 100%)`,
-                            height: 100,
-                            padding: 0,
+                          styles={{
+                            body: {
+                              background: `linear-gradient(${gradAngle}deg, ${gradColor1} 0%, ${gradColor2} 100%)`,
+                              height: 100,
+                              padding: 0,
+                            },
                           }}
                         />
                       </Form.Item>

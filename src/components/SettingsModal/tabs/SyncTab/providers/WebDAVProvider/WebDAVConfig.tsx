@@ -270,7 +270,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
                 <Text type="secondary">无变化: {preview.unchanged} 个文件</Text>
 
                 {preview.toUpload.length === 0 && preview.toDownload.length === 0 && (
-                  <Alert message="所有文件已同步，无需操作" type="success" showIcon />
+                  <Alert title="所有文件已同步，无需操作" type="success" showIcon />
                 )}
               </Space>
             </Card>
@@ -280,7 +280,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
 
       <Alert
         style={{ marginTop: 12 }}
-        message="同步范围"
+        title="同步范围"
         description="当前仅同步便签数据（文件夹和笔记），AI 对话暂不同步。"
         type="info"
         showIcon

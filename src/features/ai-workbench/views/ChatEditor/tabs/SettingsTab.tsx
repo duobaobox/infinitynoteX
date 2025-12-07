@@ -334,7 +334,7 @@ const AISettingsTab = () => {
   const renderParameterCards = () => (
     <>
       {/* 状态卡片 */}
-      <Card className="ai-settings-card ai-settings-status-card" size="small" bordered>
+      <Card className="ai-settings-card ai-settings-status-card" size="small" variant="outlined">
         <div className="ai-settings-status">
           <div className="ai-settings-status-main">
             <Text type="secondary" className="ai-settings-label">
@@ -364,7 +364,7 @@ const AISettingsTab = () => {
 
       <div className="ai-settings-grid">
         {/* 回答控制卡片 */}
-        <Card title="回答控制" size="small" className="ai-settings-card" bordered>
+        <Card title="回答控制" size="small" className="ai-settings-card" variant="outlined">
           <Form layout="vertical" colon={false} className="ai-settings-form">
             <Form.Item
               label={
@@ -437,7 +437,7 @@ const AISettingsTab = () => {
         </Card>
 
         {/* 系统提示词卡片 */}
-        <Card title="系统提示词" size="small" className="ai-settings-card" bordered>
+        <Card title="系统提示词" size="small" className="ai-settings-card" variant="outlined">
           <Form layout="vertical" colon={false} className="ai-settings-form">
             <Form.Item label="提示词模板" extra="选择预设后可在下方继续微调。">
               <Select

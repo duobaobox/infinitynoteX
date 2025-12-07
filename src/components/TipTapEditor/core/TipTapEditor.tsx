@@ -187,7 +187,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
             value={title}
             onChange={(e) => onTitleChange?.(e.target.value)}
             size="large"
-            bordered={false}
+            variant="borderless"
           />
         </div>
       )}

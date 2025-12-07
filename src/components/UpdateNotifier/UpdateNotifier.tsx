@@ -26,13 +26,13 @@ function UpdateNotifier() {
 
     switch (status.state) {
       case 'checking':
-        return <Alert type="info" showIcon message="正在检查更新..." />;
+        return <Alert type="info" showIcon title="正在检查更新..." />;
       case 'available':
         return (
           <Alert
             type="info"
             showIcon
-            message={`发现新版本${status.version ? ` ${status.version}` : ''}，正在准备下载`}
+            title={`发现新版本${status.version ? ` ${status.version}` : ''}，正在准备下载`}
           />
         );
       case 'downloading':
@@ -40,7 +40,7 @@ function UpdateNotifier() {
           <Alert
             type="info"
             showIcon
-            message={`正在下载更新${status.version ? ` ${status.version}` : ''}`}
+            title={`正在下载更新${status.version ? ` ${status.version}` : ''}`}
             description={
               <div className="update-notifier__progress">
                 <Progress
@@ -63,7 +63,7 @@ function UpdateNotifier() {
           <Alert
             type="success"
             showIcon
-            message={`更新包已就绪${status.version ? ` (${status.version})` : ''}`}
+            title={`更新包已就绪${status.version ? ` (${status.version})` : ''}`}
             description={
               <div className="update-notifier__actions">
                 {status.releaseNotes && (
@@ -83,12 +83,12 @@ function UpdateNotifier() {
           <Alert
             type="error"
             showIcon
-            message="自动更新出现问题"
+            title="自动更新出现问题"
             description={status.errorMessage ?? '请稍后重试或检查网络连接'}
           />
         );
       case 'disabled':
-        return <Alert type="warning" showIcon message="开发模式下自动更新已禁用" />;
+        return <Alert type="warning" showIcon title="开发模式下自动更新已禁用" />;
       default:
         return null;
     }

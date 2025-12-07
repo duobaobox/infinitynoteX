@@ -142,7 +142,7 @@ const AITab: React.FC = () => {
       <h3>AI 管理</h3>
 
       <div className="ai-settings-header">
-        <Card className="ai-status-card" size="small" bordered>
+        <Card className="ai-status-card" size="small" variant="outlined">
           <div className="ai-status-card-inner">
             <div className="ai-status-card-info">
               <Text type="secondary" className="ai-status-label">
@@ -173,7 +173,7 @@ const AITab: React.FC = () => {
           </div>
         </Card>
 
-        <Card className="ai-parameters-card" size="small" bordered>
+        <Card className="ai-parameters-card" size="small" variant="outlined">
           <div className="ai-parameter-grid">
             <div className="ai-parameter-field">
               <div className="ai-parameter-label">
@@ -216,7 +216,7 @@ const AITab: React.FC = () => {
           className="ai-provider-card ai-card"
           size="small"
           title="AI 提供商"
-          bodyStyle={{ padding: 12 }}
+          styles={{ body: { padding: 12 } }}
         >
           <div className="ai-provider-list">
             {providerListItems.map((provider) => {
@@ -373,7 +373,7 @@ const AITab: React.FC = () => {
 
           {aiTestResult && (
             <Alert
-              message={aiTestResult.message}
+              title={aiTestResult.message}
               type={aiTestResult.ok ? 'success' : 'error'}
               showIcon
               closable

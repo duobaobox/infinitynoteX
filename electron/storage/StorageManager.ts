@@ -126,8 +126,6 @@ export class StorageManager {
       await this.trash.rebuildIndex();
 
       await this.loadAllCaches();
-      // 仅在既存存储中检查并修复默认对话重复问题
-      await this.ai.ensureSingleDefault();
 
       // 检查并修复孤儿便签（文件夹不存在的便签）
       await this.fixOrphanNotes();

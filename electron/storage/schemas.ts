@@ -41,6 +41,7 @@ export const NoteIndexSchema = z.object({
   folderId: z.string(),
   title: z.string(),
   excerpt: z.string(),
+  createdAt: z.number(),
   updatedAt: z.number(),
   pinned: z.boolean(),
   tags: z.array(z.string()),
@@ -109,7 +110,6 @@ export const AIConversationSchema = z.object({
   messages: z.array(AIMessageSchema),
   createdAt: z.number(),
   updatedAt: z.number(),
-  isDefault: z.boolean().optional(),
 });
 
 export const AIConversationIndexSchema = z.object({
@@ -118,7 +118,6 @@ export const AIConversationIndexSchema = z.object({
   excerpt: z.string(),
   createdAt: z.number(),
   updatedAt: z.number(),
-  isDefault: z.boolean().optional(),
 });
 
 export const AIConversationsIndexArraySchema = z.array(AIConversationIndexSchema);

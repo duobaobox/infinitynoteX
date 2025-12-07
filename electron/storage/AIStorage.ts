@@ -44,19 +44,15 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
    */
   async createConversation(title?: string): Promise<AIConversation> {
     const now = Date.now();
-    const index = await this.list();
-    const isDefaultConversation = index.length === 0;
-
     const defaultTitle = generateConversationTitle();
 
     const newConversation: AIConversation = {
       id: generateId(),
-      title: isDefaultConversation ? '默认对话' : title || defaultTitle,
+      title: title || defaultTitle,
       excerpt: '开始对话',
       messages: [],
       createdAt: now,
       updatedAt: now,
-      isDefault: isDefaultConversation,
     };
 
     await this['writeFile'](newConversation);
@@ -66,7 +62,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
   }
 
   /**
-   * 删除 AI 对话（禁止删除默认对话）
+   * 删除 AI 对话
    */
   async delete(id: string): Promise<void> {
     const index = await this.list();
@@ -74,11 +70,6 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
 
     if (metaIndex < 0) {
       throw new StorageError(StorageErrorCode.E_NOT_FOUND, `Conversation not found: ${id}`);
-    }
-
-    // 禁止删除默认对话
-    if (index[metaIndex].isDefault) {
-      throw new StorageError(StorageErrorCode.E_FOLDER_SYSTEM, '无法删除默认对话');
     }
 
     // 调用父类删除方法
@@ -116,42 +107,6 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
     return await this.update(id, { title } as Partial<AIConversation>);
   }
 
-  /**
-   * 确保只有一个默认对话（修复数据异常）
-   */
-  async ensureSingleDefault(): Promise<void> {
-    const index = await this.list();
-    const defaultEntries = index.filter((item) => item.isDefault);
-
-    if (defaultEntries.length <= 1) {
-      return;
-    }
-
-    // 按创建时间排序，保留最早的默认对话
-    const sortedDefaults = [...defaultEntries].sort((a, b) => a.createdAt - b.createdAt);
-    // 保留第一个（最早的），降级其他的
-    const demotedIds = sortedDefaults.slice(1).map((item) => item.id);
-
-    for (const id of demotedIds) {
-      try {
-        const conversation = await this.get(id);
-        let updatedTitle = conversation.title;
-        if (updatedTitle === '默认对话') {
-          updatedTitle = generateConversationTitle(conversation.createdAt);
-        }
-
-        conversation.isDefault = false;
-        conversation.title = updatedTitle;
-        conversation.updatedAt = Date.now();
-
-        await this['writeFile'](conversation);
-        await this['updateIndex'](conversation);
-      } catch (error) {
-        console.warn(`[AIStorage] Failed to normalize default conversation ${id}:`, error);
-      }
-    }
-  }
-
   // ============ 向后兼容方法 ============
 
   /**
@@ -173,7 +128,6 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       excerpt: conversation.excerpt,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
-      isDefault: conversation.isDefault,
     };
   }
 
@@ -192,7 +146,6 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       messages: payload.messages || [],
       createdAt: now,
       updatedAt: now,
-      isDefault: payload.isDefault || false,
     };
   }
 }

@@ -48,6 +48,7 @@ export interface NoteIndex {
   folderId: string;
   title: string;
   excerpt: string;
+  createdAt: number;
   updatedAt: number;
   pinned: boolean;
   tags: string[];

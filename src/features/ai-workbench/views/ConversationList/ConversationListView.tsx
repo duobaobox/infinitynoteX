@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Input, Badge, Button, message, Modal } from 'antd';
+import { Input, Badge, Button, message, Modal, Empty } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import ConversationCard, {
   CardListContext,
@@ -84,12 +84,6 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
 
   /** 删除对话 */
   const handleDeleteAIConversation = async (id: string, title: string) => {
-    // 默认对话不可删除
-    if (title === '默认对话') {
-      message.warning('默认对话无法删除');
-      return;
-    }
-
     Modal.confirm({
       title: '删除对话',
       content: `确定删除对话"${title}"吗？`,
@@ -161,17 +155,23 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
       <div className="flex-vertical-equal" ref={containerRef}>
         <CardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableRef}>
-            {filteredAiConversations.map((session) => (
-              <ConversationCard
-                key={session.id}
-                title={session.title}
-                content={session.excerpt}
-                onClick={() => {
-                  setSelectedToolItem(session.id);
-                  resetEditorTab(); // 切换对话时重置 Tab 到默认
-                }}
-                actions={
-                  session.title !== '默认对话' ? (
+            {filteredAiConversations.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={searchQuery ? '没有找到匹配的对话' : '点击 + 开始新对话'}
+                style={{ marginTop: 40 }}
+              />
+            ) : (
+              filteredAiConversations.map((session) => (
+                <ConversationCard
+                  key={session.id}
+                  title={session.title}
+                  content={session.excerpt}
+                  onClick={() => {
+                    setSelectedToolItem(session.id);
+                    resetEditorTab(); // 切换对话时重置 Tab 到默认
+                  }}
+                  actions={
                     <Button
                       type="text"
                       size="small"
@@ -181,11 +181,11 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
                         handleDeleteAIConversation(session.id, session.title);
                       }}
                     />
-                  ) : null
-                }
-                id={session.id}
-              />
-            ))}
+                  }
+                  id={session.id}
+                />
+              ))
+            )}
           </div>
         </CardListContext.Provider>
       </div>

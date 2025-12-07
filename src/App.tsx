@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import './App.css';
 import Sidebar from './features/layout/Sidebar';
 import ListPanel from './features/layout/ListPanel';
@@ -62,7 +62,6 @@ function App() {
 
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
-  const isInitializingAIConversationRef = useRef(false);
 
   // 全局监听存储事件（删除、创建等），自动清理失效引用
   useStorageEvents();
@@ -120,32 +119,7 @@ function App() {
     }
   }, [workspaceView, selectedToolId, setSelectedTool]);
 
-  // 应用启动时初始化默认 AI 对话（如果不存在）
-  useEffect(() => {
-    const initDefaultAIConversation = async () => {
-      if (isInitializingAIConversationRef.current || isFirstLaunch === null) {
-        return; // 等待首次启动检测完成
-      }
-
-      try {
-        isInitializingAIConversationRef.current = true;
-        const conversations = await window.storage.getAIConversations();
-        if (conversations.length === 0) {
-          // 如果没有对话，创建默认对话（第一个会自动命名为"默认对话"）
-          await window.storage.createAIConversation();
-          console.log('[App] Created default AI conversation on startup');
-        }
-      } catch (error) {
-        console.error('Failed to initialize default AI conversation:', error);
-      } finally {
-        isInitializingAIConversationRef.current = false;
-      }
-    };
-
-    initDefaultAIConversation();
-  }, [isFirstLaunch]);
-
-  // 切换到 AI 对话视图时，确保选中一个对话
+  // 切换到 AI 对话视图时，确保选中一个对话（如果有）
   useEffect(() => {
     if (workspaceView === 'tool' && selectedToolId === 'ai-chat' && !selectedToolItemId) {
       const selectDefaultConversation = async () => {

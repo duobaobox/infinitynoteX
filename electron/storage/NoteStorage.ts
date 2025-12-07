@@ -100,6 +100,7 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
       folderId: note.folderId,
       title: note.title,
       excerpt: this.generateNoteExcerpt(note.content),
+      createdAt: note.createdAt,
       updatedAt: note.updatedAt,
       pinned: note.pinned,
       tags: note.tags,

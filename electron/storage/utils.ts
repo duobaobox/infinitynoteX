@@ -238,10 +238,10 @@ export async function validateStorageIntegrity(storagePath: string): Promise<voi
 }
 
 /**
- * 生成对话标题（格式：对话YYYYMMDD）
+ * 生成对话标题（格式：对话YYYYMMDD-HHmm）
  */
 export function generateConversationTitle(timestamp?: number): string {
   const date = new Date(timestamp || Date.now());
   const pad = (value: number) => value.toString().padStart(2, '0');
-  return `对话${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  return `对话${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
 }

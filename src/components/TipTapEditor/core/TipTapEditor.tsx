@@ -9,7 +9,7 @@ import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Input } from 'antd';
 import { MenuBar } from '../menus/MenuBar';
-import { BubbleMenu } from '../menus/BubbleMenu';
+import { BubbleMenus } from '../menus/BubbleMenu';
 import { CharacterCount } from '../menus/components/CharacterCount';
 import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
@@ -25,7 +25,7 @@ import '../styles/table-handles.css';
  * - 完整的富文本编辑功能
  * - 支持任务列表、图片、代码块等
  * - 响应式工具栏
- * - BubbleMenu 选中文字时弹出格式化工具栏
+ * - Context-Aware BubbleMenus 根据选中内容类型显示不同菜单
  * - TableHandles Notion 风格表格行/列手柄（悬停显示，点击弹出菜单）
  * - SlashCommands 输入 "/" 时弹出命令菜单
  * - TypeScript 类型安全
@@ -196,8 +196,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
 
       {/* 编辑器内容区域 */}
       <div className="tiptap-editor-wrapper">
-        {/* BubbleMenu - 选中文字时弹出格式化工具栏 */}
-        {editable && <BubbleMenu editor={editor} />}
+        {/* Context-Aware BubbleMenus - 根据选中内容类型显示不同菜单 */}
+        {editable && <BubbleMenus editor={editor} />}
 
         {/* TableHandles - Notion 风格表格手柄，通过扩展实现 */}
 

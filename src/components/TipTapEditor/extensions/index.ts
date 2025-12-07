@@ -8,6 +8,7 @@ import { getFormattingExtensions } from './formatting';
 import { getContentExtensions } from './content';
 import { getTaskExtensions } from './task';
 import { getEnhancementExtensions } from './enhancements';
+import { getMarkdownExtensions } from './markdown';
 
 /**
  * 获取所有编辑器扩展
@@ -20,6 +21,8 @@ export const getExtensions = (config?: EditorConfig) => {
     ...getContentExtensions(config),
     ...getTaskExtensions(),
     ...getEnhancementExtensions(),
+    // Markdown 扩展 - 支持粘贴 Markdown 自动转换为富文本
+    ...getMarkdownExtensions(),
   ];
 };
 

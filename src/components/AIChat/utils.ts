@@ -2,21 +2,41 @@
  * AIChat Utils - AI 对话工具函数
  */
 
-import { generateJSON } from '@tiptap/html';
-import { marked } from 'marked';
+import { Editor } from '@tiptap/core';
 import type { TipTapJSONContent } from '../../services/types';
 import { getExtensions } from '../TipTapEditor/extensions';
 
 /**
- * 将 markdown 转换为 HTML
+ * 创建临时编辑器用于 Markdown 转换
+ * 使用 @tiptap/markdown 扩展的能力
+ */
+const createTempEditor = () => {
+  const extensions = getExtensions();
+  return new Editor({
+    extensions,
+    content: '',
+  });
+};
+
+/**
+ * 将 Markdown 转换为 HTML
+ * 使用 TipTap 的 Markdown 扩展进行转换
  */
 export const renderMarkdownToHtml = (markdown: string): string => {
+  if (!markdown?.trim()) {
+    return '';
+  }
+
   try {
-    const html = marked.parse(markdown) as string;
-    return html || '';
+    const editor = createTempEditor();
+    // 关键：使用 contentType: 'markdown' 告诉 TipTap 按 Markdown 格式解析
+    editor.commands.setContent(markdown, { contentType: 'markdown' });
+    const html = editor.getHTML();
+    editor.destroy();
+    return html;
   } catch (error) {
     console.error('Failed to convert markdown to HTML:', error);
-    // 降级处理
+    // 降级处理：简单的正则替换
     return markdown
       .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
       .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
@@ -60,6 +80,7 @@ export const buildPlainTextDoc = (text: string): TipTapJSONContent => {
 
 /**
  * 将 Markdown 转换为 TipTap JSON
+ * 使用 @tiptap/markdown 扩展进行转换
  */
 export const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => {
   if (!markdown?.trim()) {
@@ -67,16 +88,11 @@ export const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => 
   }
 
   try {
-    // 使用 marked 将 markdown 转换为 HTML
-    const html = marked.parse(markdown) as string;
-
-    if (!html || !html.trim()) {
-      return buildPlainTextDoc(markdown);
-    }
-
-    // 使用 TipTap 的 generateJSON 从 HTML 生成 JSON
-    const extensions = getExtensions();
-    const json = generateJSON(html, extensions);
+    const editor = createTempEditor();
+    // 关键：使用 contentType: 'markdown' 告诉 TipTap 按 Markdown 格式解析
+    editor.commands.setContent(markdown, { contentType: 'markdown' });
+    const json = editor.getJSON();
+    editor.destroy();
 
     if (json?.type === 'doc') {
       return json as TipTapJSONContent;

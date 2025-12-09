@@ -21,22 +21,6 @@ export interface StorageEvent {
  * 在 App 根组件中调用一次即可
  */
 export function useStorageEvents(): void {
-  // 获取 store 状态和 actions
-  const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
-  const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
-  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
-
-  const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
-  const setSelectedFolder = useWorkspaceStore((state) => state.setSelectedFolder);
-  const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
-  const loadNotes = useWorkspaceStore((state) => state.loadNotes);
-  const loadFolders = useWorkspaceStore((state) => state.loadFolders);
-  const loadAIConversations = useWorkspaceStore((state) => state.loadAIConversations);
-  const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
-  const triggerAIConversationsRefresh = useWorkspaceStore(
-    (state) => state.triggerAIConversationsRefresh,
-  );
-
   useEffect(() => {
     // 检查 API 是否可用
     if (!window.storageEvents?.onEvent) {
@@ -47,83 +31,95 @@ export function useStorageEvents(): void {
     const handleEvent = (event: StorageEvent) => {
       console.log(`[useStorageEvents] Received: ${event.type} ${event.entity}:${event.id}`);
 
+      // 直接从 store 获取最新状态和 actions，避免闭包陷阱
+      const store = useWorkspaceStore.getState();
+
       switch (event.type) {
         case 'deleted':
-          handleDelete(event);
+          handleDelete(event, store);
           break;
         case 'created':
-          handleCreate(event);
+          handleCreate(event, store);
           break;
         case 'updated':
-          handleUpdate(event);
+          handleUpdate(event, store);
           break;
       }
     };
 
-    const handleDelete = (event: StorageEvent) => {
+    const handleDelete = (
+      event: StorageEvent,
+      store: ReturnType<typeof useWorkspaceStore.getState>,
+    ) => {
       switch (event.entity) {
         case 'note':
           // 如果删除的是当前选中的便签，清空选中状态
-          if (selectedNoteId === event.id) {
+          if (store.selectedNoteId === event.id) {
             console.log('[useStorageEvents] Clearing selected note (deleted externally)');
-            setSelectedNote(null);
+            store.setSelectedNote(null);
           }
           // 触发列表刷新
-          triggerListRefresh();
+          store.triggerListRefresh();
           break;
 
         case 'aiConversation':
           // 如果删除的是当前选中的对话，清空选中状态
-          if (selectedToolItemId === event.id) {
+          if (store.selectedToolItemId === event.id) {
             console.log('[useStorageEvents] Clearing selected conversation (deleted externally)');
-            setSelectedToolItem(null);
+            store.setSelectedToolItem(null);
           }
           // 刷新对话列表
-          triggerAIConversationsRefresh();
+          store.triggerAIConversationsRefresh();
           break;
 
         case 'folder':
           // 如果删除的是当前选中的文件夹，清空选中状态
-          if (selectedFolderId === event.id) {
+          if (store.selectedFolderId === event.id) {
             console.log('[useStorageEvents] Clearing selected folder (deleted externally)');
-            setSelectedFolder(null);
+            store.setSelectedFolder(null);
           }
           // 刷新文件夹列表
-          loadFolders();
+          store.loadFolders();
           break;
       }
     };
 
-    const handleCreate = (event: StorageEvent) => {
+    const handleCreate = (
+      event: StorageEvent,
+      store: ReturnType<typeof useWorkspaceStore.getState>,
+    ) => {
       switch (event.entity) {
         case 'note':
           // 刷新便签列表
-          if (selectedFolderId) {
-            loadNotes(selectedFolderId);
+          if (store.selectedFolderId) {
+            store.loadNotes(store.selectedFolderId);
           }
           break;
 
         case 'aiConversation':
           // 刷新对话列表
-          loadAIConversations();
+          store.loadAIConversations();
           break;
 
         case 'folder':
           // 刷新文件夹列表
-          loadFolders();
+          store.loadFolders();
           break;
       }
     };
 
-    const handleUpdate = (event: StorageEvent) => {
+    const handleUpdate = (
+      event: StorageEvent,
+      store: ReturnType<typeof useWorkspaceStore.getState>,
+    ) => {
       // 更新事件通常不需要额外处理
       // 各组件会通过自己的状态管理来更新
       switch (event.entity) {
         case 'note':
-          triggerListRefresh();
+          store.triggerListRefresh();
           break;
         case 'aiConversation':
-          triggerAIConversationsRefresh();
+          store.triggerAIConversationsRefresh();
           break;
       }
     };
@@ -134,17 +130,5 @@ export function useStorageEvents(): void {
     return () => {
       unsubscribe();
     };
-  }, [
-    selectedNoteId,
-    selectedFolderId,
-    selectedToolItemId,
-    setSelectedNote,
-    setSelectedFolder,
-    setSelectedToolItem,
-    loadNotes,
-    loadFolders,
-    loadAIConversations,
-    triggerListRefresh,
-    triggerAIConversationsRefresh,
-  ]);
+  }, []); // 空依赖数组，只在组件挂载时注册一次
 }

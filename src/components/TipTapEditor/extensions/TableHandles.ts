@@ -19,6 +19,11 @@ interface MenuItem {
   danger?: boolean;
 }
 
+const HANDLE_OFFSET = 8;
+
+const getTableWrapper = (table: HTMLElement) =>
+  table.closest('.tableWrapper') as HTMLElement | null;
+
 /**
  * 创建手柄元素
  */
@@ -66,11 +71,13 @@ export const TableHandles = Extension.create({
     let handlesContainer: HTMLDivElement | null = null;
     let currentMenu: HTMLDivElement | null = null;
     let currentTable: HTMLTableElement | null = null;
+    let currentWrapper: HTMLElement | null = null;
     let hideTimeout: ReturnType<typeof setTimeout> | null = null;
     let isMouseOverHandles = false;
     let resizeObserver: ResizeObserver | null = null;
     let mutationObserver: MutationObserver | null = null;
     let updateHandlesFrame: number | null = null;
+    let wrapperScrollHandler: (() => void) | null = null;
 
     /**
      * 清除隐藏定时器
@@ -100,11 +107,17 @@ export const TableHandles = Extension.create({
         mutationObserver = null;
       }
 
+      if (currentWrapper && wrapperScrollHandler) {
+        currentWrapper.removeEventListener('scroll', wrapperScrollHandler);
+        wrapperScrollHandler = null;
+      }
+
       if (handlesContainer) {
         handlesContainer.remove();
         handlesContainer = null;
       }
       currentTable = null;
+      currentWrapper = null;
     };
 
     /**
@@ -247,26 +260,32 @@ export const TableHandles = Extension.create({
      * 更新手柄位置
      */
     const updateHandlesPosition = () => {
-      if (!currentTable || !handlesContainer) return;
+      if (!currentTable || !handlesContainer || !currentWrapper) return;
 
       if (updateHandlesFrame !== null) {
         cancelAnimationFrame(updateHandlesFrame);
       }
 
       updateHandlesFrame = requestAnimationFrame(() => {
-        if (!currentTable || !handlesContainer) return;
+        if (!currentTable || !handlesContainer || !currentWrapper) return;
 
-        const tableRect = currentTable.getBoundingClientRect();
-        const rows = currentTable.rows;
+        const wrapper = currentWrapper;
+        const table = currentTable;
+
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const tableRect = table.getBoundingClientRect();
+        const rows = table.rows;
 
         const rowHandles = handlesContainer.querySelectorAll('.table-handle-row');
         rowHandles.forEach((handle, i) => {
           if (i < rows.length) {
             const row = rows[i];
             const rowRect = row.getBoundingClientRect();
-            (handle as HTMLElement).style.left = `${tableRect.left - 10}px`;
-            (handle as HTMLElement).style.top = `${rowRect.top}px`;
-            (handle as HTMLElement).style.height = `${rowRect.height}px`;
+            const element = handle as HTMLElement;
+            const top = rowRect.top - wrapperRect.top + wrapper.scrollTop;
+            const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - HANDLE_OFFSET;
+            element.style.transform = `translate(${left}px, ${top}px)`;
+            element.style.height = `${rowRect.height}px`;
           }
         });
 
@@ -277,9 +296,11 @@ export const TableHandles = Extension.create({
             if (i < firstRow.cells.length) {
               const cell = firstRow.cells[i];
               const cellRect = cell.getBoundingClientRect();
-              (handle as HTMLElement).style.left = `${cellRect.left}px`;
-              (handle as HTMLElement).style.top = `${tableRect.top - 10}px`;
-              (handle as HTMLElement).style.width = `${cellRect.width}px`;
+              const element = handle as HTMLElement;
+              const left = cellRect.left - wrapperRect.left + wrapper.scrollLeft;
+              const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - HANDLE_OFFSET;
+              element.style.transform = `translate(${left}px, ${top}px)`;
+              element.style.width = `${cellRect.width}px`;
             }
           });
         }
@@ -292,6 +313,9 @@ export const TableHandles = Extension.create({
      * 为表格显示所有手柄
      */
     const showHandlesForTable = (table: HTMLTableElement) => {
+      const wrapper = getTableWrapper(table);
+      if (!wrapper) return;
+
       if (currentTable === table && handlesContainer) {
         updateHandlesPosition();
         return;
@@ -299,15 +323,18 @@ export const TableHandles = Extension.create({
 
       removeHandles();
       currentTable = table;
+      currentWrapper = wrapper;
 
       const tableRect = table.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
       const rows = table.rows;
 
       handlesContainer = document.createElement('div');
       handlesContainer.className = 'table-handles-container';
-      handlesContainer.style.position = 'fixed';
-      handlesContainer.style.pointerEvents = 'auto';
-      handlesContainer.style.zIndex = '100';
+      handlesContainer.style.position = 'absolute';
+      handlesContainer.style.inset = '0';
+      handlesContainer.style.pointerEvents = 'none';
+      handlesContainer.style.zIndex = '150';
 
       handlesContainer.addEventListener('mouseenter', () => {
         isMouseOverHandles = true;
@@ -325,9 +352,11 @@ export const TableHandles = Extension.create({
         const rowRect = row.getBoundingClientRect();
 
         const handle = createHandleElement('row', i);
-        handle.style.position = 'fixed';
-        handle.style.left = `${tableRect.left - 10}px`;
-        handle.style.top = `${rowRect.top}px`;
+        handle.style.position = 'absolute';
+        handle.style.pointerEvents = 'auto';
+        const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - HANDLE_OFFSET;
+        const top = rowRect.top - wrapperRect.top + wrapper.scrollTop;
+        handle.style.transform = `translate(${left}px, ${top}px)`;
         handle.style.height = `${rowRect.height}px`;
 
         handle.addEventListener('click', (e) => {
@@ -347,9 +376,11 @@ export const TableHandles = Extension.create({
           const cellRect = cell.getBoundingClientRect();
 
           const handle = createHandleElement('column', i);
-          handle.style.position = 'fixed';
-          handle.style.left = `${cellRect.left}px`;
-          handle.style.top = `${tableRect.top - 10}px`;
+          handle.style.position = 'absolute';
+          handle.style.pointerEvents = 'auto';
+          const left = cellRect.left - wrapperRect.left + wrapper.scrollLeft;
+          const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - HANDLE_OFFSET;
+          handle.style.transform = `translate(${left}px, ${top}px)`;
           handle.style.width = `${cellRect.width}px`;
 
           handle.addEventListener('click', (e) => {
@@ -362,7 +393,7 @@ export const TableHandles = Extension.create({
         }
       }
 
-      document.body.appendChild(handlesContainer);
+      wrapper.appendChild(handlesContainer);
 
       // 监听表格尺寸变化
       resizeObserver = new ResizeObserver(() => {
@@ -392,10 +423,10 @@ export const TableHandles = Extension.create({
         }
 
         if (needsUpdate && currentTable) {
-          const table = currentTable;
+          const tableNode = currentTable;
           removeHandles();
           requestAnimationFrame(() => {
-            showHandlesForTable(table);
+            showHandlesForTable(tableNode);
           });
         }
       });
@@ -406,6 +437,9 @@ export const TableHandles = Extension.create({
         attributes: true,
         attributeFilter: ['colspan', 'rowspan'],
       });
+
+      wrapperScrollHandler = () => updateHandlesPosition();
+      wrapper.addEventListener('scroll', wrapperScrollHandler, { passive: true });
     };
 
     return [

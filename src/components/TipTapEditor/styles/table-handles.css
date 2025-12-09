@@ -9,12 +9,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f0f0;
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
   cursor: pointer;
-  z-index: 100;
+  z-index: 310;
   transition: all 0.15s ease;
-  opacity: 0.6;
+  opacity: 0.35;
+  position: absolute;
+  pointer-events: auto;
+  will-change: transform;
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .table-handle:hover {
@@ -24,12 +31,13 @@
 
 .table-handle:active {
   opacity: 0.9;
+  transform: scale(0.96);
 }
 
 /* 行手柄 - 竖向细条，高度与表格一致 */
 .table-handle-row {
   position: relative;
-  width: 6px;
+  width: 12px;
   /* height 由 JS 动态设置 */
 }
 
@@ -48,7 +56,7 @@
 /* 列手柄 - 横向细条，宽度与表格一致 */
 .table-handle-column {
   position: relative;
-  height: 6px;
+  height: 12px;
   /* width 由 JS 动态设置 */
 }
 
@@ -79,8 +87,15 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 4px;
   min-width: 140px;
-  z-index: 1000;
+  z-index: 400;
   animation: menuFadeIn 0.15s ease;
+}
+
+.table-handles-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 300;
 }
 
 @keyframes menuFadeIn {

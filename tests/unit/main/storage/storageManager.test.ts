@@ -3,33 +3,39 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-// Use var to avoid TDZ when vi.mock is hoisted; seed with a fallback path
-let tempPath = path.join(os.tmpdir(), 'storage-manager-default');
 let storageRoot: string;
+let mockUserDataPath: string;
 
-vi.mock('electron', () => ({
-  shell: {
-    openExternal: vi.fn(),
-    showItemInFolder: vi.fn(),
-    openPath: vi.fn(),
-  },
-  app: {
-    getPath: vi.fn(() => tempPath || path.join(os.tmpdir(), 'storage-manager-default')),
-  },
-}));
+// Mock electron with a factory that creates the mock inline
+vi.mock('electron', () => {
+  const getPath = vi.fn(() => path.join(os.tmpdir(), 'storage-manager-default'));
+  return {
+    shell: {
+      openExternal: vi.fn(),
+      showItemInFolder: vi.fn(),
+      openPath: vi.fn(),
+    },
+    app: {
+      getPath,
+    },
+  };
+});
 
 import { StorageManager } from '../../../../electron/storage/StorageManager';
+import { app } from 'electron';
 
 const ensureDir = (p: string) => fs.stat(p).then((s) => s.isDirectory());
 
 describe('StorageManager', () => {
   beforeEach(async () => {
-    tempPath = await fs.mkdtemp(path.join(os.tmpdir(), 'storage-manager-'));
-    storageRoot = path.join(tempPath, 'data-v1');
+    mockUserDataPath = await fs.mkdtemp(path.join(os.tmpdir(), 'storage-manager-'));
+    vi.mocked(app.getPath).mockReturnValue(mockUserDataPath);
+    storageRoot = path.join(mockUserDataPath, 'data-v1');
   });
 
   afterEach(async () => {
-    await fs.rm(tempPath, { recursive: true, force: true });
+    await fs.rm(mockUserDataPath, { recursive: true, force: true });
+    vi.clearAllMocks();
   });
 
   it('returns true for first launch when meta is missing', async () => {

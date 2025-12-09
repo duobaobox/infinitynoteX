@@ -102,6 +102,7 @@ describe('AIChat Utils', () => {
       // Here we assume it's defined but write fails
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       global.ClipboardItem = vi.fn() as any;
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mockWrite.mockRejectedValueOnce(new Error('Failed'));
       mockWriteText.mockResolvedValueOnce(undefined);
 
@@ -109,6 +110,8 @@ describe('AIChat Utils', () => {
 
       expect(result).toBe(true);
       expect(mockWriteText).toHaveBeenCalledWith('text');
+
+      consoleWarnSpy.mockRestore();
     });
 
     it('should use writeText if html is not provided', async () => {

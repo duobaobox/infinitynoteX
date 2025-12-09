@@ -3,10 +3,30 @@
  */
 
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
 import { useNoteCardTheme, NoteCardColorConfig } from '../../../../src/hooks/useNoteCardTheme';
 
 describe('useNoteCardTheme', () => {
+  const OriginalMutationObserver = global.MutationObserver;
+
+  class MockMutationObserver implements MutationObserver {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    constructor(private callback: MutationCallback) {}
+    observe(): void {}
+    disconnect(): void {}
+    takeRecords(): MutationRecord[] {
+      return [];
+    }
+  }
+
+  beforeAll(() => {
+    global.MutationObserver = MockMutationObserver as unknown as typeof MutationObserver;
+  });
+
+  afterAll(() => {
+    global.MutationObserver = OriginalMutationObserver;
+  });
+
   // Helpers to simulate theme change
   const setDarkMode = (isDark: boolean) => {
     if (isDark) {
@@ -37,7 +57,9 @@ describe('useNoteCardTheme', () => {
   });
 
   it('should return dark mode colors when theme is dark', () => {
-    setDarkMode(true);
+    act(() => {
+      setDarkMode(true);
+    });
     const { result } = renderHook(() => useNoteCardTheme('bae0ff'));
 
     expect(result.current.isDark).toBe(true);

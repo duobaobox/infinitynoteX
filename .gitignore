@@ -25,3 +25,4 @@ dist-ssr
 # 忽略 release 文件夹下所有内容
 release/
 dist-electron/
+coverage/

@@ -24,12 +24,7 @@ export { default } from './core/AIChatPanel';
 export { useAIConfig, useAIChat } from './hooks';
 
 // 工具函数
-export {
-  renderMarkdownToHtml,
-  convertMarkdownToTipTap,
-  splitParagraphs,
-  copyToClipboard,
-} from './utils';
+export { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from './utils';
 
 // 类型定义
 export type {
@@ -41,5 +36,4 @@ export type {
   AIChatPanelProps,
   UseAIChatReturn,
   UseAIConfigReturn,
-  ThoughtChainItems,
 } from './types';

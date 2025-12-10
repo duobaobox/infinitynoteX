@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import './App.css';
+import { XProvider } from '@ant-design/x';
 import Sidebar from './features/layout/Sidebar';
 import ListPanel from './features/layout/ListPanel';
 import EditorPanel from './features/layout/EditorPanel';
@@ -279,39 +280,41 @@ function App() {
         )}
       </div>
 
-      {isFirstLaunch === null ? (
-        // 加载中
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--app-bg)',
-          }}
-        >
-          <Spin size="large" />
-        </div>
-      ) : isFirstLaunch ? (
-        // 首次启动，显示欢迎屏幕
-        <WelcomeScreen
-          onInitializationComplete={() => {
-            setIsFirstLaunch(false);
-          }}
-        />
-      ) : (
-        <div className="layout-panel main-content">
-          {showSidebar && (
-            <>
-              <Sidebar />
-              <div className="gap-panel" />
-            </>
-          )}
-          <ListPanel flex={showEditor ? '0 0 250px' : 1} />
-          {showEditor && <div className="gap-panel" />}
-          {showEditor && <EditorPanel />}
-        </div>
-      )}
+      <XProvider>
+        {isFirstLaunch === null ? (
+          // 加载中
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--app-bg)',
+            }}
+          >
+            <Spin size="large" />
+          </div>
+        ) : isFirstLaunch ? (
+          // 首次启动，显示欢迎屏幕
+          <WelcomeScreen
+            onInitializationComplete={() => {
+              setIsFirstLaunch(false);
+            }}
+          />
+        ) : (
+          <div className="layout-panel main-content">
+            {showSidebar && (
+              <>
+                <Sidebar />
+                <div className="gap-panel" />
+              </>
+            )}
+            <ListPanel flex={showEditor ? '0 0 250px' : 1} />
+            {showEditor && <div className="gap-panel" />}
+            {showEditor && <EditorPanel />}
+          </div>
+        )}
+      </XProvider>
     </>
   );
 }

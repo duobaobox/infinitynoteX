@@ -2,24 +2,16 @@
  * AIChat Types - AI 对话核心类型定义
  */
 
-import type { GetProp } from 'antd';
-import type { ThoughtChain } from '@ant-design/x';
-
-// Ant Design X 类型
-export type ThoughtChainItems = GetProp<typeof ThoughtChain, 'items'>;
-
 /**
  * 聊天消息项（UI 层使用）
+ * content 包含完整的 Markdown 内容，可能包含 <think> 标签
  */
 export interface ChatItem {
   key: string;
   role: 'user' | 'ai';
-  content: string;
+  content: string; // 包含 <think> 标签的完整内容
   timestamp: number;
-  thoughtChain?: ThoughtChainItems;
   isStreaming?: boolean;
-  /** 流式思维链原始文本增量累积 */
-  thoughtChainText?: string;
 }
 
 /**

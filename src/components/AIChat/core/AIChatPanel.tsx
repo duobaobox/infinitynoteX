@@ -8,15 +8,20 @@
  * - 标题编辑
  */
 
+import { useState, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { Sender, Bubble, Actions } from '@ant-design/x';
 import {
-  useState,
-  useCallback,
-  useRef,
-  type Key,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
-import { Sender, Bubble, ThoughtChain } from '@ant-design/x';
-import { Alert, Button, Space, Tooltip, Divider, Input, Dropdown, message, Flex } from 'antd';
+  Alert,
+  Avatar,
+  Button,
+  Tooltip,
+  Space,
+  Divider,
+  Input,
+  Dropdown,
+  message,
+  Flex,
+} from 'antd';
 import type { MenuProps, GetProp } from 'antd';
 import {
   ReloadOutlined,
@@ -26,51 +31,18 @@ import {
   UserOutlined,
   DownOutlined,
   CopyOutlined,
-  CheckOutlined,
   SaveOutlined,
 } from '@ant-design/icons';
-import { AIMarkdownRenderer } from '../../AIMarkdown/AIMarkdownRenderer';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService } from '../../../services';
 import { useAIConfig, useAIChat } from '../hooks';
-import {
-  renderMarkdownToHtml,
-  convertMarkdownToTipTap,
-  splitParagraphs,
-  copyToClipboard,
-} from '../utils';
-import type { ChatItem, AIChatPanelProps, ThoughtChainItems } from '../types';
+import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
+import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
 
 // Bubble.List 类型
-type BubbleListRolesType = GetProp<typeof Bubble.List, 'roles'>;
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
-
-type MarkdownRenderOptions = {
-  isStreaming?: boolean;
-};
-
-// 使用 AIMarkdownRenderer 渲染 Markdown 块
-const renderMarkdownBlock = (
-  text: string,
-  className?: string,
-  key?: Key,
-  options?: MarkdownRenderOptions,
-) => {
-  if (!text || !text.trim()) {
-    return null;
-  }
-  const streaming = options?.isStreaming
-    ? {
-        hasNextChunk: true,
-        enableAnimation: true,
-      }
-    : undefined;
-
-  return (
-    <AIMarkdownRenderer key={key} content={text} className={className} streaming={streaming} />
-  );
-};
 
 /**
  * AI 对话面板组件
@@ -225,155 +197,67 @@ export const AIChatPanel = ({
     }
   };
 
-  // 获取思考过程段落
-  const getReasoningParagraphs = (item: ChatItem): string[] => {
-    if (item.thoughtChain && item.thoughtChain.length > 0) {
-      return item.thoughtChain
-        .map((node) => (typeof node.content === 'string' ? node.content : ''))
-        .flatMap((content) => splitParagraphs(content))
-        .filter(Boolean);
-    }
-    if (item.thoughtChainText && item.thoughtChainText.length > 0) {
-      return splitParagraphs(item.thoughtChainText);
-    }
-    return [];
-  };
-
-  // 渲染气泡内容
-  const renderBubbleContent = (
-    item: ChatItem,
-    options?: { reasoningParagraphs?: string[]; showAnswerPlaceholder?: boolean },
-  ) => {
-    if (item.role !== 'ai') {
-      return item.content;
-    }
-
-    const reasoningParagraphs = options?.reasoningParagraphs ?? getReasoningParagraphs(item);
-    const hasReasoning = reasoningParagraphs.length > 0;
-    const hasAnswerText = item.content.trim().length > 0;
-    const isPlaceholder = options?.showAnswerPlaceholder && !hasAnswerText;
-
-    if (!hasReasoning) {
-      if (isPlaceholder) {
-        return <span className="ai-placeholder-text">AI 正在组织回答…</span>;
-      }
-      return renderMarkdownBlock(item.content, 'ai-bubble-text', undefined, {
-        isStreaming: item.isStreaming,
-      });
-    }
-
-    const mergedItem: ThoughtChainItems = [
-      {
-        key: `${item.key}-reasoning`,
-        title: '思考过程',
-        content: (
-          <div className="ai-thought-chain-content">
-            {reasoningParagraphs.map((paragraph, index) => (
-              <div key={index} className="ai-thought-chain-block">
-                {renderMarkdownBlock(paragraph, undefined, `${item.key}-reasoning-${index}`, {
-                  isStreaming: item.isStreaming,
-                })}
-              </div>
-            ))}
-          </div>
-        ),
-      },
-    ];
-
-    return (
-      <div className="ai-bubble-with-thought-chain">
-        <div className="ai-thought-chain-wrapper">
-          <ThoughtChain items={mergedItem} size="small" collapsible />
-        </div>
-        {isPlaceholder ? (
-          <span className="ai-placeholder-text">AI 正在组织回答…</span>
-        ) : (
-          renderMarkdownBlock(item.content, 'ai-bubble-text', undefined, {
-            isStreaming: item.isStreaming,
-          })
-        )}
-      </div>
-    );
-  };
-
-  // Bubble.List roles 配置
-  const bubbleRoles: BubbleListRolesType = {
-    ai: {
-      placement: 'start',
-      avatar: {
-        icon: <RobotOutlined />,
-        style: {
-          background: '#e6f7ff',
-          color: '#1890ff',
-        },
-      },
-      typing: { step: 5, interval: 50 },
-    },
-    user: {
-      placement: 'end',
-      avatar: {
-        icon: <UserOutlined />,
-        style: {
-          background: '#f6ffed',
-          color: '#52c41a',
-        },
-      },
-    },
-  };
-
   // 转换为 Bubble.List items
   const bubbleItems = chatItems.map((m) => {
-    const reasoningParagraphs = m.role === 'ai' ? getReasoningParagraphs(m) : [];
-    const hasReasoning = reasoningParagraphs.length > 0;
-    const hasAnswerText = m.content.length > 0;
-    const showAnswerPlaceholder =
-      m.role === 'ai' && m.isStreaming && !hasAnswerText && hasReasoning;
     const isCopied = copiedBubbleKey === m.key;
 
-    const baseContent = renderBubbleContent(m, {
-      reasoningParagraphs,
-      showAnswerPlaceholder,
-    });
+    // AI 消息的操作按钮
+    const actionItems =
+      m.role === 'ai'
+        ? [
+            {
+              key: 'copy',
+              icon: <CopyOutlined />,
+              label: isCopied ? '已复制' : '复制',
+            },
+            {
+              key: 'save',
+              icon: <SaveOutlined />,
+              label: '保存到便签',
+            },
+          ]
+        : [];
 
     const item: BubbleListItem = {
       key: m.key,
       role: m.role,
-      content: baseContent,
+      content: m.content,
+      placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
+      contentRender: (content) => (
+        <MarkdownRenderer
+          content={content}
+          streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
+        />
+      ),
+      avatar:
+        m.role === 'ai' ? (
+          <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1890ff' }} />
+        ) : (
+          <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
+        ),
     };
 
     if (m.role === 'ai') {
-      item.footer = (
-        <div className="ai-bubble-footer">
-          <Tooltip title={isCopied ? '已复制' : '复制回答'}>
-            <Button
-              type="text"
-              size="small"
-              icon={isCopied ? <CheckOutlined /> : <CopyOutlined />}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleCopyAnswer(m);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="保存到便签">
-            <Button
-              type="text"
-              size="small"
-              icon={<SaveOutlined />}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleSaveToNote(m.content);
-              }}
-            />
-          </Tooltip>
-        </div>
+      item.footer = (content) => (
+        <Actions
+          items={actionItems}
+          onClick={({ key }) => {
+            if (key === 'copy') {
+              handleCopyAnswer(m);
+            } else if (key === 'save') {
+              handleSaveToNote(content as string);
+            }
+          }}
+        />
       );
 
-      if (!hasAnswerText && !hasReasoning && m.isStreaming) {
+      // Actions 按钮位置配置
+      item.footerPlacement = 'outer-end';
+
+      if (!m.content.trim() && m.isStreaming) {
         item.loading = true;
-        item.content = 'AI 正在思考中...';
-      } else if (m.isStreaming && hasAnswerText) {
-        item.typing = { step: 5, interval: 50 };
+      } else if (m.isStreaming && m.content.trim()) {
+        item.typing = { effect: 'typing', step: 5, interval: 50 };
       }
     }
 
@@ -554,7 +438,7 @@ export const AIChatPanel = ({
             <p style={{ fontSize: '12px', color: '#999' }}>输入你的问题，AI 将为你答疑解惑</p>
           </div>
         ) : (
-          <Bubble.List items={bubbleItems} roles={bubbleRoles} />
+          <Bubble.List items={bubbleItems} />
         )}
       </div>
 
@@ -567,7 +451,6 @@ export const AIChatPanel = ({
           placeholder="请输入问题...（Shift+Enter 换行，Enter 发送）"
           value={inputValue}
           onChange={setInputValue}
-          actions={null}
           footer={
             <Flex justify="space-between" align="center">
               <Flex align="center" gap="small">

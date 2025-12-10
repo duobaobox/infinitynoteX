@@ -1,8 +1,17 @@
 /**
  * AIChat 组件样式
- * 基于 AITab.css 重构，使用通用的 ai-chat- 前缀
+ * 仅包含布局容器样式，不覆盖 Ant Design X 组件的内部样式
+ * 
+ * 使用位置：src/components/AIChat/core/AIChatPanel.tsx
  */
 
+/* ==================== 布局容器 ==================== */
+
+/**
+ * .ai-chat-container
+ * AI 对话面板的最外层容器，控制整体布局
+ * 使用位置：AIChatPanel.tsx L264, L275, L348
+ */
 .ai-chat-container {
   display: flex;
   flex-direction: column;
@@ -11,6 +20,11 @@
   background-color: var(--panel-bg, #fafafa);
 }
 
+/**
+ * .ai-chat-header
+ * 顶部标题栏容器，包含标题、操作按钮、Provider 选择器
+ * 使用位置：AIChatPanel.tsx L351
+ */
 .ai-chat-header {
   padding: 12px 16px;
   background-color: var(--bg, #fff);
@@ -21,22 +35,74 @@
   flex-shrink: 0;
 }
 
+/**
+ * .ai-chat-header-left
+ * 标题栏左侧区域，包含标题和编辑状态
+ * 使用位置：AIChatPanel.tsx L352
+ */
 .ai-chat-header-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/**
+ * .ai-chat-header-title
+ * 对话标题文本样式（可双击编辑）
+ * 使用位置：AIChatPanel.tsx L370
+ */
 .ai-chat-header-title {
   font-size: 13px;
   font-weight: 500;
 }
 
-.ai-chat-header-meta {
-  font-size: 12px;
-  color: #999;
+/**
+ * .ai-chat-messages
+ * 消息列表容器，包含 Bubble.List 组件
+ * 使用位置：AIChatPanel.tsx L428
+ */
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
 }
 
+/**
+ * .ai-chat-messages-empty
+ * 空状态容器，显示初始化中、未配置、无消息等提示
+ * 使用位置：AIChatPanel.tsx L265, L276, L430
+ */
+.ai-chat-messages-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+}
+
+/**
+ * .ai-chat-input
+ * 输入框容器，包含 Sender 组件
+ * 使用位置：AIChatPanel.tsx L440
+ */
+.ai-chat-input {
+  padding: 10px;
+  background-color: var(--bg, #fff);
+  flex-shrink: 0;
+}
+
+/* ==================== 自定义组件样式 ==================== */
+
+/**
+ * .ai-chat-meta-trigger
+ * AI Provider 和 Model 切换按钮的容器
+ * 使用位置：AIChatPanel.tsx L327 (metaTriggerClassName)
+ * 
+ * 修饰符：
+ * - [role='button']: 可交互状态
+ * - .is-switching: 正在切换中的加载状态
+ */
 .ai-chat-meta-trigger {
   display: inline-flex;
   align-items: center;
@@ -67,6 +133,11 @@
   pointer-events: none;
 }
 
+/**
+ * .ai-chat-meta-provider
+ * Provider 厂商名称标签（如 OpenAI, Ollama）
+ * 使用位置：AIChatPanel.tsx L336
+ */
 .ai-chat-meta-provider {
   display: inline-flex;
   align-items: center;
@@ -78,6 +149,11 @@
   font-weight: 500;
 }
 
+/**
+ * .ai-chat-meta-dot
+ * Provider 品牌色指示点
+ * 使用位置：AIChatPanel.tsx L337, L309 (下拉菜单中)
+ */
 .ai-chat-meta-dot {
   width: 6px;
   height: 6px;
@@ -85,6 +161,11 @@
   flex-shrink: 0;
 }
 
+/**
+ * .ai-chat-meta-model
+ * 模型名称标签（如 gpt-4o, mistral）
+ * 使用位置：AIChatPanel.tsx L340
+ */
 .ai-chat-meta-model {
   display: inline-flex;
   align-items: center;
@@ -93,6 +174,11 @@
   color: var(--text-secondary, #666);
 }
 
+/**
+ * .ai-chat-meta-icon
+ * 下拉箭头图标
+ * 使用位置：AIChatPanel.tsx L342
+ */
 .ai-chat-meta-icon {
   font-size: 10px;
   color: inherit;
@@ -111,19 +197,38 @@
   }
 }
 
-/* Provider 下拉选项（复用 AITab 样式） */
+/**
+ * Provider 下拉菜单选项样式
+ * 用于 Dropdown 中的 Provider 选择列表
+ */
+
+/**
+ * .ai-meta-option
+ * 下拉菜单中的单个选项容器
+ * 使用位置：AIChatPanel.tsx L305
+ */
 .ai-meta-option {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+/**
+ * .ai-meta-option__row
+ * 选项的第一行，包含品牌色点、厂商名、当前标签
+ * 使用位置：AIChatPanel.tsx L306
+ */
 .ai-meta-option__row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+/**
+ * .ai-meta-option__dot
+ * 选项中的品牌色指示点
+ * 使用位置：AIChatPanel.tsx L307-309
+ */
 .ai-meta-option__dot {
   width: 6px;
   height: 6px;
@@ -131,11 +236,21 @@
   flex-shrink: 0;
 }
 
+/**
+ * .ai-meta-option__provider
+ * 选项中的厂商名称
+ * 使用位置：AIChatPanel.tsx L311
+ */
 .ai-meta-option__provider {
   font-weight: 500;
   color: var(--text-primary, #1f1f1f);
 }
 
+/**
+ * .ai-meta-option__badge
+ * "当前" 标签，标识当前激活的 Provider
+ * 使用位置：AIChatPanel.tsx L312
+ */
 .ai-meta-option__badge {
   font-size: 11px;
   color: #fa541c;
@@ -144,161 +259,28 @@
   padding: 1px 6px;
 }
 
+/**
+ * .ai-meta-option__model
+ * 选项的第二行，显示模型名称
+ * 使用位置：AIChatPanel.tsx L314
+ */
 .ai-meta-option__model {
   font-size: 12px;
   color: #8c8c8c;
   padding-left: 14px;
 }
 
-.ai-meta-dropdown .ant-dropdown-menu {
-  min-width: 200px;
-}
+/* ==================== 暗色模式 ==================== */
 
-.ai-chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
+/**
+ * 暗色模式适配
+ * 仅覆盖自定义样式的颜色，不影响 Ant Design X 组件
+ */
 
-.ai-chat-messages-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #bbb;
-}
-
-.ai-chat-input {
-  padding: 10px;
-  background-color: var(--bg, #fff);
-  border-top: none;
-  flex-shrink: 0;
-}
-
-/* 隐藏 ant-sender-content 中的按钮 */
-.ai-chat-input .ant-sender-content .ant-btn {
-  display: none;
-}
-
-/* 隐藏输入框的滚动条 */
-.ai-chat-input .ant-sender-input {
-  scrollbar-width: none; /* Firefox */
-}
-
-.ai-chat-input .ant-sender-input::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
-}
-
-/* 移除 Sender 组件激活时的阴影 */
-.ai-chat-input .ant-sender {
-  box-shadow: none !important;
-}
-
-.ai-chat-input .ant-sender:focus-within {
-  box-shadow: none !important;
-}
-
-.ai-chat-input .ant-sender-wrapper {
-  box-shadow: none !important;
-}
-
-.ai-chat-input .ant-sender-footer {
-  padding: 8px 12px;
-}
-
-.ai-chat-alert {
-  margin: 12px 16px 0;
-}
-
-/* 气泡相关样式（复用） */
-.ai-bubble-with-thought-chain {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ai-bubble-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
-}
-
-.ai-bubble-footer .ant-btn {
-  font-size: 12px;
-  color: var(--text-secondary, #595959);
-}
-
-.ai-chat-container .ant-bubble-content,
-.ai-chat-container .ant-bubble-content-filled {
-  margin-bottom: 0 !important;
-}
-
-.ai-chat-container .ant-bubble-footer {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
-.ai-bubble-text {
-  line-height: 1.65;
-}
-
-/* 思维链样式 */
-.ai-thought-chain-wrapper {
-  padding-left: 0;
-}
-
-.ai-thought-chain-wrapper .ant-thought-chain-item-icon,
-.ai-thought-chain-wrapper .ant-avatar,
-.ai-thought-chain-wrapper .ant-x-thought-chain-icon,
-.ai-thought-chain-wrapper .ant-x-thought-chain-line,
-.ai-thought-chain-wrapper .ant-x-thought-chain-header {
-  display: none !important;
-}
-
-.ai-thought-chain-wrapper .ant-x-thought-chain-item {
-  border-left: none !important;
-  padding-left: 0 !important;
-}
-
-.ai-thought-chain-wrapper .ant-x-thought-chain-item::before,
-.ai-thought-chain-wrapper .ant-x-thought-chain-item::after {
-  display: none !important;
-}
-
-.ai-thought-chain-wrapper .ant-x-thought-chain-content {
-  padding-left: 0;
-}
-
-.ai-thought-chain-wrapper .ant-thought-chain-item-header::before {
-  display: none !important;
-}
-
-.ai-thought-chain-content {
-  line-height: 1.6;
-}
-
-.ai-thought-chain-block + .ai-thought-chain-block {
-  margin-top: 12px;
-}
-
-.ai-placeholder-text {
-  color: #999;
-}
-
-/* ==================== 暗色模式适配 ==================== */
-
-/* 暗色模式 - 容器 */
 :root[data-theme='dark'] .ai-chat-container {
   background-color: #141414;
 }
 
-/* 暗色模式 - 顶部标题栏 */
 :root[data-theme='dark'] .ai-chat-header {
   background-color: #1f1f1f;
   border-bottom-color: #434343;
@@ -308,11 +290,6 @@
   color: #e6e6e6;
 }
 
-:root[data-theme='dark'] .ai-chat-header-meta {
-  color: #8c8c8c;
-}
-
-/* 暗色模式 - 消息区域 */
 :root[data-theme='dark'] .ai-chat-messages {
   background-color: #1f1f1f;
 }
@@ -321,13 +298,11 @@
   color: #595959;
 }
 
-/* 暗色模式 - 输入框 */
 :root[data-theme='dark'] .ai-chat-input {
   background-color: #1f1f1f;
-  border-top-color: #434343;
 }
 
-/* 暗色模式 - 模型切换触发器 */
+/* Provider 切换按钮暗色模式 */
 :root[data-theme='dark'] .ai-chat-meta-trigger {
   border-color: rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.08);
@@ -348,72 +323,11 @@
   color: #a6a6a6;
 }
 
-/* 暗色模式 - 元数据选项 */
+/* Provider 下拉菜单暗色模式 */
 :root[data-theme='dark'] .ai-meta-option__provider {
   color: #e6e6e6;
 }
 
 :root[data-theme='dark'] .ai-meta-option__model {
   color: #a6a6a6;
-}
-
-/* 暗色模式 - Sender 输入框样式 */
-:root[data-theme='dark'] .ai-chat-input .ant-sender {
-  background-color: #1f1f1f;
-}
-
-:root[data-theme='dark'] .ai-chat-input .ant-sender-input {
-  background-color: #262626;
-  color: #e6e6e6;
-  border-color: #434343;
-}
-
-:root[data-theme='dark'] .ai-chat-input .ant-sender-input::placeholder {
-  color: #8c8c8c;
-}
-
-:root[data-theme='dark'] .ai-chat-input .ant-sender-footer {
-  background-color: #1f1f1f;
-  border-top-color: #434343;
-}
-
-/* 暗色模式 - 告警提示 */
-:root[data-theme='dark'] .ai-chat-alert {
-  background-color: #2f1515;
-  border-color: #58181c;
-}
-
-/* 暗色模式 - 气泡菜单 */
-:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu {
-  background-color: #262626;
-}
-
-:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item {
-  color: #e6e6e6;
-}
-
-:root[data-theme='dark'] .ai-meta-dropdown .ant-dropdown-menu-item:hover {
-  background-color: #434343;
-}
-
-/* 暗色模式 - AI对话气泡 */
-:root[data-theme='dark'] .ai-chat-messages {
-  background-color: #1f1f1f;
-}
-
-:root[data-theme='dark'] .ant-bubble-content {
-  color: #e6e6e6;
-}
-
-:root[data-theme='dark'] .ant-bubble-footer {
-  color: #a6a6a6;
-}
-
-/* 暗色模式 - 思维链 */
-:root[data-theme='dark'] .ai-thought-chain-content {
-  color: #e6e6e6;
-}
-
-:root[data-theme='dark'] .ai-placeholder-text {
-  color: #595959;
 }

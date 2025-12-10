@@ -48,6 +48,7 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
+    include: ['@ant-design/x', '@ant-design/x-markdown'],
     esbuildOptions: {
       preserveSymlinks: true,
     },

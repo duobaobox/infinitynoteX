@@ -68,13 +68,21 @@ export const useAIChat = ({
 
           if (conversation.messages && conversation.messages.length > 0) {
             // 转换存储格式到 ChatItem 格式
-            const items: ChatItem[] = conversation.messages.map((msg, index) => ({
-              key: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
-              role: msg.role === 'assistant' ? 'ai' : 'user',
-              content: msg.content,
-              timestamp: msg.timestamp ?? Date.now(),
-              thoughtChainText: msg.reasoning || undefined,
-            }));
+            const items: ChatItem[] = conversation.messages.map((msg, index) => {
+              let content = msg.content;
+
+              // 如果有 reasoning,将其包装为 <think> 标签
+              if (msg.reasoning) {
+                content = `<think>${msg.reasoning}</think>\n\n${msg.content}`;
+              }
+
+              return {
+                key: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
+                role: msg.role === 'assistant' ? 'ai' : 'user',
+                content,
+                timestamp: msg.timestamp ?? Date.now(),
+              };
+            });
             setChatItems(items);
           } else {
             setChatItems([]);
@@ -95,13 +103,22 @@ export const useAIChat = ({
       if (!conversationId) return;
 
       try {
-        const messages = items.map((item, index) => ({
-          id: item.key || `${item.role}-${item.timestamp}-${index}`,
-          role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
-          content: item.content,
-          timestamp: item.timestamp ?? Date.now(),
-          reasoning: item.thoughtChainText || undefined,
-        }));
+        const messages = items.map((item, index) => {
+          // 从 content 中提取 <think> 标签
+          const thinkMatch = item.content.match(/<think>([\s\S]*?)<\/think>/);
+          const reasoning = thinkMatch ? thinkMatch[1].trim() : undefined;
+          const content = thinkMatch
+            ? item.content.replace(/<think>[\s\S]*?<\/think>\s*/, '').trim()
+            : item.content;
+
+          return {
+            id: item.key || `${item.role}-${item.timestamp}-${index}`,
+            role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
+            content,
+            timestamp: item.timestamp ?? Date.now(),
+            reasoning,
+          };
+        });
 
         await aiConversationService.saveMessages(conversationId, messages);
       } catch (err) {
@@ -116,15 +133,48 @@ export const useAIChat = ({
     const unsubscribeChunk = window.ai?.onStreamChunk?.((data: StreamChunkData) => {
       if (streamingKey) {
         setChatItems((prev) =>
-          prev.map((item) =>
-            item.key === streamingKey
-              ? {
+          prev.map((item) => {
+            if (item.key !== streamingKey) return item;
+
+            // 处理思维链增量
+            if (data.reasoningDelta) {
+              const thinkMatch = item.content.match(/<think>([\s\S]*?)$/);
+              if (thinkMatch) {
+                // 已经有未闭合的 <think> 标签,继续追加
+                return {
                   ...item,
-                  content: item.content + (data.delta || ''),
-                  thoughtChainText: (item.thoughtChainText || '') + (data.reasoningDelta || ''),
-                }
-              : item,
-          ),
+                  content: item.content + data.reasoningDelta,
+                };
+              } else {
+                // 首次接收到思维链,创建 <think> 标签
+                return {
+                  ...item,
+                  content: item.content + `<think>${data.reasoningDelta}`,
+                };
+              }
+            }
+
+            // 处理普通内容增量
+            if (data.delta) {
+              const hasOpenThink =
+                item.content.includes('<think>') && !item.content.includes('</think>');
+              if (hasOpenThink) {
+                // 有未闭合的 <think>,先闭合再追加内容
+                return {
+                  ...item,
+                  content: item.content + `</think>\n\n${data.delta}`,
+                };
+              } else {
+                // 直接追加内容
+                return {
+                  ...item,
+                  content: item.content + data.delta,
+                };
+              }
+            }
+
+            return item;
+          }),
         );
       }
     });

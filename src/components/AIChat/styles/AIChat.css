@@ -1,0 +1,221 @@
+/**
+ * AIChat 组件样式
+ * 仅包含布局容器样式，不覆盖 Ant Design X 组件的内部样式
+ * 
+ * 使用位置：src/components/AIChat/core/AIChatPanel.tsx
+ */
+
+/* ==================== 布局容器 ==================== */
+
+/**
+ * .ai-chat-container
+ * AI 对话面板的最外层容器，控制整体布局
+ * 使用位置：AIChatPanel.tsx L264, L275, L348
+ */
+.ai-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--panel-bg, #fafafa);
+}
+
+/**
+ * .ai-chat-header
+ * 顶部标题栏容器，包含标题、操作按钮、Provider 选择器
+ * 使用位置：AIChatPanel.tsx L351
+ */
+.ai-chat-header {
+  padding: 12px 16px;
+  background-color: var(--bg, #fff);
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/**
+ * .ai-chat-header-left
+ * 标题栏左侧区域，包含标题和编辑状态
+ * 使用位置：AIChatPanel.tsx L352
+ */
+.ai-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/**
+ * .ai-chat-header-title
+ * 对话标题文本样式（可双击编辑）
+ * 使用位置：AIChatPanel.tsx L370
+ */
+.ai-chat-header-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/**
+ * .ai-chat-messages
+ * 消息列表容器，包含 Bubble.List 组件
+ * 使用位置：AIChatPanel.tsx L428
+ */
+.ai-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/**
+ * .ai-chat-messages-empty
+ * 空状态容器，显示初始化中、未配置、无消息等提示
+ * 使用位置：AIChatPanel.tsx L265, L276, L430
+ */
+.ai-chat-messages-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+}
+
+/**
+ * .ai-chat-input
+ * 输入框容器，包含 Sender 组件
+ * 使用位置：AIChatPanel.tsx L440
+ */
+.ai-chat-input {
+  padding: 10px;
+  background-color: var(--bg, #fff);
+  flex-shrink: 0;
+}
+
+/* ==================== 自定义组件样式 ==================== */
+
+/**
+ * .ai-chat-meta-dot
+ * Provider 品牌色指示点，用于 Sender.Switch 组件的 icon
+ * 使用位置：AIChatPanel.tsx L440 (Sender.Switch icon)
+ */
+.ai-chat-meta-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/**
+ * Provider 下拉菜单选项样式
+ * 用于 Dropdown 中的 Provider 选择列表
+ */
+
+/**
+ * .ai-meta-option
+ * 下拉菜单中的单个选项容器
+ * 使用位置：AIChatPanel.tsx L305
+ */
+.ai-meta-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/**
+ * .ai-meta-option__row
+ * 选项的第一行，包含品牌色点、厂商名、当前标签
+ * 使用位置：AIChatPanel.tsx L306
+ */
+.ai-meta-option__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/**
+ * .ai-meta-option__dot
+ * 选项中的品牌色指示点
+ * 使用位置：AIChatPanel.tsx L307-309
+ */
+.ai-meta-option__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/**
+ * .ai-meta-option__provider
+ * 选项中的厂商名称
+ * 使用位置：AIChatPanel.tsx L311
+ */
+.ai-meta-option__provider {
+  font-weight: 500;
+  color: var(--text-primary, #1f1f1f);
+}
+
+/**
+ * .ai-meta-option__badge
+ * "当前" 标签，标识当前激活的 Provider
+ * 使用位置：AIChatPanel.tsx L312
+ */
+.ai-meta-option__badge {
+  font-size: 11px;
+  color: #fa541c;
+  background: rgba(250, 84, 28, 0.12);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+/**
+ * .ai-meta-option__model
+ * 选项的第二行，显示模型名称
+ * 使用位置：AIChatPanel.tsx L314
+ */
+.ai-meta-option__model {
+  font-size: 12px;
+  color: #8c8c8c;
+  padding-left: 14px;
+}
+
+/* ==================== 暗色模式 ==================== */
+
+/**
+ * 暗色模式适配
+ * 仅覆盖自定义样式的颜色，不影响 Ant Design X 组件
+ */
+
+:root[data-theme='dark'] .ai-chat-container {
+  background-color: #141414;
+}
+
+:root[data-theme='dark'] .ai-chat-header {
+  background-color: #1f1f1f;
+  border-bottom-color: #434343;
+}
+
+:root[data-theme='dark'] .ai-chat-header-title {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-chat-messages {
+  background-color: #1f1f1f;
+}
+
+:root[data-theme='dark'] .ai-chat-messages-empty {
+  color: #595959;
+}
+
+:root[data-theme='dark'] .ai-chat-input {
+  background-color: #1f1f1f;
+}
+
+/* Provider 下拉菜单暗色模式 */
+:root[data-theme='dark'] .ai-meta-option__provider {
+  color: #e6e6e6;
+}
+
+:root[data-theme='dark'] .ai-meta-option__model {
+  color: #a6a6a6;
+}

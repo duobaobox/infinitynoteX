@@ -33,11 +33,12 @@ import {
   CopyOutlined,
   SaveOutlined,
   ApiOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService } from '../../../services';
-import { useAIConfig, useAIChat } from '../hooks';
+import { useAIConfig, useAIChat, useNoteReference } from '../hooks';
 import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
 import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
@@ -85,6 +86,17 @@ export const AIChatPanel = ({
 
   // Sender ref
   const senderRef = useRef<GetRef<typeof Sender>>(null);
+
+  // 便签引用
+  const {
+    availableNotes,
+    selectedNotes,
+    loading: notesLoading,
+    selectNote,
+    unselectNote,
+    clearSelection,
+    getNotesContext,
+  } = useNoteReference('default');
 
   // 复制状态
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
@@ -381,14 +393,40 @@ export const AIChatPanel = ({
 
       {/* 输入框 */}
       <div className="ai-chat-input">
+        {/* 选中的便签标签 */}
+        {selectedNotes.length > 0 && (
+          <Flex gap={8} wrap style={{ marginBottom: 8 }}>
+            {selectedNotes.map((note) => (
+              <Space.Compact key={note.id}>
+                <Button size="small" icon={<FileTextOutlined />} style={{ pointerEvents: 'none' }}>
+                  {note.title}
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  onClick={() => unselectNote(note.id)}
+                  style={{ padding: '0 8px' }}
+                >
+                  ×
+                </Button>
+              </Space.Compact>
+            ))}
+          </Flex>
+        )}
+
         <Sender
           ref={senderRef}
           loading={isLoading}
           placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
-          onSubmit={(value) => {
+          onSubmit={async (value) => {
             if (value.trim()) {
-              sendMessage(value);
+              // 获取便签上下文
+              const notesContext = await getNotesContext();
+              const fullMessage = notesContext ? `${value}${notesContext}` : value;
+
+              sendMessage(fullMessage);
               senderRef.current?.clear?.();
+              clearSelection(); // 清空便签选择
             }
           }}
           onCancel={() => {
@@ -450,6 +488,55 @@ export const AIChatPanel = ({
                       </Sender.Switch>
                     </Dropdown>
                   ) : null}
+
+                  {/* 便签引用选择器 */}
+                  {availableNotes.length > 0 && (
+                    <Dropdown
+                      menu={{
+                        items: availableNotes.map((note) => ({
+                          key: note.id,
+                          label: (
+                            <div style={{ maxWidth: 200 }}>
+                              <div style={{ fontWeight: 500, marginBottom: 2 }}>{note.title}</div>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: '#8c8c8c',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {note.excerpt || '无内容'}
+                              </div>
+                            </div>
+                          ),
+                        })),
+                        onClick: ({ key }) => {
+                          const note = availableNotes.find((n) => n.id === key);
+                          if (note) {
+                            selectNote(note);
+                            message.success(`已添加便签: ${note.title}`);
+                          }
+                        },
+                      }}
+                      trigger={['click']}
+                      placement="topLeft"
+                    >
+                      <Sender.Switch
+                        value={selectedNotes.length > 0}
+                        icon={<FileTextOutlined />}
+                        loading={notesLoading}
+                      >
+                        <Flex align="center" gap={4}>
+                          <span>便签</span>
+                          {selectedNotes.length > 0 && (
+                            <span style={{ color: '#1890ff' }}>({selectedNotes.length})</span>
+                          )}
+                        </Flex>
+                      </Sender.Switch>
+                    </Dropdown>
+                  )}
                 </Flex>
                 <Flex align="center">
                   <Button

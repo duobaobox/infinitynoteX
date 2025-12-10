@@ -95,6 +95,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     editorProps: {
       attributes: {
         class: `tiptap-editor ${className}`,
+        spellcheck: 'false', // 禁用浏览器拼写检查
       },
     },
   });

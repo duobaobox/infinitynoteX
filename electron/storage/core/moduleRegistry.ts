@@ -132,14 +132,14 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     schema: AIConversationSchema,
     indexSchema: AIConversationIndexSchema,
     indexArraySchema: AIConversationsIndexArraySchema,
-    sync: { enabled: true, type: 'directory' },
+    sync: { enabled: false, type: 'directory' },
     features: {
       softDelete: false,
       generateExcerpt: true,
       sortField: 'createdAt',
       hasIndex: true,
     },
-    description: 'AI 助手对话记录',
+    description: 'AI 助手对话记录（本地专用，不同步）',
   },
 
   // ============ 回收站（本地专用，不同步） ============
@@ -188,14 +188,14 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     schema: BrowserCardSchema,
     indexSchema: BrowserCardIndexSchema,
     indexArraySchema: BrowserCardsIndexArraySchema,
-    sync: { enabled: true, type: 'directory' },
+    sync: { enabled: false, type: 'directory' },
     features: {
       softDelete: false,
       generateExcerpt: false,
       sortField: 'order',
       hasIndex: true,
     },
-    description: '内置浏览器网页卡片',
+    description: '内置浏览器网页卡片（本地专用，不同步）',
   },
 
   // ============ 待办事项（预留，暂未启用） ============

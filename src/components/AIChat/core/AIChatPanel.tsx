@@ -8,7 +8,7 @@
  * - 标题编辑
  */
 
-import { useState, useCallback, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Sender, Bubble, Actions } from '@ant-design/x';
 import {
   Alert,
@@ -22,7 +22,7 @@ import {
   message,
   Flex,
 } from 'antd';
-import type { MenuProps, GetProp } from 'antd';
+import type { GetProp, GetRef, MenuProps } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -32,6 +32,7 @@ import {
   DownOutlined,
   CopyOutlined,
   SaveOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
@@ -76,20 +77,14 @@ export const AIChatPanel = ({
   }, []);
 
   // AI 对话
-  const {
-    chatItems,
-    isLoading,
-    error,
-    inputValue,
-    setInputValue,
-    sendMessage,
-    clearChat,
-    clearError,
-  } = useAIChat({
+  const { chatItems, isLoading, error, sendMessage, clearChat, clearError } = useAIChat({
     conversationId,
     isConfigured,
     onTitleChange: handleTitleChange,
   });
+
+  // Sender ref
+  const senderRef = useRef<GetRef<typeof Sender>>(null);
 
   // 复制状态
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
@@ -186,14 +181,6 @@ export const AIChatPanel = ({
     } else if (e.key === 'Escape') {
       e.preventDefault();
       cancelEditingTitle();
-    }
-  };
-
-  // Provider 下拉菜单
-  const handleMetaTriggerKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      event.currentTarget.click();
     }
   };
 
@@ -300,56 +287,6 @@ export const AIChatPanel = ({
     );
   }
 
-  // Provider 菜单
-  const providerColor = config ? getProviderBrandColor(currentProviderId) : '#d9d9d9';
-  const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
-    const isActive = option.providerId === currentProviderId;
-    return {
-      key: option.providerId,
-      label: (
-        <div className="ai-meta-option">
-          <div className="ai-meta-option__row">
-            <span
-              className="ai-meta-option__dot"
-              style={{ backgroundColor: getProviderBrandColor(option.providerId) }}
-            />
-            <span className="ai-meta-option__provider">{option.config.provider}</span>
-            {isActive && <span className="ai-meta-option__badge">当前</span>}
-          </div>
-          <div className="ai-meta-option__model">{option.config.model}</div>
-        </div>
-      ),
-    };
-  });
-
-  const dropdownMenuProps: MenuProps | undefined = providerMenuItems.length
-    ? {
-        items: providerMenuItems,
-        onClick: ({ key }) => switchProvider(key as string),
-      }
-    : undefined;
-
-  const hasProviderConfigs = providerOptions.length > 0;
-  const metaTriggerClassName = `ai-chat-meta-trigger${isSwitching ? ' is-switching' : ''}`;
-
-  const renderMetaTrigger = (interactive: boolean) => (
-    <div
-      className={metaTriggerClassName}
-      role={interactive ? 'button' : undefined}
-      tabIndex={interactive ? 0 : -1}
-      onKeyDown={interactive ? handleMetaTriggerKeyDown : undefined}
-    >
-      <span className="ai-chat-meta-provider">
-        <span className="ai-chat-meta-dot" style={{ backgroundColor: providerColor }} />
-        {config?.provider ?? '未选择厂商'}
-      </span>
-      <span className="ai-chat-meta-model">
-        {config?.model ?? '未选择模型'}
-        <DownOutlined className="ai-chat-meta-icon" />
-      </span>
-    </div>
-  );
-
   return (
     <div className={`ai-chat-container ${className}`}>
       {/* 顶部状态栏 */}
@@ -445,39 +382,93 @@ export const AIChatPanel = ({
       {/* 输入框 */}
       <div className="ai-chat-input">
         <Sender
+          ref={senderRef}
           loading={isLoading}
-          disabled={isLoading || !isConfigured}
-          onSubmit={sendMessage}
-          placeholder="请输入问题...（Shift+Enter 换行，Enter 发送）"
-          value={inputValue}
-          onChange={setInputValue}
-          footer={
-            <Flex justify="space-between" align="center">
-              <Flex align="center" gap="small">
-                {hasProviderConfigs && dropdownMenuProps ? (
-                  <Dropdown
-                    menu={dropdownMenuProps}
-                    trigger={['click']}
-                    placement="topLeft"
-                    classNames={{ root: 'ai-meta-dropdown' }}
-                  >
-                    {renderMetaTrigger(true)}
-                  </Dropdown>
-                ) : config ? (
-                  renderMetaTrigger(false)
-                ) : null}
+          placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
+          onSubmit={(value) => {
+            if (value.trim()) {
+              sendMessage(value);
+              senderRef.current?.clear?.();
+            }
+          }}
+          onCancel={() => {
+            senderRef.current?.clear?.();
+            message.info('已取消发送');
+          }}
+          footer={(actionNode) => {
+            // Provider 切换菜单
+            const providerColor = config ? getProviderBrandColor(currentProviderId) : '#d9d9d9';
+            const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
+              const isActive = option.providerId === currentProviderId;
+              return {
+                key: option.providerId,
+                label: (
+                  <div className="ai-meta-option">
+                    <div className="ai-meta-option__row">
+                      <span
+                        className="ai-meta-option__dot"
+                        style={{ backgroundColor: getProviderBrandColor(option.providerId) }}
+                      />
+                      <span className="ai-meta-option__provider">{option.config.provider}</span>
+                      {isActive && <span className="ai-meta-option__badge">当前</span>}
+                    </div>
+                    <div className="ai-meta-option__model">{option.config.model}</div>
+                  </div>
+                ),
+              };
+            });
+
+            const hasProviderConfigs = providerOptions.length > 0;
+
+            return (
+              <Flex justify="space-between" align="center">
+                <Flex gap="small" align="center">
+                  {/* AI Provider 切换器 */}
+                  {hasProviderConfigs && config ? (
+                    <Dropdown
+                      menu={{
+                        items: providerMenuItems,
+                        onClick: ({ key }) => switchProvider(key as string),
+                      }}
+                      trigger={['click']}
+                      placement="topLeft"
+                    >
+                      <Sender.Switch
+                        value={false}
+                        icon={
+                          <span
+                            className="ai-chat-meta-dot"
+                            style={{ backgroundColor: providerColor }}
+                          />
+                        }
+                        loading={isSwitching}
+                      >
+                        <Flex align="center" gap={4}>
+                          <span>{config.model}</span>
+                          <DownOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
+                        </Flex>
+                      </Sender.Switch>
+                    </Dropdown>
+                  ) : null}
+                </Flex>
+                <Flex align="center">
+                  <Button
+                    type="text"
+                    style={{ fontSize: 16 }}
+                    icon={<ApiOutlined />}
+                    onClick={() => {
+                      // TODO: 打开设置
+                      message.info('打开 AI 设置');
+                    }}
+                  />
+                  <Divider type="vertical" />
+                  {actionNode}
+                </Flex>
               </Flex>
-              <Flex align="center">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  icon={<RobotOutlined style={{ fontSize: 18 }} />}
-                  onClick={() => inputValue.trim() && sendMessage(inputValue)}
-                  disabled={isLoading || !isConfigured || !inputValue.trim()}
-                />
-              </Flex>
-            </Flex>
-          }
+            );
+          }}
+          suffix={false}
+          autoSize={{ minRows: 2, maxRows: 6 }}
         />
       </div>
     </div>

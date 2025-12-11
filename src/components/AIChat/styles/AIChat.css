@@ -65,6 +65,72 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  /* Firefox 滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* 自定义滚动条样式 - WebKit (Chrome, Safari, Edge) */
+.ai-chat-messages::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.ai-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.ai-chat-messages:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.ai-chat-messages::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Ant Design X Bubble.List 内部滚动容器的自定义滚动条 */
+.ai-chat-messages .ant-bubble-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.ai-chat-messages .ant-bubble-list:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/**
+ * AI 气泡填满剩余宽度
+ * 针对 placement="start" 的气泡（AI 回答），使其内容区域填满剩余空间
+ * 用户气泡（placement="end"）保持原有的内容宽度
+ */
+.ai-chat-messages .ant-bubble-start {
+  width: 100%;
+}
+
+.ai-chat-messages .ant-bubble-start .ant-bubble-body {
+  flex: 1;
+  max-width: none;
+}
+
+.ai-chat-messages .ant-bubble-start .ant-bubble-content {
+  max-width: none;
 }
 
 /**

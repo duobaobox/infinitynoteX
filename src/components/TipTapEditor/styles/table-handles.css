@@ -27,6 +27,7 @@
 .table-handle:hover {
   background: var(--theme-color, #1890ff);
   opacity: 1;
+  box-shadow: 0 0 4px rgba(var(--theme-color-rgb, 24, 144, 255), 0.5);
 }
 
 .table-handle:active {

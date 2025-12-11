@@ -71,10 +71,14 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
     try {
       await createAIConversation();
       message.success('新建对话成功');
-      // 创建后自动选中新对话
+      // 创建后自动选中新对话（按 createdAt 最新的）
       const conversations = await window.storage.getAIConversations();
       if (conversations.length > 0) {
-        setSelectedToolItem(conversations[0].id);
+        // 找到 createdAt 最新的对话
+        const newestConversation = conversations.reduce((newest, current) =>
+          (current.createdAt || 0) > (newest.createdAt || 0) ? current : newest,
+        );
+        setSelectedToolItem(newestConversation.id);
       }
     } catch (error) {
       console.error('Failed to create AI conversation:', error);

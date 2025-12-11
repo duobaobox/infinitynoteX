@@ -4,7 +4,7 @@
  * 封装消息管理、流式处理、历史记录加载/保存等逻辑
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { aiConversationService } from '../../../services';
 import type { ChatItem, UseAIChatReturn, StreamChunkData, StreamErrorPayload } from '../types';
 
@@ -44,17 +44,23 @@ export const useAIChat = ({
 }: UseAIChatOptions): UseAIChatReturn => {
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [streamingKey, setStreamingKey] = useState<string | null>(null);
+
+  // 追踪当前是否在接收思考内容（使用 ref 避免闭包问题）
+  const isInReasoningRef = useRef(false);
 
   // 加载对话历史
   useEffect(() => {
     const loadConversationHistory = async () => {
       if (!conversationId) {
         setChatItems([]);
+        setIsLoadingHistory(false);
         return;
       }
+      setIsLoadingHistory(true);
 
       try {
         // getConversations 返回完整的 AIConversation 对象（包含 messages）
@@ -72,8 +78,10 @@ export const useAIChat = ({
               let content = msg.content;
 
               // 如果有 reasoning,将其包装为 <think> 标签
+              // 将空行替换为单换行，避免 marked 段落拆分
               if (msg.reasoning) {
-                content = `<think>${msg.reasoning}</think>\n\n${msg.content}`;
+                const sanitizedReasoning = msg.reasoning.replace(/\n\n+/g, '\n');
+                content = `<think>${sanitizedReasoning}</think>\n${msg.content}`;
               }
 
               return {
@@ -87,10 +95,14 @@ export const useAIChat = ({
           } else {
             setChatItems([]);
           }
+        } else {
+          setChatItems([]);
         }
       } catch (err) {
         console.error('Failed to load conversation history:', err);
         setChatItems([]);
+      } finally {
+        setIsLoadingHistory(false);
       }
     };
 
@@ -136,44 +148,36 @@ export const useAIChat = ({
           prev.map((item) => {
             if (item.key !== streamingKey) return item;
 
+            let newContent = item.content;
+
             // 处理思维链增量
             if (data.reasoningDelta) {
-              const thinkMatch = item.content.match(/<think>([\s\S]*?)$/);
-              if (thinkMatch) {
-                // 已经有未闭合的 <think> 标签,继续追加
-                return {
-                  ...item,
-                  content: item.content + data.reasoningDelta,
-                };
+              // 将空行（\n\n）替换为单换行（\n），避免 marked 将内容拆分为多个段落
+              const sanitizedReasoning = data.reasoningDelta.replace(/\n\n+/g, '\n');
+              if (!isInReasoningRef.current) {
+                // 首次接收到思维链，创建 <think> 标签
+                isInReasoningRef.current = true;
+                newContent += `<think>${sanitizedReasoning}`;
               } else {
-                // 首次接收到思维链,创建 <think> 标签
-                return {
-                  ...item,
-                  content: item.content + `<think>${data.reasoningDelta}`,
-                };
+                // 继续追加思考内容
+                newContent += sanitizedReasoning;
               }
             }
 
             // 处理普通内容增量
             if (data.delta) {
-              const hasOpenThink =
-                item.content.includes('<think>') && !item.content.includes('</think>');
-              if (hasOpenThink) {
-                // 有未闭合的 <think>,先闭合再追加内容
-                return {
-                  ...item,
-                  content: item.content + `</think>\n\n${data.delta}`,
-                };
+              if (isInReasoningRef.current) {
+                // 从思考模式切换到正式内容，先闭合 <think> 标签
+                // 使用单个换行符（与官方示例一致）
+                isInReasoningRef.current = false;
+                newContent += `</think>\n${data.delta}`;
               } else {
                 // 直接追加内容
-                return {
-                  ...item,
-                  content: item.content + data.delta,
-                };
+                newContent += data.delta;
               }
             }
 
-            return item;
+            return { ...item, content: newContent };
           }),
         );
       }
@@ -182,20 +186,31 @@ export const useAIChat = ({
     const unsubscribeDone = window.ai?.onStreamDone?.(() => {
       if (streamingKey) {
         setChatItems((prev) => {
-          const updated = prev.map((item) =>
-            item.key === streamingKey ? { ...item, isStreaming: false } : item,
-          );
+          const updated = prev.map((item) => {
+            if (item.key !== streamingKey) return item;
+
+            let content = item.content;
+            // 如果流结束时仍在思考模式，闭合 <think> 标签
+            if (isInReasoningRef.current) {
+              content += '</think>';
+            }
+
+            return { ...item, content, isStreaming: false };
+          });
           // 流式传输完成后保存对话历史
           saveConversationHistory(updated);
           return updated;
         });
       }
+      // 重置状态
+      isInReasoningRef.current = false;
       setStreamingKey(null);
       setIsLoading(false);
     });
 
     const unsubscribeError = window.ai?.onStreamError?.((data: StreamErrorPayload) => {
       setError(data.error || '流式传输出错');
+      isInReasoningRef.current = false;
       setStreamingKey(null);
       setIsLoading(false);
     });
@@ -238,6 +253,8 @@ export const useAIChat = ({
       const updatedChatItems = [...newChatItems, aiItem];
       setChatItems(updatedChatItems);
       setStreamingKey(aiKey);
+      // 重置思考状态追踪
+      isInReasoningRef.current = false;
 
       // 调用流式 API
       try {
@@ -279,6 +296,7 @@ export const useAIChat = ({
   return {
     chatItems,
     isLoading,
+    isLoadingHistory,
     error,
     inputValue,
     setInputValue,

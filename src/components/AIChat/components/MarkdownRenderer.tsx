@@ -39,11 +39,16 @@ const Code: React.FC<ComponentProps> = (props) => {
 
 /**
  * Think 组件 - 处理思维链
+ * 根据 streamStatus 初始值设置状态，避免历史对话加载时的闪烁
  */
 const ThinkComponent: React.FC<ComponentProps> = (props) => {
-  const [title, setTitle] = useState('思考中...');
-  const [loading, setLoading] = useState(true);
-  const [expand, setExpand] = useState(true);
+  // 根据初始流状态决定初始显示状态
+  // done = 历史对话，直接折叠；loading = 正在流式输出，展开
+  const isDone = props.streamStatus === 'done';
+
+  const [title, setTitle] = useState(isDone ? '思考完成' : '思考中...');
+  const [loading, setLoading] = useState(!isDone);
+  const [expand, setExpand] = useState(!isDone);
 
   useEffect(() => {
     if (props.streamStatus === 'done') {

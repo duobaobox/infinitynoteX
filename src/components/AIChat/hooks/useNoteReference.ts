@@ -3,8 +3,7 @@
  *
  * 功能：
  * 1. 获取最近编辑的便签列表
- * 2. 管理选中的便签引用
- * 3. 提供便签内容作为 AI 上下文
+ * 2. 提供获取单个便签内容的方法（用于发送前获取）
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,18 +18,10 @@ export interface ReferencedNote {
 export interface UseNoteReferenceResult {
   // 可选的便签列表
   availableNotes: ReferencedNote[];
-  // 当前选中的便签
-  selectedNotes: ReferencedNote[];
   // 是否正在加载
   loading: boolean;
-  // 选择便签
-  selectNote: (note: ReferencedNote) => void;
-  // 取消选择
-  unselectNote: (noteId: string) => void;
-  // 清空选择
-  clearSelection: () => void;
-  // 获取便签内容文本（用于发送给 AI）
-  getNotesContext: () => Promise<string>;
+  // 获取多个便签内容文本（根据 ID 列表）
+  getNoteContents: (noteIds: string[]) => Promise<string>;
 }
 
 /**
@@ -38,7 +29,6 @@ export interface UseNoteReferenceResult {
  */
 export const useNoteReference = (folderId: string = 'default'): UseNoteReferenceResult => {
   const [availableNotes, setAvailableNotes] = useState<ReferencedNote[]>([]);
-  const [selectedNotes, setSelectedNotes] = useState<ReferencedNote[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 加载最近的便签列表（最多10条）
@@ -68,58 +58,38 @@ export const useNoteReference = (folderId: string = 'default'): UseNoteReference
     loadNotes();
   }, [folderId]);
 
-  // 选择便签
-  const selectNote = useCallback((note: ReferencedNote) => {
-    setSelectedNotes((prev) => {
-      // 避免重复选择
-      if (prev.some((n) => n.id === note.id)) {
-        return prev;
+  // 获取多个便签内容作为上下文
+  const getNoteContents = useCallback(
+    async (noteIds: string[]): Promise<string> => {
+      if (noteIds.length === 0) {
+        return '';
       }
-      return [...prev, note];
-    });
-  }, []);
 
-  // 取消选择
-  const unselectNote = useCallback((noteId: string) => {
-    setSelectedNotes((prev) => prev.filter((n) => n.id !== noteId));
-  }, []);
+      try {
+        const contents = await Promise.all(
+          noteIds.map(async (noteId) => {
+            const note = availableNotes.find((n) => n.id === noteId);
+            const fullNote = await noteService.getNote(noteId);
+            const title = note?.title || '便签';
+            // 将 TipTap JSON 转换为纯文本
+            const text = extractTextFromTipTap(fullNote.content);
+            return `## ${title}\n\n${text}`;
+          }),
+        );
 
-  // 清空选择
-  const clearSelection = useCallback(() => {
-    setSelectedNotes([]);
-  }, []);
-
-  // 获取便签内容作为上下文
-  const getNotesContext = useCallback(async (): Promise<string> => {
-    if (selectedNotes.length === 0) {
-      return '';
-    }
-
-    try {
-      const contents = await Promise.all(
-        selectedNotes.map(async (note) => {
-          const fullNote = await noteService.getNote(note.id);
-          // 将 TipTap JSON 转换为纯文本
-          const text = extractTextFromTipTap(fullNote.content);
-          return `## ${note.title}\n\n${text}`;
-        }),
-      );
-
-      return `\n\n--- 参考便签 ---\n\n${contents.join('\n\n---\n\n')}\n\n--- 参考便签结束 ---\n\n`;
-    } catch (error) {
-      console.error('Failed to get notes context:', error);
-      return '';
-    }
-  }, [selectedNotes]);
+        return `\n\n--- 参考便签 ---\n\n${contents.join('\n\n---\n\n')}\n\n--- 参考便签结束 ---\n\n`;
+      } catch (error) {
+        console.error('Failed to get notes context:', error);
+        return '';
+      }
+    },
+    [availableNotes],
+  );
 
   return {
     availableNotes,
-    selectedNotes,
     loading,
-    selectNote,
-    unselectNote,
-    clearSelection,
-    getNotesContext,
+    getNoteContents,
   };
 };
 

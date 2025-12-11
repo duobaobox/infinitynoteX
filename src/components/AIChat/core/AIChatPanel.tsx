@@ -78,25 +78,21 @@ export const AIChatPanel = ({
   }, []);
 
   // AI 对话
-  const { chatItems, isLoading, error, sendMessage, clearChat, clearError } = useAIChat({
-    conversationId,
-    isConfigured,
-    onTitleChange: handleTitleChange,
-  });
+  const { chatItems, isLoading, isLoadingHistory, error, sendMessage, clearChat, clearError } =
+    useAIChat({
+      conversationId,
+      isConfigured,
+      onTitleChange: handleTitleChange,
+    });
 
   // Sender ref
   const senderRef = useRef<GetRef<typeof Sender>>(null);
 
+  // 追踪已插入的便签 ID（因为 Sender 的 onSubmit 不直接返回 tag 信息）
+  const insertedNoteIdsRef = useRef<string[]>([]);
+
   // 便签引用
-  const {
-    availableNotes,
-    selectedNotes,
-    loading: notesLoading,
-    selectNote,
-    unselectNote,
-    clearSelection,
-    getNotesContext,
-  } = useNoteReference('default');
+  const { availableNotes, loading: notesLoading, getNoteContents } = useNoteReference('default');
 
   // 复制状态
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
@@ -381,7 +377,12 @@ export const AIChatPanel = ({
 
       {/* 消息列表 */}
       <div className="ai-chat-messages">
-        {bubbleItems.length === 0 ? (
+        {isLoadingHistory ? (
+          // 加载历史时显示简单的 loading 状态（不显示空状态，避免闪烁）
+          <div className="ai-chat-messages-empty">
+            <p style={{ fontSize: '12px', color: '#999' }}>加载中...</p>
+          </div>
+        ) : bubbleItems.length === 0 ? (
           <div className="ai-chat-messages-empty">
             <p style={{ fontSize: '14px' }}>开始对话，与 AI 互动</p>
             <p style={{ fontSize: '12px', color: '#999' }}>输入你的问题，AI 将为你答疑解惑</p>
@@ -393,44 +394,25 @@ export const AIChatPanel = ({
 
       {/* 输入框 */}
       <div className="ai-chat-input">
-        {/* 选中的便签标签 */}
-        {selectedNotes.length > 0 && (
-          <Flex gap={8} wrap style={{ marginBottom: 8 }}>
-            {selectedNotes.map((note) => (
-              <Space.Compact key={note.id}>
-                <Button size="small" icon={<FileTextOutlined />} style={{ pointerEvents: 'none' }}>
-                  {note.title}
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  onClick={() => unselectNote(note.id)}
-                  style={{ padding: '0 8px' }}
-                >
-                  ×
-                </Button>
-              </Space.Compact>
-            ))}
-          </Flex>
-        )}
-
         <Sender
           ref={senderRef}
           loading={isLoading}
           placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
           onSubmit={async (value) => {
             if (value.trim()) {
-              // 获取便签上下文
-              const notesContext = await getNotesContext();
+              // 获取便签上下文（从 ref 中获取已插入的便签 ID）
+              const noteIds = [...insertedNoteIdsRef.current];
+              const notesContext = await getNoteContents(noteIds);
               const fullMessage = notesContext ? `${value}${notesContext}` : value;
 
               sendMessage(fullMessage);
               senderRef.current?.clear?.();
-              clearSelection(); // 清空便签选择
+              insertedNoteIdsRef.current = []; // 清空已插入的便签
             }
           }}
           onCancel={() => {
             senderRef.current?.clear?.();
+            insertedNoteIdsRef.current = []; // 清空已插入的便签
             message.info('已取消发送');
           }}
           footer={(actionNode) => {
@@ -489,34 +471,40 @@ export const AIChatPanel = ({
                     </Dropdown>
                   ) : null}
 
-                  {/* 便签引用选择器 */}
+                  {/* 便签引用选择器 - 使用 Sender.insert 插入 Tag */}
                   {availableNotes.length > 0 && (
                     <Dropdown
                       menu={{
                         items: availableNotes.map((note) => ({
                           key: note.id,
-                          label: (
-                            <div style={{ maxWidth: 200 }}>
-                              <div style={{ fontWeight: 500, marginBottom: 2 }}>{note.title}</div>
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: '#8c8c8c',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {note.excerpt || '无内容'}
-                              </div>
-                            </div>
-                          ),
+                          icon: <FileTextOutlined />,
+                          // 只显示标题前10个字
+                          label:
+                            note.title.length > 10 ? `${note.title.slice(0, 10)}...` : note.title,
                         })),
                         onClick: ({ key }) => {
                           const note = availableNotes.find((n) => n.id === key);
                           if (note) {
-                            selectNote(note);
-                            message.success(`已添加便签: ${note.title}`);
+                            // 简短的标签显示（标题前10个字）
+                            const shortTitle =
+                              note.title.length > 10 ? `${note.title.slice(0, 10)}...` : note.title;
+                            // 使用官方 insert 方法插入 Tag 到输入框
+                            senderRef.current?.insert?.([
+                              {
+                                type: 'tag',
+                                key: `note_${note.id}_${Date.now()}`,
+                                props: {
+                                  // 使用纯字符串作为 label（带文件图标 emoji）
+                                  label: `📄 ${shortTitle}`,
+                                  value: `note_${note.id}`,
+                                },
+                              },
+                            ]);
+                            // 记录便签 ID 用于发送时获取内容
+                            if (!insertedNoteIdsRef.current.includes(note.id)) {
+                              insertedNoteIdsRef.current.push(note.id);
+                            }
+                            message.success(`已添加: ${shortTitle}`);
                           }
                         },
                       }}
@@ -524,15 +512,12 @@ export const AIChatPanel = ({
                       placement="topLeft"
                     >
                       <Sender.Switch
-                        value={selectedNotes.length > 0}
+                        value={false}
                         icon={<FileTextOutlined />}
                         loading={notesLoading}
                       >
                         <Flex align="center" gap={4}>
-                          <span>便签</span>
-                          {selectedNotes.length > 0 && (
-                            <span style={{ color: '#1890ff' }}>({selectedNotes.length})</span>
-                          )}
+                          <span>Files</span>
                         </Flex>
                       </Sender.Switch>
                     </Dropdown>

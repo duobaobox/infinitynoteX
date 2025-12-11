@@ -71,6 +71,7 @@ export interface AIChatPanelProps {
 export interface UseAIChatReturn {
   chatItems: ChatItem[];
   isLoading: boolean;
+  isLoadingHistory: boolean; // 是否正在加载历史记录
   error: string | null;
   inputValue: string;
   setInputValue: (value: string) => void;

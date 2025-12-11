@@ -53,6 +53,80 @@ declare global {
         errors: string[];
       }>;
     };
+    /**
+     * 知识库 API
+     */
+    knowledge: {
+      /**
+       * 获取知识库配置
+       */
+      getConfig(): Promise<{
+        enabled: boolean;
+        embedding?: {
+          providerId?: string;
+          provider: string;
+          baseURL: string;
+          apiKey?: string;
+          model: string;
+          dimensions?: number;
+        };
+      } | null>;
+      /**
+       * 设置知识库配置
+       */
+      setConfig(config: {
+        enabled: boolean;
+        embedding?: {
+          providerId?: string;
+          provider: string;
+          baseURL: string;
+          apiKey?: string;
+          model: string;
+          dimensions?: number;
+        };
+      }): Promise<void>;
+      /**
+       * 测试 Embedding 连接
+       */
+      testEmbedding(config: {
+        baseURL: string;
+        apiKey: string;
+        model: string;
+        dimensions?: number;
+      }): Promise<{ ok: boolean; message: string }>;
+      /**
+       * 重建索引
+       */
+      rebuildIndex(): Promise<{
+        success: boolean;
+        indexedNotes: number;
+        totalVectors: number;
+        error?: string;
+      }>;
+      /**
+       * 获取统计信息
+       */
+      getStats(): Promise<{
+        enabled: boolean;
+        indexedNotes: number;
+        totalVectors: number;
+        lastIndexedAt?: number;
+      }>;
+      /**
+       * 语义搜索
+       */
+      search(
+        query: string,
+        topK?: number,
+      ): Promise<
+        Array<{
+          noteId: string;
+          noteTitle: string;
+          excerpt: string;
+          score: number;
+        }>
+      >;
+    };
   }
 }
 

@@ -19,6 +19,12 @@ interface AIConversationFull {
     content: string;
     timestamp: number;
     reasoning?: string;
+    sources?: Array<{
+      noteId: string;
+      noteTitle: string;
+      excerpt: string;
+      score: number;
+    }>;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -30,6 +36,8 @@ interface UseAIChatOptions {
   conversationId: string | null;
   /** 是否已配置 AI */
   isConfigured: boolean;
+  /** 是否启用知识库增强 */
+  useKnowledgeBase?: boolean;
   /** 标题变更回调 */
   onTitleChange?: (title: string) => void;
 }
@@ -40,6 +48,7 @@ interface UseAIChatOptions {
 export const useAIChat = ({
   conversationId,
   isConfigured,
+  useKnowledgeBase = false,
   onTitleChange,
 }: UseAIChatOptions): UseAIChatReturn => {
   const [chatItems, setChatItems] = useState<ChatItem[]>([]);
@@ -89,6 +98,7 @@ export const useAIChat = ({
                 role: msg.role === 'assistant' ? 'ai' : 'user',
                 content,
                 timestamp: msg.timestamp ?? Date.now(),
+                sources: msg.sources,
               };
             });
             setChatItems(items);
@@ -129,6 +139,7 @@ export const useAIChat = ({
             content,
             timestamp: item.timestamp ?? Date.now(),
             reasoning,
+            sources: item.sources,
           };
         });
 
@@ -197,8 +208,10 @@ export const useAIChat = ({
 
             return { ...item, content, isStreaming: false };
           });
-          // 流式传输完成后保存对话历史
-          saveConversationHistory(updated);
+          // 异步保存对话历史（不阻塞状态更新）
+          saveConversationHistory(updated).catch((err) => {
+            console.error('[AI] Failed to save conversation:', err);
+          });
           return updated;
         });
       }
@@ -256,14 +269,51 @@ export const useAIChat = ({
       // 重置思考状态追踪
       isInReasoningRef.current = false;
 
+      // RAG 增强：检索知识库
+      let ragContext = '';
+      let ragSources: Array<{
+        noteId: string;
+        noteTitle: string;
+        excerpt: string;
+        score: number;
+      }> = [];
+
+      if (useKnowledgeBase) {
+        try {
+          const searchResults = await window.knowledge?.search(text, 3);
+          if (searchResults && searchResults.length > 0) {
+            ragSources = searchResults;
+            ragContext = '\n\n以下是与用户问题相关的笔记内容，请参考回答：\n\n';
+            searchResults.forEach((result, index) => {
+              ragContext += `[来源 ${index + 1}: ${result.noteTitle}]\n${result.excerpt}\n\n`;
+            });
+          }
+        } catch (err) {
+          console.warn('[RAG] Knowledge search failed:', err);
+        }
+      }
+
+      // 更新 AI 气泡，附加来源信息
+      if (ragSources.length > 0) {
+        setChatItems((prev) =>
+          prev.map((item) => (item.key === aiKey ? { ...item, sources: ragSources } : item)),
+        );
+      }
+
       // 调用流式 API
       try {
+        // 构建消息，如果有 RAG 上下文则注入到系统提示
+        const messagesWithRAG = chatItems.map((m) => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.content,
+        }));
+
+        // 如果有 RAG 上下文，注入到最后一条用户消息中
+        const messageWithContext = ragContext ? text + ragContext : text;
+
         const payload = {
-          message: text,
-          messages: chatItems.map((m) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.content,
-          })),
+          message: messageWithContext,
+          messages: messagesWithRAG,
         };
         const result = await window.ai.chatStream(payload);
         if (!result?.success) {
@@ -278,7 +328,7 @@ export const useAIChat = ({
         setIsLoading(false);
       }
     },
-    [chatItems, isConfigured],
+    [chatItems, isConfigured, useKnowledgeBase],
   );
 
   // 清空对话

@@ -1081,3 +1081,88 @@ ipcMain.handle('app:setConfig', (_, partial: DeepPartial<AppConfig>) => {
 ipcMain.handle('app:getConfigPath', () => {
   return getConfigPath();
 });
+
+// ============ 知识库 IPC 处理器 ============
+
+import { readKnowledgeConfig, writeKnowledgeConfig, createEmbeddingService } from './embedding';
+import type { EmbeddingConfig } from '../src/services/knowledgeTypes';
+
+/**
+ * 获取知识库配置
+ */
+ipcMain.handle('knowledge:getConfig', async () => {
+  return await readKnowledgeConfig();
+});
+
+/**
+ * 设置知识库配置
+ */
+ipcMain.handle(
+  'knowledge:setConfig',
+  async (
+    _,
+    config: {
+      enabled: boolean;
+      embedding?: EmbeddingConfig;
+    },
+  ) => {
+    await writeKnowledgeConfig(config);
+  },
+);
+
+/**
+ * 测试 Embedding 连接
+ */
+ipcMain.handle(
+  'knowledge:testEmbedding',
+  async (
+    _,
+    config: {
+      baseURL: string;
+      apiKey: string;
+      model: string;
+      dimensions?: number;
+    },
+  ) => {
+    try {
+      const embeddingConfig: EmbeddingConfig = {
+        provider: 'test',
+        baseURL: config.baseURL,
+        apiKey: config.apiKey,
+        model: config.model,
+        dimensions: config.dimensions,
+        timeoutMs: 30000,
+      };
+      const service = createEmbeddingService(embeddingConfig);
+      const result = await service.testConnection();
+      return result;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { ok: false, message: `测试失败: ${msg}` };
+    }
+  },
+);
+
+/**
+ * 重建索引
+ */
+ipcMain.handle('knowledge:rebuildIndex', async () => {
+  const { rebuildAllIndex } = await import('./knowledgeIndex');
+  return await rebuildAllIndex();
+});
+
+/**
+ * 获取知识库统计
+ */
+ipcMain.handle('knowledge:getStats', async () => {
+  const { getIndexStats } = await import('./knowledgeIndex');
+  return await getIndexStats();
+});
+
+/**
+ * 语义搜索
+ */
+ipcMain.handle('knowledge:search', async (_, query: string, topK?: number) => {
+  const { semanticSearch } = await import('./knowledgeIndex');
+  return await semanticSearch(query, topK ?? 3);
+});

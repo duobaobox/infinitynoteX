@@ -285,3 +285,99 @@
 :root[data-theme='dark'] .ai-meta-option__model {
   color: #a6a6a6;
 }
+
+/* ==================== 知识库来源引用卡片 ==================== */
+
+/**
+ * .source-card
+ * 知识库来源引用卡片容器
+ */
+.source-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.06) 0%, rgba(22, 119, 255, 0.02) 100%);
+  border: 1px solid rgba(22, 119, 255, 0.15);
+  border-radius: 8px;
+}
+
+.source-card__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #8c8c8c;
+}
+
+.source-card__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-card__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  max-width: 200px;
+}
+
+.source-card__item:hover {
+  background: #fff;
+  border-color: #1677ff;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.15);
+}
+
+.source-card__item-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #1677ff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.source-card__item-title {
+  font-size: 12px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.source-card__item-score {
+  font-size: 11px;
+  color: #52c41a;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* 暗色模式 */
+:root[data-theme='dark'] .source-card {
+  background: linear-gradient(135deg, rgba(22, 119, 255, 0.1) 0%, rgba(22, 119, 255, 0.04) 100%);
+  border-color: rgba(22, 119, 255, 0.25);
+}
+
+:root[data-theme='dark'] .source-card__item {
+  background: rgba(40, 40, 40, 0.9);
+  border-color: #434343;
+}
+
+:root[data-theme='dark'] .source-card__item:hover {
+  background: #333;
+  border-color: #1677ff;
+}
+
+:root[data-theme='dark'] .source-card__item-title {
+  color: #e6e6e6;
+}

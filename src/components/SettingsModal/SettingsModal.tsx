@@ -8,6 +8,7 @@ import { Modal, Menu } from 'antd';
 import { useSettingsStore } from '../../store/settingsStore';
 import AppearanceTab from './tabs/AppearanceTab';
 import AITab from './tabs/AITab';
+import KnowledgeBaseTab from './tabs/KnowledgeBaseTab';
 import DataTab from './tabs/DataTab';
 import SyncTab from './tabs/SyncTab';
 import TrashTab from './tabs/TrashTab';
@@ -22,6 +23,7 @@ interface SettingsModalProps {
 const menuItems = [
   { key: 'appearance', label: '外观' },
   { key: 'ai', label: 'AI 管理' },
+  { key: 'knowledge', label: '知识库' },
   { key: 'data', label: '数据管理' },
   { key: 'sync', label: '数据同步' },
   { key: 'trash', label: '回收站' },
@@ -46,6 +48,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
         return <AppearanceTab />;
       case 'ai':
         return <AITab />;
+      case 'knowledge':
+        return <KnowledgeBaseTab />;
       case 'data':
         return <DataTab />;
       case 'sync':

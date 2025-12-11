@@ -3,6 +3,16 @@
  */
 
 /**
+ * 知识库来源引用
+ */
+export interface KnowledgeSource {
+  noteId: string;
+  noteTitle: string;
+  excerpt: string;
+  score: number;
+}
+
+/**
  * 聊天消息项（UI 层使用）
  * content 包含完整的 Markdown 内容，可能包含 <think> 标签
  */
@@ -12,6 +22,8 @@ export interface ChatItem {
   content: string; // 包含 <think> 标签的完整内容
   timestamp: number;
   isStreaming?: boolean;
+  /** 知识库来源引用（仅 AI 消息） */
+  sources?: KnowledgeSource[];
 }
 
 /**

@@ -21,6 +21,7 @@ import {
   Dropdown,
   message,
   Flex,
+  Switch,
 } from 'antd';
 import type { GetProp, GetRef, MenuProps } from 'antd';
 import {
@@ -33,8 +34,10 @@ import {
   CopyOutlined,
   SaveOutlined,
   ApiOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { SourceCard } from '../components/SourceCard';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService } from '../../../services';
 import { useAIConfig, useAIChat } from '../hooks';
@@ -71,6 +74,9 @@ export const AIChatPanel = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('');
 
+  // 知识库开关状态
+  const [useKnowledgeBase, setUseKnowledgeBase] = useState(false);
+
   // 处理标题变更
   const handleTitleChange = useCallback((newTitle: string) => {
     setConversationTitle(newTitle);
@@ -81,6 +87,7 @@ export const AIChatPanel = ({
     useAIChat({
       conversationId,
       isConfigured,
+      useKnowledgeBase,
       onTitleChange: handleTitleChange,
     });
 
@@ -212,10 +219,22 @@ export const AIChatPanel = ({
       content: m.content,
       placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
       contentRender: (content) => (
-        <MarkdownRenderer
-          content={content}
-          streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
-        />
+        <>
+          <MarkdownRenderer
+            content={content}
+            streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
+          />
+          {/* AI 消息显示知识库来源 */}
+          {m.role === 'ai' && m.sources && m.sources.length > 0 && !m.isStreaming && (
+            <SourceCard
+              sources={m.sources}
+              onSourceClick={(noteId) => {
+                // TODO: 跳转到笔记
+                message.info(`跳转到笔记: ${noteId}`);
+              }}
+            />
+          )}
+        </>
       ),
       avatar:
         m.role === 'ai' ? (
@@ -456,6 +475,22 @@ export const AIChatPanel = ({
                       </Sender.Switch>
                     </Dropdown>
                   ) : null}
+                  {/* 知识库开关 */}
+                  <Divider type="vertical" style={{ margin: '0 8px' }} />
+                  <Tooltip
+                    title={useKnowledgeBase ? '已开启知识库增强' : '开启后AI将基于你的笔记回答'}
+                  >
+                    <Flex align="center" gap={4} style={{ cursor: 'pointer' }}>
+                      <Switch
+                        size="small"
+                        checked={useKnowledgeBase}
+                        onChange={setUseKnowledgeBase}
+                      />
+                      <BookOutlined
+                        style={{ fontSize: 14, color: useKnowledgeBase ? '#1677ff' : '#8c8c8c' }}
+                      />
+                    </Flex>
+                  </Tooltip>
                 </Flex>
                 <Flex align="center">
                   <Button

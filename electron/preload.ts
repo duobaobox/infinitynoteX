@@ -368,3 +368,71 @@ contextBridge.exposeInMainWorld('log', {
   info: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'info', ...args),
   debug: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'debug', ...args),
 });
+
+// --------- Expose Knowledge Base API ---------
+contextBridge.exposeInMainWorld('knowledge', {
+  // 配置管理
+  getConfig: () =>
+    ipcRenderer.invoke('knowledge:getConfig') as Promise<{
+      enabled: boolean;
+      embedding?: {
+        providerId?: string;
+        provider: string;
+        baseURL: string;
+        apiKey?: string;
+        model: string;
+        dimensions?: number;
+      };
+    } | null>,
+  setConfig: (config: {
+    enabled: boolean;
+    embedding?: {
+      providerId?: string;
+      provider: string;
+      baseURL: string;
+      apiKey?: string;
+      model: string;
+      dimensions?: number;
+    };
+  }) => ipcRenderer.invoke('knowledge:setConfig', config) as Promise<void>,
+
+  // Embedding 测试
+  testEmbedding: (config: {
+    baseURL: string;
+    apiKey: string;
+    model: string;
+    dimensions?: number;
+  }) =>
+    ipcRenderer.invoke('knowledge:testEmbedding', config) as Promise<{
+      ok: boolean;
+      message: string;
+    }>,
+
+  // 索引管理
+  rebuildIndex: () =>
+    ipcRenderer.invoke('knowledge:rebuildIndex') as Promise<{
+      success: boolean;
+      indexedNotes: number;
+      totalVectors: number;
+      error?: string;
+    }>,
+
+  getStats: () =>
+    ipcRenderer.invoke('knowledge:getStats') as Promise<{
+      enabled: boolean;
+      indexedNotes: number;
+      totalVectors: number;
+      lastIndexedAt?: number;
+    }>,
+
+  // 语义搜索
+  search: (query: string, topK?: number) =>
+    ipcRenderer.invoke('knowledge:search', query, topK) as Promise<
+      Array<{
+        noteId: string;
+        noteTitle: string;
+        excerpt: string;
+        score: number;
+      }>
+    >,
+});

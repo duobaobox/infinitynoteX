@@ -105,12 +105,21 @@ export async function writeJsonFileAtomic(
   const tempPath = path.join(tempDir, tempFileName);
 
   try {
+    // 确保临时目录存在
+    await fs.mkdir(tempDir, { recursive: true });
+
     // 写入临时文件
     const content = JSON.stringify(data, null, 2);
     await fs.writeFile(tempPath, content, 'utf-8');
 
-    // 原子重命名
-    await fs.rename(tempPath, filePath);
+    // 尝试原子重命名，如果失败（跨分区）则使用 copyFile + unlink
+    try {
+      await fs.rename(tempPath, filePath);
+    } catch (renameError) {
+      // rename 跨分区可能失败，fallback 到 copyFile + unlink
+      await fs.copyFile(tempPath, filePath);
+      await fs.unlink(tempPath);
+    }
   } catch (error) {
     // 清理临时文件
     try {

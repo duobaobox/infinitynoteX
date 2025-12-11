@@ -1,0 +1,134 @@
+/**
+ * KnowledgeBaseTab 样式
+ */
+
+.knowledge-base-panel {
+  padding: 16px 24px;
+}
+
+.knowledge-base-panel h3 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 头部卡片区 */
+.kb-header-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kb-status-card,
+.kb-stats-card {
+  border-radius: 8px;
+}
+
+.kb-status-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-status-switch {
+  display: flex;
+  align-items: center;
+}
+
+.kb-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* 配置区域 */
+.kb-config-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 16px;
+}
+
+/* Provider 列表 */
+.kb-provider-card {
+  border-radius: 8px;
+  height: fit-content;
+}
+
+.kb-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kb-provider-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.kb-provider-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.kb-provider-item.active {
+  background-color: rgba(22, 119, 255, 0.08);
+  border-color: rgba(22, 119, 255, 0.3);
+}
+
+.kb-provider-item__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.kb-provider-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 配置表单区 */
+.kb-config-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kb-card {
+  border-radius: 8px;
+}
+
+/* 索引管理 */
+.kb-index-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-source-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kb-source-item {
+  display: flex;
+  align-items: center;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .kb-header-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .kb-config-grid {
+    grid-template-columns: 1fr;
+  }
+}

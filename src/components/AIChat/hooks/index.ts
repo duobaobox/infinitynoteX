@@ -4,5 +4,3 @@
 
 export { useAIConfig } from './useAIConfig';
 export { useAIChat } from './useAIChat';
-export { useNoteReference } from './useNoteReference';
-export type { ReferencedNote, UseNoteReferenceResult } from './useNoteReference';

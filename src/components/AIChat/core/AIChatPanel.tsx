@@ -33,12 +33,11 @@ import {
   CopyOutlined,
   SaveOutlined,
   ApiOutlined,
-  FileTextOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService } from '../../../services';
-import { useAIConfig, useAIChat, useNoteReference } from '../hooks';
+import { useAIConfig, useAIChat } from '../hooks';
 import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
 import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
@@ -87,12 +86,6 @@ export const AIChatPanel = ({
 
   // Sender ref
   const senderRef = useRef<GetRef<typeof Sender>>(null);
-
-  // 追踪已插入的便签 ID（因为 Sender 的 onSubmit 不直接返回 tag 信息）
-  const insertedNoteIdsRef = useRef<string[]>([]);
-
-  // 便签引用
-  const { availableNotes, loading: notesLoading, getNoteContents } = useNoteReference('default');
 
   // 复制状态
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
@@ -400,19 +393,12 @@ export const AIChatPanel = ({
           placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
           onSubmit={async (value) => {
             if (value.trim()) {
-              // 获取便签上下文（从 ref 中获取已插入的便签 ID）
-              const noteIds = [...insertedNoteIdsRef.current];
-              const notesContext = await getNoteContents(noteIds);
-              const fullMessage = notesContext ? `${value}${notesContext}` : value;
-
-              sendMessage(fullMessage);
+              sendMessage(value);
               senderRef.current?.clear?.();
-              insertedNoteIdsRef.current = []; // 清空已插入的便签
             }
           }}
           onCancel={() => {
             senderRef.current?.clear?.();
-            insertedNoteIdsRef.current = []; // 清空已插入的便签
             message.info('已取消发送');
           }}
           footer={(actionNode) => {
@@ -470,58 +456,6 @@ export const AIChatPanel = ({
                       </Sender.Switch>
                     </Dropdown>
                   ) : null}
-
-                  {/* 便签引用选择器 - 使用 Sender.insert 插入 Tag */}
-                  {availableNotes.length > 0 && (
-                    <Dropdown
-                      menu={{
-                        items: availableNotes.map((note) => ({
-                          key: note.id,
-                          icon: <FileTextOutlined />,
-                          // 只显示标题前10个字
-                          label:
-                            note.title.length > 10 ? `${note.title.slice(0, 10)}...` : note.title,
-                        })),
-                        onClick: ({ key }) => {
-                          const note = availableNotes.find((n) => n.id === key);
-                          if (note) {
-                            // 简短的标签显示（标题前10个字）
-                            const shortTitle =
-                              note.title.length > 10 ? `${note.title.slice(0, 10)}...` : note.title;
-                            // 使用官方 insert 方法插入 Tag 到输入框
-                            senderRef.current?.insert?.([
-                              {
-                                type: 'tag',
-                                key: `note_${note.id}_${Date.now()}`,
-                                props: {
-                                  // 使用纯字符串作为 label（带文件图标 emoji）
-                                  label: `📄 ${shortTitle}`,
-                                  value: `note_${note.id}`,
-                                },
-                              },
-                            ]);
-                            // 记录便签 ID 用于发送时获取内容
-                            if (!insertedNoteIdsRef.current.includes(note.id)) {
-                              insertedNoteIdsRef.current.push(note.id);
-                            }
-                            message.success(`已添加: ${shortTitle}`);
-                          }
-                        },
-                      }}
-                      trigger={['click']}
-                      placement="topLeft"
-                    >
-                      <Sender.Switch
-                        value={false}
-                        icon={<FileTextOutlined />}
-                        loading={notesLoading}
-                      >
-                        <Flex align="center" gap={4}>
-                          <span>Files</span>
-                        </Flex>
-                      </Sender.Switch>
-                    </Dropdown>
-                  )}
                 </Flex>
                 <Flex align="center">
                   <Button

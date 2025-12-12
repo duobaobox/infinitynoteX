@@ -126,6 +126,73 @@ declare global {
           score: number;
         }>
       >;
+      /**
+       * 获取数据块列表
+       */
+      getChunks(options?: { noteId?: string; offset?: number; limit?: number }): Promise<{
+        chunks: Array<{
+          id: string;
+          noteId: string;
+          noteTitle: string;
+          chunkIndex: number;
+          content: string;
+          dimension: number;
+          createdAt: number;
+        }>;
+        total: number;
+      }>;
+      /**
+       * 获取笔记索引列表
+       */
+      getNoteIndexList(): Promise<
+        Array<{
+          noteId: string;
+          noteTitle: string;
+          chunkCount: number;
+          status: 'indexed' | 'pending' | 'failed';
+          lastIndexedAt?: number;
+        }>
+      >;
+      /**
+       * 语义搜索测试
+       */
+      testSearch(
+        query: string,
+        options?: { topK?: number; minScore?: number },
+      ): Promise<
+        Array<{
+          noteId: string;
+          noteTitle: string;
+          excerpt: string;
+          score: number;
+        }>
+      >;
+      /**
+       * 增量更新索引
+       */
+      incrementalUpdate(): Promise<{
+        success: boolean;
+        updated: number;
+        added: number;
+        removed: number;
+        totalVectors: number;
+        error?: string;
+      }>;
+      /**
+       * 重新索引单个笔记
+       */
+      reindexNote(noteId: string): Promise<{
+        success: boolean;
+        vectorCount: number;
+        error?: string;
+      }>;
+      /**
+       * 删除笔记索引
+       */
+      deleteNoteIndex(noteId: string): Promise<{
+        success: boolean;
+        deleted: number;
+      }>;
     };
   }
 }

@@ -36,6 +36,30 @@ export interface VectorStoreStats {
 }
 
 /**
+ * 数据块信息（面向 UI）
+ */
+export interface ChunkInfo {
+  id: string;
+  noteId: string;
+  noteTitle: string;
+  chunkIndex: number;
+  content: string;
+  dimension: number;
+  createdAt: number;
+}
+
+/**
+ * 笔记索引信息
+ */
+export interface NoteIndexInfo {
+  noteId: string;
+  noteTitle: string;
+  chunkCount: number;
+  status: 'indexed' | 'pending' | 'failed';
+  lastIndexedAt?: number;
+}
+
+/**
  * 向量存储接口
  * 抽象层，支持未来切换不同的向量数据库实现
  */
@@ -69,6 +93,19 @@ export interface IVectorStore {
    * 获取统计信息
    */
   getStats(): VectorStoreStats;
+
+  /**
+   * 获取数据块列表（分页）
+   */
+  getChunks?(options: { noteId?: string; offset?: number; limit?: number }): {
+    chunks: ChunkInfo[];
+    total: number;
+  };
+
+  /**
+   * 获取笔记索引列表
+   */
+  getNoteIndexList?(): NoteIndexInfo[];
 
   /**
    * 清空所有数据

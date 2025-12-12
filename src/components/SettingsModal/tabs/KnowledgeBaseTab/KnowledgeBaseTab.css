@@ -4,12 +4,61 @@
 
 .knowledge-base-panel {
   padding: 16px 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .knowledge-base-panel h3 {
-  margin-bottom: 16px;
+  margin-bottom: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+/* 头部区域 */
+.kb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.kb-mode-switch {
+  display: flex;
+  align-items: center;
+}
+
+/* 内部 Tab */
+.kb-inner-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-inner-tabs .ant-tabs-content-holder {
+  flex: 1;
+  overflow: auto;
+}
+
+.kb-inner-tabs .ant-tabs-content {
+  height: 100%;
+}
+
+.kb-inner-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+
+/* Tab 内容区 */
+.kb-tab-content {
+  padding: 16px 0;
+}
+
+.kb-tab-content.kb-loading,
+.kb-tab-content.kb-coming-soon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
 }
 
 /* 头部卡片区 */
@@ -17,6 +66,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  margin-bottom: 16px;
 }
 
 .kb-status-card,
@@ -38,6 +88,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+/* 统计卡片网格（专家模式） */
+.kb-stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
 }
 
 /* 配置区域 */
@@ -121,6 +178,73 @@
   align-items: center;
 }
 
+/* ==================== 快速配置样式 ==================== */
+
+.kb-quick-setup {
+  padding: 16px 0;
+}
+
+.kb-quick-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.kb-quick-step {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* 服务商卡片选择 */
+.kb-provider-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.kb-provider-card-select {
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.kb-provider-card-select:hover {
+  border-color: rgba(22, 119, 255, 0.3);
+}
+
+.kb-provider-card-select.selected {
+  border-color: #1890ff;
+  background-color: rgba(22, 119, 255, 0.04);
+}
+
+.kb-provider-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kb-provider-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* 扫描中状态 */
+.kb-scanning {
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* 简单模式状态卡片 */
+.kb-simple-status-card {
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.kb-simple-status {
+  padding: 24px 0;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .kb-header-cards {
@@ -129,5 +253,13 @@
 
   .kb-config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .kb-provider-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .kb-stats-cards {
+    grid-template-columns: 1fr 1fr;
   }
 }

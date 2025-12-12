@@ -1170,3 +1170,85 @@ ipcMain.handle('knowledge:search', async (_, query: string, topK?: number) => {
   const { semanticSearch } = await import('./knowledge');
   return await semanticSearch(query, topK ?? 3);
 });
+
+/**
+ * 获取数据块列表（分页）
+ */
+ipcMain.handle(
+  'knowledge:getChunks',
+  async (
+    _,
+    options: {
+      noteId?: string;
+      offset?: number;
+      limit?: number;
+    },
+  ) => {
+    const { getVectorStore } = await import('./knowledge');
+    const store = getVectorStore();
+    if (store.getChunks) {
+      return store.getChunks(options);
+    }
+    return { chunks: [], total: 0 };
+  },
+);
+
+/**
+ * 获取笔记索引列表
+ */
+ipcMain.handle('knowledge:getNoteIndexList', async () => {
+  const { getVectorStore } = await import('./knowledge');
+  const store = getVectorStore();
+  if (store.getNoteIndexList) {
+    return store.getNoteIndexList();
+  }
+  return [];
+});
+
+/**
+ * 语义搜索测试（用于 UI 测试）
+ */
+ipcMain.handle(
+  'knowledge:testSearch',
+  async (
+    _,
+    query: string,
+    options?: {
+      topK?: number;
+      minScore?: number;
+    },
+  ) => {
+    const { semanticSearch } = await import('./knowledge');
+    const results = await semanticSearch(query, options?.topK ?? 5);
+    // 可选：过滤低分结果
+    if (options?.minScore) {
+      return results.filter((r) => r.score >= (options.minScore ?? 0));
+    }
+    return results;
+  },
+);
+
+/**
+ * 增量更新索引
+ */
+ipcMain.handle('knowledge:incrementalUpdate', async () => {
+  const { incrementalUpdate } = await import('./knowledge');
+  return await incrementalUpdate();
+});
+
+/**
+ * 重新索引单个笔记
+ */
+ipcMain.handle('knowledge:reindexNote', async (_, noteId: string) => {
+  const { reindexNote } = await import('./knowledge');
+  return await reindexNote(noteId);
+});
+
+/**
+ * 删除单个笔记的索引
+ */
+ipcMain.handle('knowledge:deleteNoteIndex', async (_, noteId: string) => {
+  const { deleteNoteFromIndex } = await import('./knowledge');
+  const deleted = deleteNoteFromIndex(noteId);
+  return { success: true, deleted };
+});

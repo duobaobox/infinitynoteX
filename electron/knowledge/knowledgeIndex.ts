@@ -320,3 +320,133 @@ export function getIndexStats(): {
     return { enabled: false, indexedNotes: 0, totalVectors: 0 };
   }
 }
+
+/**
+ * 删除单个笔记的索引
+ */
+export function deleteNoteFromIndex(noteId: string): number {
+  const store = getVectorStore();
+  return store.deleteByNoteId(noteId);
+}
+
+/**
+ * 重新索引单个笔记
+ */
+export async function reindexNote(noteId: string): Promise<{
+  success: boolean;
+  vectorCount: number;
+  error?: string;
+}> {
+  try {
+    const config = await readKnowledgeConfig();
+    if (!config?.enabled || !config.embedding) {
+      return { success: false, vectorCount: 0, error: '知识库未启用或未配置' };
+    }
+
+    const note = await storageManager.getNote(noteId);
+    if (!note) {
+      return { success: false, vectorCount: 0, error: '笔记不存在' };
+    }
+
+    const embeddingService = createEmbeddingService(config.embedding);
+    const count = await indexNote(noteId, note.title, note.content, embeddingService);
+
+    return { success: true, vectorCount: count };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, vectorCount: 0, error: msg };
+  }
+}
+
+/**
+ * 增量更新索引
+ * 检测变更的笔记并仅更新这些笔记的索引
+ */
+export async function incrementalUpdate(): Promise<{
+  success: boolean;
+  updated: number;
+  added: number;
+  removed: number;
+  totalVectors: number;
+  error?: string;
+}> {
+  try {
+    const config = await readKnowledgeConfig();
+    if (!config?.enabled || !config.embedding) {
+      return {
+        success: false,
+        updated: 0,
+        added: 0,
+        removed: 0,
+        totalVectors: 0,
+        error: '知识库未启用或未配置',
+      };
+    }
+
+    const embeddingService = createEmbeddingService(config.embedding);
+    const store = getVectorStore();
+
+    // 获取当前所有笔记
+    const allNotes = await storageManager.listNotes();
+    const noteMap = new Map(allNotes.map((n) => [n.id, n]));
+
+    // 获取已索引的笔记列表
+    const indexedNotes = store.getNoteIndexList?.() ?? [];
+    const indexedMap = new Map(indexedNotes.map((n) => [n.noteId, n]));
+
+    let updated = 0;
+    let added = 0;
+    let removed = 0;
+
+    // 1. 检测需要删除的索引（已删除的笔记）
+    for (const indexed of indexedNotes) {
+      if (!noteMap.has(indexed.noteId)) {
+        store.deleteByNoteId(indexed.noteId);
+        removed++;
+        console.log(`[IncrementalUpdate] Removed index for deleted note ${indexed.noteId}`);
+      }
+    }
+
+    // 2. 检测需要新增/更新的笔记
+    for (const noteIndex of allNotes) {
+      const indexed = indexedMap.get(noteIndex.id);
+
+      // 如果笔记更新时间晚于索引时间，或未被索引，则重新索引
+      const needsUpdate =
+        !indexed || (indexed.lastIndexedAt && noteIndex.updatedAt > indexed.lastIndexedAt);
+
+      if (needsUpdate) {
+        try {
+          const note = await storageManager.getNote(noteIndex.id);
+          const count = await indexNote(note.id, note.title, note.content, embeddingService);
+          if (count > 0) {
+            if (indexed) {
+              updated++;
+              console.log(`[IncrementalUpdate] Updated note ${noteIndex.id}: ${count} vectors`);
+            } else {
+              added++;
+              console.log(`[IncrementalUpdate] Added note ${noteIndex.id}: ${count} vectors`);
+            }
+          }
+        } catch (error) {
+          console.error(`[IncrementalUpdate] Failed to index note ${noteIndex.id}:`, error);
+        }
+      }
+    }
+
+    const stats = store.getStats();
+    console.log(`[IncrementalUpdate] Completed: +${added} ~${updated} -${removed}`);
+
+    return {
+      success: true,
+      updated,
+      added,
+      removed,
+      totalVectors: stats.totalVectors,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[IncrementalUpdate] Failed:', msg);
+    return { success: false, updated: 0, added: 0, removed: 0, totalVectors: 0, error: msg };
+  }
+}

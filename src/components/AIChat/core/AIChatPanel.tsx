@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { Sender, Bubble, Actions } from '@ant-design/x';
+import { Sender, Bubble, Actions, Suggestion } from '@ant-design/x';
 import {
   Alert,
   Avatar,
@@ -21,7 +21,6 @@ import {
   Dropdown,
   message,
   Flex,
-  Switch,
 } from 'antd';
 import type { GetProp, GetRef, MenuProps } from 'antd';
 import {
@@ -35,6 +34,10 @@ import {
   SaveOutlined,
   ApiOutlined,
   BookOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  TranslationOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { SourceCard } from '../components/SourceCard';
@@ -47,6 +50,43 @@ import '../styles/AIChat.css';
 
 // Bubble.List 类型
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
+
+// Suggestion 类型
+type SuggestionItems = Exclude<GetProp<typeof Suggestion, 'items'>, () => void>;
+
+// 快捷指令配置
+const QUICK_COMMANDS: SuggestionItems = [
+  {
+    label: '摘要总结',
+    value: 'summarize',
+    icon: <FileTextOutlined />,
+  },
+  {
+    label: '翻译',
+    value: 'translate',
+    icon: <TranslationOutlined />,
+    children: [
+      { label: '翻译成中文', value: 'translate_zh' },
+      { label: '翻译成英文', value: 'translate_en' },
+      { label: '翻译成日文', value: 'translate_ja' },
+    ],
+  },
+  {
+    label: '改写优化',
+    value: 'rewrite',
+    icon: <EditOutlined />,
+    children: [
+      { label: '语气更正式', value: 'rewrite_formal' },
+      { label: '语气更口语化', value: 'rewrite_casual' },
+      { label: '精简压缩', value: 'rewrite_concise' },
+    ],
+  },
+  {
+    label: '灵感建议',
+    value: 'inspire',
+    icon: <BulbOutlined />,
+  },
+];
 
 /**
  * AI 对话面板组件
@@ -406,107 +446,129 @@ export const AIChatPanel = ({
 
       {/* 输入框 */}
       <div className="ai-chat-input">
-        <Sender
-          ref={senderRef}
-          loading={isLoading}
-          placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
-          onSubmit={async (value) => {
-            if (value.trim()) {
-              sendMessage(value);
-              senderRef.current?.clear?.();
-            }
+        <Suggestion
+          items={QUICK_COMMANDS}
+          onSelect={(value) => {
+            // TODO: 后续实现快捷指令具体功能
+            message.info(`选择了快捷指令: ${value}`);
           }}
-          onCancel={() => {
-            senderRef.current?.clear?.();
-            message.info('已取消发送');
-          }}
-          footer={(actionNode) => {
-            // Provider 切换菜单
-            const providerColor = config ? getProviderBrandColor(currentProviderId) : '#d9d9d9';
-            const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
-              const isActive = option.providerId === currentProviderId;
-              return {
-                key: option.providerId,
-                label: (
-                  <div className="ai-meta-option">
-                    <div className="ai-meta-option__row">
-                      <span
-                        className="ai-meta-option__dot"
-                        style={{ backgroundColor: getProviderBrandColor(option.providerId) }}
-                      />
-                      <span className="ai-meta-option__provider">{option.config.provider}</span>
-                      {isActive && <span className="ai-meta-option__badge">当前</span>}
-                    </div>
-                    <div className="ai-meta-option__model">{option.config.model}</div>
-                  </div>
-                ),
-              };
-            });
+        >
+          {({ onTrigger, onKeyDown: suggestionKeyDown }) => (
+            <Sender
+              ref={senderRef}
+              loading={isLoading}
+              placeholder="输入消息，输入 @ 唤起快捷指令"
+              onKeyDown={(e) => {
+                // 监听 @ 键唤起快捷指令
+                if (e.key === '@') {
+                  onTrigger();
+                } else {
+                  onTrigger(false);
+                }
+                // 传递给 Suggestion 的 onKeyDown
+                suggestionKeyDown?.(e);
+              }}
+              onSubmit={async (value) => {
+                if (value.trim()) {
+                  sendMessage(value);
+                  senderRef.current?.clear?.();
+                }
+              }}
+              onCancel={() => {
+                senderRef.current?.clear?.();
+                message.info('已取消发送');
+              }}
+              footer={(_, { components }) => {
+                const { SendButton, LoadingButton } = components;
 
-            const hasProviderConfigs = providerOptions.length > 0;
-
-            return (
-              <Flex justify="space-between" align="center">
-                <Flex gap="small" align="center">
-                  {/* AI Provider 切换器 */}
-                  {hasProviderConfigs && config ? (
-                    <Dropdown
-                      menu={{
-                        items: providerMenuItems,
-                        onClick: ({ key }) => switchProvider(key as string),
-                      }}
-                      trigger={['click']}
-                      placement="topLeft"
-                    >
-                      <Sender.Switch
-                        value={false}
-                        icon={
+                // Provider 切换菜单
+                const providerColor = config ? getProviderBrandColor(currentProviderId) : '#d9d9d9';
+                const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
+                  const isActive = option.providerId === currentProviderId;
+                  return {
+                    key: option.providerId,
+                    label: (
+                      <div className="ai-meta-option">
+                        <div className="ai-meta-option__row">
                           <span
-                            className="ai-chat-meta-dot"
-                            style={{ backgroundColor: providerColor }}
+                            className="ai-meta-option__dot"
+                            style={{ backgroundColor: getProviderBrandColor(option.providerId) }}
                           />
-                        }
-                        loading={isSwitching}
-                      >
-                        <Flex align="center" gap={4}>
-                          <span>{config.model}</span>
-                          <DownOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
-                        </Flex>
-                      </Sender.Switch>
-                    </Dropdown>
-                  ) : null}
-                  {/* 知识库开关 */}
-                  <Divider type="vertical" style={{ margin: '0 8px', height: 'auto' }} />
-                  <Tooltip
-                    title={useKnowledgeBase ? '已开启知识库增强' : '开启后AI将基于你的笔记回答'}
-                  >
-                    <Flex align="center" gap={8} style={{ cursor: 'pointer' }}>
-                      <Switch checked={useKnowledgeBase} onChange={setUseKnowledgeBase} />
-                      <BookOutlined
-                        style={{ fontSize: 20, color: useKnowledgeBase ? '#1677ff' : '#8c8c8c' }}
-                      />
+                          <span className="ai-meta-option__provider">{option.config.provider}</span>
+                          {isActive && <span className="ai-meta-option__badge">当前</span>}
+                        </div>
+                        <div className="ai-meta-option__model">{option.config.model}</div>
+                      </div>
+                    ),
+                  };
+                });
+
+                const hasProviderConfigs = providerOptions.length > 0;
+
+                return (
+                  <Flex justify="space-between" align="center">
+                    <Flex gap="small" align="center">
+                      {/* AI Provider 切换器 */}
+                      {hasProviderConfigs && config ? (
+                        <Dropdown
+                          menu={{
+                            items: providerMenuItems,
+                            onClick: ({ key }) => switchProvider(key as string),
+                          }}
+                          trigger={['click']}
+                          placement="topLeft"
+                        >
+                          <Sender.Switch
+                            value={false}
+                            icon={
+                              <span
+                                className="ai-chat-meta-dot"
+                                style={{ backgroundColor: providerColor }}
+                              />
+                            }
+                            loading={isSwitching}
+                          >
+                            <Flex align="center" gap={2}>
+                              <span>{config.model}</span>
+                              <DownOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
+                            </Flex>
+                          </Sender.Switch>
+                        </Dropdown>
+                      ) : null}
+                      {/* 知识库开关 */}
+                      <Divider type="vertical" />
+                      <Tooltip title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}>
+                        <BookOutlined
+                          onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
+                          style={{
+                            fontSize: 22,
+                            color: useKnowledgeBase ? '#1677ff' : '#8c8c8c',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </Tooltip>
                     </Flex>
-                  </Tooltip>
-                </Flex>
-                <Flex align="center">
-                  <Button
-                    type="text"
-                    style={{ fontSize: 16 }}
-                    icon={<ApiOutlined />}
-                    onClick={() => {
-                      // TODO: 打开设置
-                      message.info('打开 AI 设置');
-                    }}
-                  />
-                  <Divider type="vertical" style={{ height: 'auto' }} />
-                  {actionNode}
-                </Flex>
-              </Flex>
-            );
-          }}
-          suffix={false}
-          autoSize={{ minRows: 2, maxRows: 6 }}
-        />
+                    <Flex align="center">
+                      <Button
+                        type="text"
+                        style={{ fontSize: 16 }}
+                        icon={<ApiOutlined />}
+                        onClick={() => {
+                          // TODO: 打开设置
+                          message.info('打开 AI 设置');
+                        }}
+                      />
+                      <Divider type="vertical" />
+                      {isLoading ? <LoadingButton /> : <SendButton type="primary" />}
+                    </Flex>
+                  </Flex>
+                );
+              }}
+              suffix={false}
+              autoSize={{ minRows: 2, maxRows: 6 }}
+            />
+          )}
+        </Suggestion>
       </div>
     </div>
   );

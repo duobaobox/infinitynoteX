@@ -44,4 +44,8 @@ export {
   rebuildAllIndex,
   semanticSearch,
   getIndexStats,
+  // 增量更新
+  incrementalUpdate,
+  reindexNote,
+  deleteNoteFromIndex,
 } from './knowledgeIndex';

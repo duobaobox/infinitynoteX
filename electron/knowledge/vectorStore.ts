@@ -7,7 +7,14 @@ import Database from 'better-sqlite3';
 import * as sqliteVec from 'sqlite-vec';
 import path from 'node:path';
 import { app } from 'electron';
-import type { IVectorStore, VectorMetadata, SearchResult, VectorStoreStats } from './types';
+import type {
+  IVectorStore,
+  VectorMetadata,
+  SearchResult,
+  VectorStoreStats,
+  ChunkInfo,
+  NoteIndexInfo,
+} from './types';
 
 // 重新导出类型供外部使用
 export type { VectorMetadata, SearchResult, VectorStoreStats } from './types';
@@ -271,6 +278,89 @@ export class SqliteVectorStore implements IVectorStore {
       totalVectors: vectorCount.count,
       uniqueNotes: noteCount.count,
     };
+  }
+
+  /**
+   * 获取数据块列表（分页）
+   */
+  getChunks(options: { noteId?: string; offset?: number; limit?: number }): {
+    chunks: ChunkInfo[];
+    total: number;
+  } {
+    const { noteId, offset = 0, limit = 20 } = options;
+
+    // 获取总数
+    const countQuery = noteId
+      ? this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata WHERE note_id = ?')
+      : this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata');
+    const countResult = (noteId ? countQuery.get(noteId) : countQuery.get()) as { count: number };
+
+    // 获取分页数据
+    const dataQuery = noteId
+      ? this.db.prepare(`
+          SELECT id, note_id, note_title, chunk_index, content, created_at
+          FROM chunk_metadata
+          WHERE note_id = ?
+          ORDER BY note_id, chunk_index
+          LIMIT ? OFFSET ?
+        `)
+      : this.db.prepare(`
+          SELECT id, note_id, note_title, chunk_index, content, created_at
+          FROM chunk_metadata
+          ORDER BY note_id, chunk_index
+          LIMIT ? OFFSET ?
+        `);
+
+    const rows = (
+      noteId ? dataQuery.all(noteId, limit, offset) : dataQuery.all(limit, offset)
+    ) as Array<{
+      id: string;
+      note_id: string;
+      note_title: string;
+      chunk_index: number;
+      content: string;
+      created_at: number;
+    }>;
+
+    return {
+      chunks: rows.map((row) => ({
+        id: row.id,
+        noteId: row.note_id,
+        noteTitle: row.note_title,
+        chunkIndex: row.chunk_index,
+        content: row.content,
+        dimension: this.dimension,
+        createdAt: row.created_at,
+      })),
+      total: countResult.count,
+    };
+  }
+
+  /**
+   * 获取笔记索引列表
+   */
+  getNoteIndexList(): NoteIndexInfo[] {
+    const rows = this.db
+      .prepare(
+        `SELECT note_id, note_title, COUNT(*) as chunk_count, MAX(created_at) as last_indexed_at
+         FROM chunk_metadata
+         GROUP BY note_id
+         ORDER BY last_indexed_at DESC`,
+      )
+      .all() as Array<{
+      note_id: string;
+      note_title: string;
+      chunk_count: number;
+      last_indexed_at: number;
+    }>;
+
+    return rows.map((row) => ({
+      noteId: row.note_id,
+      noteTitle: row.note_title,
+      chunkCount: row.chunk_count,
+      status: 'indexed' as const,
+      lastIndexedAt: row.last_indexed_at,
+    }));
   }
 
   /**

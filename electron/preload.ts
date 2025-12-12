@@ -435,4 +435,68 @@ contextBridge.exposeInMainWorld('knowledge', {
         score: number;
       }>
     >,
+
+  // 获取数据块列表
+  getChunks: (options?: { noteId?: string; offset?: number; limit?: number }) =>
+    ipcRenderer.invoke('knowledge:getChunks', options ?? {}) as Promise<{
+      chunks: Array<{
+        id: string;
+        noteId: string;
+        noteTitle: string;
+        chunkIndex: number;
+        content: string;
+        dimension: number;
+        createdAt: number;
+      }>;
+      total: number;
+    }>,
+
+  // 获取笔记索引列表
+  getNoteIndexList: () =>
+    ipcRenderer.invoke('knowledge:getNoteIndexList') as Promise<
+      Array<{
+        noteId: string;
+        noteTitle: string;
+        chunkCount: number;
+        status: 'indexed' | 'pending' | 'failed';
+        lastIndexedAt?: number;
+      }>
+    >,
+
+  // 语义搜索测试
+  testSearch: (query: string, options?: { topK?: number; minScore?: number }) =>
+    ipcRenderer.invoke('knowledge:testSearch', query, options) as Promise<
+      Array<{
+        noteId: string;
+        noteTitle: string;
+        excerpt: string;
+        score: number;
+      }>
+    >,
+
+  // 增量更新
+  incrementalUpdate: () =>
+    ipcRenderer.invoke('knowledge:incrementalUpdate') as Promise<{
+      success: boolean;
+      updated: number;
+      added: number;
+      removed: number;
+      totalVectors: number;
+      error?: string;
+    }>,
+
+  // 重新索引单个笔记
+  reindexNote: (noteId: string) =>
+    ipcRenderer.invoke('knowledge:reindexNote', noteId) as Promise<{
+      success: boolean;
+      vectorCount: number;
+      error?: string;
+    }>,
+
+  // 删除笔记索引
+  deleteNoteIndex: (noteId: string) =>
+    ipcRenderer.invoke('knowledge:deleteNoteIndex', noteId) as Promise<{
+      success: boolean;
+      deleted: number;
+    }>,
 });

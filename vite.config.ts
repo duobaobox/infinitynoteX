@@ -20,7 +20,7 @@ export default defineConfig({
           build: {
             rollupOptions: {
               // 将原生模块作为外部依赖，避免打包问题
-              external: ['sharp'],
+              external: ['sharp', 'better-sqlite3', 'sqlite-vec'],
             },
           },
         },

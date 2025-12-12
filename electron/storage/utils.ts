@@ -121,6 +121,10 @@ export async function writeJsonFileAtomic(
       await fs.unlink(tempPath);
     }
   } catch (error) {
+    // 输出详细错误信息
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Storage] Atomic write failed for ${filePath}:`, errorMsg);
+
     // 清理临时文件
     try {
       await fs.unlink(tempPath);

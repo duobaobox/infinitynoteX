@@ -1156,7 +1156,7 @@ ipcMain.handle('knowledge:rebuildIndex', async () => {
  */
 ipcMain.handle('knowledge:getStats', async () => {
   const { getIndexStats } = await import('./knowledgeIndex');
-  return await getIndexStats();
+  return getIndexStats();
 });
 
 /**

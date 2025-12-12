@@ -1,37 +1,46 @@
 /**
- * AITab 样式 - AI 分栏布局
+ * AITab 样式 - AI 分栏布局（使用 Splitter）
  */
 
 .ai-tab-panel {
   height: 100%;
 }
 
-/* AI 分栏布局：editor-inner-tab-container 内部左右分栏 */
-.editor-inner-tab-container.ai-split-layout {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
+/* Splitter 容器样式 */
+.ai-split-splitter {
+  flex: 1;
+  min-height: 0;
 }
 
 /* 左侧：编辑器区 */
-.ai-split-layout > .editor-content-side {
-  flex: 1;
+.ai-split-splitter .editor-content-side {
+  height: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.08);
+  margin-right: 2px;
 }
 
 /* 右侧：AI 对话区 - 卡片样式 */
-.ai-split-layout > .ai-side {
-  width: 380px;
-  flex-shrink: 0;
+.ai-split-splitter .ai-side {
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   border-radius: 8px;
-  /* border: 1px solid #e5e5e5; */
   box-shadow: -1px 0 3px rgba(0, 0, 0, 0.08);
+  margin-left: 2px;
+}
+
+/* 隐藏 Splitter 分隔条的灰色手柄线（保留拖拽功能） */
+.ai-split-splitter .ant-splitter-bar-dragger {
+  background: transparent !important;
+}
+
+.ai-split-splitter .ant-splitter-bar-dragger::before,
+.ai-split-splitter .ant-splitter-bar-dragger::after {
+  background: transparent !important;
 }

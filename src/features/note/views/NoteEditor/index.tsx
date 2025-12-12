@@ -20,7 +20,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Segmented, message } from 'antd';
+import { Segmented, Splitter, message } from 'antd';
 import type { TipTapJSONContent } from '../../../../services/types';
 import type { NoteColor as NoteColorType } from '../../../../services/types';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -253,7 +253,7 @@ export const NoteEditor: React.FC = () => {
     );
   };
 
-  // AI Tab 激活时：左右分栏布局
+  // AI Tab 激活时：左右分栏布局（使用 Splitter）
   if (isAITabActive) {
     return (
       <div className="layout-panel editor-container">
@@ -262,13 +262,17 @@ export const NoteEditor: React.FC = () => {
           <div style={{ display: 'inline-block' }}>
             <Segmented options={segmentOptions} value={activeTab} onChange={setActiveTab} />
           </div>
-          {/* 内容区：编辑器 + AI 对话 左右分栏 */}
-          <div className="editor-inner-tab-container ai-split-layout">
-            <div className="editor-content-side">{renderEditorContent()}</div>
-            <div className="ai-side">
-              <AITab noteId={selectedNoteId} />
-            </div>
-          </div>
+          {/* 内容区：编辑器 + AI 对话 左右分栏（可拖拽调整宽度） */}
+          <Splitter className="ai-split-splitter">
+            <Splitter.Panel>
+              <div className="editor-content-side">{renderEditorContent()}</div>
+            </Splitter.Panel>
+            <Splitter.Panel defaultSize={380} min={380}>
+              <div className="ai-side">
+                <AITab noteId={selectedNoteId} />
+              </div>
+            </Splitter.Panel>
+          </Splitter>
         </div>
       </div>
     );

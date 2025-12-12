@@ -480,14 +480,10 @@ export const AIChatPanel = ({
                   <Tooltip
                     title={useKnowledgeBase ? '已开启知识库增强' : '开启后AI将基于你的笔记回答'}
                   >
-                    <Flex align="center" gap={4} style={{ cursor: 'pointer' }}>
-                      <Switch
-                        size="small"
-                        checked={useKnowledgeBase}
-                        onChange={setUseKnowledgeBase}
-                      />
+                    <Flex align="center" gap={8} style={{ cursor: 'pointer' }}>
+                      <Switch checked={useKnowledgeBase} onChange={setUseKnowledgeBase} />
                       <BookOutlined
-                        style={{ fontSize: 14, color: useKnowledgeBase ? '#1677ff' : '#8c8c8c' }}
+                        style={{ fontSize: 20, color: useKnowledgeBase ? '#1677ff' : '#8c8c8c' }}
                       />
                     </Flex>
                   </Tooltip>

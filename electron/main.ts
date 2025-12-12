@@ -1084,8 +1084,12 @@ ipcMain.handle('app:getConfigPath', () => {
 
 // ============ 知识库 IPC 处理器 ============
 
-import { readKnowledgeConfig, writeKnowledgeConfig, createEmbeddingService } from './embedding';
-import type { EmbeddingConfig } from '../src/services/knowledgeTypes';
+import {
+  readKnowledgeConfig,
+  writeKnowledgeConfig,
+  createEmbeddingService,
+  type EmbeddingConfig,
+} from './knowledge';
 
 /**
  * 获取知识库配置
@@ -1147,7 +1151,7 @@ ipcMain.handle(
  * 重建索引
  */
 ipcMain.handle('knowledge:rebuildIndex', async () => {
-  const { rebuildAllIndex } = await import('./knowledgeIndex');
+  const { rebuildAllIndex } = await import('./knowledge');
   return await rebuildAllIndex();
 });
 
@@ -1155,7 +1159,7 @@ ipcMain.handle('knowledge:rebuildIndex', async () => {
  * 获取知识库统计
  */
 ipcMain.handle('knowledge:getStats', async () => {
-  const { getIndexStats } = await import('./knowledgeIndex');
+  const { getIndexStats } = await import('./knowledge');
   return getIndexStats();
 });
 
@@ -1163,6 +1167,6 @@ ipcMain.handle('knowledge:getStats', async () => {
  * 语义搜索
  */
 ipcMain.handle('knowledge:search', async (_, query: string, topK?: number) => {
-  const { semanticSearch } = await import('./knowledgeIndex');
+  const { semanticSearch } = await import('./knowledge');
   return await semanticSearch(query, topK ?? 3);
 });

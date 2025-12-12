@@ -6,11 +6,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { app } from 'electron';
-import type {
-  EmbeddingConfig,
-  EmbeddingRequest,
-  EmbeddingResponse,
-} from '../src/services/knowledgeTypes';
+import type { EmbeddingConfig, EmbeddingRequest, EmbeddingResponse } from './types';
+
+// 重新导出类型
+export type { EmbeddingConfig } from './types';
 
 /**
  * 知识库配置文件路径

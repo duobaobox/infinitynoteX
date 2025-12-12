@@ -4,10 +4,13 @@
  * 使用 SQLite-vec 实现高性能向量存储
  */
 
-import { storageManager } from './storage';
+import { storageManager } from '../storage';
 import { readKnowledgeConfig, createEmbeddingService, type EmbeddingService } from './embedding';
-import { getVectorStore, type VectorMetadata as StoreVectorMetadata } from './vectorStore';
-import type { KnowledgeSearchResult } from '../src/services/knowledgeTypes';
+import { getVectorStore } from './vectorStore';
+import type { VectorMetadata, KnowledgeSearchResult } from './types';
+
+// 重新导出类型
+export type { KnowledgeSearchResult } from './types';
 
 // ============ TipTap JSON 转文本 ============
 
@@ -164,7 +167,7 @@ export async function indexNote(
       const batchItems: Array<{
         id: string;
         embedding: number[];
-        metadata: StoreVectorMetadata;
+        metadata: VectorMetadata;
       }> = [];
 
       for (let j = 0; j < vectors.length; j++) {
@@ -173,7 +176,7 @@ export async function indexNote(
 
         if (vector && vector.length > 0) {
           const vectorId = `${noteId}-${chunk.index}`;
-          const metadata: StoreVectorMetadata = {
+          const metadata: VectorMetadata = {
             noteId,
             noteTitle: title,
             chunkIndex: chunk.index,

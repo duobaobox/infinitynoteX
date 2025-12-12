@@ -1,5 +1,5 @@
 /**
- * SQLite-vec 向量存储封装
+ * SQLite-vec 向量存储实现
  * 使用 better-sqlite3 + sqlite-vec 实现高性能向量检索
  */
 
@@ -7,28 +7,16 @@ import Database from 'better-sqlite3';
 import * as sqliteVec from 'sqlite-vec';
 import path from 'node:path';
 import { app } from 'electron';
+import type { IVectorStore, VectorMetadata, SearchResult, VectorStoreStats } from './types';
 
-// ============ 类型定义 ============
+// 重新导出类型供外部使用
+export type { VectorMetadata, SearchResult, VectorStoreStats } from './types';
 
-export interface VectorMetadata {
-  noteId: string;
-  noteTitle: string;
-  chunkIndex: number;
-  content: string;
-}
-
-export interface SearchResult {
-  id: string;
-  noteId: string;
-  noteTitle: string;
-  content: string;
-  distance: number;
-  score: number; // 1 / (1 + distance)
-}
-
-// ============ VectorStore 类 ============
-
-export class VectorStore {
+/**
+ * SQLite-vec 向量存储实现
+ * 实现 IVectorStore 接口
+ */
+export class SqliteVectorStore implements IVectorStore {
   private db: Database.Database;
   private dbPath: string;
   private dimension: number;
@@ -127,17 +115,6 @@ export class VectorStore {
     // 创建向量表
     this.createVectorTable();
     console.log('[VectorStore] Auto-detected dimension:', dimension);
-  }
-
-  /**
-   * 设置向量维度（需要在初始化前调用）
-   */
-  setDimension(dimension: number): void {
-    if (this.initialized) {
-      console.warn('[VectorStore] Cannot change dimension after initialization');
-      return;
-    }
-    this.dimension = dimension;
   }
 
   /**
@@ -282,7 +259,7 @@ export class VectorStore {
   /**
    * 获取统计信息
    */
-  getStats(): { totalVectors: number; uniqueNotes: number } {
+  getStats(): VectorStoreStats {
     const vectorCount = this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata').get() as {
       count: number;
     };
@@ -326,14 +303,14 @@ export class VectorStore {
 
 // ============ 单例管理 ============
 
-let vectorStoreInstance: VectorStore | null = null;
+let vectorStoreInstance: IVectorStore | null = null;
 
 /**
  * 获取 VectorStore 单例
  */
-export function getVectorStore(): VectorStore {
+export function getVectorStore(): IVectorStore {
   if (!vectorStoreInstance) {
-    vectorStoreInstance = new VectorStore();
+    vectorStoreInstance = new SqliteVectorStore();
     vectorStoreInstance.initialize();
   }
   return vectorStoreInstance;
@@ -348,3 +325,6 @@ export function closeVectorStore(): void {
     vectorStoreInstance = null;
   }
 }
+
+// 为了向后兼容，保留 VectorStore 别名
+export { SqliteVectorStore as VectorStore };

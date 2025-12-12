@@ -359,7 +359,7 @@ export const AIChatPanel = ({
                 disabled={chatItems.length === 0}
               />
             </Tooltip>
-            <Divider orientation="vertical" style={{ margin: '0' }} />
+            <Divider type="vertical" style={{ margin: '0', height: 'auto' }} />
             <Tooltip title="打开设置">
               <Button
                 type="text"
@@ -476,7 +476,7 @@ export const AIChatPanel = ({
                     </Dropdown>
                   ) : null}
                   {/* 知识库开关 */}
-                  <Divider type="vertical" style={{ margin: '0 8px' }} />
+                  <Divider type="vertical" style={{ margin: '0 8px', height: 'auto' }} />
                   <Tooltip
                     title={useKnowledgeBase ? '已开启知识库增强' : '开启后AI将基于你的笔记回答'}
                   >
@@ -498,7 +498,7 @@ export const AIChatPanel = ({
                       message.info('打开 AI 设置');
                     }}
                   />
-                  <Divider type="vertical" />
+                  <Divider type="vertical" style={{ height: 'auto' }} />
                   {actionNode}
                 </Flex>
               </Flex>

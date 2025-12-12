@@ -245,13 +245,13 @@ const KnowledgeBaseTab: React.FC = () => {
               title="已索引笔记"
               value={stats.indexedNotes}
               suffix="篇"
-              valueStyle={{ fontSize: 20 }}
+              styles={{ content: { fontSize: 20 } }}
             />
             <Statistic
               title="向量数量"
               value={stats.totalVectors}
               suffix="条"
-              valueStyle={{ fontSize: 20 }}
+              styles={{ content: { fontSize: 20 } }}
             />
           </div>
         </Card>

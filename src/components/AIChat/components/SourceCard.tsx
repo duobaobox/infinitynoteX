@@ -37,7 +37,7 @@ export const SourceCard: React.FC<SourceCardProps> = ({ sources, onSourceClick }
             key={source.noteId + index}
             title={source.excerpt}
             placement="top"
-            overlayStyle={{ maxWidth: 400 }}
+            styles={{ root: { maxWidth: 400 } }}
           >
             <div
               className="source-card__item"

@@ -6,6 +6,7 @@
 import Database from 'better-sqlite3';
 import * as sqliteVec from 'sqlite-vec';
 import path from 'node:path';
+import fs from 'node:fs';
 import { app } from 'electron';
 import type {
   IVectorStore,
@@ -388,6 +389,122 @@ export class SqliteVectorStore implements IVectorStore {
     this.db.close();
     this.initialized = false;
     console.log('[VectorStore] Database closed');
+  }
+
+  // ============ 诊断方法（专家功能）============
+
+  /**
+   * 获取数据库诊断信息
+   */
+  getDiagnostics(): {
+    path: string;
+    sizeBytes: number;
+    journalMode: string;
+    integrity: 'ok' | 'error';
+    integrityMessage?: string;
+    dimension: number;
+    tableExists: boolean;
+  } {
+    // 获取文件大小
+    let sizeBytes = 0;
+    try {
+      const stats = fs.statSync(this.dbPath);
+      sizeBytes = stats.size;
+    } catch {
+      // 忽略
+    }
+
+    // 获取 journal_mode
+    const journalMode = (this.db.pragma('journal_mode') as { journal_mode: string }[])[0]
+      ?.journal_mode;
+
+    // 完整性检查
+    let integrity: 'ok' | 'error' = 'ok';
+    let integrityMessage: string | undefined;
+    try {
+      const result = this.db.pragma('integrity_check') as { integrity_check: string }[];
+      if (result[0]?.integrity_check !== 'ok') {
+        integrity = 'error';
+        integrityMessage = result[0]?.integrity_check;
+      }
+    } catch (e) {
+      integrity = 'error';
+      integrityMessage = e instanceof Error ? e.message : String(e);
+    }
+
+    // 检查向量表是否存在
+    let tableExists = false;
+    try {
+      const tables = this.db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='vec_chunks'")
+        .all();
+      tableExists = tables.length > 0;
+    } catch {
+      // 忽略
+    }
+
+    return {
+      path: this.dbPath,
+      sizeBytes,
+      journalMode: journalMode || 'unknown',
+      integrity,
+      integrityMessage,
+      dimension: this.dimension,
+      tableExists,
+    };
+  }
+
+  /**
+   * 获取孤立向量数量（笔记已删除但向量仍存在）
+   */
+  getOrphanedVectorCount(existingNoteIds: string[]): number {
+    if (existingNoteIds.length === 0) {
+      // 如果没有笔记，所有向量都是孤立的
+      const result = this.db
+        .prepare('SELECT COUNT(DISTINCT note_id) as count FROM chunk_metadata')
+        .get() as { count: number };
+      return result.count;
+    }
+
+    // 使用 NOT IN 查询孤立笔记的向量数量
+    const placeholders = existingNoteIds.map(() => '?').join(',');
+    const result = this.db
+      .prepare(
+        `SELECT COUNT(DISTINCT note_id) as count FROM chunk_metadata WHERE note_id NOT IN (${placeholders})`,
+      )
+      .get(...existingNoteIds) as { count: number };
+    return result.count;
+  }
+
+  /**
+   * 清理孤立向量（笔记已删除但向量仍存在）
+   */
+  cleanupOrphanedVectors(existingNoteIds: string[]): number {
+    if (existingNoteIds.length === 0) {
+      // 清理所有向量
+      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata').get() as {
+        count: number;
+      };
+      this.db.exec('DELETE FROM chunk_metadata');
+      this.db.exec('DELETE FROM vec_chunks');
+      return countResult.count;
+    }
+
+    // 获取孤立笔记 ID
+    const placeholders = existingNoteIds.map(() => '?').join(',');
+    const orphanedNotes = this.db
+      .prepare(`SELECT DISTINCT note_id FROM chunk_metadata WHERE note_id NOT IN (${placeholders})`)
+      .all(...existingNoteIds) as { note_id: string }[];
+
+    let cleaned = 0;
+    for (const { note_id } of orphanedNotes) {
+      cleaned += this.deleteByNoteId(note_id);
+    }
+
+    console.log(
+      `[VectorStore] Cleaned up ${cleaned} orphaned vectors from ${orphanedNotes.length} notes`,
+    );
+    return cleaned;
   }
 }
 

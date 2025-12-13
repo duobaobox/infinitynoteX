@@ -116,6 +116,31 @@ export interface IVectorStore {
    * 关闭连接
    */
   close(): void;
+
+  // ============ 诊断方法（专家功能）============
+
+  /**
+   * 获取数据库诊断信息
+   */
+  getDiagnostics?(): {
+    path: string;
+    sizeBytes: number;
+    journalMode: string;
+    integrity: 'ok' | 'error';
+    integrityMessage?: string;
+    dimension: number;
+    tableExists: boolean;
+  };
+
+  /**
+   * 获取孤立向量数量（笔记已删除但向量仍存在）
+   */
+  getOrphanedVectorCount?(existingNoteIds: string[]): number;
+
+  /**
+   * 清理孤立向量
+   */
+  cleanupOrphanedVectors?(existingNoteIds: string[]): number;
 }
 
 // ============ Embedding 相关类型 ============
@@ -194,4 +219,66 @@ export interface KnowledgeStats {
   totalVectors: number;
   /** 最后索引时间 */
   lastIndexedAt?: number;
+}
+
+// ============ 专家功能类型 ============
+
+/**
+ * 系统诊断结果
+ */
+export interface DiagnosticsResult {
+  /** 数据库状态 */
+  database: {
+    path: string;
+    sizeBytes: number;
+    journalMode: string;
+    integrity: 'ok' | 'error';
+    integrityMessage?: string;
+  };
+  /** 向量存储状态 */
+  vectorStore: {
+    dimension: number;
+    totalVectors: number;
+    uniqueNotes: number;
+    tableExists: boolean;
+  };
+  /** 索引一致性 */
+  indexConsistency: {
+    orphanedVectors: number;
+    missingIndexNotes: number;
+    inconsistentNotes: string[];
+  };
+  /** Embedding 配置状态 */
+  embeddingConfig: {
+    configured: boolean;
+    provider?: string;
+    model?: string;
+    lastTestResult?: 'success' | 'failed' | 'unknown';
+  };
+}
+
+/**
+ * 索引配置
+ */
+export interface IndexingConfig {
+  /** 分块大小（字符数），默认 500 */
+  chunkSize: number;
+  /** 重叠字符数，默认 50 */
+  chunkOverlap: number;
+  /** 批处理大小，默认 5 */
+  batchSize: number;
+  /** 批次间延迟（毫秒），默认 1000 */
+  batchDelayMs: number;
+  /** 速率限制重试延迟（毫秒），默认 5000 */
+  rateLimitRetryMs: number;
+}
+
+/**
+ * 索引修复结果
+ */
+export interface RepairResult {
+  success: boolean;
+  orphanedCleaned: number;
+  missingIndexed: number;
+  error?: string;
 }

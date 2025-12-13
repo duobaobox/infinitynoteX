@@ -115,10 +115,12 @@ const AITab: React.FC = () => {
 
   const handleSaveConfig = async () => {
     await saveAIConfig();
-    if (aiTestResult?.ok) {
+    // 从 store 获取最新的测试结果（因为 React 状态更新是异步的）
+    const result = useSettingsStore.getState().aiTestResult;
+    if (result?.ok) {
       message.success('配置已保存并通过测试');
-    } else if (aiTestResult) {
-      message.error(aiTestResult.message);
+    } else if (result) {
+      message.error(result.message);
     } else {
       message.warning('请填写完整的配置信息');
     }

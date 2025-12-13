@@ -499,4 +499,82 @@ contextBridge.exposeInMainWorld('knowledge', {
       success: boolean;
       deleted: number;
     }>,
+
+  // ============ 专家功能 API ============
+
+  // 运行系统诊断
+  runDiagnostics: () =>
+    ipcRenderer.invoke('knowledge:runDiagnostics') as Promise<{
+      database: {
+        path: string;
+        sizeBytes: number;
+        journalMode: string;
+        integrity: 'ok' | 'error';
+        integrityMessage?: string;
+      };
+      vectorStore: {
+        dimension: number;
+        totalVectors: number;
+        uniqueNotes: number;
+        tableExists: boolean;
+      };
+      indexConsistency: {
+        orphanedVectors: number;
+        missingIndexNotes: number;
+        inconsistentNotes: string[];
+      };
+      embeddingConfig: {
+        configured: boolean;
+        provider?: string;
+        model?: string;
+        lastTestResult?: 'success' | 'failed' | 'unknown';
+      };
+    }>,
+
+  // 修复索引不一致问题
+  repairIndex: () =>
+    ipcRenderer.invoke('knowledge:repairIndex') as Promise<{
+      success: boolean;
+      orphanedCleaned: number;
+      missingIndexed: number;
+      error?: string;
+    }>,
+
+  // 获取索引配置
+  getIndexingConfig: () =>
+    ipcRenderer.invoke('knowledge:getIndexingConfig') as Promise<{
+      chunkSize: number;
+      chunkOverlap: number;
+      batchSize: number;
+      batchDelayMs: number;
+      rateLimitRetryMs: number;
+    }>,
+
+  // 设置索引配置
+  setIndexingConfig: (config: {
+    chunkSize?: number;
+    chunkOverlap?: number;
+    batchSize?: number;
+    batchDelayMs?: number;
+    rateLimitRetryMs?: number;
+  }) =>
+    ipcRenderer.invoke('knowledge:setIndexingConfig', config) as Promise<{
+      success: boolean;
+    }>,
+
+  // 重置索引配置为默认值
+  resetIndexingConfig: () =>
+    ipcRenderer.invoke('knowledge:resetIndexingConfig') as Promise<{
+      success: boolean;
+    }>,
+
+  // 获取默认索引配置
+  getDefaultIndexingConfig: () =>
+    ipcRenderer.invoke('knowledge:getDefaultIndexingConfig') as Promise<{
+      chunkSize: number;
+      chunkOverlap: number;
+      batchSize: number;
+      batchDelayMs: number;
+      rateLimitRetryMs: number;
+    }>,
 });

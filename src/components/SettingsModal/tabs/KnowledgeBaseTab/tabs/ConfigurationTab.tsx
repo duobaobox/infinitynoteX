@@ -1,33 +1,20 @@
 /**
  * ConfigurationTab - 配置与索引 Tab
- * 核心功能：API配置、统计概览、索引操作
+ * 参考设计图：索引维护 + Embedding 模型配置
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Form,
-  Input,
-  Button,
-  Space,
-  Typography,
-  message,
-  Card,
-  Switch,
-  Alert,
-  Statistic,
-  Row,
-  Col,
-} from 'antd';
+import { Form, Input, Button, Space, Typography, message, Card, Alert, Row, Col, Tag } from 'antd';
 import {
   SyncOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ThunderboltOutlined,
-  DatabaseOutlined,
-  FileTextOutlined,
+  SettingOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface EmbeddingConfig {
   baseURL: string;
@@ -35,9 +22,11 @@ interface EmbeddingConfig {
   model: string;
 }
 
-const ConfigurationTab: React.FC = () => {
-  // 配置状态
-  const [enabled, setEnabled] = useState(false);
+interface ConfigurationTabProps {
+  onStatsChange?: (stats: { indexedNotes: number; totalVectors: number }) => void;
+}
+
+const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) => {
   const [embeddingConfig, setEmbeddingConfig] = useState<EmbeddingConfig>({
     baseURL: '',
     apiKey: '',
@@ -49,28 +38,17 @@ const ConfigurationTab: React.FC = () => {
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [indexing, setIndexing] = useState(false);
   const [incrementalUpdating, setIncrementalUpdating] = useState(false);
-  const [stats, setStats] = useState({ indexedNotes: 0, totalVectors: 0 });
 
   // 加载配置
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const savedConfig = await window.knowledge?.getConfig();
-        if (savedConfig) {
-          setEnabled(savedConfig.enabled);
-          if (savedConfig.embedding) {
-            setEmbeddingConfig({
-              baseURL: savedConfig.embedding.baseURL || '',
-              apiKey: savedConfig.embedding.apiKey || '',
-              model: savedConfig.embedding.model || '',
-            });
-          }
-        }
-        const statsData = await window.knowledge?.getStats();
-        if (statsData) {
-          setStats({
-            indexedNotes: statsData.indexedNotes,
-            totalVectors: statsData.totalVectors,
+        if (savedConfig?.embedding) {
+          setEmbeddingConfig({
+            baseURL: savedConfig.embedding.baseURL || '',
+            apiKey: savedConfig.embedding.apiKey || '',
+            model: savedConfig.embedding.model || '',
           });
         }
       } catch (error) {
@@ -86,20 +64,27 @@ const ConfigurationTab: React.FC = () => {
       message.warning('请填写完整配置');
       return;
     }
-
     setTesting(true);
     setTestResult(null);
-
     try {
       const result = await window.knowledge?.testEmbedding({
         baseURL: embeddingConfig.baseURL,
         apiKey: embeddingConfig.apiKey,
         model: embeddingConfig.model,
       });
-
       if (result?.ok) {
         setTestResult({ ok: true, message: result.message });
         message.success('连接成功');
+        // 自动保存
+        await window.knowledge?.setConfig({
+          enabled: true,
+          embedding: {
+            provider: 'custom',
+            baseURL: embeddingConfig.baseURL,
+            apiKey: embeddingConfig.apiKey,
+            model: embeddingConfig.model,
+          },
+        });
       } else {
         setTestResult({ ok: false, message: result?.message || '连接失败' });
         message.error(result?.message || '连接失败');
@@ -113,58 +98,22 @@ const ConfigurationTab: React.FC = () => {
     }
   }, [embeddingConfig]);
 
-  // 保存配置
-  const handleSaveConfig = useCallback(async () => {
-    try {
-      await window.knowledge?.setConfig({
-        enabled,
-        embedding: {
-          provider: 'custom',
-          baseURL: embeddingConfig.baseURL,
-          apiKey: embeddingConfig.apiKey,
-          model: embeddingConfig.model,
-        },
-      });
-      message.success('配置已保存');
-    } catch (error) {
-      message.error('保存失败');
-    }
-  }, [enabled, embeddingConfig]);
-
-  // 重建全部索引
-  const handleRebuildIndex = useCallback(async () => {
-    if (!enabled) {
-      message.warning('请先启用知识库');
-      return;
-    }
-    setIndexing(true);
-    try {
-      const result = await window.knowledge?.rebuildIndex();
-      if (result?.success) {
-        setStats({ indexedNotes: result.indexedNotes, totalVectors: result.totalVectors });
-        message.success(`完成：${result.indexedNotes} 笔记，${result.totalVectors} 向量`);
-      } else {
-        message.error(result?.error || '失败');
-      }
-    } catch {
-      message.error('索引失败');
-    } finally {
-      setIndexing(false);
-    }
-  }, [enabled]);
-
   // 增量更新
   const handleIncrementalUpdate = useCallback(async () => {
-    if (!enabled) {
-      message.warning('请先启用知识库');
-      return;
-    }
     setIncrementalUpdating(true);
     try {
       const result = await window.knowledge?.incrementalUpdate();
       if (result?.success) {
-        setStats((prev) => ({ ...prev, totalVectors: result.totalVectors }));
         message.success(`+${result.added} 新增，${result.updated} 更新，${result.removed} 删除`);
+        onStatsChange?.({ indexedNotes: 0, totalVectors: result.totalVectors });
+        // 刷新统计
+        const statsData = await window.knowledge?.getStats();
+        if (statsData) {
+          onStatsChange?.({
+            indexedNotes: statsData.indexedNotes,
+            totalVectors: statsData.totalVectors,
+          });
+        }
       } else {
         message.error(result?.error || '失败');
       }
@@ -173,75 +122,134 @@ const ConfigurationTab: React.FC = () => {
     } finally {
       setIncrementalUpdating(false);
     }
-  }, [enabled]);
+  }, [onStatsChange]);
+
+  // 全量重建
+  const handleRebuildIndex = useCallback(async () => {
+    setIndexing(true);
+    try {
+      const result = await window.knowledge?.rebuildIndex();
+      if (result?.success) {
+        message.success(`完成：${result.indexedNotes} 笔记，${result.totalVectors} 向量`);
+        onStatsChange?.({ indexedNotes: result.indexedNotes, totalVectors: result.totalVectors });
+      } else {
+        message.error(result?.error || '失败');
+      }
+    } catch {
+      message.error('索引失败');
+    } finally {
+      setIndexing(false);
+    }
+  }, [onStatsChange]);
 
   return (
     <div className="kb-tab-content">
-      {/* 状态与统计 */}
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="middle">
+      {/* 索引维护 */}
+      <Card
+        size="small"
+        style={{ marginBottom: 12, backgroundColor: 'var(--ant-color-fill-quaternary)' }}
+      >
+        <Row align="middle" justify="space-between">
+          <Col>
+            <div style={{ fontWeight: 500, marginBottom: 4 }}>索引维护</div>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              手动触发笔记的向量化处理。
+            </Text>
+          </Col>
           <Col>
             <Space>
-              <Switch checked={enabled} onChange={setEnabled} />
-              <Text strong>{enabled ? '已启用' : '未启用'}</Text>
+              <Button
+                icon={<ThunderboltOutlined />}
+                onClick={handleIncrementalUpdate}
+                loading={incrementalUpdating}
+              >
+                增量更新
+              </Button>
+              <Button
+                icon={<SyncOutlined spin={indexing} />}
+                onClick={handleRebuildIndex}
+                loading={indexing}
+              >
+                全量重建
+              </Button>
             </Space>
-          </Col>
-          <Col flex="1">
-            <Row gutter={24} justify="end">
-              <Col>
-                <Statistic
-                  title="笔记"
-                  value={stats.indexedNotes}
-                  suffix="篇"
-                  prefix={<FileTextOutlined />}
-                  valueStyle={{ fontSize: 18 }}
-                />
-              </Col>
-              <Col>
-                <Statistic
-                  title="向量"
-                  value={stats.totalVectors}
-                  suffix="条"
-                  prefix={<DatabaseOutlined />}
-                  valueStyle={{ fontSize: 18 }}
-                />
-              </Col>
-            </Row>
           </Col>
         </Row>
       </Card>
 
-      {/* API 配置 */}
-      <Card title="Embedding API" size="small" style={{ marginBottom: 16 }}>
-        <Form layout="vertical" size="small">
-          <Form.Item label="Base URL" required>
-            <Input
-              placeholder="https://api.siliconflow.cn/v1"
-              value={embeddingConfig.baseURL}
-              onChange={(e) => setEmbeddingConfig({ ...embeddingConfig, baseURL: e.target.value })}
-            />
-          </Form.Item>
+      {/* Embedding 模型配置 */}
+      <div style={{ marginBottom: 12 }}>
+        <Space style={{ marginBottom: 12 }}>
+          <SettingOutlined style={{ color: '#1890ff' }} />
+          <Text strong>Embedding 模型配置</Text>
+          <Tag color="blue">兼容 OpenAI 格式</Tag>
+        </Space>
 
-          <Form.Item label="API Key" required>
-            <Input.Password
-              placeholder="sk-xxx"
-              value={embeddingConfig.apiKey}
-              onChange={(e) => setEmbeddingConfig({ ...embeddingConfig, apiKey: e.target.value })}
-            />
-          </Form.Item>
+        <Form layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={
+                  <Text>
+                    Base URL <Text type="danger">*</Text>
+                  </Text>
+                }
+                style={{ marginBottom: 16 }}
+              >
+                <Input
+                  placeholder="https://api.siliconflow.cn/v1"
+                  value={embeddingConfig.baseURL}
+                  onChange={(e) =>
+                    setEmbeddingConfig({ ...embeddingConfig, baseURL: e.target.value })
+                  }
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label={
+                  <Text>
+                    模型名称 (Model) <Text type="danger">*</Text>
+                  </Text>
+                }
+                style={{ marginBottom: 16 }}
+              >
+                <Input
+                  placeholder="BAAI/bge-m3"
+                  value={embeddingConfig.model}
+                  onChange={(e) =>
+                    setEmbeddingConfig({ ...embeddingConfig, model: e.target.value })
+                  }
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item label="模型" required>
+          <Form.Item
+            label={
+              <Text>
+                API Key <Text type="danger">*</Text>
+              </Text>
+            }
+            style={{ marginBottom: 8 }}
+          >
             <Space.Compact style={{ width: '100%' }}>
-              <Input
-                placeholder="BAAI/bge-m3"
-                value={embeddingConfig.model}
-                onChange={(e) => setEmbeddingConfig({ ...embeddingConfig, model: e.target.value })}
+              <Input.Password
+                placeholder="sk-xxx"
+                value={embeddingConfig.apiKey}
+                onChange={(e) => setEmbeddingConfig({ ...embeddingConfig, apiKey: e.target.value })}
+                prefix={<SafetyOutlined style={{ color: '#bfbfbf' }} />}
               />
-              <Button onClick={handleTestConnection} loading={testing}>
-                测试
+              <Button type="primary" onClick={handleTestConnection} loading={testing}>
+                保存并测试
               </Button>
             </Space.Compact>
           </Form.Item>
+
+          <Space style={{ color: '#52c41a', fontSize: 12 }}>
+            <SafetyOutlined />
+            <span>密钥将以加密方式存储在本地</span>
+          </Space>
 
           {testResult && (
             <Alert
@@ -251,47 +259,11 @@ const ConfigurationTab: React.FC = () => {
               icon={testResult.ok ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
               closable
               onClose={() => setTestResult(null)}
-              style={{ marginBottom: 16 }}
+              style={{ marginTop: 12 }}
             />
           )}
-
-          <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-            支持所有兼容 OpenAI Embeddings API 格式的服务。
-          </Paragraph>
         </Form>
-      </Card>
-
-      {/* 索引操作 */}
-      <Card title="索引操作" size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Button
-            block
-            icon={<ThunderboltOutlined />}
-            onClick={handleIncrementalUpdate}
-            loading={incrementalUpdating}
-            disabled={!enabled}
-          >
-            增量更新（推荐）
-          </Button>
-          <Button
-            block
-            icon={<SyncOutlined spin={indexing} />}
-            onClick={handleRebuildIndex}
-            loading={indexing}
-            disabled={!enabled}
-          >
-            重建全部索引
-          </Button>
-          <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-            增量更新仅处理变更笔记；重建会清空后重新索引。
-          </Paragraph>
-        </Space>
-      </Card>
-
-      {/* 保存按钮 */}
-      <Button type="primary" block onClick={handleSaveConfig}>
-        保存配置
-      </Button>
+      </div>
     </div>
   );
 };

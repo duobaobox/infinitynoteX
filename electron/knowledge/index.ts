@@ -17,6 +17,10 @@ export type {
   // 知识库搜索
   KnowledgeSearchResult,
   KnowledgeStats,
+  // 专家功能类型
+  IndexingConfig,
+  DiagnosticsResult,
+  RepairResult,
 } from './types';
 
 // ============ Embedding 服务 ============
@@ -48,4 +52,12 @@ export {
   incrementalUpdate,
   reindexNote,
   deleteNoteFromIndex,
+  // 专家功能：配置管理
+  getIndexingConfig,
+  setIndexingConfig,
+  resetIndexingConfig,
+  getDefaultIndexingConfig,
+  // 专家功能：诊断与修复
+  runDiagnostics,
+  repairIndex,
 } from './knowledgeIndex';

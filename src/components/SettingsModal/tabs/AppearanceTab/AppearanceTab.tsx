@@ -79,14 +79,13 @@ const AppearanceTab: React.FC = () => {
             options={[
               { label: '亮色', value: 'light' },
               { label: '暗色', value: 'dark' },
-              { label: '自动（跟随系统）', value: 'auto' },
+              { label: '自动', value: 'auto' },
             ]}
             value={themeMode}
             onChange={(v) => {
               const next = v as ThemeMode;
               applyThemeMode(next);
             }}
-            block
           />
         </Form.Item>
         <Divider />

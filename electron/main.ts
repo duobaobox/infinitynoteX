@@ -1252,3 +1252,67 @@ ipcMain.handle('knowledge:deleteNoteIndex', async (_, noteId: string) => {
   const deleted = deleteNoteFromIndex(noteId);
   return { success: true, deleted };
 });
+
+// ============ 知识库专家功能 IPC 处理器 ============
+
+/**
+ * 运行系统诊断
+ */
+ipcMain.handle('knowledge:runDiagnostics', async () => {
+  const { runDiagnostics } = await import('./knowledge');
+  return await runDiagnostics();
+});
+
+/**
+ * 修复索引不一致问题
+ */
+ipcMain.handle('knowledge:repairIndex', async () => {
+  const { repairIndex } = await import('./knowledge');
+  return await repairIndex();
+});
+
+/**
+ * 获取索引配置
+ */
+ipcMain.handle('knowledge:getIndexingConfig', async () => {
+  const { getIndexingConfig } = await import('./knowledge');
+  return getIndexingConfig();
+});
+
+/**
+ * 设置索引配置
+ */
+ipcMain.handle(
+  'knowledge:setIndexingConfig',
+  async (
+    _,
+    config: {
+      chunkSize?: number;
+      chunkOverlap?: number;
+      batchSize?: number;
+      batchDelayMs?: number;
+      rateLimitRetryMs?: number;
+    },
+  ) => {
+    const { setIndexingConfig } = await import('./knowledge');
+    setIndexingConfig(config);
+    return { success: true };
+  },
+);
+
+/**
+ * 重置索引配置为默认值
+ */
+ipcMain.handle('knowledge:resetIndexingConfig', async () => {
+  const { resetIndexingConfig } = await import('./knowledge');
+  resetIndexingConfig();
+  return { success: true };
+});
+
+/**
+ * 获取默认索引配置
+ */
+ipcMain.handle('knowledge:getDefaultIndexingConfig', async () => {
+  const { getDefaultIndexingConfig } = await import('./knowledge');
+  return getDefaultIndexingConfig();
+});

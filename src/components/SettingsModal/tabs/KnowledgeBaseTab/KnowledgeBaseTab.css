@@ -1,9 +1,13 @@
 /**
  * KnowledgeBaseTab 样式
+ * 知识库管理Tab组件的样式定义
  */
 
+/* ==================== 全局组件样式 ==================== */
+
+/* ==================== 主容器 ==================== */
+
 .knowledge-base-panel {
-  padding: 16px 24px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -15,29 +19,162 @@
   font-weight: 600;
 }
 
-/* 头部区域 */
-.kb-header {
+/* ==================== 头部卡片区 ==================== */
+
+/* 卡片容器：flex布局，三卡片自动分配 */
+.kb-settings-header {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* 卡片通用样式 */
+.kb-settings-header .kb-card {
+  flex: 1;
+  min-width: 160px;
+  border-radius: 12px;
+}
+
+.kb-status-card,
+.kb-stats-card {
+  border-radius: 12px;
+  height: 100%;
+}
+
+/* ==================== 弥散光效果 ==================== */
+
+/* 启用弥散光的卡片 */
+.kb-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 弥散光圆形 - 淡雅效果 */
+.kb-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 蓝色弥散光 - 淡蓝 */
+.kb-glow--blue {
+  background: #91caff;
+}
+
+/* 绿色弥散光 - 淡绿 */
+.kb-glow--green {
+  background: #b7eb8f;
+}
+
+/* 紫色弥散光 - 淡紫 */
+.kb-glow--purple {
+  background: #d3adf7;
+}
+
+/* 确保卡片内容在弥散光上方 */
+.kb-card-glow .kb-card-header,
+.kb-card-glow .kb-card-inner,
+.kb-card-glow .kb-card-title,
+.kb-card-glow .kb-card-desc,
+.kb-card-glow .kb-card-label {
+  position: relative;
+  z-index: 1;
+}
+
+/* 卡片头部：图标左，开关右 */
+.kb-card-header {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
-.kb-mode-switch {
+/* 卡片内容行：图标+数字 */
+.kb-card-inner {
   display: flex;
   align-items: center;
+  margin-bottom: 8px;
 }
 
-/* 内部 Tab */
+/* ==================== 卡片图标 ==================== */
+
+.kb-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* 蓝色图标 - 知识库功能 */
+.kb-card-icon--blue {
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%);
+  color: #1677ff;
+}
+
+/* 绿色图标 - 已索引笔记 */
+.kb-card-icon--green {
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+  color: #52c41a;
+}
+
+/* 紫色图标 - 向量数据块 */
+.kb-card-icon--purple {
+  background: linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%);
+  color: #722ed1;
+}
+
+/* ==================== 卡片文字 ==================== */
+
+.kb-card-title {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.kb-card-desc {
+  font-size: 12px;
+}
+
+/* 统计大数字 */
+.kb-card-number {
+  font-size: 32px;
+  font-weight: 600;
+  color: #262626;
+  margin-left: 12px;
+}
+
+.kb-card-label {
+  font-size: 13px;
+  display: block;
+  margin-top: 4px;
+}
+
+/* ==================== 内部Tabs ==================== */
+
 .kb-inner-tabs {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
+.kb-inner-tabs .ant-tabs-nav {
+  margin-bottom: 12px;
+}
+
 .kb-inner-tabs .ant-tabs-content-holder {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .kb-inner-tabs .ant-tabs-content {
@@ -48,218 +185,80 @@
   height: 100%;
 }
 
-/* Tab 内容区 */
+/* ==================== Tab 内容区 ==================== */
+
 .kb-tab-content {
-  padding: 16px 0;
+  padding: 0px 0;
 }
 
-.kb-tab-content.kb-loading,
-.kb-tab-content.kb-coming-soon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-}
+/* ==================== 响应式 ==================== */
 
-/* 头部卡片区 */
-.kb-header-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.kb-status-card,
-.kb-stats-card {
-  border-radius: 8px;
-}
-
-.kb-status-inner {
-  display: flex;
-  flex-direction: column;
-}
-
-.kb-status-switch {
-  display: flex;
-  align-items: center;
-}
-
-.kb-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-/* 统计卡片网格（专家模式） */
-.kb-stats-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-}
-
-/* 配置区域 */
-.kb-config-grid {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 16px;
-}
-
-/* Provider 列表 */
-.kb-provider-card {
-  border-radius: 8px;
-  height: fit-content;
-}
-
-.kb-provider-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.kb-provider-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.kb-provider-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.kb-provider-item.active {
-  background-color: rgba(22, 119, 255, 0.08);
-  border-color: rgba(22, 119, 255, 0.3);
-}
-
-.kb-provider-item__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.kb-provider-item__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* 配置表单区 */
-.kb-config-forms {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.kb-card {
-  border-radius: 8px;
-}
-
-/* 索引管理 */
-.kb-index-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.kb-source-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.kb-source-item {
-  display: flex;
-  align-items: center;
-}
-
-/* ==================== 快速配置样式 ==================== */
-
-.kb-quick-setup {
-  padding: 16px 0;
-}
-
-.kb-quick-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.kb-quick-step {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-/* 服务商卡片选择 */
-.kb-provider-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.kb-provider-card-select {
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 2px solid transparent;
-}
-
-.kb-provider-card-select:hover {
-  border-color: rgba(22, 119, 255, 0.3);
-}
-
-.kb-provider-card-select.selected {
-  border-color: #1890ff;
-  background-color: rgba(22, 119, 255, 0.04);
-}
-
-.kb-provider-card-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.kb-provider-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-/* 扫描中状态 */
-.kb-scanning {
-  text-align: center;
-  padding: 40px 0;
-}
-
-/* 简单模式状态卡片 */
-.kb-simple-status-card {
-  max-width: 400px;
-  margin: 0 auto;
-  text-align: center;
-}
-
-.kb-simple-status {
-  padding: 24px 0;
-}
-
-/* 响应式 */
 @media (max-width: 768px) {
-  .kb-header-cards {
-    grid-template-columns: 1fr;
+  .kb-settings-header {
+    flex-direction: column;
   }
 
-  .kb-config-grid {
-    grid-template-columns: 1fr;
+  .kb-settings-header .kb-card {
+    min-width: 100%;
   }
+}
 
-  .kb-provider-cards {
-    grid-template-columns: 1fr;
-  }
+/* ==================== 系统诊断面板 ==================== */
 
-  .kb-stats-cards {
-    grid-template-columns: 1fr 1fr;
-  }
+.system-diagnostics-panel {
+  padding: 0;
+}
+
+.diag-card {
+  border-radius: 8px;
+  height: 100%;
+}
+
+.diag-card-warning {
+  border-color: #faad14;
+}
+
+.diag-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.diag-card-content {
+  min-height: 60px;
+}
+
+.diag-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.diag-item + .diag-item {
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 诊断统计值 */
+.diag-card .ant-statistic-title {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.diag-card .ant-statistic-content {
+  line-height: 1.2;
+}
+
+/* ==================== 配置调优面板 ==================== */
+
+.indexing-config-panel {
+  padding: 0;
+}
+
+.config-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }

@@ -1,6 +1,6 @@
 /**
- * DebugTab - 调试与维护 Tab
- * 语义搜索测试、数据块浏览、笔记索引管理
+ * DebugTab - 调试与维护 Tab（专家功能）
+ * 包含三个子面板：搜索测试、系统诊断、配置调优
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -26,8 +26,12 @@ import {
   SyncOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  ToolOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import SystemDiagnosticsPanel from './components/SystemDiagnosticsPanel';
+import IndexingConfigPanel from './components/IndexingConfigPanel';
 
 const { Text, Paragraph } = Typography;
 
@@ -56,7 +60,10 @@ interface NoteIndexInfo {
   lastIndexedAt?: number;
 }
 
-const DebugTab: React.FC = () => {
+/**
+ * 搜索测试与数据浏览面板（保持原有功能）
+ */
+const SearchTestPanel: React.FC = () => {
   // 搜索测试状态
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -251,8 +258,8 @@ const DebugTab: React.FC = () => {
     },
   ];
 
-  // 内部Tab项
-  const tabItems = [
+  // 内部Tab项（数据浏览）
+  const dataTabItems = [
     {
       key: 'chunks',
       label: (
@@ -321,7 +328,7 @@ const DebugTab: React.FC = () => {
   ];
 
   return (
-    <div className="kb-tab-content">
+    <>
       {/* 语义搜索测试 */}
       <Card title="语义搜索测试" size="small" style={{ marginBottom: 16 }}>
         <Space.Compact style={{ width: '100%', marginBottom: searchResults.length > 0 ? 12 : 0 }}>
@@ -385,7 +392,7 @@ const DebugTab: React.FC = () => {
           </Button>
         }
       >
-        <Tabs items={tabItems} size="small" />
+        <Tabs items={dataTabItems} size="small" />
       </Card>
 
       {/* 数据块详情抽屉 */}
@@ -428,6 +435,50 @@ const DebugTab: React.FC = () => {
           </Space>
         )}
       </Drawer>
+    </>
+  );
+};
+
+/**
+ * DebugTab 主组件 - 包含三个子 Tab
+ */
+const DebugTab: React.FC = () => {
+  const mainTabItems = [
+    {
+      key: 'search',
+      label: (
+        <Space>
+          <SearchOutlined />
+          搜索测试
+        </Space>
+      ),
+      children: <SearchTestPanel />,
+    },
+    {
+      key: 'diagnostics',
+      label: (
+        <Space>
+          <ToolOutlined />
+          系统诊断
+        </Space>
+      ),
+      children: <SystemDiagnosticsPanel />,
+    },
+    {
+      key: 'config',
+      label: (
+        <Space>
+          <SettingOutlined />
+          配置调优
+        </Space>
+      ),
+      children: <IndexingConfigPanel />,
+    },
+  ];
+
+  return (
+    <div className="kb-tab-content">
+      <Tabs items={mainTabItems} size="small" />
     </div>
   );
 };

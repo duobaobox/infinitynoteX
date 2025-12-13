@@ -7,10 +7,21 @@
 import { storageManager } from '../storage';
 import { readKnowledgeConfig, createEmbeddingService, type EmbeddingService } from './embedding';
 import { getVectorStore } from './vectorStore';
-import type { VectorMetadata, KnowledgeSearchResult } from './types';
+import type {
+  VectorMetadata,
+  KnowledgeSearchResult,
+  IndexingConfig,
+  DiagnosticsResult,
+  RepairResult,
+} from './types';
 
 // 重新导出类型
-export type { KnowledgeSearchResult } from './types';
+export type {
+  KnowledgeSearchResult,
+  IndexingConfig,
+  DiagnosticsResult,
+  RepairResult,
+} from './types';
 
 // ============ TipTap JSON 转文本 ============
 
@@ -120,6 +131,53 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// ============ 索引配置管理 ============
+
+/** 默认索引配置 */
+const DEFAULT_INDEXING_CONFIG: IndexingConfig = {
+  chunkSize: 500,
+  chunkOverlap: 50,
+  batchSize: 5,
+  batchDelayMs: 1000,
+  rateLimitRetryMs: 5000,
+};
+
+/** 当前索引配置（内存中） */
+let currentIndexingConfig: IndexingConfig = { ...DEFAULT_INDEXING_CONFIG };
+
+/**
+ * 获取当前索引配置
+ */
+export function getIndexingConfig(): IndexingConfig {
+  return { ...currentIndexingConfig };
+}
+
+/**
+ * 设置索引配置
+ */
+export function setIndexingConfig(config: Partial<IndexingConfig>): void {
+  currentIndexingConfig = {
+    ...currentIndexingConfig,
+    ...config,
+  };
+  console.log('[KnowledgeIndex] Updated indexing config:', currentIndexingConfig);
+}
+
+/**
+ * 重置索引配置为默认值
+ */
+export function resetIndexingConfig(): void {
+  currentIndexingConfig = { ...DEFAULT_INDEXING_CONFIG };
+  console.log('[KnowledgeIndex] Reset indexing config to defaults');
+}
+
+/**
+ * 获取默认索引配置
+ */
+export function getDefaultIndexingConfig(): IndexingConfig {
+  return { ...DEFAULT_INDEXING_CONFIG };
+}
+
 // ============ 知识索引服务 ============
 
 /**
@@ -133,6 +191,7 @@ export async function indexNote(
   embeddingService: EmbeddingService,
 ): Promise<number> {
   const store = getVectorStore();
+  const config = currentIndexingConfig;
 
   // 删除该笔记的旧向量
   store.deleteByNoteId(noteId);
@@ -144,19 +203,17 @@ export async function indexNote(
     return 0;
   }
 
-  // 分块
-  const chunks = chunkText(text);
-  console.log(`[KnowledgeIndex] Note ${noteId}: ${chunks.length} chunks`);
-
-  // 批量向量化配置
-  const BATCH_SIZE = 5; // 每批处理的 chunk 数量
-  const BATCH_DELAY_MS = 1000; // 批次间延迟（毫秒），避免 RPM 限制
+  // 使用可配置参数分块
+  const chunks = chunkText(text, config.chunkSize, config.chunkOverlap);
+  console.log(
+    `[KnowledgeIndex] Note ${noteId}: ${chunks.length} chunks (size=${config.chunkSize}, overlap=${config.chunkOverlap})`,
+  );
 
   let indexedCount = 0;
 
-  // 分批处理
-  for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-    const batchChunks = chunks.slice(i, i + BATCH_SIZE);
+  // 分批处理，使用可配置参数
+  for (let i = 0; i < chunks.length; i += config.batchSize) {
+    const batchChunks = chunks.slice(i, i + config.batchSize);
     const batchTexts = batchChunks.map((chunk) => chunk.text);
 
     try {
@@ -194,17 +251,19 @@ export async function indexNote(
       }
 
       // 如果还有更多批次，添加延迟避免速率限制
-      if (i + BATCH_SIZE < chunks.length) {
-        await delay(BATCH_DELAY_MS);
+      if (i + config.batchSize < chunks.length) {
+        await delay(config.batchDelayMs);
       }
     } catch (error) {
       console.error(`[KnowledgeIndex] Failed to embed batch starting at chunk ${i}:`, error);
       // 如果遇到速率限制错误，增加延迟后重试
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes('429') || errorMsg.includes('RPM') || errorMsg.includes('rate')) {
-        console.log(`[KnowledgeIndex] Rate limited, waiting 5 seconds before retry...`);
-        await delay(5000);
-        i -= BATCH_SIZE; // 回退重试当前批次
+        console.log(
+          `[KnowledgeIndex] Rate limited, waiting ${config.rateLimitRetryMs}ms before retry...`,
+        );
+        await delay(config.rateLimitRetryMs);
+        i -= config.batchSize; // 回退重试当前批次
       }
     }
   }
@@ -448,5 +507,173 @@ export async function incrementalUpdate(): Promise<{
     const msg = error instanceof Error ? error.message : String(error);
     console.error('[IncrementalUpdate] Failed:', msg);
     return { success: false, updated: 0, added: 0, removed: 0, totalVectors: 0, error: msg };
+  }
+}
+
+// ============ 专家功能：系统诊断与修复 ============
+
+/**
+ * 运行系统诊断
+ */
+export async function runDiagnostics(): Promise<DiagnosticsResult> {
+  const store = getVectorStore();
+  const config = await readKnowledgeConfig();
+
+  // 获取数据库诊断
+  const dbDiag = store.getDiagnostics?.() ?? {
+    path: 'unknown',
+    sizeBytes: 0,
+    journalMode: 'unknown',
+    integrity: 'error' as const,
+    integrityMessage: 'getDiagnostics not supported',
+    dimension: 0,
+    tableExists: false,
+  };
+
+  // 获取统计信息
+  const stats = store.getStats();
+
+  // 检查索引一致性
+  let orphanedVectors = 0;
+  let missingIndexNotes = 0;
+  const inconsistentNotes: string[] = [];
+
+  try {
+    // 获取所有笔记 ID
+    const allNotes = await storageManager.listNotes();
+    const noteIds = allNotes.map((n) => n.id);
+    const noteIdSet = new Set(noteIds);
+
+    // 检查孤立向量
+    orphanedVectors = store.getOrphanedVectorCount?.(noteIds) ?? 0;
+
+    // 检查缺失索引的笔记
+    const indexedNotes = store.getNoteIndexList?.() ?? [];
+    const indexedNoteIdSet = new Set(indexedNotes.map((n) => n.noteId));
+
+    for (const noteInfo of allNotes) {
+      if (!indexedNoteIdSet.has(noteInfo.id)) {
+        // 检查笔记内容是否足够长（与 indexNote 逻辑一致）
+        try {
+          const note = await storageManager.getNote(noteInfo.id);
+          const text = extractNoteText(note.content);
+          // 只有内容足够长的笔记才算"缺失索引"
+          if (text && text.length >= 10) {
+            missingIndexNotes++;
+            if (inconsistentNotes.length < 10) {
+              inconsistentNotes.push(noteInfo.id);
+            }
+          }
+        } catch {
+          // 如果无法读取笔记，也计入缺失
+          missingIndexNotes++;
+          if (inconsistentNotes.length < 10) {
+            inconsistentNotes.push(noteInfo.id);
+          }
+        }
+      }
+    }
+
+    // 也记录孤立的笔记 ID
+    for (const indexed of indexedNotes) {
+      if (!noteIdSet.has(indexed.noteId) && inconsistentNotes.length < 10) {
+        inconsistentNotes.push(indexed.noteId);
+      }
+    }
+  } catch (error) {
+    console.error('[Diagnostics] Failed to check consistency:', error);
+  }
+
+  return {
+    database: {
+      path: dbDiag.path,
+      sizeBytes: dbDiag.sizeBytes,
+      journalMode: dbDiag.journalMode,
+      integrity: dbDiag.integrity,
+      integrityMessage: dbDiag.integrityMessage,
+    },
+    vectorStore: {
+      dimension: dbDiag.dimension,
+      totalVectors: stats.totalVectors,
+      uniqueNotes: stats.uniqueNotes,
+      tableExists: dbDiag.tableExists,
+    },
+    indexConsistency: {
+      orphanedVectors,
+      missingIndexNotes,
+      inconsistentNotes,
+    },
+    embeddingConfig: {
+      configured: !!config?.embedding?.baseURL && !!config?.embedding?.model,
+      provider: config?.embedding?.provider,
+      model: config?.embedding?.model,
+      lastTestResult: 'unknown',
+    },
+  };
+}
+
+/**
+ * 修复索引不一致问题
+ */
+export async function repairIndex(): Promise<RepairResult> {
+  try {
+    const config = await readKnowledgeConfig();
+    if (!config?.enabled || !config.embedding) {
+      return {
+        success: false,
+        orphanedCleaned: 0,
+        missingIndexed: 0,
+        error: '知识库未启用或未配置',
+      };
+    }
+
+    const store = getVectorStore();
+    const embeddingService = createEmbeddingService(config.embedding);
+
+    // 获取所有笔记 ID
+    const allNotes = await storageManager.listNotes();
+    const noteIds = allNotes.map((n) => n.id);
+
+    // 1. 清理孤立向量
+    const orphanedCleaned = store.cleanupOrphanedVectors?.(noteIds) ?? 0;
+
+    // 2. 索引缺失的笔记
+    const indexedNotes = store.getNoteIndexList?.() ?? [];
+    const indexedNoteIdSet = new Set(indexedNotes.map((n) => n.noteId));
+
+    let missingIndexed = 0;
+    for (const noteInfo of allNotes) {
+      if (!indexedNoteIdSet.has(noteInfo.id)) {
+        try {
+          const note = await storageManager.getNote(noteInfo.id);
+          const count = await indexNote(note.id, note.title, note.content, embeddingService);
+          if (count > 0) {
+            missingIndexed++;
+            console.log(`[RepairIndex] Indexed missing note ${note.id}: ${count} vectors`);
+          }
+        } catch (error) {
+          console.error(`[RepairIndex] Failed to index note ${noteInfo.id}:`, error);
+        }
+      }
+    }
+
+    console.log(
+      `[RepairIndex] Completed: cleaned ${orphanedCleaned} orphaned, indexed ${missingIndexed} missing`,
+    );
+
+    return {
+      success: true,
+      orphanedCleaned,
+      missingIndexed,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[RepairIndex] Failed:', msg);
+    return {
+      success: false,
+      orphanedCleaned: 0,
+      missingIndexed: 0,
+      error: msg,
+    };
   }
 }

@@ -16,6 +16,7 @@ import {
   Tag,
   Collapse,
   Select,
+  Tooltip,
   Alert,
 } from 'antd';
 import {
@@ -30,6 +31,7 @@ import {
   getProviderBrandColor,
 } from '../../../../services/aiProviders';
 import { persistProviderConfigs } from '../../../../services/aiConfigStore';
+import { QuestionCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import './AITab.css';
 
 const { Text, Paragraph } = Typography;
@@ -144,34 +146,39 @@ const AITab: React.FC = () => {
       <h3>AI 管理</h3>
 
       <div className="ai-settings-header">
-        <Card className="ai-status-card" size="small" variant="outlined">
-          <div className="ai-status-card-inner">
-            <div className="ai-status-card-info">
-              <Text type="secondary" className="ai-status-label">
-                当前模型
-              </Text>
-              <div className="ai-status-card-title">
-                <span className="ai-status-provider">
-                  <span
-                    className="ai-status-provider-dot"
-                    style={{ backgroundColor: getProviderBrandColor(selectedProviderId) }}
-                  />
-                  {aiConfig.provider || '未配置提供商'}
-                </span>
-                <span className="ai-status-model">{aiConfig.model || '未选择模型'}</span>
-              </div>
-              <Paragraph type="secondary" className="ai-status-base" ellipsis>
-                {aiConfig.baseURL || 'Base URL 未配置'}
-              </Paragraph>
-              <div className="ai-status-card-state">
-                <Tag color={selectedProviderId === activeProviderId ? 'green' : 'default'}>
-                  {selectedProviderId === activeProviderId ? '当前使用' : '未激活'}
-                </Tag>
-                <Text type="secondary" className="ai-status-hint">
-                  保存并测试后自动激活
-                </Text>
-              </div>
+        <Card className="ai-status-card ai-card-glow" size="small" variant="outlined">
+          <div
+            className="ai-glow"
+            style={{ background: getProviderBrandColor(selectedProviderId) }}
+          />
+          <div className="ai-card-header">
+            <div
+              className="ai-card-icon"
+              style={{
+                background: `linear-gradient(135deg, ${getProviderBrandColor(selectedProviderId)}20 0%, ${getProviderBrandColor(selectedProviderId)}40 100%)`,
+                color: getProviderBrandColor(selectedProviderId),
+              }}
+            >
+              <RobotOutlined />
             </div>
+          </div>
+          <div className="ai-card-title">
+            <span className="ai-status-provider">
+              <span
+                className="ai-status-provider-dot"
+                style={{ backgroundColor: getProviderBrandColor(selectedProviderId) }}
+              />
+              {aiConfig.provider || '未配置提供商'}
+            </span>
+            <span className="ai-status-model">{aiConfig.model || '未选择模型'}</span>
+          </div>
+          <Text type="secondary" className="ai-card-desc">
+            {aiConfig.baseURL || 'Base URL 未配置'}
+          </Text>
+          <div className="ai-card-footer">
+            <Tag color={selectedProviderId === activeProviderId ? 'blue' : 'default'}>
+              {selectedProviderId === activeProviderId ? '⚡ 正在使用' : '未激活'}
+            </Tag>
           </div>
         </Card>
 
@@ -179,35 +186,46 @@ const AITab: React.FC = () => {
           <div className="ai-parameter-grid">
             <div className="ai-parameter-field">
               <div className="ai-parameter-label">
-                <Text strong>温度</Text>
-                <Text type="secondary">{(aiConfig.temperature ?? 0.7).toFixed(1)}</Text>
+                <Text strong>☰ 温度 (Temperature)</Text>
+                <Text style={{ color: '#1677ff' }}>{(aiConfig.temperature ?? 0.7).toFixed(1)}</Text>
               </div>
-              <Slider
-                min={0}
-                max={2}
-                step={0.1}
-                value={aiConfig.temperature ?? 0.7}
-                onChange={(value) => {
-                  const numeric = Array.isArray(value) ? value[0] : value;
-                  syncCurrentConfig({ temperature: numeric });
-                }}
-                marks={{ 0: '精确', 2: '创意' }}
-              />
+              <div className="ai-slider-container">
+                <Text type="secondary" className="ai-slider-label">
+                  精确
+                </Text>
+                <Slider
+                  className="ai-temperature-slider"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={aiConfig.temperature ?? 0.7}
+                  onChange={(value) => {
+                    const numeric = Array.isArray(value) ? value[0] : value;
+                    syncCurrentConfig({ temperature: numeric });
+                  }}
+                />
+                <Text type="secondary" className="ai-slider-label">
+                  创意
+                </Text>
+              </div>
             </div>
             <div className="ai-parameter-field">
               <div className="ai-parameter-label">
-                <Text strong>最大 Token</Text>
+                <Space>
+                  <Text strong>◎ 最大长度 (Max Tokens)</Text>
+                  <Tooltip title="建议范围 100 ~ 128000">
+                    <QuestionCircleOutlined style={{ color: '#8c8c8c', cursor: 'help' }} />
+                  </Tooltip>
+                </Space>
               </div>
               <InputNumber
                 min={100}
                 max={128000}
-                value={aiConfig.max_tokens ?? 3500}
-                onChange={(val) => syncCurrentConfig({ max_tokens: val ?? 3500 })}
+                value={aiConfig.max_tokens ?? 8192}
+                onChange={(val) => syncCurrentConfig({ max_tokens: val ?? 8192 })}
+                addonAfter="Tokens"
                 style={{ width: '100%' }}
               />
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                建议范围 100 ~ 128000
-              </Text>
             </div>
           </div>
         </Card>

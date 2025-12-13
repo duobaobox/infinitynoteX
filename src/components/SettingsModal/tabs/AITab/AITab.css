@@ -19,39 +19,84 @@
   box-shadow: none;
 }
 
-.ai-status-card .ant-card-body,
-.ai-parameters-card .ant-card-body {
-  padding: 20px;
+/* 弥散光效果 */
+.ai-card-glow {
+  position: relative;
+  overflow: hidden;
 }
 
-.ai-status-card-inner {
+.ai-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ai-glow--blue {
+  background: #91caff;
+}
+
+/* 确保卡片内容在弥散光上方 */
+.ai-card-glow .ai-card-header,
+.ai-card-glow .ai-card-title,
+.ai-card-glow .ai-card-desc {
+  position: relative;
+  z-index: 1;
+}
+
+/* 卡片头部：图标左，标签右 */
+.ai-card-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.ai-status-card-info {
-  flex: 1;
-  min-width: 220px;
+/* 卡片图标 */
+.ai-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
 }
 
-.ai-status-label {
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+.ai-card-icon--blue {
+  background: linear-gradient(135deg, #e6f4ff 0%, #bae0ff 100%);
+  color: #1677ff;
 }
 
-.ai-status-card-title {
+/* 卡片标题 */
+.ai-card-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  margin-top: 6px;
+  margin-bottom: 4px;
 }
 
+.ai-card-desc {
+  font-size: 12px;
+  display: block;
+}
+
+/* 卡片底部 */
+.ai-card-footer {
+  margin-top: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 提供商样式 */
 .ai-status-provider {
   display: inline-flex;
   align-items: center;
@@ -67,36 +112,28 @@
 
 .ai-status-model {
   color: var(--ant-color-text-tertiary, #8c8c8c);
+  font-weight: 400;
 }
 
-.ai-status-base {
-  margin-bottom: 0;
-  font-size: 12px;
-  color: var(--ant-color-text-tertiary, #8c8c8c);
-}
-
-.ai-status-card-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
+.ai-status-card .ant-card-body,
+.ai-parameters-card .ant-card-body {
+  padding: 20px;
 }
 
 .ai-status-hint {
   font-size: 12px;
 }
 
+/* 芯片图标 */
+.ai-status-card-icon {
+  flex-shrink: 0;
+}
+
+/* 参数卡片 */
 .ai-parameter-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-@media (min-width: 860px) {
-  .ai-parameter-grid {
-    flex-direction: row;
-  }
 }
 
 .ai-parameter-field {
@@ -108,6 +145,31 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+}
+
+/* 温度滑块容器 */
+.ai-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-slider-label {
+  font-size: 12px;
+  flex-shrink: 0;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+}
+
+.ai-temperature-slider {
+  flex: 1;
+}
+
+/* Token 提示 */
+.ai-parameter-hint {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  margin-top: 4px;
+  text-align: right;
 }
 
 .ai-config-grid {

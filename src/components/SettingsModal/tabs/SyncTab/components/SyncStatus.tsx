@@ -1,6 +1,7 @@
 /**
  * SyncStatus - 同步状态卡片组件
  * 纯展示组件：显示当前同步状态信息
+ * UI风格参考AI管理页面的状态卡片
  */
 
 import React from 'react';
@@ -17,6 +18,9 @@ import { useSettingsStore } from '../../../../../store/settingsStore';
 import { getProviderById, SYNC_PROVIDERS } from '../providers';
 
 const { Text } = Typography;
+
+// WebDAV品牌色（橙色）
+const WEBDAV_BRAND_COLOR = '#f5a623';
 
 const SyncStatus: React.FC = () => {
   const { syncStatus, selectedSyncProvider, syncConfigs } = useSettingsStore();
@@ -141,20 +145,29 @@ const SyncStatus: React.FC = () => {
   const statusInfo = getStatusInfo();
 
   return (
-    <Card className="sync-status-card" size="small" variant="outlined">
-      <div className="sync-status-card-inner">
-        <div className="sync-status-main">
-          <div className="sync-status-icon">
-            <CloudOutlined style={{ fontSize: 24, color: statusInfo.color }} />
+    <Card className="sync-status-card sync-card-glow" size="small" variant="outlined">
+      <div className="sync-glow" style={{ background: WEBDAV_BRAND_COLOR }} />
+      <div className="sync-status-row">
+        <div className="sync-status-left">
+          <div className="sync-card-header">
+            <div
+              className="sync-card-icon"
+              style={{
+                background: `linear-gradient(135deg, ${WEBDAV_BRAND_COLOR}20 0%, ${WEBDAV_BRAND_COLOR}40 100%)`,
+                color: WEBDAV_BRAND_COLOR,
+              }}
+            >
+              <CloudOutlined />
+            </div>
           </div>
           <div className="sync-status-info">
-            <div className="sync-status-title">
+            <div className="sync-card-title">
               <Text strong style={{ fontSize: 15 }}>
-                {configComplete ? currentProvider?.name : '数据同步'}
+                {configComplete ? currentProvider?.name : 'WebDAV'}
               </Text>
               {statusInfo.tag}
             </div>
-            <Text type="secondary" className="sync-status-desc">
+            <Text type="secondary" className="sync-card-desc">
               {statusInfo.description}
             </Text>
           </div>

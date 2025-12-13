@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, Card, Switch, Typography, message } from 'antd';
 import { DatabaseOutlined, FileTextOutlined, ApartmentOutlined } from '@ant-design/icons';
+import { useSettingsStore } from '../../../../store/settingsStore';
 import ConfigurationTab from './tabs/ConfigurationTab';
 import DebugTab from './tabs/DebugTab';
 import './KnowledgeBaseTab.css';
@@ -13,6 +14,7 @@ import './KnowledgeBaseTab.css';
 const { Text } = Typography;
 
 const KnowledgeBaseTab: React.FC = () => {
+  const { setKnowledgeBaseEnabled } = useSettingsStore();
   const [enabled, setEnabled] = useState(false);
   const [stats, setStats] = useState({ indexedNotes: 0, totalVectors: 0 });
 
@@ -23,6 +25,8 @@ const KnowledgeBaseTab: React.FC = () => {
         const config = await window.knowledge?.getConfig();
         if (config) {
           setEnabled(config.enabled);
+          // 同步到 store
+          setKnowledgeBaseEnabled(config.enabled);
         }
         const statsData = await window.knowledge?.getStats();
         if (statsData) {
@@ -36,22 +40,30 @@ const KnowledgeBaseTab: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [setKnowledgeBaseEnabled]);
 
   // 切换启用状态
-  const handleToggleEnabled = useCallback(async (checked: boolean) => {
-    setEnabled(checked);
-    try {
-      const config = await window.knowledge?.getConfig();
-      await window.knowledge?.setConfig({
-        ...config,
-        enabled: checked,
-      });
-      message.success(checked ? '知识库已启用' : '知识库已禁用');
-    } catch {
-      message.error('操作失败');
-    }
-  }, []);
+  const handleToggleEnabled = useCallback(
+    async (checked: boolean) => {
+      setEnabled(checked);
+      // 同步到 store，让其他组件能够响应式更新
+      setKnowledgeBaseEnabled(checked);
+      try {
+        const config = await window.knowledge?.getConfig();
+        await window.knowledge?.setConfig({
+          ...config,
+          enabled: checked,
+        });
+        message.success(checked ? '知识库已启用' : '知识库已禁用');
+      } catch {
+        message.error('操作失败');
+        // 失败时回滚状态
+        setEnabled(!checked);
+        setKnowledgeBaseEnabled(!checked);
+      }
+    },
+    [setKnowledgeBaseEnabled],
+  );
 
   const tabItems = [
     {

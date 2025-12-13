@@ -87,6 +87,9 @@ interface SettingsState {
   // ============ 应用信息 ============
   appVersion: string;
 
+  // ============ 知识库 ============
+  knowledgeBaseEnabled: boolean;
+
   // ============ 设置弹窗刷新触发器 ============
   /** 设置弹窗打开时递增，用于触发 Tab 组件刷新数据 */
   settingsModalOpenTrigger: number;
@@ -143,6 +146,10 @@ interface SettingsState {
   setAppVersion: (version: string) => void;
   loadAppInfo: () => Promise<void>;
 
+  // 知识库
+  setKnowledgeBaseEnabled: (enabled: boolean) => void;
+  loadKnowledgeBaseConfig: () => Promise<void>;
+
   // 设置弹窗
   /** 触发设置弹窗内 Tab 刷新数据 */
   triggerSettingsModalRefresh: () => void;
@@ -190,6 +197,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 应用信息
       appVersion: '0.0.0',
+
+      // 知识库
+      knowledgeBaseEnabled: false,
 
       // 设置弹窗刷新触发器
       settingsModalOpenTrigger: 0,
@@ -491,6 +501,19 @@ export const useSettingsStore = create<SettingsState>()(
         } catch (error) {
           console.error('Failed to load app info:', error);
           set({ appVersion: '0.0.0' });
+        }
+      },
+
+      // 知识库
+      setKnowledgeBaseEnabled: (enabled) => set({ knowledgeBaseEnabled: enabled }),
+
+      loadKnowledgeBaseConfig: async () => {
+        try {
+          const config = await window.knowledge?.getConfig();
+          set({ knowledgeBaseEnabled: config?.enabled ?? false });
+        } catch (error) {
+          console.error('Failed to load knowledge base config:', error);
+          set({ knowledgeBaseEnabled: false });
         }
       },
 

@@ -8,7 +8,7 @@
  * - 标题编辑
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sender, Bubble, Actions, Suggestion } from '@ant-design/x';
 import {
   Alert,
@@ -43,6 +43,7 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { SourceCard } from '../components/SourceCard';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService } from '../../../services';
+import { useSettingsStore } from '../../../store/settingsStore';
 import { useAIConfig, useAIChat } from '../hooks';
 import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
 import type { ChatItem, AIChatPanelProps } from '../types';
@@ -114,8 +115,23 @@ export const AIChatPanel = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('');
 
-  // 知识库开关状态
+  // 知识库开关状态（本次对话是否使用知识库）
   const [useKnowledgeBase, setUseKnowledgeBase] = useState(false);
+
+  // 从 store 读取知识库功能是否启用（响应式）
+  const { knowledgeBaseEnabled, loadKnowledgeBaseConfig } = useSettingsStore();
+
+  // 组件挂载时加载知识库配置
+  useEffect(() => {
+    loadKnowledgeBaseConfig();
+  }, [loadKnowledgeBaseConfig]);
+
+  // 如果知识库被禁用，同时关闭使用知识库
+  useEffect(() => {
+    if (!knowledgeBaseEnabled) {
+      setUseKnowledgeBase(false);
+    }
+  }, [knowledgeBaseEnabled]);
 
   // 处理标题变更
   const handleTitleChange = useCallback((newTitle: string) => {
@@ -535,18 +551,24 @@ export const AIChatPanel = ({
                           </Sender.Switch>
                         </Dropdown>
                       ) : null}
-                      {/* 知识库开关 */}
-                      <Divider type="vertical" />
-                      <Tooltip title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}>
-                        <BookOutlined
-                          onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
-                          style={{
-                            fontSize: 22,
-                            color: useKnowledgeBase ? '#1677ff' : '#8c8c8c',
-                            cursor: 'pointer',
-                          }}
-                        />
-                      </Tooltip>
+                      {/* 知识库开关 - 仅当知识库功能启用时显示 */}
+                      {knowledgeBaseEnabled && (
+                        <>
+                          <Divider type="vertical" />
+                          <Tooltip
+                            title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}
+                          >
+                            <BookOutlined
+                              onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
+                              style={{
+                                fontSize: 22,
+                                color: useKnowledgeBase ? '#1677ff' : '#8c8c8c',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          </Tooltip>
+                        </>
+                      )}
                     </Flex>
                     <Flex align="center">
                       <Button

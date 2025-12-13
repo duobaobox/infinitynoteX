@@ -16,55 +16,92 @@
   padding: 16px 20px;
 }
 
-.sync-status-card-inner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  justify-content: space-between;
+/* 弥散光效果 */
+.sync-card-glow {
+  position: relative;
+  overflow: hidden;
 }
 
-/* 左侧主要信息区 */
-.sync-status-main {
+.sync-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 确保卡片内容在弥散光上方 */
+.sync-card-glow .sync-card-header,
+.sync-card-glow .sync-card-title,
+.sync-card-glow .sync-card-desc {
+  position: relative;
+  z-index: 1;
+}
+
+/* 卡片头部：图标左，标签右 */
+.sync-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* 卡片图标 */
+.sync-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* 卡片标题 */
+.sync-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sync-card-desc {
+  font-size: 12px;
+  display: block;
+}
+
+/* 状态卡片水平布局 */
+.sync-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.sync-status-left {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
-  min-width: 200px;
-}
-
-.sync-status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--panel-hover-bg, rgba(22, 119, 255, 0.06));
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.sync-status-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
-.sync-status-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.sync-status-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.sync-status-desc {
-  font-size: 12px;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 400px;
+.sync-now-btn {
+  flex-shrink: 0;
 }
 
 /* 两栏布局 */
@@ -82,31 +119,34 @@
   border-radius: 12px;
 }
 
+.sync-provider-card .ant-card-head {
+  border-bottom: none;
+}
+
 .sync-provider-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
   max-height: 520px;
   overflow-y: auto;
-  padding-right: 4px;
 }
 
-/* Provider卡片项 */
+/* Provider卡片项 - 与AITab一致 */
 .sync-provider-item {
   border: 1px solid transparent;
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   transition:
     border-color 0.2s ease,
     background-color 0.2s ease;
 }
 
 .sync-provider-item:hover {
-  border-color: var(--toolbar-divider, #e0e0e0);
+  border-color: var(--toolbar-divider);
 }
 
 .sync-provider-item.active {
@@ -124,6 +164,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
 }
 
 .sync-provider-item__title {
@@ -132,10 +173,19 @@
   gap: 8px;
   font-weight: 500;
   color: var(--text-primary);
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.sync-provider-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .sync-provider-icon {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -143,10 +193,13 @@
   font-size: 14px;
 }
 
+.sync-provider-item__status {
+  font-size: 12px;
+}
+
 .sync-provider-item__description {
   font-size: 12px;
   color: var(--ant-color-text-tertiary, #8c8c8c);
-  line-height: 1.4;
 }
 
 /* 右侧配置区域 */

@@ -327,11 +327,20 @@ const AITab: React.FC = () => {
           <Card className="ai-card" size="small" title="模型选择">
             <Form layout="vertical">
               {recommendedModelOptions.length > 0 && (
-                <Form.Item label="推荐模型">
+                <Form.Item
+                  label={
+                    <Space>
+                      <span>推荐模型</span>
+                      <Tooltip title="这些是预置的热门模型，方便快速选择。如果列表中没有您需要的模型，可以直接在下方输入框填写。">
+                        <QuestionCircleOutlined style={{ color: '#8c8c8c', cursor: 'help' }} />
+                      </Tooltip>
+                    </Space>
+                  }
+                >
                   <Select
                     allowClear
                     showSearch
-                    placeholder="快速选择热门模型"
+                    placeholder="快速选择热门模型（可选）"
                     optionFilterProp="label"
                     options={recommendedModelOptions}
                     value={recommendedModelValue}
@@ -339,9 +348,27 @@ const AITab: React.FC = () => {
                   />
                 </Form.Item>
               )}
-              <Form.Item label="模型名称" required>
+              <Form.Item
+                label={
+                  <Space>
+                    <span>模型名称</span>
+                    <Tag
+                      color="blue"
+                      style={{ marginLeft: 4, fontSize: 11, lineHeight: '18px', padding: '0 6px' }}
+                    >
+                      可自定义
+                    </Tag>
+                  </Space>
+                }
+                required
+                extra={
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    💡 推荐列表可能未包含最新模型，您可以直接填写 API 文档中的模型标识符
+                  </Text>
+                }
+              >
                 <Input
-                  placeholder="例如：deepseek-chat、qwen3-max"
+                  placeholder="例如：deepseek-chat、gpt-4o、glm-4-flash"
                   value={aiConfig.model}
                   onChange={(e) => syncCurrentConfig({ model: e.target.value })}
                 />

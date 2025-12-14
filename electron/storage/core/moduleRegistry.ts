@@ -6,20 +6,7 @@
  */
 
 import { z } from 'zod';
-import {
-  NoteSchema,
-  NoteIndexSchema,
-  NotesIndexArraySchema,
-  AIConversationSchema,
-  AIConversationIndexSchema,
-  AIConversationsIndexArraySchema,
-  TrashItemSchema,
-  TrashIndexSchema,
-  TrashIndexArraySchema,
-  BrowserCardSchema,
-  BrowserCardIndexSchema,
-  BrowserCardsIndexArraySchema,
-} from '../schemas';
+import { NoteSchema, AIConversationSchema, TrashItemSchema, BrowserCardSchema } from '../schemas';
 
 // ============ 类型定义 ============
 
@@ -57,16 +44,10 @@ export interface StorageModuleConfig {
   name: string;
   /** 目录名（如 'notes'）或文件名（如 'folders.json'） */
   path: string;
-  /** 索引文件名（如 'notes.index.json'） */
-  indexFile?: string;
   /** 文件扩展名（目录类型时使用） */
   extension: string;
   /** 数据 Schema */
   schema: z.ZodSchema;
-  /** 索引 Schema */
-  indexSchema?: z.ZodSchema;
-  /** 索引数组 Schema */
-  indexArraySchema?: z.ZodSchema;
   /** 同步配置 */
   sync: SyncConfig;
   /** 特性配置 */
@@ -107,11 +88,8 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     id: 'notes',
     name: '便签',
     path: 'notes',
-    indexFile: 'notes.index.json',
     extension: '.json',
     schema: NoteSchema,
-    indexSchema: NoteIndexSchema,
-    indexArraySchema: NotesIndexArraySchema,
     sync: { enabled: true, type: 'directory' },
     features: {
       softDelete: true,
@@ -127,11 +105,8 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     id: 'ai-conversations',
     name: 'AI 对话',
     path: 'ai-conversations',
-    indexFile: 'ai-conversations.index.json',
     extension: '.json',
     schema: AIConversationSchema,
-    indexSchema: AIConversationIndexSchema,
-    indexArraySchema: AIConversationsIndexArraySchema,
     sync: { enabled: false, type: 'directory' },
     features: {
       softDelete: false,
@@ -147,11 +122,8 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     id: 'trash',
     name: '回收站',
     path: 'trash',
-    indexFile: 'trash.index.json',
     extension: '.json',
     schema: TrashItemSchema,
-    indexSchema: TrashIndexSchema,
-    indexArraySchema: TrashIndexArraySchema,
     sync: { enabled: false, type: 'directory' },
     features: {
       softDelete: false,
@@ -183,11 +155,8 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     id: 'browser-cards',
     name: '浏览器卡片',
     path: 'browser-cards',
-    indexFile: 'browser-cards.index.json',
     extension: '.json',
     schema: BrowserCardSchema,
-    indexSchema: BrowserCardIndexSchema,
-    indexArraySchema: BrowserCardsIndexArraySchema,
     sync: { enabled: false, type: 'directory' },
     features: {
       softDelete: false,
@@ -203,10 +172,8 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
   //   id: 'todos',
   //   name: '待办事项',
   //   path: 'todos',
-  //   indexFile: 'todos.index.json',
   //   extension: '.json',
   //   schema: TodoSchema,
-  //   indexSchema: TodoIndexSchema,
   //   sync: { enabled: true, type: 'directory' },
   //   features: {
   //     softDelete: true,

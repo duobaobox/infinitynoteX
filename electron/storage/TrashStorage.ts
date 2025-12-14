@@ -1,35 +1,51 @@
 /**
  * 回收站存储模块
  * 负责回收站（已删除便签）的管理
+ * 使用 SQLite IndexCache 替代 .index.json
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { StorageContext } from './StorageContext';
 import type { Note, TrashItem, TrashIndex } from './types';
+import type { IndexCache, IndexItem } from './core/IndexCache';
 import { StorageError, StorageErrorCode } from './errors';
-import { generateId, readJsonFile, writeJsonFile, writeJsonFileAtomic, fileExists } from './utils';
-import { TrashItemSchema, TrashIndexArraySchema } from './schemas';
+import { generateId, readJsonFile, writeJsonFileAtomic, fileExists } from './utils';
+import { TrashItemSchema } from './schemas';
 
 // 回收站保留天数（30天后自动清理）
 const TRASH_RETENTION_DAYS = 30;
+const MODULE_ID = 'trash';
 
 export class TrashStorage {
-  private indexCache: TrashIndex[] | null = null;
   private context: StorageContext;
+  private sqliteCache: IndexCache | null = null;
 
   constructor(context: StorageContext) {
     this.context = context;
   }
 
   /**
+   * 设置 IndexCache
+   */
+  setIndexCache(cache: IndexCache): void {
+    this.sqliteCache = cache;
+  }
+
+  /**
    * 获取回收站索引列表
    */
   async list(): Promise<TrashIndex[]> {
-    if (!this.indexCache) {
-      await this.loadCache();
+    if (!this.sqliteCache) {
+      throw new Error('IndexCache not initialized');
     }
-    return this.indexCache || [];
+
+    const items = this.sqliteCache.listItems(MODULE_ID, {
+      sortBy: 'updated_at',
+      sortOrder: 'desc',
+    });
+
+    return items.map((item) => this.indexItemToTrashIndex(item));
   }
 
   /**
@@ -58,16 +74,13 @@ export class TrashStorage {
     await this.writeFile(trashItem);
 
     // 更新索引
-    const index = await this.list();
-    index.push(this.toIndex(trashItem));
-    await this.saveIndex(index);
+    this.addToIndex(trashItem);
 
     return trashItem;
   }
 
   /**
    * 从回收站恢复便签
-   * @returns 恢复后的便签数据（需要调用方保存到 notes 目录）
    */
   async restore(trashItemId: string): Promise<Note> {
     const trashItem = await this.readFile(trashItemId);
@@ -82,7 +95,7 @@ export class TrashStorage {
       pinned: trashItem.pinned,
       color: trashItem.color,
       createdAt: trashItem.createdAt,
-      updatedAt: Date.now(), // 更新时间设为恢复时的时间
+      updatedAt: Date.now(),
     };
 
     // 从回收站删除
@@ -106,12 +119,7 @@ export class TrashStorage {
     await fs.unlink(filePath);
 
     // 从索引中移除
-    const index = await this.list();
-    const itemIndex = index.findIndex((item) => item.id === trashItemId);
-    if (itemIndex >= 0) {
-      index.splice(itemIndex, 1);
-      await this.saveIndex(index);
-    }
+    this.removeFromIndex(trashItemId);
   }
 
   /**
@@ -134,14 +142,15 @@ export class TrashStorage {
     }
 
     // 清空索引
-    await this.saveIndex([]);
+    if (this.sqliteCache) {
+      this.sqliteCache.clearModule(MODULE_ID);
+    }
 
     return deletedCount;
   }
 
   /**
    * 清理过期的回收站项目
-   * 应在应用启动时调用
    */
   async cleanupExpired(): Promise<number> {
     const now = Date.now();
@@ -173,78 +182,71 @@ export class TrashStorage {
   }
 
   /**
-   * 加载缓存
+   * 加载缓存（兼容旧接口）
    */
   async loadCache(): Promise<void> {
-    const indexPath = path.join(this.context.trashDir, 'trash.index.json');
-    this.indexCache = await readJsonFile<TrashIndex[]>(indexPath, [], TrashIndexArraySchema);
+    // SQLite 缓存不需要加载
   }
 
   /**
-   * 清空缓存
+   * 清空缓存（兼容旧接口）
    */
   clearCache(): void {
-    this.indexCache = null;
+    // SQLite 缓存不需要清空内存
   }
 
   /**
    * 获取缓存数量
    */
   getCacheCount(): number {
-    return this.indexCache?.length || 0;
+    if (!this.sqliteCache) return 0;
+    return this.sqliteCache.countItems(MODULE_ID);
   }
 
   /**
-   * 创建空索引文件
+   * 创建空索引文件（兼容旧接口）
    */
   async createEmptyIndex(): Promise<void> {
-    const indexPath = path.join(this.context.trashDir, 'trash.index.json');
-    const exists = await fileExists(indexPath);
-    if (!exists) {
-      await writeJsonFile(indexPath, []);
-    }
+    // Do nothing - SQLite handles this
   }
 
   /**
    * 重建索引
    */
   async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
+    if (!this.sqliteCache) {
+      return { rebuilt: 0, errors: ['IndexCache not initialized'] };
+    }
+
     const errors: string[] = [];
-    const newIndex: TrashIndex[] = [];
 
     try {
       const trashDir = this.context.trashDir;
       const dirExists = await fileExists(trashDir);
       if (!dirExists) {
-        console.log('[TrashStorage] Trash directory does not exist, creating empty index');
-        await this.saveIndex([]);
+        console.log('[TrashStorage] Trash directory does not exist, clearing index');
+        this.sqliteCache.clearModule(MODULE_ID);
         return { rebuilt: 0, errors: [] };
       }
 
-      const files = await fs.readdir(trashDir);
-      const jsonFiles = files.filter((f) => f.endsWith('.json') && f !== 'trash.index.json');
+      const result = await this.sqliteCache.rebuildFromFiles(
+        MODULE_ID,
+        trashDir,
+        async (filePath: string) => {
+          try {
+            const fileName = path.basename(filePath);
+            const id = fileName.replace('.json', '');
+            const trashItem = await this.readFile(id);
+            return this.toIndexItem(trashItem);
+          } catch (err) {
+            errors.push(`Failed to parse ${filePath}: ${err}`);
+            return null;
+          }
+        },
+      );
 
-      console.log(`[TrashStorage] Rebuilding index from ${jsonFiles.length} trash files`);
-
-      for (const fileName of jsonFiles) {
-        const id = fileName.replace('.json', '');
-        try {
-          const trashItem = await this.readFile(id);
-          newIndex.push(this.toIndex(trashItem));
-        } catch (error) {
-          const errorMsg = `Failed to read trash item ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`[TrashStorage] ${errorMsg}`);
-          errors.push(errorMsg);
-        }
-      }
-
-      // 按删除时间倒序排列
-      newIndex.sort((a, b) => b.deletedAt - a.deletedAt);
-
-      await this.saveIndex(newIndex);
-      console.log(`[TrashStorage] Index rebuilt successfully: ${newIndex.length} items`);
-
-      return { rebuilt: newIndex.length, errors };
+      console.log(`[TrashStorage] Index rebuilt: ${result.rebuilt} items`);
+      return { rebuilt: result.rebuilt, errors: [...errors, ...result.errors] };
     } catch (error) {
       const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
       console.error(`[TrashStorage] ${errorMsg}`);
@@ -275,12 +277,6 @@ export class TrashStorage {
     await writeJsonFileAtomic(filePath, trashItem, this.context.tempDir);
   }
 
-  private async saveIndex(index: TrashIndex[]): Promise<void> {
-    const indexPath = path.join(this.context.trashDir, 'trash.index.json');
-    await writeJsonFile(indexPath, index);
-    this.indexCache = index;
-  }
-
   private toIndex(trashItem: TrashItem): TrashIndex {
     return {
       id: trashItem.id,
@@ -291,6 +287,36 @@ export class TrashStorage {
       deletedAt: trashItem.deletedAt,
       expiresAt: trashItem.expiresAt,
     };
+  }
+
+  private toIndexItem(trashItem: TrashItem): IndexItem {
+    const index = this.toIndex(trashItem);
+    return {
+      id: trashItem.id,
+      module: MODULE_ID,
+      title: trashItem.title,
+      excerpt: index.excerpt,
+      metadata: index as unknown as Record<string, unknown>,
+      createdAt: trashItem.createdAt,
+      updatedAt: trashItem.deletedAt, // 使用删除时间作为更新时间
+    };
+  }
+
+  private indexItemToTrashIndex(item: IndexItem): TrashIndex {
+    return {
+      id: item.id,
+      ...item.metadata,
+    } as TrashIndex;
+  }
+
+  private addToIndex(trashItem: TrashItem): void {
+    if (!this.sqliteCache) return;
+    this.sqliteCache.upsertItem(this.toIndexItem(trashItem));
+  }
+
+  private removeFromIndex(id: string): void {
+    if (!this.sqliteCache) return;
+    this.sqliteCache.deleteItem(MODULE_ID, id);
   }
 
   private generateExcerpt(content: unknown): string {

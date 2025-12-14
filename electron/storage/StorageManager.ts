@@ -14,6 +14,8 @@ import { AIStorage } from './AIStorage';
 import { TrashStorage } from './TrashStorage';
 import { AttachmentStorage } from './AttachmentStorage';
 import { BrowserCardStorage } from './BrowserCardStorage';
+import { DeviceManager } from './core/DeviceManager';
+import { IndexCache } from './core/IndexCache';
 import type {
   StorageMeta,
   HealthCheckResult,
@@ -43,6 +45,10 @@ import { emitDeleted, emitCreated } from './storageEvents';
 export class StorageManager {
   private context: StorageContext;
 
+  // 核心组件
+  readonly device: DeviceManager;
+  readonly indexCache: IndexCache;
+
   // 子模块 - 公开访问，便于直接调用
   readonly folders: FolderStorage;
   readonly notes: NoteStorage;
@@ -53,12 +59,24 @@ export class StorageManager {
 
   constructor() {
     this.context = new StorageContext();
+
+    // 核心组件（存储在应用目录）
+    this.device = new DeviceManager(this.context.devicePath);
+    this.indexCache = new IndexCache(this.context.cachePath);
+
+    // 子模块
     this.folders = new FolderStorage(this.context);
     this.notes = new NoteStorage(this.context, this.folders);
     this.ai = new AIStorage(this.context);
     this.trash = new TrashStorage(this.context);
-    this.attachments = new AttachmentStorage(this.context.currentPath);
+    this.attachments = new AttachmentStorage(this.context.dataDir);
     this.browserCards = new BrowserCardStorage(this.context);
+
+    // 注入 IndexCache 到使用 BaseDirectoryStorage 的模块
+    this.notes.setIndexCache(this.indexCache);
+    this.ai.setIndexCache(this.indexCache);
+    this.browserCards.setIndexCache(this.indexCache);
+    this.trash.setIndexCache(this.indexCache);
   }
 
   // ============ 初始化 ============
@@ -69,9 +87,16 @@ export class StorageManager {
    */
   async initialize(): Promise<void> {
     try {
+      // 初始化核心组件
+      await this.device.initialize();
+      await this.indexCache.initialize();
+
+      // 初始化存储
       await this.ensureStorageInitialized();
       await this.recoverFromCrash();
-      console.log(`[Storage] Initialized at: ${this.context.currentPath}`);
+
+      console.log(`[Storage] Initialized at: ${this.context.dataDir}`);
+      console.log(`[Storage] Device ID: ${this.device.getDeviceId()}`);
     } catch (error) {
       console.error('[Storage] Initialization failed:', error);
       throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to initialize storage', error);
@@ -144,7 +169,7 @@ export class StorageManager {
     }
 
     // 首次初始化
-    console.log(`[Storage] First-time initialization at: ${this.context.currentPath}`);
+    console.log(`[Storage] First-time initialization at: ${this.context.dataDir}`);
 
     // 创建目录结构
     await this.context.ensureBaseDirectories();
@@ -288,7 +313,7 @@ export class StorageManager {
           const conversationId = fileName.replace('.json', '');
           targetPath = this.context.getAIConversationPath(conversationId);
         } else {
-          targetPath = path.join(this.context.currentPath, originalName);
+          targetPath = path.join(this.context.dataDir, originalName);
         }
 
         try {
@@ -325,7 +350,7 @@ export class StorageManager {
    * 获取当前路径
    */
   getCurrentPath(): string {
-    return this.context.currentPath;
+    return this.context.dataDir;
   }
 
   /**
@@ -342,7 +367,7 @@ export class StorageManager {
       return;
     }
 
-    await this.migrateData(this.context.currentPath, nextPath);
+    await this.migrateData(this.context.dataDir, nextPath);
   }
 
   /**
@@ -380,7 +405,7 @@ export class StorageManager {
    */
   async healthCheck(): Promise<HealthCheckResult> {
     try {
-      await validateStorageIntegrity(this.context.currentPath);
+      await validateStorageIntegrity(this.context.dataDir);
       return { ok: true };
     } catch (error) {
       return {
@@ -394,14 +419,14 @@ export class StorageManager {
    * 在 Finder/Explorer 中打开数据目录
    */
   async openInFinder(): Promise<void> {
-    await shell.openPath(this.context.currentPath);
+    await shell.openPath(this.context.dataDir);
   }
 
   /**
    * 获取存储统计信息
    */
   async getStats(): Promise<StorageStats> {
-    const dataSize = await calculateDirectorySize(this.context.currentPath);
+    const dataSize = await calculateDirectorySize(this.context.dataDir);
 
     return {
       folderCount: this.folders.getCacheCount(),
@@ -450,7 +475,7 @@ export class StorageManager {
 
       console.log(`[Storage] Creating backup: ${backupName}`);
 
-      await copyDirectory(this.context.currentPath, backupPath);
+      await copyDirectory(this.context.dataDir, backupPath);
 
       console.log(`[Storage] Backup created successfully: ${backupPath}`);
       return backupPath;
@@ -468,7 +493,7 @@ export class StorageManager {
       console.log(`[Storage] Exporting data to: ${targetPath}`);
 
       await fs.mkdir(targetPath, { recursive: true });
-      await copyDirectory(this.context.currentPath, targetPath);
+      await copyDirectory(this.context.dataDir, targetPath);
 
       console.log(`[Storage] Data exported successfully`);
     } catch (error) {
@@ -482,12 +507,12 @@ export class StorageManager {
    */
   async resetAllData(): Promise<void> {
     try {
-      console.log(`[Storage] Resetting all data at: ${this.context.currentPath}`);
+      console.log(`[Storage] Resetting all data at: ${this.context.dataDir}`);
 
-      const entries = await fs.readdir(this.context.currentPath, { withFileTypes: true });
+      const entries = await fs.readdir(this.context.dataDir, { withFileTypes: true });
 
       for (const entry of entries) {
-        const fullPath = path.join(this.context.currentPath, entry.name);
+        const fullPath = path.join(this.context.dataDir, entry.name);
         if (entry.isDirectory()) {
           await deleteDirectory(fullPath);
         } else {

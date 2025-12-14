@@ -15,7 +15,7 @@ const aiConfig = getModuleConfig('ai-conversations')!;
 
 export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversationIndex> {
   constructor(context: StorageContext) {
-    super(context.currentPath, context.tempDir, aiConfig);
+    super(context.dataDir, context.tempDir, aiConfig);
   }
 
   // ============ AI 对话特有方法 ============
@@ -55,8 +55,8 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       updatedAt: now,
     };
 
-    await this['writeFile'](newConversation);
-    await this['addToIndex'](newConversation);
+    await this.writeFile(newConversation);
+    this.addToIndex(newConversation);
 
     return newConversation;
   }
@@ -94,8 +94,8 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       conversation.excerpt = lastUserMessage.content.slice(0, 100);
     }
 
-    await this['writeFile'](conversation);
-    await this['updateIndex'](conversation);
+    await this.writeFile(conversation);
+    this.updateIndexItem(conversation);
 
     return conversation;
   }

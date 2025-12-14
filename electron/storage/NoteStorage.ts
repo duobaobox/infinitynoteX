@@ -19,7 +19,7 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
   private folderStorage: FolderStorage;
 
   constructor(context: StorageContext, folderStorage: FolderStorage) {
-    super(context.currentPath, context.tempDir, notesConfig);
+    super(context.dataDir, context.tempDir, notesConfig);
     this.folderStorage = folderStorage;
   }
 
@@ -65,8 +65,8 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
     };
 
     // 使用基类的写入和索引更新方法
-    await this['writeFile'](note);
-    await this['addToIndex'](note);
+    await this.writeFile(note);
+    this.addToIndex(note);
 
     return note;
   }

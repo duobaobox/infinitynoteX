@@ -2,14 +2,15 @@
  * 泛型存储基类
  *
  * 封装目录类型存储模块的通用 CRUD、索引管理、缓存管理
- * 子类只需实现特殊逻辑
+ * 使用 SQLite IndexCache 替代 .index.json 文件
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import type { StorageModuleConfig } from './moduleRegistry';
-import { readJsonFile, writeJsonFile, writeJsonFileAtomic, fileExists } from '../utils';
+import type { IndexCache, IndexItem } from './IndexCache';
+import { readJsonFile, writeJsonFileAtomic, fileExists } from '../utils';
 
 /**
  * 基础数据接口（所有数据必须有 id）
@@ -35,9 +36,9 @@ export interface BaseIndex {
  * @template TIndex 索引类型
  */
 export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extends BaseIndex> {
-  protected indexCache: TIndex[] | null = null;
   protected storagePath: string;
   protected tempDir: string;
+  protected indexCache: IndexCache | null = null;
 
   constructor(
     storagePath: string,
@@ -48,6 +49,13 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     this.tempDir = tempDir;
   }
 
+  /**
+   * 设置 IndexCache（由 StorageManager 在初始化时注入）
+   */
+  setIndexCache(cache: IndexCache): void {
+    this.indexCache = cache;
+  }
+
   // ============ 路径管理 ============
 
   /**
@@ -55,16 +63,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    */
   protected get moduleDir(): string {
     return path.join(this.storagePath, this.config.path);
-  }
-
-  /**
-   * 获取索引文件路径
-   */
-  protected get indexPath(): string {
-    if (!this.config.indexFile) {
-      throw new Error(`Module ${this.config.id} does not have index file`);
-    }
-    return path.join(this.storagePath, this.config.indexFile);
   }
 
   /**
@@ -81,9 +79,15 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    */
   async list(): Promise<TIndex[]> {
     if (!this.indexCache) {
-      await this.loadCache();
+      throw new Error('IndexCache not initialized');
     }
-    return this.indexCache || [];
+
+    const items = this.indexCache.listItems(this.config.id, {
+      sortBy: this.config.features.sortField === 'createdAt' ? 'created_at' : 'updated_at',
+      sortOrder: 'asc',
+    });
+
+    return items.map((item) => this.indexItemToTIndex(item));
   }
 
   // ============ CRUD 操作 ============
@@ -99,7 +103,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
       throw new Error(`${this.config.name} not found: ${id}`);
     }
 
-    // 读取文件（不进行 schema 校验，由子类自行处理）
     return await readJsonFile<TData>(filePath);
   }
 
@@ -116,7 +119,7 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     await this.writeFile(data);
 
     // 更新索引
-    await this.addToIndex(data);
+    this.addToIndex(data);
 
     return data;
   }
@@ -137,7 +140,7 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     await this.writeFile(updated);
 
     // 更新索引
-    await this.updateIndex(updated);
+    this.updateIndexItem(updated);
 
     return updated;
   }
@@ -157,96 +160,80 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     await fs.unlink(filePath);
 
     // 从索引移除
-    await this.removeFromIndex(id);
+    this.removeFromIndex(id);
   }
 
   // ============ 索引管理 ============
 
   /**
-   * 加载缓存
+   * 加载缓存（从文件重建索引到 SQLite）
+   * 应用启动时调用
    */
   async loadCache(): Promise<void> {
-    if (!this.config.indexArraySchema) {
-      this.indexCache = [];
-      return;
-    }
-    // 读取索引（不进行 schema 校验）
-    this.indexCache = await readJsonFile<TIndex[]>(this.indexPath, []);
+    // SQLite IndexCache 不需要单独加载缓存
+    // 索引已经在 SQLite 中持久化
   }
 
   /**
    * 清空缓存
    */
   clearCache(): void {
-    this.indexCache = null;
+    // SQLite 缓存不需要清空内存
   }
 
   /**
    * 获取缓存数量
    */
   getCacheCount(): number {
-    return this.indexCache?.length || 0;
+    if (!this.indexCache) return 0;
+    return this.indexCache.countItems(this.config.id);
   }
 
   /**
-   * 创建空索引文件
+   * 创建空索引（兼容旧接口）
+   * @deprecated 使用 SQLite 后不再需要
    */
   async createEmptyIndex(): Promise<void> {
-    if (!this.config.indexFile) return;
-    const exists = await fileExists(this.indexPath);
-    if (!exists) {
-      await writeJsonFile(this.indexPath, []);
-    }
+    // Do nothing - SQLite handles this
   }
 
   /**
    * 重建索引
+   * 扫描目录文件，同步到 SQLite
    */
   async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
+    if (!this.indexCache) {
+      return { rebuilt: 0, errors: ['IndexCache not initialized'] };
+    }
+
     const errors: string[] = [];
-    const newIndex: TIndex[] = [];
 
     try {
       const dirExists = await fileExists(this.moduleDir);
       if (!dirExists) {
-        console.log(`[${this.config.id}] Directory does not exist, creating empty index`);
-        await this.saveIndex([]);
+        console.log(`[${this.config.id}] Directory does not exist, clearing index`);
+        this.indexCache.clearModule(this.config.id);
         return { rebuilt: 0, errors: [] };
       }
 
-      const files = await fs.readdir(this.moduleDir);
-      const dataFiles = files.filter(
-        (f) => f.endsWith(this.config.extension) && !f.includes('.index'),
+      const result = await this.indexCache.rebuildFromFiles(
+        this.config.id,
+        this.moduleDir,
+        async (filePath: string) => {
+          try {
+            const fileName = path.basename(filePath);
+            const id = fileName.replace(this.config.extension, '');
+            const data = await this.get(id);
+            return this.toIndexItem(data);
+          } catch (err) {
+            errors.push(`Failed to parse ${filePath}: ${err}`);
+            return null;
+          }
+        },
       );
 
-      console.log(`[${this.config.id}] Rebuilding index from ${dataFiles.length} files`);
-
-      for (const fileName of dataFiles) {
-        const id = fileName.replace(this.config.extension, '');
-        try {
-          const data = await this.get(id);
-          newIndex.push(this.toIndex(data));
-        } catch (error) {
-          const errorMsg = `Failed to read ${fileName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          console.error(`[${this.config.id}] ${errorMsg}`);
-          errors.push(errorMsg);
-        }
-      }
-
-      // 按 sortField 排序（升序：从旧到新）
-      if (this.config.features.sortField) {
-        const sortField = this.config.features.sortField as keyof TIndex;
-        newIndex.sort((a, b) => {
-          const aVal = a[sortField] as number;
-          const bVal = b[sortField] as number;
-          return aVal - bVal; // 升序（旧的在前，新的在后）
-        });
-      }
-
-      await this.saveIndex(newIndex);
-      console.log(`[${this.config.id}] Index rebuilt successfully: ${newIndex.length} items`);
-
-      return { rebuilt: newIndex.length, errors };
+      console.log(`[${this.config.id}] Index rebuilt: ${result.rebuilt} items`);
+      return { rebuilt: result.rebuilt, errors: [...errors, ...result.errors] };
     } catch (error) {
       const errorMsg = `Failed to rebuild index: ${error instanceof Error ? error.message : 'Unknown error'}`;
       console.error(`[${this.config.id}] ${errorMsg}`);
@@ -255,19 +242,49 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     }
   }
 
-  // ============ 保护方法（子类可重写） ============
+  // ============ 抽象方法（子类必须实现） ============
 
   /**
    * 将完整数据转换为索引
-   * 子类必须实现
    */
   protected abstract toIndex(data: TData): TIndex;
 
   /**
    * 创建默认数据
-   * 子类必须实现
    */
   protected abstract createDefaultData(id: string, now: number, payload: Partial<TData>): TData;
+
+  // ============ 索引转换方法 ============
+
+  /**
+   * 将 TData 转换为 IndexItem（用于存储到 SQLite）
+   */
+  protected toIndexItem(data: TData): IndexItem {
+    const tIndex = this.toIndex(data);
+    return {
+      id: data.id,
+      module: this.config.id,
+      title: (tIndex as unknown as { title?: string }).title || '',
+      excerpt: (tIndex as unknown as { excerpt?: string }).excerpt || '',
+      metadata: tIndex as unknown as Record<string, unknown>,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+  }
+
+  /**
+   * 将 IndexItem 转换为 TIndex
+   */
+  protected indexItemToTIndex(item: IndexItem): TIndex {
+    // metadata 中存储了完整的 TIndex 数据
+    return {
+      id: item.id,
+      ...item.metadata,
+      updatedAt: item.updatedAt,
+    } as TIndex;
+  }
+
+  // ============ 生成摘要 ============
 
   /**
    * 生成摘要（如果启用）
@@ -312,59 +329,26 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
   }
 
   /**
-   * 保存索引
-   */
-  protected async saveIndex(index: TIndex[]): Promise<void> {
-    if (!this.config.indexFile) return;
-    await writeJsonFile(this.indexPath, index);
-    this.indexCache = index;
-  }
-
-  /**
    * 添加到索引
    */
-  protected async addToIndex(data: TData): Promise<void> {
-    const index = await this.list();
-    index.push(this.toIndex(data)); // 添加到末尾（新的在后面）
-    await this.saveIndex(index);
+  protected addToIndex(data: TData): void {
+    if (!this.indexCache) return;
+    this.indexCache.upsertItem(this.toIndexItem(data));
   }
 
   /**
    * 更新索引中的项
    */
-  protected async updateIndex(data: TData): Promise<void> {
-    const index = await this.list();
-    const itemIndex = index.findIndex((item) => item.id === data.id);
-
-    if (itemIndex >= 0) {
-      index[itemIndex] = this.toIndex(data);
-    } else {
-      index.push(this.toIndex(data)); // 添加到末尾
-    }
-
-    // 重新排序（升序：从旧到新）
-    if (this.config.features.sortField) {
-      const sortField = this.config.features.sortField as keyof TIndex;
-      index.sort((a, b) => {
-        const aVal = a[sortField] as number;
-        const bVal = b[sortField] as number;
-        return aVal - bVal; // 升序
-      });
-    }
-
-    await this.saveIndex(index);
+  protected updateIndexItem(data: TData): void {
+    if (!this.indexCache) return;
+    this.indexCache.upsertItem(this.toIndexItem(data));
   }
 
   /**
    * 从索引移除
    */
-  protected async removeFromIndex(id: string): Promise<void> {
-    const index = await this.list();
-    const itemIndex = index.findIndex((item) => item.id === id);
-
-    if (itemIndex >= 0) {
-      index.splice(itemIndex, 1);
-      await this.saveIndex(index);
-    }
+  protected removeFromIndex(id: string): void {
+    if (!this.indexCache) return;
+    this.indexCache.deleteItem(this.config.id, id);
   }
 }

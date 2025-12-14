@@ -25,7 +25,7 @@ const PRESET_BROWSER_CARDS: Omit<BrowserCard, 'id' | 'createdAt' | 'updatedAt'>[
 
 export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, BrowserCardIndex> {
   constructor(context: StorageContext) {
-    super(context.currentPath, context.tempDir, browserCardsConfig);
+    super(context.dataDir, context.tempDir, browserCardsConfig);
   }
 
   // ============ 浏览器卡片特有方法 ============

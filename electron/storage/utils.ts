@@ -233,14 +233,10 @@ export async function validateMigrationPath(targetPath: string): Promise<void> {
 
 /**
  * 校验存储完整性
+ * 注意：.index.json 文件已被 SQLite 缓存替代，不再检查
  */
 export async function validateStorageIntegrity(storagePath: string): Promise<void> {
-  const requiredFiles = [
-    'meta.json',
-    'folders.json',
-    'notes.index.json',
-    'ai-conversations.index.json',
-  ];
+  const requiredFiles = ['meta.json', 'folders.json'];
   for (const file of requiredFiles) {
     const filePath = path.join(storagePath, file);
     const exists = await fileExists(filePath);

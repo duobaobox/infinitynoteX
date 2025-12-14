@@ -521,3 +521,78 @@
   border-color: rgba(22, 119, 255, 0.35);
   color: #1677ff;
 }
+
+/* ==================== AI 聊天内容滚动条统一样式 ==================== */
+
+/**
+ * 表格滚动条
+ */
+.ai-chat-messages table {
+  display: block;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.ai-chat-messages table::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+
+.ai-chat-messages table::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.ai-chat-messages table:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/**
+ * Mermaid 图表滚动条
+ */
+.ai-chat-messages .mermaid,
+.ai-chat-messages [data-mermaid] {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.ai-chat-messages .mermaid::-webkit-scrollbar,
+.ai-chat-messages [data-mermaid]::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+
+.ai-chat-messages .mermaid::-webkit-scrollbar-thumb,
+.ai-chat-messages [data-mermaid]::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.ai-chat-messages .mermaid:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages [data-mermaid]:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/**
+ * 代码块滚动条
+ */
+.ai-chat-messages pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.ai-chat-messages pre::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+
+.ai-chat-messages pre::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.ai-chat-messages pre:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}

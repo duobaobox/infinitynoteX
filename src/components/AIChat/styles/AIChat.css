@@ -422,3 +422,102 @@
 :root[data-theme='dark'] .ai-chat-reference-cards {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
+
+/* ==================== 模型切换器样式 ==================== */
+
+/**
+ * .ai-model-switcher
+ * AI 模型切换器药丸形状按钮
+ */
+.ai-model-switcher {
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.04);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 26px;
+}
+
+.ai-model-switcher:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* 暗色模式 */
+:root[data-theme='dark'] .ai-model-switcher {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='dark'] .ai-model-switcher:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ==================== 圆形图标按钮 ==================== */
+
+/**
+ * .ai-icon-btn
+ * 圆形背景图标按钮（便签引用等）
+ * 样式与 .ai-model-switcher 保持一致
+ */
+.ai-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background-color: rgba(0, 0, 0, 0.04);
+  color: #8c8c8c;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0px;
+}
+
+.ai-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #595959;
+}
+
+/* 暗色模式 */
+:root[data-theme='dark'] .ai-icon-btn {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #a6a6a6;
+}
+
+:root[data-theme='dark'] .ai-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d9d9d9;
+}
+
+/* 激活状态 */
+.ai-icon-btn--active {
+  background-color: rgba(22, 119, 255, 0.1);
+  border-color: rgba(22, 119, 255, 0.2);
+  color: #1677ff;
+}
+
+.ai-icon-btn--active:hover {
+  background-color: rgba(22, 119, 255, 0.15);
+  border-color: rgba(22, 119, 255, 0.25);
+  color: #1677ff;
+}
+
+:root[data-theme='dark'] .ai-icon-btn--active {
+  background-color: rgba(22, 119, 255, 0.2);
+  border-color: rgba(22, 119, 255, 0.3);
+  color: #1677ff;
+}
+
+:root[data-theme='dark'] .ai-icon-btn--active:hover {
+  background-color: rgba(22, 119, 255, 0.25);
+  border-color: rgba(22, 119, 255, 0.35);
+  color: #1677ff;
+}

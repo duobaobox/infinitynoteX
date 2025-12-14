@@ -33,7 +33,6 @@ import {
   DownOutlined,
   CopyOutlined,
   SaveOutlined,
-  ApiOutlined,
   BookOutlined,
   EditOutlined,
   FileTextOutlined,
@@ -670,42 +669,19 @@ export const AIChatPanel = ({
                           trigger={['click']}
                           placement="topLeft"
                         >
-                          <Sender.Switch
-                            value={false}
-                            icon={
-                              <span
-                                className="ai-chat-meta-dot"
-                                style={{ backgroundColor: providerColor }}
-                              />
-                            }
-                            loading={isSwitching}
-                          >
-                            <Flex align="center" gap={2}>
-                              <span>{config.model}</span>
-                              <DownOutlined style={{ fontSize: 10, color: '#8c8c8c' }} />
-                            </Flex>
-                          </Sender.Switch>
+                          <Button size="small" loading={isSwitching} className="ai-model-switcher">
+                            <span
+                              className="ai-chat-meta-dot"
+                              style={{ backgroundColor: providerColor }}
+                            />
+                            <span style={{ marginLeft: 6 }}>{config.model}</span>
+                            <DownOutlined
+                              style={{ fontSize: 10, marginLeft: 4, color: '#8c8c8c' }}
+                            />
+                          </Button>
                         </Dropdown>
                       ) : null}
-                      {/* 知识库开关 - 仅当知识库功能启用时显示 */}
-                      {knowledgeBaseEnabled && (
-                        <>
-                          <Divider type="vertical" />
-                          <Tooltip
-                            title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}
-                          >
-                            <BookOutlined
-                              onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
-                              style={{
-                                fontSize: 22,
-                                color: useKnowledgeBase ? '#1677ff' : '#8c8c8c',
-                                cursor: 'pointer',
-                              }}
-                            />
-                          </Tooltip>
-                        </>
-                      )}
-                      {/* 便签引用 */}
+                      {/* 便签引用 - 圆形背景 icon */}
                       {noteItems && noteItems.length > 0 && (
                         <Dropdown
                           menu={{
@@ -715,23 +691,28 @@ export const AIChatPanel = ({
                           trigger={['click']}
                           placement="topLeft"
                         >
-                          <Sender.Switch value={false} icon={<FileTextOutlined />}>
-                            便签引用
-                          </Sender.Switch>
+                          <Tooltip title="引用便签">
+                            <span className="ai-icon-btn">
+                              <FileTextOutlined style={{ fontSize: 14 }} />
+                            </span>
+                          </Tooltip>
                         </Dropdown>
+                      )}
+                      {/* 知识库开关 */}
+                      {knowledgeBaseEnabled && (
+                        <Tooltip
+                          title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}
+                        >
+                          <span
+                            className={`ai-icon-btn ${useKnowledgeBase ? 'ai-icon-btn--active' : ''}`}
+                            onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
+                          >
+                            <BookOutlined style={{ fontSize: 14 }} />
+                          </span>
+                        </Tooltip>
                       )}
                     </Flex>
                     <Flex align="center">
-                      <Button
-                        type="text"
-                        style={{ fontSize: 16 }}
-                        icon={<ApiOutlined />}
-                        onClick={() => {
-                          // TODO: 打开设置
-                          message.info('打开 AI 设置');
-                        }}
-                      />
-                      <Divider type="vertical" />
                       {isLoading ? <LoadingButton /> : <SendButton type="primary" />}
                     </Flex>
                   </Flex>

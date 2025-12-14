@@ -381,3 +381,44 @@
 :root[data-theme='dark'] .source-card__item-title {
   color: #e6e6e6;
 }
+
+/* ==================== 已选便签展示区 ==================== */
+
+/**
+ * .ai-chat-selected-notes
+ * 已选择便签的 Tag 列表容器
+ * 使用位置：AIChatPanel.tsx（Sender 上方）
+ */
+.ai-chat-selected-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: var(--panel-bg, #fafafa);
+}
+
+/* 暗色模式 */
+:root[data-theme='dark'] .ai-chat-selected-notes {
+  background-color: #141414;
+}
+
+/* ==================== 引用便签 FileCard 区域 ==================== */
+
+/**
+ * .ai-chat-reference-cards
+ * 用户消息气泡中的引用便签 FileCard 容器
+ * 使用位置：AIChatPanel.tsx（Bubble contentRender）
+ */
+.ai-chat-reference-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 暗色模式 */
+:root[data-theme='dark'] .ai-chat-reference-cards {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}

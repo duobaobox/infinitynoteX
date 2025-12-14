@@ -13,6 +13,16 @@ export interface KnowledgeSource {
 }
 
 /**
+ * 便签引用（用户引用的便签）
+ */
+export interface NoteReference {
+  id: string;
+  title: string;
+  byteLength: number;
+  content: string; // 便签纯文本内容，用于发送给 AI
+}
+
+/**
  * 聊天消息项（UI 层使用）
  * content 包含完整的 Markdown 内容，可能包含 <think> 标签
  */
@@ -24,6 +34,8 @@ export interface ChatItem {
   isStreaming?: boolean;
   /** 知识库来源引用（仅 AI 消息） */
   sources?: KnowledgeSource[];
+  /** 用户引用的便签（仅用户消息） */
+  references?: NoteReference[];
 }
 
 /**
@@ -87,7 +99,7 @@ export interface UseAIChatReturn {
   error: string | null;
   inputValue: string;
   setInputValue: (value: string) => void;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, references?: NoteReference[]) => Promise<void>;
   clearChat: () => void;
   clearError: () => void;
 }

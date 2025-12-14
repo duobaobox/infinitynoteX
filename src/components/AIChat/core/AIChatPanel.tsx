@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sender, Bubble, Actions, Suggestion } from '@ant-design/x';
+import { Sender, Bubble, Actions, Suggestion, FileCard } from '@ant-design/x';
 import {
   Alert,
   Avatar,
@@ -21,6 +21,7 @@ import {
   Dropdown,
   message,
   Flex,
+  Tag,
 } from 'antd';
 import type { GetProp, GetRef, MenuProps } from 'antd';
 import {
@@ -42,7 +43,7 @@ import {
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { SourceCard } from '../components/SourceCard';
 import { getProviderBrandColor } from '../../../services/aiProviders';
-import { noteService } from '../../../services';
+import { noteService, folderService } from '../../../services';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { useAIConfig, useAIChat } from '../hooks';
 import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
@@ -109,6 +110,81 @@ export const AIChatPanel = ({
     switchProvider,
     isSwitching,
   } = useAIConfig();
+
+  // 便签列表（用于引用下拉菜单）
+  const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
+  // 已选中的便签引用
+  const [selectedNotes, setSelectedNotes] = useState<
+    Array<{ id: string; title: string; content: string }>
+  >([]);
+
+  // 加载便签列表
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const folders = await folderService.listFolders();
+        const items: MenuProps['items'] = [];
+        for (const folder of folders) {
+          const notes = await noteService.listNotes(folder.id);
+          notes.forEach((note) => {
+            items.push({
+              key: note.id,
+              icon: <FileTextOutlined />,
+              label: note.title || '无标题',
+            });
+          });
+        }
+        setNoteItems(items);
+      } catch (err) {
+        console.error('[AIChatPanel] Failed to load notes:', err);
+      }
+    };
+    loadNotes();
+  }, []);
+
+  // 处理便签选择 - 添加到已选列表
+  const handleNoteSelect: MenuProps['onClick'] = useCallback(
+    async ({ key }: { key: string }) => {
+      // 检查是否已选择
+      if (selectedNotes.some((n) => n.id === key)) {
+        message.info('该便签已引用');
+        return;
+      }
+      try {
+        const note = await noteService.getNote(key);
+        // 提取纯文本内容
+        const extractText = (content: unknown): string => {
+          if (!content || typeof content !== 'object') return '';
+          const node = content as { text?: string; content?: unknown[] };
+          let text = node.text || '';
+          if (node.content && Array.isArray(node.content)) {
+            for (const child of node.content) {
+              text += extractText(child);
+              const childNode = child as { type?: string };
+              if (childNode.type === 'paragraph' || childNode.type === 'heading') {
+                text += '\n';
+              }
+            }
+          }
+          return text;
+        };
+        const textContent = extractText(note.content);
+        setSelectedNotes((prev) => [
+          ...prev,
+          { id: key, title: note.title || '无标题', content: textContent },
+        ]);
+      } catch (err) {
+        console.error('[AIChatPanel] Failed to load note:', err);
+        message.error('加载便签失败');
+      }
+    },
+    [selectedNotes],
+  );
+
+  // 移除便签引用
+  const handleRemoveNote = useCallback((noteId: string) => {
+    setSelectedNotes((prev) => prev.filter((n) => n.id !== noteId));
+  }, []);
 
   // 对话标题
   const [conversationTitle, setConversationTitle] = useState<string>(externalTitle || 'AI 对话');
@@ -274,24 +350,48 @@ export const AIChatPanel = ({
       role: m.role,
       content: m.content,
       placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
-      contentRender: (content) => (
-        <>
-          <MarkdownRenderer
-            content={content}
-            streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
-          />
-          {/* AI 消息显示知识库来源 */}
-          {m.role === 'ai' && m.sources && m.sources.length > 0 && !m.isStreaming && (
-            <SourceCard
-              sources={m.sources}
-              onSourceClick={(noteId) => {
-                // TODO: 跳转到笔记
-                message.info(`跳转到笔记: ${noteId}`);
-              }}
+      contentRender: (content) => {
+        // 用户消息：过滤掉便签上下文，只显示用户输入
+        const displayContent =
+          m.role === 'user'
+            ? (content as string)
+                .replace(/\n\n以下是用户引用的便签内容，请结合这些内容回答：[\s\S]*/g, '')
+                .trim()
+            : content;
+
+        return (
+          <>
+            <MarkdownRenderer
+              content={displayContent as string}
+              streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
             />
-          )}
-        </>
-      ),
+            {/* 用户消息显示引用的便签 FileCard */}
+            {m.role === 'user' && m.references && m.references.length > 0 && (
+              <div className="ai-chat-reference-cards">
+                {m.references.map((ref) => (
+                  <FileCard
+                    key={ref.id}
+                    name={`${ref.title}.md`}
+                    byte={ref.byteLength}
+                    icon="markdown"
+                    size="small"
+                  />
+                ))}
+              </div>
+            )}
+            {/* AI 消息显示知识库来源 */}
+            {m.role === 'ai' && m.sources && m.sources.length > 0 && !m.isStreaming && (
+              <SourceCard
+                sources={m.sources}
+                onSourceClick={(noteId) => {
+                  // TODO: 跳转到笔记
+                  message.info(`跳转到笔记: ${noteId}`);
+                }}
+              />
+            )}
+          </>
+        );
+      },
       avatar:
         m.role === 'ai' ? (
           <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1890ff' }} />
@@ -460,6 +560,22 @@ export const AIChatPanel = ({
         )}
       </div>
 
+      {/* 已选便签展示 */}
+      {selectedNotes.length > 0 && (
+        <div className="ai-chat-selected-notes">
+          {selectedNotes.map((note) => (
+            <Tag
+              key={note.id}
+              closable
+              onClose={() => handleRemoveNote(note.id)}
+              icon={<FileTextOutlined />}
+            >
+              {note.title}
+            </Tag>
+          ))}
+        </div>
+      )}
+
       {/* 输入框 */}
       <div className="ai-chat-input">
         <Suggestion
@@ -486,8 +602,28 @@ export const AIChatPanel = ({
               }}
               onSubmit={async (value) => {
                 if (value.trim()) {
-                  sendMessage(value);
+                  // 将 selectedNotes 转换为 NoteReference 格式
+                  const references = selectedNotes.map((note) => ({
+                    id: note.id,
+                    title: note.title,
+                    byteLength: new TextEncoder().encode(note.content).length,
+                    content: note.content,
+                  }));
+
+                  // 构建便签上下文（作为隐藏上下文发送给 AI）
+                  let noteContext = '';
+                  if (selectedNotes.length > 0) {
+                    noteContext = '\n\n以下是用户引用的便签内容，请结合这些内容回答：\n\n';
+                    selectedNotes.forEach((note, i) => {
+                      noteContext += `[引用 ${i + 1}: ${note.title}]\n${note.content}\n\n`;
+                    });
+                  }
+
+                  // 发送消息，传递 references
+                  sendMessage(value + noteContext, references.length > 0 ? references : undefined);
                   senderRef.current?.clear?.();
+                  // 清空已选便签
+                  setSelectedNotes([]);
                 }
               }}
               onCancel={() => {
@@ -568,6 +704,21 @@ export const AIChatPanel = ({
                             />
                           </Tooltip>
                         </>
+                      )}
+                      {/* 便签引用 */}
+                      {noteItems && noteItems.length > 0 && (
+                        <Dropdown
+                          menu={{
+                            items: noteItems,
+                            onClick: handleNoteSelect,
+                          }}
+                          trigger={['click']}
+                          placement="topLeft"
+                        >
+                          <Sender.Switch value={false} icon={<FileTextOutlined />}>
+                            便签引用
+                          </Sender.Switch>
+                        </Dropdown>
                       )}
                     </Flex>
                     <Flex align="center">

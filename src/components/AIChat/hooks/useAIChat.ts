@@ -6,7 +6,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { aiConversationService } from '../../../services';
-import type { ChatItem, UseAIChatReturn, StreamChunkData, StreamErrorPayload } from '../types';
+import type {
+  ChatItem,
+  NoteReference,
+  UseAIChatReturn,
+  StreamChunkData,
+  StreamErrorPayload,
+} from '../types';
 
 // AI 对话完整类型（包含 messages）
 interface AIConversationFull {
@@ -237,7 +243,7 @@ export const useAIChat = ({
 
   // 发送消息
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, references?: NoteReference[]) => {
       if (!text.trim() || !isConfigured) return;
 
       // 清空输入框
@@ -248,6 +254,7 @@ export const useAIChat = ({
         role: 'user',
         content: text,
         timestamp: Date.now(),
+        references, // 保存用户引用的便签
       };
       const newChatItems = [...chatItems, userItem];
       setChatItems(newChatItems);

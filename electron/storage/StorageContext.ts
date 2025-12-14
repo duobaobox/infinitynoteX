@@ -120,30 +120,6 @@ export class StorageContext {
   get foldersPath(): string {
     return path.join(this._dataDir, 'folders.json');
   }
-
-  // ============ 向后兼容的别名 ============
-
-  /**
-   * @deprecated 请使用 defaultDataDir
-   */
-  get defaultPath(): string {
-    return this._defaultDataDir;
-  }
-
-  /**
-   * @deprecated 请使用 dataDir
-   */
-  get currentPath(): string {
-    return this._dataDir;
-  }
-
-  /**
-   * @deprecated 请使用 setDataDir
-   */
-  setCurrentPath(newPath: string): void {
-    this.setDataDir(newPath);
-  }
-
   // ============ 动态路径获取 ============
 
   /**

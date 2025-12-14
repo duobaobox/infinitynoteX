@@ -185,12 +185,6 @@ export class StorageManager {
     // 创建默认文件夹
     await this.folders.createDefaultFolder();
 
-    // 创建空的索引文件
-    await this.notes.createEmptyIndex();
-    await this.ai.createEmptyIndex();
-    await this.trash.createEmptyIndex();
-    await this.browserCards.createEmptyIndex();
-
     // 初始化预设浏览器卡片
     await this.browserCards.initializePresets();
 
@@ -343,7 +337,7 @@ export class StorageManager {
    * 获取默认路径
    */
   getDefaultPath(): string {
-    return this.context.defaultPath;
+    return this.context.defaultDataDir;
   }
 
   /**
@@ -360,7 +354,7 @@ export class StorageManager {
     const migrate = options?.migrate ?? false;
 
     if (!migrate) {
-      this.context.setCurrentPath(nextPath);
+      this.context.setDataDir(nextPath);
       this.attachments.setStoragePath(nextPath);
       this.clearAllCaches();
       await this.ensureStorageInitialized();
@@ -386,7 +380,7 @@ export class StorageManager {
 
       await validateStorageIntegrity(toPath);
 
-      this.context.setCurrentPath(toPath);
+      this.context.setDataDir(toPath);
       this.attachments.setStoragePath(toPath);
       this.clearAllCaches();
       await this.loadAllCaches();

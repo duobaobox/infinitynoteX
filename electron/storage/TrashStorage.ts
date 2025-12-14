@@ -202,14 +202,6 @@ export class TrashStorage {
     if (!this.sqliteCache) return 0;
     return this.sqliteCache.countItems(MODULE_ID);
   }
-
-  /**
-   * 创建空索引文件（兼容旧接口）
-   */
-  async createEmptyIndex(): Promise<void> {
-    // Do nothing - SQLite handles this
-  }
-
   /**
    * 重建索引
    */

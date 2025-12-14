@@ -188,15 +188,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
     if (!this.indexCache) return 0;
     return this.indexCache.countItems(this.config.id);
   }
-
-  /**
-   * 创建空索引（兼容旧接口）
-   * @deprecated 使用 SQLite 后不再需要
-   */
-  async createEmptyIndex(): Promise<void> {
-    // Do nothing - SQLite handles this
-  }
-
   /**
    * 重建索引
    * 扫描目录文件，同步到 SQLite

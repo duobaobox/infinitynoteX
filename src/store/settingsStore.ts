@@ -139,7 +139,7 @@ interface SettingsState {
     providerId: string,
     config: any,
   ) => Promise<{ ok: boolean; message: string }>;
-  triggerSync: (providerId: string, config: any) => Promise<void>;
+  triggerSync: (providerId: string, config: any) => Promise<any>;
   loadSyncConfigs: () => Promise<void>;
 
   // 应用信息
@@ -459,12 +459,19 @@ export const useSettingsStore = create<SettingsState>()(
         const { setSyncStatus } = get();
         try {
           setSyncStatus({ syncing: true, error: null });
-          await window.sync.execute(providerId, config);
+          const result = await window.sync.execute(providerId, config);
+
+          const success = Boolean(result?.success);
+          const endTime = typeof result?.endTime === 'number' ? result.endTime : Date.now();
+          const message = typeof result?.message === 'string' ? result.message : '';
+
           setSyncStatus({
             syncing: false,
-            lastSync: Date.now(),
-            error: null,
+            lastSync: endTime,
+            error: success ? null : message || '同步未成功，请查看详情',
           });
+
+          return result;
         } catch (error) {
           setSyncStatus({
             syncing: false,

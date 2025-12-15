@@ -100,7 +100,7 @@ const SyncTab: React.FC<SyncTabProps> = () => {
                 if (!config) {
                   throw new Error('请先配置同步参数');
                 }
-                await triggerSync(currentProvider.id, config);
+                return await triggerSync(currentProvider.id, config);
               }}
             />
           ) : (

@@ -290,6 +290,8 @@ declare global {
       }>;
       getConfig(providerId: string): Promise<any>;
       setConfig(providerId: string, config: any): Promise<void>;
+      openLogDir(): Promise<void>;
+      getLastResult(): Promise<any>;
       onProgress(
         callback: (progress: {
           stage: string;

@@ -313,6 +313,8 @@ contextBridge.exposeInMainWorld('sync', {
   getConfig: (providerId: string) => ipcRenderer.invoke('sync:getConfig', providerId),
   setConfig: (providerId: string, config: any) =>
     ipcRenderer.invoke('sync:setConfig', providerId, config),
+  openLogDir: () => ipcRenderer.invoke('sync:openLogDir'),
+  getLastResult: () => ipcRenderer.invoke('sync:getLastResult'),
   // 进度回调
   onProgress: (callback: (progress: any) => void) => {
     const listener = (_event: unknown, progress: any) => callback(progress);

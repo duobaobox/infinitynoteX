@@ -673,6 +673,9 @@ export class SyncEngine {
       if (processedPaths.has(filePath)) continue;
       if (!isPathInSyncScope(filePath)) continue;
 
+      // 标记为已处理：避免后续第 3 步（基于 localState 扫描）对同一路径重复生成 diff
+      processedPaths.add(filePath);
+
       const syncedState = localState.files[filePath];
 
       if (syncedState) {
@@ -838,6 +841,8 @@ export class SyncEngine {
     conflicts: string[];
     unchanged: number;
   }> {
+    const uniq = (paths: string[]) => Array.from(new Set(paths));
+
     const localFiles = await scanLocalFiles(this.storagePath);
 
     let localState = await readLocalSyncState(this.storagePath);
@@ -853,11 +858,11 @@ export class SyncEngine {
     const diffs = this.calculateDiffs(localFiles, localState, remoteManifest, 'newest');
 
     return {
-      toUpload: diffs.filter((d) => d.action === 'upload').map((d) => d.path),
-      toDownload: diffs.filter((d) => d.action === 'download').map((d) => d.path),
-      toDeleteRemote: diffs.filter((d) => d.action === 'delete-remote').map((d) => d.path),
-      toDeleteLocal: diffs.filter((d) => d.action === 'delete-local').map((d) => d.path),
-      conflicts: diffs.filter((d) => d.action === 'conflict').map((d) => d.path),
+      toUpload: uniq(diffs.filter((d) => d.action === 'upload').map((d) => d.path)),
+      toDownload: uniq(diffs.filter((d) => d.action === 'download').map((d) => d.path)),
+      toDeleteRemote: uniq(diffs.filter((d) => d.action === 'delete-remote').map((d) => d.path)),
+      toDeleteLocal: uniq(diffs.filter((d) => d.action === 'delete-local').map((d) => d.path)),
+      conflicts: uniq(diffs.filter((d) => d.action === 'conflict').map((d) => d.path)),
       unchanged: diffs.filter((d) => d.action === 'skip').length,
     };
   }

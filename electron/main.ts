@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } from 'electron';
 import type { BrowserWindowConstructorOptions, OpenDialogOptions } from 'electron';
 import type {
   SetStoragePathOptions,
@@ -7,6 +7,7 @@ import type {
 } from '../src/services/types';
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { storageManager } from './storage';
 import { initAutoUpdater } from './updater';
@@ -904,6 +905,16 @@ ipcMain.handle('sync:execute', async (event, providerId: string, config: any) =>
 
     const result = await syncManager.execute(providerId, config, storagePath);
 
+    // 持久化最近一次同步结果（用于设置页展示）
+    try {
+      const metaDir = path.join(storagePath, '.sync-meta');
+      await fs.mkdir(metaDir, { recursive: true });
+      const lastResultPath = path.join(metaDir, 'last-result.json');
+      await fs.writeFile(lastResultPath, JSON.stringify(result, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('[Sync] Failed to persist last sync result:', e);
+    }
+
     // 同步完成后清除缓存
     storageManager.clearAllCaches();
 
@@ -942,6 +953,20 @@ ipcMain.handle('sync:execute', async (event, providerId: string, config: any) =>
 });
 
 /**
+ * 获取最近一次同步结果（如果存在）
+ */
+ipcMain.handle('sync:getLastResult', async () => {
+  const storagePath = storageManager.getCurrentPath();
+  const lastResultPath = path.join(storagePath, '.sync-meta', 'last-result.json');
+  try {
+    const content = await fs.readFile(lastResultPath, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+});
+
+/**
  * 获取同步预览（不实际执行同步）
  */
 ipcMain.handle('sync:preview', async (_, providerId: string, config: any) => {
@@ -969,6 +994,16 @@ ipcMain.handle('sync:getConfig', async (_, providerId: string) => {
  */
 ipcMain.handle('sync:setConfig', async (_, providerId: string, config: any) => {
   await syncManager.setConfig(providerId, config);
+});
+
+/**
+ * 打开同步日志目录（本地 .sync-logs）
+ */
+ipcMain.handle('sync:openLogDir', async () => {
+  const storagePath = storageManager.getCurrentPath();
+  const logDir = path.join(storagePath, '.sync-logs');
+  await fs.mkdir(logDir, { recursive: true });
+  await shell.openPath(logDir);
 });
 
 // ============ AI IPC 处理器 ============

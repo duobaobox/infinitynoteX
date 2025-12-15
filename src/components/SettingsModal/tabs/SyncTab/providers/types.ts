@@ -31,7 +31,7 @@ export interface SyncProviderConfigProps<T = any> {
   /** 测试连接回调 */
   onTest: () => Promise<{ ok: boolean; message: string }>;
   /** 触发同步回调 */
-  onSync: () => Promise<void>;
+  onSync: () => Promise<any>;
 }
 
 /**

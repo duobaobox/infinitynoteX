@@ -5,6 +5,7 @@
 
 import { shell } from 'electron';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 
 import { StorageContext } from './StorageContext';
@@ -37,6 +38,7 @@ import {
 } from './utils';
 import { CURRENT_SCHEMA_VERSION, needsMigration, getPendingMigrations } from './migrations';
 import { emitDeleted, emitCreated } from './storageEvents';
+import { readAppConfig, writeAppConfig } from '../config';
 
 /**
  * 存储管理器
@@ -58,7 +60,8 @@ export class StorageManager {
   readonly browserCards: BrowserCardStorage;
 
   constructor() {
-    this.context = new StorageContext();
+    const initialPath = this.resolveInitialDataPath();
+    this.context = new StorageContext(initialPath ? { dataPath: initialPath } : undefined);
 
     // 核心组件（存储在应用目录）
     this.device = new DeviceManager(this.context.devicePath);
@@ -77,6 +80,41 @@ export class StorageManager {
     this.ai.setIndexCache(this.indexCache);
     this.browserCards.setIndexCache(this.indexCache);
     this.trash.setIndexCache(this.indexCache);
+  }
+
+  /**
+   * 解析首次启动时的存储路径（来自 app-config.json）
+   */
+  private resolveInitialDataPath(): string | undefined {
+    try {
+      const config = readAppConfig();
+      const configuredPath = config.storage?.dataPath ?? undefined;
+
+      if (configuredPath && fsSync.existsSync(configuredPath)) {
+        return configuredPath;
+      }
+
+      if (configuredPath && !fsSync.existsSync(configuredPath)) {
+        console.warn(
+          `[Storage] Configured data path does not exist, fallback to default: ${configuredPath}`,
+        );
+      }
+    } catch (error) {
+      console.error('[Storage] Failed to load configured data path:', error);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * 将存储路径写入统一配置，确保重启后记住选择
+   */
+  private persistDataPath(nextPath: string): void {
+    try {
+      writeAppConfig({ storage: { dataPath: nextPath } });
+    } catch (error) {
+      console.error('[Storage] Failed to persist storage path:', error);
+    }
   }
 
   // ============ 初始化 ============
@@ -358,6 +396,7 @@ export class StorageManager {
       this.attachments.setStoragePath(nextPath);
       this.clearAllCaches();
       await this.ensureStorageInitialized();
+      this.persistDataPath(nextPath);
       return;
     }
 
@@ -384,6 +423,7 @@ export class StorageManager {
       this.attachments.setStoragePath(toPath);
       this.clearAllCaches();
       await this.loadAllCaches();
+      this.persistDataPath(toPath);
 
       console.log(`[Storage] Migration completed successfully`);
     } catch (error) {

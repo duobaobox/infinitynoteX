@@ -63,12 +63,36 @@ export class EmbeddingService {
   }
 
   /**
-   * 构建 API URL
+   * 构建 Embedding API URL（容错）
    */
-  private buildAPIURL(endpoint: string): string {
-    const baseURL = this.config.baseURL.replace(/\/+$/, '');
-    const cleanEndpoint = endpoint.replace(/^\/+/, '');
-    return `${baseURL}/${cleanEndpoint}`;
+  private buildCandidateEmbeddingUrls(): string[] {
+    const raw = (this.config.baseURL || '').trim();
+    const base = raw.replace(/\/+$/, '');
+    const urls: string[] = [];
+
+    if (!base) return urls;
+
+    const pushUniq = (u: string) => {
+      const normalized = u.replace(/\/+$/, '');
+      if (!urls.includes(normalized)) urls.push(normalized);
+    };
+
+    // 1) 用户直接填写了完整的 embeddings 端点
+    if (/\/embeddings$/i.test(base)) {
+      pushUniq(base);
+    }
+
+    // 2) 标准 OpenAI 兼容：Base URL + /embeddings
+    pushUniq(`${base}/embeddings`);
+
+    // 3) 常见误填：只填了 host（没带 /v1），尝试追加 /v1/embeddings
+    //    例如: https://api.openai.com  -> https://api.openai.com/v1/embeddings
+    const looksLikeVersionedBase = /\/(v\d+|compatible-mode\/v\d+|api\/paas\/v\d+)$/i.test(base);
+    if (!looksLikeVersionedBase && !/\/v\d+\//i.test(base)) {
+      pushUniq(`${base}/v1/embeddings`);
+    }
+
+    return urls;
   }
 
   /**
@@ -115,8 +139,6 @@ export class EmbeddingService {
       return [];
     }
 
-    const url = this.buildAPIURL('embeddings');
-
     const requestBody: EmbeddingRequest = {
       input: texts.length === 1 ? texts[0] : texts,
       model: this.config.model,
@@ -127,37 +149,74 @@ export class EmbeddingService {
       requestBody.dimensions = this.config.dimensions;
     }
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(this.config.timeoutMs || 30000),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const data = (await response.json()) as EmbeddingResponse;
-
-      // 验证响应格式
-      if (!data?.data || !Array.isArray(data.data)) {
-        throw new Error('Invalid response format: missing data array');
-      }
-
-      // 按 index 排序确保顺序正确
-      const sorted = [...data.data].sort((a, b) => a.index - b.index);
-      return sorted.map((item) => item.embedding);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error('[Embedding] Request failed:', msg);
-      throw new Error(`Embedding 请求失败: ${msg}`);
+    const candidateUrls = this.buildCandidateEmbeddingUrls();
+    if (candidateUrls.length === 0) {
+      throw new Error('Embedding 配置缺失：Base URL 为空');
     }
+
+    const timeoutMs = this.config.timeoutMs || 30000;
+
+    const baseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.config.apiKey?.trim()) {
+      baseHeaders.Authorization = `Bearer ${this.config.apiKey}`;
+    }
+
+    let lastError: Error | null = null;
+
+    for (const url of candidateUrls) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: baseHeaders,
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+
+        if (!response.ok) {
+          const contentType = response.headers.get('content-type') || '';
+          const errorText = await response.text();
+
+          const isHtml = contentType.includes('text/html') || /<html[\s>]/i.test(errorText);
+          const hint =
+            isHtml && (response.status === 404 || response.status === 405)
+              ? '（服务返回网页 HTML，通常表示 Base URL 填成了网站地址或反代未转发 API；请填写 OpenAI 兼容 API 的 Base URL，例如 https://api.siliconflow.cn/v1 或 https://open.bigmodel.cn/api/paas/v4）'
+              : '';
+
+          const preview = errorText.replace(/\s+/g, ' ').trim().slice(0, 200);
+
+          const err = new Error(
+            `HTTP ${response.status} @ ${url}: ${preview}${hint ? ' ' + hint : ''}`,
+          );
+
+          // 这些错误通常不是 URL 的问题，没必要尝试其他候选
+          if ([400, 401, 403, 422].includes(response.status)) {
+            throw err;
+          }
+
+          // 404/405 等可能是端点不匹配，尝试下一个候选
+          lastError = err;
+          continue;
+        }
+
+        const data = (await response.json()) as EmbeddingResponse;
+
+        if (!data?.data || !Array.isArray(data.data)) {
+          throw new Error(`Invalid response format @ ${url}: missing data array`);
+        }
+
+        const sorted = [...data.data].sort((a, b) => a.index - b.index);
+        return sorted.map((item) => item.embedding);
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        lastError = err;
+      }
+    }
+
+    const msg = lastError?.message || '未知错误';
+    console.error('[Embedding] Request failed:', msg);
+    throw new Error(`Embedding 请求失败: ${msg}`);
   }
 }
 

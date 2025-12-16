@@ -5,8 +5,19 @@
 
 import { createClient, type WebDAVClient, type FileStat } from 'webdav';
 import type { WebDAVConfig, RemoteSyncManifest } from './types';
-import { SYNC_META_DIR, MANIFEST_FILE, toRemotePath } from './syncUtils';
+import {
+  SYNC_META_DIR,
+  MANIFEST_FILE,
+  hashJsonContent,
+  md5Binary,
+  toRemotePath,
+} from './syncUtils';
 import { STORAGE_MODULES } from '../storage/core/moduleRegistry';
+
+type ManifestReadResult = {
+  manifest: RemoteSyncManifest | null;
+  etag?: string;
+};
 
 export class WebDAVSyncClient {
   private client: WebDAVClient | null = null;
@@ -247,12 +258,133 @@ export class WebDAVSyncClient {
   }
 
   /**
-   * 写入远程同步清单
+   * 读取远程清单 + ETag（用于并发写保护）
    */
-  async writeManifest(manifest: RemoteSyncManifest): Promise<void> {
+  async readManifestWithEtag(): Promise<ManifestReadResult> {
     const config = this.config!;
     const manifestPath = `${config.remotePath}/${SYNC_META_DIR}/${MANIFEST_FILE}`;
-    await this.uploadFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+    try {
+      const exists = await this.exists(manifestPath);
+      if (!exists) {
+        return { manifest: null };
+      }
+
+      const stat = await this.stat(manifestPath);
+      const etag = (stat as any)?.etag as string | undefined;
+
+      const content = await this.downloadFile(manifestPath);
+      return { manifest: JSON.parse(content) as RemoteSyncManifest, etag };
+    } catch (error) {
+      console.error('[WebDAV] Failed to read manifest with etag:', error);
+      return { manifest: null };
+    }
+  }
+
+  /**
+   * 写入远程同步清单
+   */
+  async writeManifest(
+    manifest: RemoteSyncManifest,
+    options?: { ifMatch?: string; ifNoneMatch?: boolean },
+  ): Promise<void> {
+    const config = this.config!;
+    const manifestPath = `${config.remotePath}/${SYNC_META_DIR}/${MANIFEST_FILE}`;
+
+    const body = JSON.stringify(manifest, null, 2);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+    if (options?.ifMatch) {
+      headers['If-Match'] = options.ifMatch;
+    }
+    if (options?.ifNoneMatch) {
+      headers['If-None-Match'] = '*';
+    }
+
+    const client: any = this.ensureClient();
+    if (typeof client.customRequest === 'function') {
+      await client.customRequest(manifestPath, {
+        method: 'PUT',
+        data: body,
+        headers,
+      });
+      return;
+    }
+
+    // 兜底：不支持自定义请求时直接覆盖写入（可能丢失并发保护）
+    await this.uploadFile(manifestPath, body);
+  }
+
+  /**
+   * 列出远程所有数据文件（相对路径）
+   * 覆盖所有启用同步的模块（file + directory）。
+   */
+  async listAllDataFiles(): Promise<string[]> {
+    const config = this.config!;
+    const files: string[] = [];
+
+    for (const mod of STORAGE_MODULES) {
+      if (!mod.sync.enabled) continue;
+
+      if (mod.sync.type === 'file') {
+        const full = toRemotePath(config.remotePath, mod.path);
+        if (await this.exists(full)) {
+          files.push(mod.path);
+        }
+        continue;
+      }
+
+      const dirFull = toRemotePath(config.remotePath, mod.path);
+      if (!(await this.exists(dirFull))) continue;
+
+      const contents = await this.listDirectory(dirFull);
+      for (const item of contents) {
+        if (item.type !== 'file') continue;
+        const base = item.basename;
+        if (!base) continue;
+
+        if (mod.extension && !base.endsWith(mod.extension)) continue;
+        files.push(`${mod.path}/${base}`);
+      }
+    }
+
+    return Array.from(new Set(files));
+  }
+
+  /**
+   * 获取远程文件元数据（用于 manifest 自愈：为缺失条目补全 hash/modifiedAt/size）
+   */
+  async computeRemoteFileMeta(
+    relativePath: string,
+  ): Promise<{ hash: string; modifiedAt: number; size: number }> {
+    const config = this.config!;
+    const remotePath = toRemotePath(config.remotePath, relativePath);
+
+    const stat = await this.stat(remotePath);
+    if (!stat) {
+      throw new Error(`Remote file not found: ${relativePath}`);
+    }
+
+    const lastmod = (stat as any)?.lastmod as string | undefined;
+    const modifiedAt = lastmod ? Date.parse(lastmod) : Date.now();
+    const size = (stat as any)?.size ? Number((stat as any).size) : 0;
+
+    if (relativePath.endsWith('.json')) {
+      const content = await this.downloadFile(remotePath);
+      return {
+        hash: hashJsonContent(content),
+        modifiedAt: Number.isFinite(modifiedAt) ? modifiedAt : Date.now(),
+        size: size || Buffer.byteLength(content, 'utf-8'),
+      };
+    }
+
+    const buffer = await this.downloadFileBinary(remotePath);
+    return {
+      hash: md5Binary(buffer),
+      modifiedAt: Number.isFinite(modifiedAt) ? modifiedAt : Date.now(),
+      size: size || buffer.length,
+    };
   }
 
   /**

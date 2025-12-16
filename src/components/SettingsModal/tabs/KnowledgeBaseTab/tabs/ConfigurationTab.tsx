@@ -4,7 +4,20 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Form, Input, Button, Space, Typography, message, Card, Alert, Row, Col, Tag } from 'antd';
+import {
+  Form,
+  Input,
+  Button,
+  Space,
+  Typography,
+  message,
+  Card,
+  Alert,
+  Row,
+  Col,
+  Tag,
+  Tooltip,
+} from 'antd';
 import {
   SyncOutlined,
   CheckCircleOutlined,
@@ -12,6 +25,7 @@ import {
   ThunderboltOutlined,
   SettingOutlined,
   SafetyOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -190,9 +204,37 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
             <Col span={12}>
               <Form.Item
                 label={
-                  <Text>
-                    Base URL <Text type="danger">*</Text>
-                  </Text>
+                  <Space size={6}>
+                    <Text>
+                      Base URL <Text type="danger">*</Text>
+                    </Text>
+                    <Tooltip
+                      placement="top"
+                      title={
+                        <div style={{ maxWidth: 420 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 6 }}>Base URL 填写说明</div>
+                          <div style={{ marginBottom: 6 }}>
+                            需填写 OpenAI 兼容 API 的 Base URL（不要填聊天网页地址）。
+                          </div>
+                          <div
+                            style={{
+                              fontFamily:
+                                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                              fontSize: 12,
+                            }}
+                          >
+                            https://api.siliconflow.cn/v1
+                            <br />
+                            https://dashscope.aliyuncs.com/compatible-mode/v1
+                            <br />
+                            https://open.bigmodel.cn/api/paas/v4
+                          </div>
+                        </div>
+                      }
+                    >
+                      <QuestionCircleOutlined style={{ color: 'var(--ant-color-text-tertiary)' }} />
+                    </Tooltip>
+                  </Space>
                 }
                 style={{ marginBottom: 16 }}
               >

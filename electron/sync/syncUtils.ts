@@ -35,7 +35,37 @@ export const LOCAL_STATE_FILE = 'sync-state.json';
  * 确保相同内容生成相同的字符串（排序 keys）
  */
 export function normalizeJson(content: unknown): string {
-  return JSON.stringify(content, Object.keys(content as object).sort(), 0);
+  return stableStringify(content);
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(deepSortForStableJson(value));
+}
+
+function deepSortForStableJson(value: unknown): unknown {
+  if (value === null) return null;
+
+  if (Array.isArray(value)) {
+    return value.map((v) => deepSortForStableJson(v));
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const sortedKeys = Object.keys(obj).sort();
+    const result: Record<string, unknown> = {};
+    for (const key of sortedKeys) {
+      const v = obj[key];
+      if (v === undefined) continue;
+      result[key] = deepSortForStableJson(v);
+    }
+    return result;
+  }
+
+  return value;
 }
 
 /**
@@ -58,8 +88,7 @@ export function md5Binary(buffer: Buffer): string {
 export function hashJsonContent(content: string): string {
   try {
     const parsed = JSON.parse(content);
-    const normalized = normalizeJson(parsed);
-    return md5(normalized);
+    return md5(stableStringify(parsed));
   } catch {
     // 如果不是有效 JSON，直接计算原始内容哈希
     return md5(content);

@@ -18,6 +18,14 @@ export default defineConfig({
       include: ['src/**/*.ts', 'src/**/*.tsx', 'electron/**/*.ts'],
       exclude: ['**/*.d.ts', '**/index.ts'],
     },
+    // Skip tests that depend on native modules (better-sqlite3) that need rebuilding
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/dist-electron/**',
+      'tests/unit/main/storage/storageManager.test.ts', // Requires better-sqlite3
+      'tests/unit/main/storage/noteStorage.test.ts', // Requires better-sqlite3 via IndexCache
+    ],
   },
   resolve: {
     alias: {

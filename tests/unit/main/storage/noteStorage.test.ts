@@ -6,6 +6,7 @@ import { StorageContext } from '../../../../electron/storage/StorageContext';
 import { FolderStorage } from '../../../../electron/storage/FolderStorage';
 import { NoteStorage } from '../../../../electron/storage/NoteStorage';
 import { StorageErrorCode } from '../../../../electron/storage/errors';
+import { IndexCache } from '../../../../electron/storage/core/IndexCache';
 
 const createTempPath = () => fs.mkdtemp(path.join(os.tmpdir(), 'note-storage-'));
 
@@ -30,12 +31,19 @@ describe('NoteStorage', () => {
 
   beforeEach(async () => {
     tempPath = await createTempPath();
-    context = new StorageContext({ defaultPath: tempPath });
+    context = new StorageContext({ dataPath: tempPath });
     await context.ensureBaseDirectories();
+
+    // Initialize IndexCache
+    const indexCache = new IndexCache(context.cachePath);
+    await indexCache.initialize();
+
     folderStorage = new FolderStorage(context);
+    folderStorage.setIndexCache(indexCache);
     await folderStorage.createDefaultFolder();
+
     noteStorage = new NoteStorage(context, folderStorage);
-    await noteStorage.createEmptyIndex();
+    noteStorage.setIndexCache(indexCache);
   });
 
   afterEach(async () => {

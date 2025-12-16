@@ -5,13 +5,25 @@
 
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import path from 'node:path';
+import os from 'node:os';
 
-// Mock Electron IPC
+// Mock Electron IPC and app
 vi.mock('electron', () => ({
   ipcRenderer: {
     invoke: vi.fn(),
     on: vi.fn(),
     removeListener: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn(() => path.join(os.tmpdir(), 'test-app-data')),
+    getName: vi.fn(() => 'InfinityNoteX'),
+    getVersion: vi.fn(() => '1.0.0'),
+  },
+  shell: {
+    openExternal: vi.fn(),
+    showItemInFolder: vi.fn(),
+    openPath: vi.fn(),
   },
 }));
 

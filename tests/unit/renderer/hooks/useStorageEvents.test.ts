@@ -24,7 +24,12 @@ const mockState = {
 };
 
 vi.mock('../../../../src/store/workspaceStore', () => ({
-  useWorkspaceStore: (selector: (state: typeof mockState) => unknown) => selector(mockState),
+  useWorkspaceStore: Object.assign(
+    (selector: (state: typeof mockState) => unknown) => selector(mockState),
+    {
+      getState: () => mockState,
+    },
+  ),
 }));
 
 describe('useStorageEvents', () => {

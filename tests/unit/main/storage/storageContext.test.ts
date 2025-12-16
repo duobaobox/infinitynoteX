@@ -17,7 +17,7 @@ describe('StorageContext', () => {
 
   beforeEach(async () => {
     tempPath = await createTempPath();
-    context = new StorageContext({ defaultPath: tempPath });
+    context = new StorageContext({ dataPath: tempPath });
   });
 
   afterEach(async () => {
@@ -39,16 +39,9 @@ describe('StorageContext', () => {
 
   it('provides correct module and file paths', () => {
     expect(context.getModuleDir('notes')).toBe(path.join(tempPath, 'notes'));
-    expect(context.getModuleIndexPath('notes')).toBe(path.join(tempPath, 'notes.index.json'));
     expect(context.getNotePath('abc')).toBe(path.join(tempPath, 'notes', 'abc.json'));
     expect(context.getAIConversationPath('c1')).toBe(
       path.join(tempPath, 'ai-conversations', 'c1.json'),
     );
-  });
-
-  it('updates current path when setCurrentPath is called', () => {
-    const newPath = path.join(tempPath, 'new-root');
-    context.setCurrentPath(newPath);
-    expect(context.currentPath).toBe(newPath);
   });
 });

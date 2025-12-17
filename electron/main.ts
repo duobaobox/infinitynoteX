@@ -6,13 +6,13 @@ import type {
   UpdateNotePayload,
 } from '../src/services/types';
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
+import { API_KEY_PLACEHOLDER } from '../src/services/aiConfig';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { storageManager } from './storage';
 import { initAutoUpdater } from './updater';
-import { readAIConfig, writeAIConfig } from './ai';
-import { createAdapter } from './ai/adapter';
+import { readAIConfig, writeAIConfig, createAdapter } from './ai';
 import {
   readAppConfig,
   writeAppConfig,
@@ -872,15 +872,16 @@ ipcMain.handle(
 
 import { SyncManager } from './sync/syncManager';
 import type { SyncProgress } from './sync/types';
+import type { WebDAVConfig, SyncConfig } from './sync/types';
 const syncManager = new SyncManager();
 
 /**
  * 测试同步连接
  */
-ipcMain.handle('sync:testConnection', async (_, providerId: string, config: any) => {
+ipcMain.handle('sync:testConnection', async (_, providerId: string, config: unknown) => {
   try {
     if (providerId === 'webdav') {
-      return await syncManager.testWebDAVConnection(config);
+      return await syncManager.testWebDAVConnection(config as WebDAVConfig);
     }
     return { ok: false, message: `Unknown provider: ${providerId}` };
   } catch (error) {
@@ -892,7 +893,7 @@ ipcMain.handle('sync:testConnection', async (_, providerId: string, config: any)
 /**
  * 执行同步（带进度回调）
  */
-ipcMain.handle('sync:execute', async (event, providerId: string, config: any) => {
+ipcMain.handle('sync:execute', async (event, providerId: string, config: unknown) => {
   try {
     const storagePath = storageManager.getCurrentPath();
 
@@ -903,7 +904,7 @@ ipcMain.handle('sync:execute', async (event, providerId: string, config: any) =>
 
     syncManager.setProgressCallback(progressCallback);
 
-    const result = await syncManager.execute(providerId, config, storagePath);
+    const result = await syncManager.execute(providerId, config as WebDAVConfig, storagePath);
 
     // 持久化最近一次同步结果（用于设置页展示）
     try {
@@ -969,13 +970,13 @@ ipcMain.handle('sync:getLastResult', async () => {
 /**
  * 获取同步预览（不实际执行同步）
  */
-ipcMain.handle('sync:preview', async (_, providerId: string, config: any) => {
+ipcMain.handle('sync:preview', async (_, providerId: string, config: unknown) => {
   try {
     if (providerId !== 'webdav') {
       throw new Error(`Unknown provider: ${providerId}`);
     }
     const storagePath = storageManager.getCurrentPath();
-    return await syncManager.preview(config, storagePath);
+    return await syncManager.preview(config as WebDAVConfig, storagePath);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     throw new Error(`预览失败：${msg}`);
@@ -992,8 +993,8 @@ ipcMain.handle('sync:getConfig', async (_, providerId: string) => {
 /**
  * 保存同步配置
  */
-ipcMain.handle('sync:setConfig', async (_, providerId: string, config: any) => {
-  await syncManager.setConfig(providerId, config);
+ipcMain.handle('sync:setConfig', async (_, providerId: string, config: unknown) => {
+  await syncManager.setConfig(providerId, config as SyncConfig);
 });
 
 /**
@@ -1012,7 +1013,12 @@ ipcMain.handle('sync:openLogDir', async () => {
  * 获取 AI 配置
  */
 ipcMain.handle('ai:getConfig', async () => {
-  return await readAIConfig();
+  const config = await readAIConfig();
+  if (!config) return null;
+  return {
+    ...config,
+    apiKey: config.apiKey ? API_KEY_PLACEHOLDER : '',
+  };
 });
 
 /**
@@ -1061,6 +1067,8 @@ ipcMain.handle('ai:chat', async (_, payload: ChatPayload) => {
  * 发送 AI 聊天请求（流式）
  * 逐段通过 ai:stream:chunk 事件回传
  */
+const aiStreamAbortControllers = new Map<number, AbortController>();
+
 ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
   try {
     const config = await readAIConfig();
@@ -1069,15 +1077,31 @@ ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
     }
     const adapter = createAdapter(config);
 
+    const wcId = event.sender.id;
+    // Abort any previous in-flight stream for this webContents
+    const previous = aiStreamAbortControllers.get(wcId);
+    if (previous) {
+      previous.abort();
+      aiStreamAbortControllers.delete(wcId);
+    }
+    const abortController = new AbortController();
+    aiStreamAbortControllers.set(wcId, abortController);
+
     (async () => {
       try {
-        for await (const chunk of adapter.chatStream(payload)) {
+        for await (const chunk of adapter.chatStream(payload, { signal: abortController.signal })) {
           event.sender.send('ai:stream:chunk', chunk);
         }
         event.sender.send('ai:stream:done', { success: true });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         event.sender.send('ai:stream:error', { error: msg });
+      } finally {
+        // Clean up controller for this sender
+        const current = aiStreamAbortControllers.get(wcId);
+        if (current === abortController) {
+          aiStreamAbortControllers.delete(wcId);
+        }
       }
     })();
 
@@ -1086,6 +1110,20 @@ ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, error: msg };
   }
+});
+
+/**
+ * 中止当前窗口的流式请求
+ */
+ipcMain.handle('ai:abortStream', (event) => {
+  const wcId = event.sender.id;
+  const controller = aiStreamAbortControllers.get(wcId);
+  if (!controller) {
+    return { success: false, error: 'no in-flight stream' };
+  }
+  controller.abort();
+  aiStreamAbortControllers.delete(wcId);
+  return { success: true };
 });
 
 // ============ 统一配置 IPC 处理器 ============

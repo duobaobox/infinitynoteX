@@ -23,12 +23,24 @@ log.transports.file.maxSize = 5 * 1024 * 1024;
 const LOG_RETENTION_DAYS = 7;
 
 // 捕获未处理的异常
-log.catchErrors({
+const uncaughtOptions = {
   showDialog: false,
-  onError: (error) => {
+  onError: (error: unknown) => {
     log.error('Uncaught exception:', error);
   },
-});
+};
+
+// electron-log 不同版本对 API 有差异：v5+ 推荐 errorHandler.startCatching，旧版本使用 catchErrors
+const maybeLog = log as unknown as {
+  errorHandler?: { startCatching?: (options: typeof uncaughtOptions) => unknown };
+  catchErrors?: (options: typeof uncaughtOptions) => unknown;
+};
+
+if (typeof maybeLog.errorHandler?.startCatching === 'function') {
+  maybeLog.errorHandler.startCatching(uncaughtOptions);
+} else if (typeof maybeLog.catchErrors === 'function') {
+  maybeLog.catchErrors(uncaughtOptions);
+}
 
 // 重写 console 方法，使其同时写入日志文件
 // 这样现有的 console.log 都会被记录

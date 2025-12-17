@@ -32,6 +32,12 @@ export interface AIConfig {
 }
 
 /**
+ * API Key 占位符（用于渲染进程显示“已设置”，但不暴露明文）
+ * 注意：主进程写入配置时遇到该值应保留旧 key。
+ */
+export const API_KEY_PLACEHOLDER = '********';
+
+/**
  * AI 消息（OpenAI 兼容格式）
  */
 export interface AIMessage {

@@ -218,13 +218,21 @@ export const AIChatPanel = ({
   }, []);
 
   // AI 对话
-  const { chatItems, isLoading, isLoadingHistory, error, sendMessage, clearChat, clearError } =
-    useAIChat({
-      conversationId,
-      isConfigured,
-      useKnowledgeBase,
-      onTitleChange: handleTitleChange,
-    });
+  const {
+    chatItems,
+    isLoading,
+    isLoadingHistory,
+    error,
+    sendMessage,
+    abort,
+    clearChat,
+    clearError,
+  } = useAIChat({
+    conversationId,
+    isConfigured,
+    useKnowledgeBase,
+    onTitleChange: handleTitleChange,
+  });
 
   // Sender ref
   const senderRef = useRef<GetRef<typeof Sender>>(null);
@@ -648,8 +656,12 @@ export const AIChatPanel = ({
                     }
                   }}
                   onCancel={() => {
+                    // 取消按钮 = 中止当前流式请求
+                    if (isLoading) {
+                      abort();
+                    }
                     senderRef.current?.clear?.();
-                    message.info('已取消发送');
+                    message.info(isLoading ? '已中止生成' : '已取消发送');
                   }}
                   footer={(_, { components }) => {
                     const { SendButton, LoadingButton } = components;

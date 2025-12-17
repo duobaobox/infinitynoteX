@@ -108,8 +108,13 @@ export class OpenAICompatibleAdapter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = (await response.json()) as any;
-      const content = data?.choices?.[0]?.message?.content || '';
+      const data = (await response.json()) as unknown;
+      const choices = (data as { choices?: unknown[] } | null | undefined)?.choices;
+      const firstChoice = (Array.isArray(choices) ? choices[0] : undefined) as
+        | { message?: { content?: unknown }; finish_reason?: unknown }
+        | undefined;
+      const content =
+        typeof firstChoice?.message?.content === 'string' ? firstChoice.message.content : '';
 
       if (!content) {
         throw new Error('No content in response');
@@ -117,7 +122,8 @@ export class OpenAICompatibleAdapter {
 
       return {
         content,
-        finishReason: data?.choices?.[0]?.finish_reason,
+        finishReason:
+          typeof firstChoice?.finish_reason === 'string' ? firstChoice.finish_reason : undefined,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -129,7 +135,12 @@ export class OpenAICompatibleAdapter {
    * 流式聊天请求
    * 返回异步迭代器，逐段产生内容
    */
-  async *chatStream(payload: ChatPayload): AsyncGenerator<StreamChunk, void> {
+  async *chatStream(
+    payload: ChatPayload,
+    options?: {
+      signal?: AbortSignal;
+    },
+  ): AsyncGenerator<StreamChunk, void> {
     const messages: AIMessage[] = [
       ...(this.config.systemPrompt
         ? [{ role: 'system' as const, content: this.config.systemPrompt }]
@@ -140,6 +151,11 @@ export class OpenAICompatibleAdapter {
 
     try {
       const url = this.buildAPIURL('chat/completions');
+      const timeoutMs = this.config.timeoutMs || 60000;
+      const timeoutSignal = AbortSignal.timeout(timeoutMs);
+      const signal = options?.signal
+        ? AbortSignal.any([options.signal, timeoutSignal])
+        : timeoutSignal;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -153,7 +169,7 @@ export class OpenAICompatibleAdapter {
           max_tokens: this.config.max_tokens,
           stream: true,
         }),
-        signal: AbortSignal.timeout(this.config.timeoutMs || 60000),
+        signal,
       });
 
       if (!response.ok) {
@@ -187,12 +203,15 @@ export class OpenAICompatibleAdapter {
               if (data === '[DONE]') continue;
 
               try {
-                const json = JSON.parse(data);
-                const choices = (json?.choices as unknown[]) || [];
-                const choiceItem = choices[0] as Record<string, unknown>;
-                const deltaObj = (choiceItem?.delta as Record<string, unknown>) || {};
-                const delta = (deltaObj?.content as string) || '';
-                const reasoningDelta = (deltaObj as any)?.reasoning_content as string | undefined;
+                const json = JSON.parse(data) as unknown;
+                const choices = (json as { choices?: unknown[] } | null | undefined)?.choices;
+                const choiceItem = (Array.isArray(choices) ? choices[0] : undefined) as
+                  | { delta?: Record<string, unknown>; finish_reason?: unknown }
+                  | undefined;
+                const deltaObj = choiceItem?.delta ?? {};
+                const delta = typeof deltaObj?.content === 'string' ? deltaObj.content : '';
+                const reasoningRaw = (deltaObj as Record<string, unknown>)['reasoning_content'];
+                const reasoningDelta = typeof reasoningRaw === 'string' ? reasoningRaw : undefined;
                 if (delta || reasoningDelta) {
                   yield {
                     delta: delta || '',
@@ -213,15 +232,23 @@ export class OpenAICompatibleAdapter {
             const data = buffer.trim().slice(6);
             if (data !== '[DONE]') {
               try {
-                const json = JSON.parse(data);
-                const deltaObj = (json?.choices?.[0]?.delta as any) || {};
-                const delta = (deltaObj?.content as string) || '';
-                const reasoningDelta = deltaObj?.reasoning_content as string | undefined;
+                const json = JSON.parse(data) as unknown;
+                const choices = (json as { choices?: unknown[] } | null | undefined)?.choices;
+                const choiceItem = (Array.isArray(choices) ? choices[0] : undefined) as
+                  | { delta?: Record<string, unknown>; finish_reason?: unknown }
+                  | undefined;
+                const deltaObj = choiceItem?.delta ?? {};
+                const delta = typeof deltaObj?.content === 'string' ? deltaObj.content : '';
+                const reasoningRaw = (deltaObj as Record<string, unknown>)['reasoning_content'];
+                const reasoningDelta = typeof reasoningRaw === 'string' ? reasoningRaw : undefined;
                 if (delta || reasoningDelta) {
                   yield {
                     delta: delta || '',
                     reasoningDelta: reasoningDelta || undefined,
-                    finishReason: json?.choices?.[0]?.finish_reason,
+                    finishReason:
+                      typeof choiceItem?.finish_reason === 'string'
+                        ? choiceItem.finish_reason
+                        : undefined,
                   };
                 }
               } catch (e) {

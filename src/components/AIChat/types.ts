@@ -100,6 +100,7 @@ export interface UseAIChatReturn {
   inputValue: string;
   setInputValue: (value: string) => void;
   sendMessage: (text: string, references?: NoteReference[]) => Promise<void>;
+  abort: () => void;
   clearChat: () => void;
   clearError: () => void;
 }

@@ -270,6 +270,8 @@ contextBridge.exposeInMainWorld('ai', {
     }>,
   chatStream: (payload: ChatPayload) =>
     ipcRenderer.invoke('ai:chatStream', payload) as Promise<{ success: boolean; error?: string }>,
+  abortStream: () =>
+    ipcRenderer.invoke('ai:abortStream') as Promise<{ success: boolean; error?: string }>,
   onStreamChunk: (
     callback: (data: { delta: string; reasoningDelta?: string; finishReason?: string }) => void,
   ) => {
@@ -294,14 +296,14 @@ contextBridge.exposeInMainWorld('ai', {
 
 // --------- Expose Sync API ---------
 contextBridge.exposeInMainWorld('sync', {
-  testConnection: (providerId: string, config: any) =>
+  testConnection: (providerId: string, config: unknown) =>
     ipcRenderer.invoke('sync:testConnection', providerId, config) as Promise<{
       ok: boolean;
       message: string;
     }>,
-  execute: (providerId: string, config: any) =>
-    ipcRenderer.invoke('sync:execute', providerId, config),
-  preview: (providerId: string, config: any) =>
+  execute: (providerId: string, config: unknown) =>
+    ipcRenderer.invoke('sync:execute', providerId, config) as Promise<unknown>,
+  preview: (providerId: string, config: unknown) =>
     ipcRenderer.invoke('sync:preview', providerId, config) as Promise<{
       toUpload: string[];
       toDownload: string[];
@@ -311,19 +313,19 @@ contextBridge.exposeInMainWorld('sync', {
       unchanged: number;
     }>,
   getConfig: (providerId: string) => ipcRenderer.invoke('sync:getConfig', providerId),
-  setConfig: (providerId: string, config: any) =>
+  setConfig: (providerId: string, config: unknown) =>
     ipcRenderer.invoke('sync:setConfig', providerId, config),
   openLogDir: () => ipcRenderer.invoke('sync:openLogDir'),
   getLastResult: () => ipcRenderer.invoke('sync:getLastResult'),
   // 进度回调
-  onProgress: (callback: (progress: any) => void) => {
-    const listener = (_event: unknown, progress: any) => callback(progress);
+  onProgress: (callback: (progress: unknown) => void) => {
+    const listener = (_event: unknown, progress: unknown) => callback(progress);
     ipcRenderer.on('sync:progress', listener);
     return () => ipcRenderer.removeListener('sync:progress', listener);
   },
   // 同步完成回调
-  onCompleted: (callback: (result: any) => void) => {
-    const listener = (_event: unknown, result: any) => callback(result);
+  onCompleted: (callback: (result: unknown) => void) => {
+    const listener = (_event: unknown, result: unknown) => callback(result);
     ipcRenderer.on('sync:completed', listener);
     return () => ipcRenderer.removeListener('sync:completed', listener);
   },

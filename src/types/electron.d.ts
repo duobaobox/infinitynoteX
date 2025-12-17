@@ -13,6 +13,7 @@ declare global {
       testConnection(): Promise<{ ok: boolean; message: string }>;
       chat(payload: ChatPayload): Promise<{ success: boolean; content?: string; error?: string }>;
       chatStream(payload: ChatPayload): Promise<{ success: boolean; error?: string }>;
+      abortStream(): Promise<{ success: boolean; error?: string }>;
       onStreamChunk(
         callback: (data: { delta: string; reasoningDelta?: string; finishReason?: string }) => void,
       ): () => void;

@@ -30,6 +30,7 @@
     "@ant-design/icons": "^5.0.0",
     "@ant-design/x": "^2.1.0",
     "@ant-design/x-markdown": "^2.1.0",
+    "@ant-design/x-sdk": "^2.1.1",
     "@tiptap/core": "^3.13.0",
     "@tiptap/extension-bubble-menu": "^3.13.0",
     "@tiptap/extension-character-count": "^3.13.0",

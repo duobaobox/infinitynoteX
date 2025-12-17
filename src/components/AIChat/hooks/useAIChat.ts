@@ -4,15 +4,12 @@
  * 封装消息管理、流式处理、历史记录加载/保存等逻辑
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useXChat } from '@ant-design/x-sdk';
 import { aiConversationService } from '../../../services';
-import type {
-  ChatItem,
-  NoteReference,
-  UseAIChatReturn,
-  StreamChunkData,
-  StreamErrorPayload,
-} from '../types';
+import type { ChatItem, NoteReference, UseAIChatReturn, StreamChunkData } from '../types';
+import type { AIMessage } from '../../../services/aiConfig';
+import { IpcChatProvider, type IpcStreamInput, type XChatMessage } from '../xsdk/IpcChatProvider';
 
 // AI 对话完整类型（包含 messages）
 interface AIConversationFull {
@@ -57,21 +54,69 @@ export const useAIChat = ({
   useKnowledgeBase = false,
   onTitleChange,
 }: UseAIChatOptions): UseAIChatReturn => {
-  const [chatItems, setChatItems] = useState<ChatItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
-  const [streamingKey, setStreamingKey] = useState<string | null>(null);
 
-  // 追踪当前是否在接收思考内容（使用 ref 避免闭包问题）
-  const isInReasoningRef = useRef(false);
+  const lastRequestHadErrorRef = useRef(false);
+  const prevIsRequestingRef = useRef(false);
+
+  const [provider] = useState(() => new IpcChatProvider());
+
+  const { onRequest, messages, setMessages, isRequesting, abort } = useXChat<
+    XChatMessage,
+    XChatMessage,
+    IpcStreamInput,
+    StreamChunkData
+  >({
+    provider,
+    conversationKey: conversationId || 'default',
+    requestPlaceholder: () => ({
+      role: 'ai',
+      content: '',
+      timestamp: Date.now(),
+    }),
+    requestFallback: (_req, { error: reqError }) => {
+      // Abort is a normal user action; don't raise the global error alert.
+      if (reqError?.name === 'AbortError') {
+        lastRequestHadErrorRef.current = true;
+        return {
+          role: 'ai',
+          content: '已中止',
+          timestamp: Date.now(),
+        };
+      }
+
+      lastRequestHadErrorRef.current = true;
+      const msg = reqError instanceof Error ? reqError.message : String(reqError);
+      setError(msg);
+      return {
+        role: 'ai',
+        content: msg,
+        timestamp: Date.now(),
+      };
+    },
+  });
+
+  const chatItems: ChatItem[] = useMemo(() => {
+    return messages.map((m) => ({
+      key: String(m.id),
+      role: m.message.role,
+      content: m.message.content,
+      timestamp: m.message.timestamp,
+      sources: m.message.sources,
+      references: m.message.references,
+      isStreaming: m.status === 'loading' || m.status === 'updating',
+    }));
+  }, [messages]);
+
+  const isLoading = isRequesting;
 
   // 加载对话历史
   useEffect(() => {
     const loadConversationHistory = async () => {
       if (!conversationId) {
-        setChatItems([]);
+        setMessages([]);
         setIsLoadingHistory(false);
         return;
       }
@@ -88,42 +133,41 @@ export const useAIChat = ({
           onTitleChange?.(conversation.title || 'AI 对话');
 
           if (conversation.messages && conversation.messages.length > 0) {
-            // 转换存储格式到 ChatItem 格式
-            const items: ChatItem[] = conversation.messages.map((msg, index) => {
+            const infos = conversation.messages.map((msg, index) => {
               let content = msg.content;
-
-              // 如果有 reasoning,将其包装为 <think> 标签
-              // 将空行替换为单换行，避免 marked 段落拆分
               if (msg.reasoning) {
                 const sanitizedReasoning = msg.reasoning.replace(/\n\n+/g, '\n');
                 content = `<think>${sanitizedReasoning}</think>\n${msg.content}`;
               }
 
               return {
-                key: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
-                role: msg.role === 'assistant' ? 'ai' : 'user',
-                content,
-                timestamp: msg.timestamp ?? Date.now(),
-                sources: msg.sources,
+                id: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
+                status: 'success' as const,
+                message: {
+                  role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
+                  content,
+                  timestamp: msg.timestamp ?? Date.now(),
+                  sources: msg.sources,
+                },
               };
             });
-            setChatItems(items);
+            setMessages(infos);
           } else {
-            setChatItems([]);
+            setMessages([]);
           }
         } else {
-          setChatItems([]);
+          setMessages([]);
         }
       } catch (err) {
         console.error('Failed to load conversation history:', err);
-        setChatItems([]);
+        setMessages([]);
       } finally {
         setIsLoadingHistory(false);
       }
     };
 
     loadConversationHistory();
-  }, [conversationId, onTitleChange]);
+  }, [conversationId, onTitleChange, setMessages]);
 
   // 保存对话历史
   const saveConversationHistory = useCallback(
@@ -157,89 +201,18 @@ export const useAIChat = ({
     [conversationId],
   );
 
-  // 监听 IPC 流式事件
+  // 请求结束后保存一次
   useEffect(() => {
-    const unsubscribeChunk = window.ai?.onStreamChunk?.((data: StreamChunkData) => {
-      if (streamingKey) {
-        setChatItems((prev) =>
-          prev.map((item) => {
-            if (item.key !== streamingKey) return item;
-
-            let newContent = item.content;
-
-            // 处理思维链增量
-            if (data.reasoningDelta) {
-              // 将空行（\n\n）替换为单换行（\n），避免 marked 将内容拆分为多个段落
-              const sanitizedReasoning = data.reasoningDelta.replace(/\n\n+/g, '\n');
-              if (!isInReasoningRef.current) {
-                // 首次接收到思维链，创建 <think> 标签
-                isInReasoningRef.current = true;
-                newContent += `<think>${sanitizedReasoning}`;
-              } else {
-                // 继续追加思考内容
-                newContent += sanitizedReasoning;
-              }
-            }
-
-            // 处理普通内容增量
-            if (data.delta) {
-              if (isInReasoningRef.current) {
-                // 从思考模式切换到正式内容，先闭合 <think> 标签
-                // 使用单个换行符（与官方示例一致）
-                isInReasoningRef.current = false;
-                newContent += `</think>\n${data.delta}`;
-              } else {
-                // 直接追加内容
-                newContent += data.delta;
-              }
-            }
-
-            return { ...item, content: newContent };
-          }),
-        );
-      }
-    });
-
-    const unsubscribeDone = window.ai?.onStreamDone?.(() => {
-      if (streamingKey) {
-        setChatItems((prev) => {
-          const updated = prev.map((item) => {
-            if (item.key !== streamingKey) return item;
-
-            let content = item.content;
-            // 如果流结束时仍在思考模式，闭合 <think> 标签
-            if (isInReasoningRef.current) {
-              content += '</think>';
-            }
-
-            return { ...item, content, isStreaming: false };
-          });
-          // 异步保存对话历史（不阻塞状态更新）
-          saveConversationHistory(updated).catch((err) => {
-            console.error('[AI] Failed to save conversation:', err);
-          });
-          return updated;
+    const prev = prevIsRequestingRef.current;
+    if (prev && !isRequesting) {
+      if (!lastRequestHadErrorRef.current) {
+        saveConversationHistory(chatItems).catch((err) => {
+          console.error('[AI] Failed to save conversation:', err);
         });
       }
-      // 重置状态
-      isInReasoningRef.current = false;
-      setStreamingKey(null);
-      setIsLoading(false);
-    });
-
-    const unsubscribeError = window.ai?.onStreamError?.((data: StreamErrorPayload) => {
-      setError(data.error || '流式传输出错');
-      isInReasoningRef.current = false;
-      setStreamingKey(null);
-      setIsLoading(false);
-    });
-
-    return () => {
-      unsubscribeChunk?.();
-      unsubscribeDone?.();
-      unsubscribeError?.();
-    };
-  }, [streamingKey, saveConversationHistory]);
+    }
+    prevIsRequestingRef.current = isRequesting;
+  }, [isRequesting, chatItems, saveConversationHistory]);
 
   // 发送消息
   const sendMessage = useCallback(
@@ -248,33 +221,8 @@ export const useAIChat = ({
 
       // 清空输入框
       setInputValue('');
-
-      const userItem: ChatItem = {
-        key: `u-${Date.now()}-${Math.random()}`,
-        role: 'user',
-        content: text,
-        timestamp: Date.now(),
-        references, // 保存用户引用的便签
-      };
-      const newChatItems = [...chatItems, userItem];
-      setChatItems(newChatItems);
       setError(null);
-      setIsLoading(true);
-
-      // 创建 AI 气泡占位符
-      const aiKey = `a-${Date.now()}-${Math.random()}`;
-      const aiItem: ChatItem = {
-        key: aiKey,
-        role: 'ai',
-        content: '',
-        timestamp: Date.now(),
-        isStreaming: true,
-      };
-      const updatedChatItems = [...newChatItems, aiItem];
-      setChatItems(updatedChatItems);
-      setStreamingKey(aiKey);
-      // 重置思考状态追踪
-      isInReasoningRef.current = false;
+      lastRequestHadErrorRef.current = false;
 
       // RAG 增强：检索知识库
       let ragContext = '';
@@ -300,50 +248,50 @@ export const useAIChat = ({
         }
       }
 
-      // 更新 AI 气泡，附加来源信息
-      if (ragSources.length > 0) {
-        setChatItems((prev) =>
-          prev.map((item) => (item.key === aiKey ? { ...item, sources: ragSources } : item)),
-        );
-      }
-
-      // 调用流式 API
       try {
-        // 构建消息，如果有 RAG 上下文则注入到系统提示
-        const messagesWithRAG = chatItems.map((m) => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.content,
-        }));
+        const stripThink = (content: string): { content: string; reasoning?: string } => {
+          const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+          const reasoning = thinkMatch ? thinkMatch[1].trim() : undefined;
+          const cleaned = thinkMatch
+            ? content.replace(/<think>[\s\S]*?<\/think>\s*/, '').trim()
+            : content;
+          return { content: cleaned, reasoning };
+        };
 
-        // 如果有 RAG 上下文，注入到最后一条用户消息中
+        const historyMessages: AIMessage[] = chatItems
+          .filter((m) => !m.isStreaming)
+          .map((m) => {
+            const parsed = stripThink(m.content);
+            return {
+              role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+              content: parsed.content,
+            };
+          });
+
         const messageWithContext = ragContext ? text + ragContext : text;
 
-        const payload = {
+        onRequest({
+          text,
           message: messageWithContext,
-          messages: messagesWithRAG,
-        };
-        const result = await window.ai.chatStream(payload);
-        if (!result?.success) {
-          throw new Error(result?.error || '流式请求失败');
-        }
+          messages: historyMessages,
+          ragSources: ragSources.length > 0 ? ragSources : undefined,
+          references,
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
-        // 移除失败的 AI 气泡
-        setChatItems((prev) => prev.filter((item) => item.key !== aiKey));
-        setStreamingKey(null);
-        setIsLoading(false);
+        lastRequestHadErrorRef.current = true;
       }
     },
-    [chatItems, isConfigured, useKnowledgeBase],
+    [chatItems, isConfigured, onRequest, useKnowledgeBase],
   );
 
   // 清空对话
   const clearChat = useCallback(() => {
-    setChatItems([]);
+    setMessages([]);
     setError(null);
     saveConversationHistory([]);
-  }, [saveConversationHistory]);
+  }, [saveConversationHistory, setMessages]);
 
   // 清除错误
   const clearError = useCallback(() => {
@@ -358,6 +306,7 @@ export const useAIChat = ({
     inputValue,
     setInputValue,
     sendMessage,
+    abort,
     clearChat,
     clearError,
   };

@@ -46,7 +46,12 @@ import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService, folderService } from '../../../services';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { useAIConfig, useAIChat } from '../hooks';
-import { renderMarkdownToHtml, convertMarkdownToTipTap, copyToClipboard } from '../utils';
+import {
+  renderMarkdownToHtml,
+  convertMarkdownToTipTap,
+  copyToClipboard,
+  stripThinkBlocks,
+} from '../utils';
 import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
 
@@ -252,8 +257,11 @@ export const AIChatPanel = ({
   // 保存到便签
   const handleSaveToNote = useCallback(async (content: string) => {
     try {
-      const tipTapContent = convertMarkdownToTipTap(content);
-      const firstLine = content.split('\n')[0].trim();
+      const exported = stripThinkBlocks(content);
+      const tipTapContent = convertMarkdownToTipTap(exported);
+      // 标题从“回答正文”提取
+      const titleSource = exported;
+      const firstLine = (titleSource.split('\n').find((l) => l.trim().length > 0) || '').trim();
       const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
 
       await noteService.createNote('default', {
@@ -271,7 +279,7 @@ export const AIChatPanel = ({
   // 复制回答
   const handleCopyAnswer = useCallback(
     (item: ChatItem) => {
-      const textToCopy = item.content?.trim();
+      const textToCopy = stripThinkBlocks(item.content || '');
       if (!textToCopy) {
         message.info('暂无可复制内容');
         return;

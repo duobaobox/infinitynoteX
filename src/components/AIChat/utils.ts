@@ -19,6 +19,19 @@ const createTempEditor = () => {
 };
 
 /**
+ * 导出用：去掉 <think> 思考内容。
+ * 用于“复制回答 / 保存到便签”等场景，避免把思考过程写入外部内容。
+ */
+export const stripThinkBlocks = (markdown: string): string => {
+  if (!markdown) return '';
+
+  const removedClosed = markdown.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
+  // 容错：未闭合的 <think>，直接从 <think> 起丢弃到结尾
+  const removedOpen = removedClosed.replace(/<think>[\s\S]*/g, '');
+  return removedOpen.trim();
+};
+
+/**
  * 将 Markdown 转换为 HTML
  * 使用 TipTap 的 Markdown 扩展进行转换
  */

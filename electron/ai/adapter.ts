@@ -184,6 +184,7 @@ export class OpenAICompatibleAdapter {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let receivedDone = false;
 
       try {
         while (true) {
@@ -200,7 +201,10 @@ export class OpenAICompatibleAdapter {
 
             if (trimmed.startsWith('data: ')) {
               const data = trimmed.slice(6);
-              if (data === '[DONE]') continue;
+              if (data === '[DONE]') {
+                receivedDone = true;
+                break;
+              }
 
               try {
                 const json = JSON.parse(data) as unknown;
@@ -224,10 +228,12 @@ export class OpenAICompatibleAdapter {
               }
             }
           }
+
+          if (receivedDone) break;
         }
 
         // 处理剩余缓冲区
-        if (buffer.trim() && buffer.trim() !== ':') {
+        if (!receivedDone && buffer.trim() && buffer.trim() !== ':') {
           if (buffer.trim().startsWith('data: ')) {
             const data = buffer.trim().slice(6);
             if (data !== '[DONE]') {

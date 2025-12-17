@@ -64,6 +64,7 @@
 .ai-chat-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   /* Firefox 滚动条 */
   scrollbar-width: thin;
@@ -116,21 +117,19 @@
 }
 
 /**
- * AI 气泡填满剩余宽度
- * 针对 placement="start" 的气泡（AI 回答），使其内容区域填满剩余空间
- * 用户气泡（placement="end"）保持原有的内容宽度
+ * 气泡宽度规范（跟随 Ant Design X 默认行为）
+ * - 不强制 AI 气泡占满整行，避免撑出容器导致横向滚动条
+ * - 限制最大宽度并启用文本换行
  */
-.ai-chat-messages .ant-bubble-start {
-  width: 100%;
+.ai-chat-messages .ant-bubble,
+.ai-chat-messages .ant-bubble-body,
+.ai-chat-messages .ant-bubble-content {
+  max-width: 100%;
 }
 
-.ai-chat-messages .ant-bubble-start .ant-bubble-body {
-  flex: 1;
-  max-width: none;
-}
-
-.ai-chat-messages .ant-bubble-start .ant-bubble-content {
-  max-width: none;
+.ai-chat-messages .ant-bubble-content {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /**

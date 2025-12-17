@@ -76,13 +76,16 @@ export const useAIChat = ({
       content: '',
       timestamp: Date.now(),
     }),
-    requestFallback: (_req, { error: reqError }) => {
+    requestFallback: (_req, { error: reqError, messageInfo }) => {
       // Abort is a normal user action; don't raise the global error alert.
       if (reqError?.name === 'AbortError') {
         lastRequestHadErrorRef.current = true;
+        const partial = (messageInfo as { message?: { content?: unknown } } | undefined)?.message
+          ?.content;
         return {
           role: 'ai',
-          content: '已中止',
+          // Keep the partial streamed content when user aborts (Ant Design X official pattern)
+          content: typeof partial === 'string' && partial.trim() ? partial : '已中止',
           timestamp: Date.now(),
         };
       }

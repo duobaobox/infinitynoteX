@@ -22,12 +22,6 @@ interface AIConversationFull {
     content: string;
     timestamp: number;
     reasoning?: string;
-    sources?: Array<{
-      noteId: string;
-      noteTitle: string;
-      excerpt: string;
-      score: number;
-    }>;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -107,7 +101,6 @@ export const useAIChat = ({
       role: m.message.role,
       content: m.message.content,
       timestamp: m.message.timestamp,
-      sources: m.message.sources,
       references: m.message.references,
       isStreaming: m.status === 'loading' || m.status === 'updating',
     }));
@@ -150,7 +143,6 @@ export const useAIChat = ({
                   role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
                   content,
                   timestamp: msg.timestamp ?? Date.now(),
-                  sources: msg.sources,
                 },
               };
             });
@@ -192,7 +184,6 @@ export const useAIChat = ({
             content,
             timestamp: item.timestamp ?? Date.now(),
             reasoning,
-            sources: item.sources,
           };
         });
 
@@ -229,19 +220,12 @@ export const useAIChat = ({
 
       // RAG 增强：检索知识库
       let ragContext = '';
-      let ragSources: Array<{
-        noteId: string;
-        noteTitle: string;
-        excerpt: string;
-        score: number;
-      }> = [];
 
       if (useKnowledgeBase) {
         try {
           const searchResults = await window.knowledge?.search(text, 3);
           if (searchResults && searchResults.length > 0) {
-            ragSources = searchResults;
-            ragContext = '\n\n以下是与用户问题相关的笔记内容，请参考回答：\n\n';
+            ragContext = '\n\n以下是与用户问题相关的笔记内容：\n\n';
             searchResults.forEach((result, index) => {
               ragContext += `[来源 ${index + 1}: ${result.noteTitle}]\n${result.excerpt}\n\n`;
             });
@@ -277,7 +261,6 @@ export const useAIChat = ({
           text,
           message: messageWithContext,
           messages: historyMessages,
-          ragSources: ragSources.length > 0 ? ragSources : undefined,
           references,
         });
       } catch (e) {

@@ -3,13 +3,12 @@ import type { XRequestOptions } from '@ant-design/x-sdk';
 
 import { IpcStreamXRequest } from './IpcStreamXRequest';
 import type { ChatPayload, AIMessage } from '../../../services/aiConfig';
-import type { KnowledgeSource, NoteReference, StreamChunkData } from '../types';
+import type { NoteReference, StreamChunkData } from '../types';
 
 export type XChatMessage = {
   role: 'user' | 'ai';
   content: string;
   timestamp: number;
-  sources?: KnowledgeSource[];
   references?: NoteReference[];
 };
 
@@ -22,8 +21,6 @@ export type XChatMessage = {
 export type IpcStreamInput = ChatPayload & {
   /** The user-visible text (may include note context that UI later strips). */
   text: string;
-  /** Optional knowledge sources to display on the assistant message. */
-  ragSources?: KnowledgeSource[];
   /** Optional note references to show as FileCard for the user message. */
   references?: NoteReference[];
   /** Alias for legacy naming, if provided. */
@@ -69,8 +66,6 @@ export class IpcChatProvider extends AbstractChatProvider<
   IpcStreamInput,
   StreamChunkData
 > {
-  private currentSources: KnowledgeSource[] | undefined;
-
   constructor() {
     super({
       // baseURL is unused for IPC requests; required by AbstractXRequestClass
@@ -88,13 +83,10 @@ export class IpcChatProvider extends AbstractChatProvider<
     const message = requestParams.message ?? '';
     const messages = requestParams.messages ?? requestParams.historyMessages ?? [];
 
-    this.currentSources = requestParams.ragSources;
-
     return {
       message,
       messages,
       text: requestParams.text ?? '',
-      ragSources: requestParams.ragSources,
       references: requestParams.references,
     };
   }
@@ -124,9 +116,8 @@ export class IpcChatProvider extends AbstractChatProvider<
           timestamp: Date.now(),
         };
 
-    // Ensure assistant role and carry over sources for the whole response
+    // Ensure assistant role
     base.role = 'ai';
-    base.sources = this.currentSources;
 
     // Streaming update
     if (info.chunk) {

@@ -10,7 +10,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { XMarkdown, type ComponentProps } from '@ant-design/x-markdown';
 import type { XMarkdownProps } from '@ant-design/x-markdown';
-import { Mermaid, Think } from '@ant-design/x';
+import { CodeHighlighter, Mermaid, Think } from '@ant-design/x';
 import '@ant-design/x-markdown/themes/light.css';
 
 export interface MarkdownRendererProps {
@@ -25,16 +25,30 @@ export interface MarkdownRendererProps {
 const Code: React.FC<ComponentProps> = (props) => {
   const { className, children } = props;
   const lang = className?.match(/language-(\w+)/)?.[1] || '';
+  const inline = Boolean((props as { inline?: boolean } | undefined)?.inline);
 
-  if (typeof children !== 'string') return null;
+  const codeText = Array.isArray(children)
+    ? children.join('')
+    : typeof children === 'string'
+      ? children
+      : children == null
+        ? ''
+        : String(children);
+
+  if (!codeText) return null;
 
   // Mermaid 图表 - 使用官方 Mermaid 组件
   if (lang === 'mermaid') {
-    return <Mermaid>{children}</Mermaid>;
+    return <Mermaid>{codeText}</Mermaid>;
   }
 
-  // 普通代码块
-  return <code className={className}>{children}</code>;
+  // 行内代码保持原样
+  if (inline) {
+    return <code className={className}>{codeText}</code>;
+  }
+
+  // 代码块使用官方 CodeHighlighter（带语言头部 + 复制）
+  return <CodeHighlighter lang={lang || undefined}>{codeText}</CodeHighlighter>;
 };
 
 /**

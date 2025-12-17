@@ -3,16 +3,6 @@
  */
 
 /**
- * 知识库来源引用
- */
-export interface KnowledgeSource {
-  noteId: string;
-  noteTitle: string;
-  excerpt: string;
-  score: number;
-}
-
-/**
  * 便签引用（用户引用的便签）
  */
 export interface NoteReference {
@@ -32,8 +22,6 @@ export interface ChatItem {
   content: string; // 包含 <think> 标签的完整内容
   timestamp: number;
   isStreaming?: boolean;
-  /** 知识库来源引用（仅 AI 消息） */
-  sources?: KnowledgeSource[];
   /** 用户引用的便签（仅用户消息） */
   references?: NoteReference[];
 }

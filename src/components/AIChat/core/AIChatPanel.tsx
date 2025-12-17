@@ -41,7 +41,6 @@ import {
   BulbOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { SourceCard } from '../components/SourceCard';
 import { getProviderBrandColor } from '../../../services/aiProviders';
 import { noteService, folderService } from '../../../services';
 import { useSettingsStore } from '../../../store/settingsStore';
@@ -397,16 +396,6 @@ export const AIChatPanel = ({
                   />
                 ))}
               </div>
-            )}
-            {/* AI 消息显示知识库来源 */}
-            {m.role === 'ai' && m.sources && m.sources.length > 0 && !m.isStreaming && (
-              <SourceCard
-                sources={m.sources}
-                onSourceClick={(noteId) => {
-                  // TODO: 跳转到笔记
-                  message.info(`跳转到笔记: ${noteId}`);
-                }}
-              />
             )}
           </>
         );

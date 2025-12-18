@@ -219,16 +219,30 @@ export const useAIChat = ({
       lastRequestHadErrorRef.current = false;
 
       // RAG 增强：检索知识库
-      let ragContext = '';
+      let ragContext:
+        | {
+            results: Array<{
+              noteId: string;
+              noteTitle: string;
+              excerpt: string;
+              score: number;
+            }>;
+          }
+        | undefined;
 
       if (useKnowledgeBase) {
         try {
           const searchResults = await window.knowledge?.search(text, 3);
           if (searchResults && searchResults.length > 0) {
-            ragContext = '\n\n以下是与用户问题相关的笔记内容：\n\n';
-            searchResults.forEach((result, index) => {
-              ragContext += `[来源 ${index + 1}: ${result.noteTitle}]\n${result.excerpt}\n\n`;
-            });
+            ragContext = {
+              results: searchResults.map((r) => ({
+                noteId: r.noteId,
+                noteTitle: r.noteTitle,
+                excerpt: r.excerpt,
+                score: r.score,
+              })),
+            };
+            console.log('[RAG] Found', searchResults.length, 'relevant notes');
           }
         } catch (err) {
           console.warn('[RAG] Knowledge search failed:', err);
@@ -255,13 +269,12 @@ export const useAIChat = ({
             };
           });
 
-        const messageWithContext = ragContext ? text + ragContext : text;
-
         onRequest({
           text,
-          message: messageWithContext,
+          message: text, // 用户原始消息，不再拼接 RAG 上下文
           messages: historyMessages,
           references,
+          ragContext, // 结构化的 RAG 上下文
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

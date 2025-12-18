@@ -31,6 +31,27 @@ export class OpenAICompatibleAdapter {
   }
 
   /**
+   * 构建 RAG 上下文的系统提示词
+   */
+  private buildRagContextPrompt(ragContext: NonNullable<ChatPayload['ragContext']>): string {
+    const { results } = ragContext;
+
+    const formattedResults = results
+      .map((r, i) => `### [来源 ${i + 1}] ${r.noteTitle}\n${r.excerpt}`)
+      .join('\n\n---\n\n');
+
+    return `## 参考资料（来自用户知识库，共 ${results.length} 条）
+
+请优先基于以下参考资料回答用户问题。引用时请使用 [来源 X] 格式标注。
+如果参考资料中没有相关信息，请诚实告知用户。
+
+${formattedResults}
+
+---
+**注意**：以上内容来自用户的个人笔记。请准确引用，不要编造不存在的信息。`;
+  }
+
+  /**
    * 测试连接
    */
   async testConnection(): Promise<ConnectionTestResult> {
@@ -79,10 +100,17 @@ export class OpenAICompatibleAdapter {
    */
   async chat(payload: ChatPayload): Promise<ChatResponse> {
     const messages: AIMessage[] = [
+      // 1. 用户配置的系统提示词
       ...(this.config.systemPrompt
         ? [{ role: 'system' as const, content: this.config.systemPrompt }]
         : []),
+      // 2. RAG 上下文作为独立系统消息（如果有）
+      ...(payload.ragContext && payload.ragContext.results.length > 0
+        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
+        : []),
+      // 3. 历史消息
       ...payload.messages,
+      // 4. 当前用户消息
       { role: 'user' as const, content: payload.message },
     ];
 
@@ -142,10 +170,17 @@ export class OpenAICompatibleAdapter {
     },
   ): AsyncGenerator<StreamChunk, void> {
     const messages: AIMessage[] = [
+      // 1. 用户配置的系统提示词
       ...(this.config.systemPrompt
         ? [{ role: 'system' as const, content: this.config.systemPrompt }]
         : []),
+      // 2. RAG 上下文作为独立系统消息（如果有）
+      ...(payload.ragContext && payload.ragContext.results.length > 0
+        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
+        : []),
+      // 3. 历史消息
       ...payload.messages,
+      // 4. 当前用户消息（不再拼接 RAG 上下文）
       { role: 'user' as const, content: payload.message },
     ];
 

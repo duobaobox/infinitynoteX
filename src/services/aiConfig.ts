@@ -52,6 +52,15 @@ export interface ChatPayload {
   messages: AIMessage[];
   message: string; // 当前用户消息
   stream?: boolean;
+  /** RAG 检索上下文（可选） */
+  ragContext?: {
+    results: Array<{
+      noteId: string;
+      noteTitle: string;
+      excerpt: string;
+      score: number;
+    }>;
+  };
 }
 
 /**

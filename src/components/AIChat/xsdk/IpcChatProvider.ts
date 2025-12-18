@@ -88,6 +88,7 @@ export class IpcChatProvider extends AbstractChatProvider<
       messages,
       text: requestParams.text ?? '',
       references: requestParams.references,
+      ragContext: requestParams.ragContext, // 传递 RAG 上下文
     };
   }
 

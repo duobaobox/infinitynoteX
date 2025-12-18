@@ -10,6 +10,12 @@ export type XChatMessage = {
   content: string;
   timestamp: number;
   references?: NoteReference[];
+  ragSources?: Array<{
+    key: number;
+    title: string;
+    description?: string;
+    noteId?: string;
+  }>;
 };
 
 /**

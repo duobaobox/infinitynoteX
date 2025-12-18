@@ -101,6 +101,16 @@ export const AIMessageSchema = z.object({
   content: z.string(),
   timestamp: z.number(),
   reasoning: z.string().optional(),
+  ragSources: z
+    .array(
+      z.object({
+        key: z.number(),
+        title: z.string(),
+        description: z.string().optional(),
+        noteId: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const AIConversationSchema = z.object({

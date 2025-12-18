@@ -12,6 +12,12 @@ export interface AIMessage {
   content: string;
   timestamp: number;
   reasoning?: string;
+  ragSources?: Array<{
+    key: number;
+    title: string;
+    description?: string;
+    noteId?: string;
+  }>;
 }
 
 class AIConversationService {

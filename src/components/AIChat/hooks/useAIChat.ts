@@ -22,6 +22,12 @@ interface AIConversationFull {
     content: string;
     timestamp: number;
     reasoning?: string;
+    ragSources?: Array<{
+      key: number;
+      title: string;
+      description?: string;
+      noteId?: string;
+    }>;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -109,8 +115,10 @@ export const useAIChat = ({
         timestamp: m.message.timestamp,
         references: m.message.references,
         isStreaming,
-        // AI 回复消息附加当前的 RAG sources
-        ragSources: isAiMessage ? currentRagSourcesRef.current : undefined,
+        // AI 回复消息的 RAG sources：优先使用消息自带的（历史消息），否则使用当前 ref（流式消息）
+        ragSources: isAiMessage
+          ? (m.message.ragSources ?? currentRagSourcesRef.current)
+          : undefined,
       };
     });
   }, [messages]);
@@ -152,6 +160,8 @@ export const useAIChat = ({
                   role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
                   content,
                   timestamp: msg.timestamp ?? Date.now(),
+                  // 从存储中恢复 RAG 来源引用
+                  ragSources: msg.ragSources,
                 },
               };
             });
@@ -193,6 +203,8 @@ export const useAIChat = ({
             content,
             timestamp: item.timestamp ?? Date.now(),
             reasoning,
+            // 保存 RAG 来源引用（仅 AI 消息有）
+            ragSources: item.ragSources,
           };
         });
 

@@ -42,6 +42,13 @@ export interface AIMessageData {
   content: string;
   timestamp: number;
   reasoning?: string;
+  /** RAG 检索来源（仅 AI 回复消息） */
+  ragSources?: Array<{
+    key: number;
+    title: string;
+    description?: string;
+    noteId?: string;
+  }>;
 }
 
 /**

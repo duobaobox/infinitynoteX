@@ -26,28 +26,154 @@ export type {
 // ============ TipTap JSON 转文本 ============
 
 /**
- * 递归提取 TipTap JSON 中的纯文本
+ * 递归提取 TipTap JSON 转换为 Markdown 文本
+ * 优化：保留语义标记，提升向量检索效果
+ *
+ * 支持的节点类型：
+ * - 文本样式: bold, code, underline, strike, highlight, subscript, superscript
+ * - 块元素: heading, paragraph, codeBlock, blockquote, hardBreak, horizontalRule
+ * - 列表: bulletList, orderedList, listItem, taskList, taskItem
+ * - 表格: table, tableRow, tableCell, tableHeader
+ * - 链接和图片: link, image
  */
 function extractTextFromTipTap(node: any): string {
   if (!node) return '';
 
-  // 文本节点
+  // ============ 文本节点 ============
   if (node.type === 'text' && typeof node.text === 'string') {
-    return node.text;
+    let text = node.text;
+
+    if (node.marks && Array.isArray(node.marks)) {
+      // 粗体：重点内容
+      if (node.marks.some((m: any) => m.type === 'bold')) {
+        text = `**${text}**`;
+      }
+      // 行内代码：技术术语
+      if (node.marks.some((m: any) => m.type === 'code')) {
+        text = `\`${text}\``;
+      }
+      // 删除线：保留（可能是重要的对比信息）
+      if (node.marks.some((m: any) => m.type === 'strike')) {
+        text = `~~${text}~~`;
+      }
+      // 其他标记（斜体、下划线、高亮、上下标）对检索帮助不大，不保留
+    }
+    return text;
   }
 
-  // 代码块 - 保留代码内容
-  if (node.type === 'codeBlock' && node.content) {
-    const code = node.content.map((c: any) => c.text || '').join('');
-    return `\n${code}\n`;
+  // ============ 块级元素 ============
+
+  // 标题
+  if (node.type === 'heading') {
+    const level = node.attrs?.level || 1;
+    const headingText = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('')
+      : '';
+    return `\n\n${'#'.repeat(level)} ${headingText}\n\n`;
   }
 
-  // 递归处理子节点
+  // 代码块
+  if (node.type === 'codeBlock') {
+    const lang = node.attrs?.language || '';
+    const code = Array.isArray(node.content)
+      ? node.content.map((c: any) => c.text || '').join('')
+      : '';
+    return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+  }
+
+  // 引用块
+  if (node.type === 'blockquote') {
+    const quoteText = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('')
+      : '';
+    return `\n> ${quoteText.trim()}\n`;
+  }
+
+  // 硬换行
+  if (node.type === 'hardBreak') {
+    return '\n';
+  }
+
+  // 水平线
+  if (node.type === 'horizontalRule') {
+    return '\n---\n';
+  }
+
+  // ============ 列表元素 ============
+
+  // 无序列表项
+  if (node.type === 'listItem') {
+    const itemText = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('').trim()
+      : '';
+    return `- ${itemText}\n`;
+  }
+
+  // 任务列表项
+  if (node.type === 'taskItem') {
+    const checked = node.attrs?.checked || false;
+    const itemText = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('').trim()
+      : '';
+    return `- [${checked ? 'x' : ' '}] ${itemText}\n`;
+  }
+
+  // ============ 表格元素 ============
+
+  // 表格
+  if (node.type === 'table') {
+    const rows = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('')
+      : '';
+    return `\n${rows}\n`;
+  }
+
+  // 表格行
+  if (node.type === 'tableRow') {
+    const cells = Array.isArray(node.content) ? node.content.map(extractTextFromTipTap) : [];
+    return `| ${cells.join(' | ')} |\n`;
+  }
+
+  // 表格单元格
+  if (node.type === 'tableCell' || node.type === 'tableHeader') {
+    return Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('').trim()
+      : '';
+  }
+
+  // ============ 内联元素 ============
+
+  // 链接（仅保留文本，不保留 URL）
+  if (node.type === 'link') {
+    const linkText = Array.isArray(node.content)
+      ? node.content.map(extractTextFromTipTap).join('')
+      : '';
+    // 可选：保留 URL（如果对检索有帮助）
+    // const url = node.attrs?.href || '';
+    // return `[${linkText}](${url})`;
+    return linkText;
+  }
+
+  // 图片（提取 alt 文本和标题）
+  if (node.type === 'image') {
+    const alt = node.attrs?.alt || '';
+    const title = node.attrs?.title || '';
+    // 保留图片描述信息，帮助检索
+    if (alt || title) {
+      return `[图片: ${alt || title}] `;
+    }
+    return '';
+  }
+
+  // ============ 容器元素递归处理 ============
+
   if (Array.isArray(node.content)) {
     const texts = node.content.map(extractTextFromTipTap);
 
-    // 块级元素添加换行
-    if (['paragraph', 'heading', 'listItem', 'blockquote'].includes(node.type)) {
+    // 块级容器添加换行
+    const blockTypes = ['paragraph', 'doc', 'bulletList', 'orderedList', 'taskList'];
+
+    if (blockTypes.includes(node.type)) {
       return texts.join('') + '\n';
     }
 
@@ -58,7 +184,10 @@ function extractTextFromTipTap(node: any): string {
 }
 
 /**
- * 从笔记内容提取纯文本
+ * 从笔记内容提取 Markdown 文本
+ *
+ * 注意：TipTap 的 Markdown 扩展需要 Editor 实例，无法在 Electron 后端直接使用。
+ * 因此这里使用优化后的手动转换器，保留关键的 Markdown 标记，提升向量检索效果。
  */
 export function extractNoteText(content: any): string {
   if (!content || typeof content !== 'object') {
@@ -79,6 +208,7 @@ interface TextChunk {
 
 /**
  * 将文本分割成固定大小的块（带重叠）
+ * 优化：智能边界检测，避免截断重要结构
  */
 export function chunkText(
   text: string,
@@ -101,12 +231,39 @@ export function chunkText(
   while (start < text.length) {
     let end = start + chunkSize;
 
-    // 尝试在句子边界切分
+    // 尝试在更智能的边界切分
     if (end < text.length) {
-      const slice = text.slice(start, end + 50);
-      const sentenceEnd = slice.search(/[。！？.!?]\s*/);
-      if (sentenceEnd > chunkSize * 0.5) {
-        end = start + sentenceEnd + 1;
+      const searchRange = Math.min(100, chunkSize * 0.3); // 在 30% 范围内寻找边界
+      const slice = text.slice(start, end + searchRange);
+
+      // 优先级1: 双换行（段落边界）
+      const paragraphEnd = slice.lastIndexOf('\n\n');
+      if (paragraphEnd > chunkSize * 0.5) {
+        end = start + paragraphEnd + 2;
+      } else {
+        // 优先级2: 句子边界（更完善的标点检测）
+        const sentenceRegex = /[。！？.!?]["']?\s+/g;
+        let lastSentenceEnd = -1;
+        let match;
+
+        while ((match = sentenceRegex.exec(slice)) !== null) {
+          if (match.index > chunkSize * 0.5 && match.index <= chunkSize) {
+            lastSentenceEnd = match.index + match[0].length;
+          }
+        }
+
+        if (lastSentenceEnd > 0) {
+          end = start + lastSentenceEnd;
+        } else {
+          // 优先级3: 单换行或逗号
+          const lineEnd = slice.lastIndexOf('\n', chunkSize);
+          const commaEnd = slice.lastIndexOf('，', chunkSize);
+          const fallbackEnd = Math.max(lineEnd, commaEnd);
+
+          if (fallbackEnd > chunkSize * 0.5) {
+            end = start + fallbackEnd + 1;
+          }
+        }
       }
     }
 
@@ -117,6 +274,11 @@ export function chunkText(
     }
 
     start = end - chunkOverlap;
+
+    // 防止死循环：如果没有前进，强制前进
+    if (start <= chunks[chunks.length - 1]?.text.length || start >= text.length) {
+      start = end;
+    }
   }
 
   return chunks;
@@ -251,6 +413,8 @@ export async function indexNote(
 
           batchItems.push({ id: vectorId, embedding: vector, metadata });
           indexedCount++;
+        } else {
+          console.warn(`[KnowledgeIndex] Empty vector for chunk ${chunk.index}, skipping`);
         }
       }
 
@@ -273,6 +437,31 @@ export async function indexNote(
         );
         await delay(config.rateLimitRetryMs);
         i -= config.batchSize; // 回退重试当前批次
+      } else if (batchTexts.length > 1) {
+        // 非速率限制错误：降级为单个处理（错误隔离）
+        console.log(`[KnowledgeIndex] Batch failed, falling back to individual processing...`);
+        for (let j = 0; j < batchChunks.length; j++) {
+          try {
+            const chunk = batchChunks[j];
+            const vector = await embeddingService.embed(chunk.text);
+            if (vector && vector.length > 0) {
+              const vectorId = `${noteId}-${chunk.index}`;
+              const metadata: VectorMetadata = {
+                noteId,
+                noteTitle: title,
+                chunkIndex: chunk.index,
+                content: chunk.text.slice(0, 200),
+              };
+              store.upsert(vectorId, vector, metadata);
+              indexedCount++;
+            }
+          } catch (singleError) {
+            console.error(
+              `[KnowledgeIndex] Failed to embed single chunk ${batchChunks[j].index}:`,
+              singleError,
+            );
+          }
+        }
       }
     }
   }

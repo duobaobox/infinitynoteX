@@ -240,8 +240,10 @@ export const useAIChat = ({
         | undefined;
 
       if (useKnowledgeBase) {
+        console.log('[RAG] Knowledge base enabled, searching for:', text);
         try {
           const searchResults = await window.knowledge?.search(text, 3);
+          console.log('[RAG] Search results:', searchResults);
           if (searchResults && searchResults.length > 0) {
             ragContext = {
               results: searchResults.map((r) => ({
@@ -258,8 +260,14 @@ export const useAIChat = ({
               description: r.excerpt.slice(0, 100) + (r.excerpt.length > 100 ? '...' : ''),
               noteId: r.noteId,
             }));
-            console.log('[RAG] Found', searchResults.length, 'relevant notes');
+            console.log(
+              '[RAG] Found',
+              searchResults.length,
+              'relevant notes, ragContext:',
+              ragContext,
+            );
           } else {
+            console.log('[RAG] No search results found');
             currentRagSourcesRef.current = undefined;
           }
         } catch (err) {
@@ -267,6 +275,7 @@ export const useAIChat = ({
           currentRagSourcesRef.current = undefined;
         }
       } else {
+        console.log('[RAG] Knowledge base NOT enabled');
         currentRagSourcesRef.current = undefined;
       }
 

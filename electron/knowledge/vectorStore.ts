@@ -619,20 +619,31 @@ export class SqliteVectorStore implements IVectorStore {
 
   /**
    * 清空所有数据（重建索引时调用）
-   * 同时重置维度配置，以便适配新的 embedding 模型
+   * 完全删除所有表并重新初始化，以确保表结构与最新代码一致
    */
   clear(): void {
-    // 删除向量表
+    // 删除所有相关表
     this.db.exec('DROP TABLE IF EXISTS vec_chunks');
-    // 删除元数据
-    this.db.exec('DELETE FROM chunk_metadata');
+    this.db.exec('DROP TABLE IF EXISTS chunk_fts');
+    this.db.exec('DROP TABLE IF EXISTS chunk_metadata');
+
+    // 删除触发器
+    this.db.exec('DROP TRIGGER IF EXISTS chunk_fts_insert');
+    this.db.exec('DROP TRIGGER IF EXISTS chunk_fts_delete');
+    this.db.exec('DROP TRIGGER IF EXISTS chunk_fts_update');
+
     // 重置维度配置，以便下次自动检测
     this.db.exec("DELETE FROM store_config WHERE key = 'dimension'");
 
     // 重置内部状态
     this.dimension = 0;
     this.autoDetectDimension = true;
-    console.log('[VectorStore] Cleared all data, dimension will be auto-detected on next insert');
+    this.initialized = false;
+
+    console.log('[VectorStore] Cleared all tables, will reinitialize on next operation');
+
+    // 重新初始化表结构
+    this.initialize();
   }
 
   /**

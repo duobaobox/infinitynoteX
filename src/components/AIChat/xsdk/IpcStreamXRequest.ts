@@ -126,7 +126,11 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
     });
 
     try {
-      const payload: ChatPayload = { message: params.message, messages: params.messages };
+      const payload: ChatPayload = {
+        message: params.message,
+        messages: params.messages,
+        ragContext: params.ragContext, // 传递 RAG 上下文到主进程
+      };
       const result = await window.ai.chatStream(payload);
       if (!result?.success) {
         throw new Error(result?.error || 'Stream request failed');

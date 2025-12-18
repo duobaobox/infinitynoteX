@@ -54,6 +54,8 @@ export const useAIChat = ({
 
   const lastRequestHadErrorRef = useRef(false);
   const prevIsRequestingRef = useRef(false);
+  // 保存当前请求的 RAG sources，用于附加到 AI 回复消息
+  const currentRagSourcesRef = useRef<ChatItem['ragSources']>(undefined);
 
   const [provider] = useState(() => new IpcChatProvider());
 
@@ -96,14 +98,21 @@ export const useAIChat = ({
   });
 
   const chatItems: ChatItem[] = useMemo(() => {
-    return messages.map((m) => ({
-      key: String(m.id),
-      role: m.message.role,
-      content: m.message.content,
-      timestamp: m.message.timestamp,
-      references: m.message.references,
-      isStreaming: m.status === 'loading' || m.status === 'updating',
-    }));
+    return messages.map((m) => {
+      const isAiMessage = m.message.role === 'ai';
+      const isStreaming = m.status === 'loading' || m.status === 'updating';
+
+      return {
+        key: String(m.id),
+        role: m.message.role,
+        content: m.message.content,
+        timestamp: m.message.timestamp,
+        references: m.message.references,
+        isStreaming,
+        // AI 回复消息附加当前的 RAG sources
+        ragSources: isAiMessage ? currentRagSourcesRef.current : undefined,
+      };
+    });
   }, [messages]);
 
   const isLoading = isRequesting;
@@ -242,11 +251,23 @@ export const useAIChat = ({
                 score: r.score,
               })),
             };
+            // 保存 sources 用于 AI 回复消息展示
+            currentRagSourcesRef.current = searchResults.map((r, i) => ({
+              key: i + 1,
+              title: r.noteTitle,
+              description: r.excerpt.slice(0, 100) + (r.excerpt.length > 100 ? '...' : ''),
+              noteId: r.noteId,
+            }));
             console.log('[RAG] Found', searchResults.length, 'relevant notes');
+          } else {
+            currentRagSourcesRef.current = undefined;
           }
         } catch (err) {
           console.warn('[RAG] Knowledge search failed:', err);
+          currentRagSourcesRef.current = undefined;
         }
+      } else {
+        currentRagSourcesRef.current = undefined;
       }
 
       try {

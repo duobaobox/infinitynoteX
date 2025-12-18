@@ -24,6 +24,13 @@ export interface ChatItem {
   isStreaming?: boolean;
   /** 用户引用的便签（仅用户消息） */
   references?: NoteReference[];
+  /** RAG 检索来源（用于 AI 回复中的引用展示） */
+  ragSources?: Array<{
+    key: number;
+    title: string;
+    description?: string;
+    noteId?: string;
+  }>;
 }
 
 /**

@@ -4,19 +4,31 @@
  *
  * 内部组件，仅供 AIChatPanel 使用
  * 基于 @ant-design/x-markdown 2.1
- * 支持：流式渲染、代码高亮、Mermaid 图表、Think 思维链
+ * 支持：流式渲染、代码高亮、Mermaid 图表、Think 思维链、Sources 引用
  */
 
 import React, { useMemo, useEffect, useState } from 'react';
 import { XMarkdown, type ComponentProps } from '@ant-design/x-markdown';
 import type { XMarkdownProps } from '@ant-design/x-markdown';
-import { CodeHighlighter, Mermaid, Think } from '@ant-design/x';
+import { CodeHighlighter, Mermaid, Think, Sources } from '@ant-design/x';
 import '@ant-design/x-markdown/themes/light.css';
+
+/**
+ * 引用来源项
+ */
+export interface SourceItem {
+  key: number;
+  title: string;
+  description?: string;
+  noteId?: string; // 用于后续扩展点击跳转
+}
 
 export interface MarkdownRendererProps {
   content: string;
   className?: string;
   streaming?: XMarkdownProps['streaming'];
+  /** 引用来源列表（用于展示 [来源 X] 标签） */
+  sources?: SourceItem[];
 }
 
 /**
@@ -85,23 +97,53 @@ const ThinkComponent = React.memo<ComponentProps>((props) => {
 });
 
 /**
+ * 创建 Sup 组件的工厂函数
+ * 需要传入 sources 数据以便渲染引用来源
+ */
+const createSupComponent = (sources: SourceItem[]) => {
+  return React.memo<ComponentProps>((props) => {
+    const childText = String(props.children || '');
+    const refIndex = parseInt(childText, 10);
+
+    // 如果不是数字或没有匹配的 source，显示原始上标
+    if (isNaN(refIndex) || sources.length === 0) {
+      return <sup>{props.children}</sup>;
+    }
+
+    // 转换为 Sources 组件需要的 items 格式
+    const items = sources.map((s) => ({
+      key: s.key,
+      title: `${s.key}. ${s.title}`,
+      description: s.description,
+    }));
+
+    return <Sources activeKey={refIndex} title={props.children} items={items} inline={true} />;
+  });
+};
+
+/**
  * Markdown 渲染器组件
  * - 统一 Markdown 渲染策略
  * - 支持 XMarkdown 流式渲染能力
  * - 支持 Mermaid 图表渲染（官方组件）
  * - 支持 Think 思维链渲染（官方组件）
+ * - 支持 Sources 引用来源展示（官方组件）
  * - 使用官方 light 主题样式
  */
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
   className,
   streaming,
+  sources = [],
 }) => {
   const classNames = useMemo(() => {
     const classes = ['x-markdown-light'];
     if (className) classes.push(className);
     return classes.join(' ');
   }, [className]);
+
+  // 动态创建 Sup 组件（依赖 sources）
+  const SupComponent = useMemo(() => createSupComponent(sources), [sources]);
 
   if (!content || !content.trim()) {
     return null;
@@ -115,6 +157,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       components={{
         code: Code,
         think: ThinkComponent,
+        sup: SupComponent,
       }}
       paragraphTag="div"
       streaming={streaming}

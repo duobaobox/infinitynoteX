@@ -377,11 +377,15 @@ export const AIChatPanel = ({
                 .trim()
             : content;
 
+        // AI 消息：传递 ragSources 用于引用展示
+        const sources = m.role === 'ai' && m.ragSources ? m.ragSources : undefined;
+
         return (
           <>
             <MarkdownRenderer
               content={displayContent as string}
               streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
+              sources={sources}
             />
             {/* 用户消息显示引用的便签 FileCard */}
             {m.role === 'user' && m.references && m.references.length > 0 && (

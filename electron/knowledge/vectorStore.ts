@@ -59,10 +59,20 @@ export class SqliteVectorStore implements IVectorStore {
         note_title TEXT,
         chunk_index INTEGER NOT NULL,
         content TEXT NOT NULL,
+        content_hash TEXT,
         created_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_chunk_note_id ON chunk_metadata(note_id);
+      CREATE INDEX IF NOT EXISTS idx_chunk_hash ON chunk_metadata(content_hash);
     `);
+
+    // 迁移：如果 content_hash 列不存在，添加它
+    try {
+      this.db.exec('ALTER TABLE chunk_metadata ADD COLUMN content_hash TEXT');
+      console.log('[VectorStore] Added content_hash column');
+    } catch {
+      // 列已存在，忽略
+    }
 
     // 创建配置表用于存储维度信息
     this.db.exec(`
@@ -90,7 +100,79 @@ export class SqliteVectorStore implements IVectorStore {
       console.log('[VectorStore] Waiting for dimension auto-detection on first insert');
     }
 
+    // 创建 FTS5 全文索引表（用于混合搜索的关键词检索）
+    this.createFtsTable();
+
     this.initialized = true;
+  }
+
+  /**
+   * 创建 FTS5 全文索引表
+   */
+  private createFtsTable(): void {
+    // 创建 FTS5 虚拟表（使用 unicode61 分词器，支持中英文）
+    this.db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
+        id,
+        note_id,
+        note_title,
+        content,
+        tokenize='unicode61'
+      );
+    `);
+
+    // 检查触发器是否存在，不存在则创建
+    const triggers = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE type='trigger' AND name='chunk_fts_insert'")
+      .all();
+
+    if (triggers.length === 0) {
+      // INSERT 触发器
+      this.db.exec(`
+        CREATE TRIGGER chunk_fts_insert AFTER INSERT ON chunk_metadata BEGIN
+          INSERT INTO chunk_fts(id, note_id, note_title, content)
+          VALUES (new.id, new.note_id, new.note_title, new.content);
+        END;
+      `);
+
+      // DELETE 触发器
+      this.db.exec(`
+        CREATE TRIGGER chunk_fts_delete AFTER DELETE ON chunk_metadata BEGIN
+          DELETE FROM chunk_fts WHERE id = old.id;
+        END;
+      `);
+
+      // UPDATE 触发器
+      this.db.exec(`
+        CREATE TRIGGER chunk_fts_update AFTER UPDATE ON chunk_metadata BEGIN
+          DELETE FROM chunk_fts WHERE id = old.id;
+          INSERT INTO chunk_fts(id, note_id, note_title, content)
+          VALUES (new.id, new.note_id, new.note_title, new.content);
+        END;
+      `);
+
+      console.log('[VectorStore] Created FTS5 table and triggers');
+
+      // 同步现有数据到 FTS 表
+      this.syncFtsData();
+    }
+  }
+
+  /**
+   * 同步现有数据到 FTS 表
+   */
+  private syncFtsData(): void {
+    const count = this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata').get() as {
+      count: number;
+    };
+
+    if (count.count > 0) {
+      this.db.exec(`
+        INSERT OR IGNORE INTO chunk_fts(id, note_id, note_title, content)
+        SELECT id, note_id, note_title, content FROM chunk_metadata;
+      `);
+      console.log(`[VectorStore] Synced ${count.count} chunks to FTS table`);
+    }
   }
 
   /**
@@ -147,13 +229,21 @@ export class SqliteVectorStore implements IVectorStore {
         .prepare('INSERT INTO vec_chunks(id, embedding) VALUES (?, ?)')
         .run(id, Buffer.from(float32.buffer));
 
-      // 插入新元数据
+      // 插入新元数据（包含 content_hash）
       this.db
         .prepare(
-          `INSERT INTO chunk_metadata(id, note_id, note_title, chunk_index, content, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chunk_metadata(id, note_id, note_title, chunk_index, content, content_hash, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(id, metadata.noteId, metadata.noteTitle, metadata.chunkIndex, metadata.content, now);
+        .run(
+          id,
+          metadata.noteId,
+          metadata.noteTitle,
+          metadata.chunkIndex,
+          metadata.content,
+          metadata.contentHash || null,
+          now,
+        );
     });
 
     transaction();
@@ -176,8 +266,8 @@ export class SqliteVectorStore implements IVectorStore {
     const deleteMeta = this.db.prepare('DELETE FROM chunk_metadata WHERE id = ?');
     const insertVec = this.db.prepare('INSERT INTO vec_chunks(id, embedding) VALUES (?, ?)');
     const insertMeta = this.db.prepare(
-      `INSERT INTO chunk_metadata(id, note_id, note_title, chunk_index, content, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO chunk_metadata(id, note_id, note_title, chunk_index, content, content_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
 
     const transaction = this.db.transaction(() => {
@@ -186,7 +276,7 @@ export class SqliteVectorStore implements IVectorStore {
         deleteVec.run(item.id);
         deleteMeta.run(item.id);
 
-        // 插入新数据
+        // 插入新数据（包含 content_hash）
         const float32 = new Float32Array(item.embedding);
         insertVec.run(item.id, Buffer.from(float32.buffer));
         insertMeta.run(
@@ -195,6 +285,7 @@ export class SqliteVectorStore implements IVectorStore {
           item.metadata.noteTitle,
           item.metadata.chunkIndex,
           item.metadata.content,
+          item.metadata.contentHash || null,
           now,
         );
       }
@@ -223,6 +314,52 @@ export class SqliteVectorStore implements IVectorStore {
 
     transaction();
     console.log(`[VectorStore] Deleted ${ids.length} vectors for note ${noteId}`);
+    return ids.length;
+  }
+
+  /**
+   * 获取指定笔记的所有 chunks 及其 hash（用于增量更新）
+   */
+  getChunksByNoteId(noteId: string): Array<{
+    id: string;
+    chunkIndex: number;
+    contentHash: string | null;
+  }> {
+    const rows = this.db
+      .prepare(
+        'SELECT id, chunk_index, content_hash FROM chunk_metadata WHERE note_id = ? ORDER BY chunk_index',
+      )
+      .all(noteId) as Array<{
+      id: string;
+      chunk_index: number;
+      content_hash: string | null;
+    }>;
+
+    return rows.map((r) => ({
+      id: r.id,
+      chunkIndex: r.chunk_index,
+      contentHash: r.content_hash,
+    }));
+  }
+
+  /**
+   * 批量删除指定 ID 的向量
+   */
+  deleteByIds(ids: string[]): number {
+    if (ids.length === 0) return 0;
+
+    const deleteVec = this.db.prepare('DELETE FROM vec_chunks WHERE id = ?');
+    const deleteMeta = this.db.prepare('DELETE FROM chunk_metadata WHERE id = ?');
+
+    const transaction = this.db.transaction(() => {
+      for (const id of ids) {
+        deleteVec.run(id);
+        deleteMeta.run(id);
+      }
+    });
+
+    transaction();
+    console.log(`[VectorStore] Deleted ${ids.length} vectors by IDs`);
     return ids.length;
   }
 
@@ -262,6 +399,122 @@ export class SqliteVectorStore implements IVectorStore {
       distance: r.distance,
       score: 1 / (1 + r.distance), // 将距离转换为相似度分数
     }));
+  }
+
+  /**
+   * 关键词搜索（使用 FTS5）
+   */
+  keywordSearch(query: string, topK: number = 3): SearchResult[] {
+    try {
+      // 清理查询：转义 FTS5 特殊字符
+      const cleanQuery = query
+        .replace(/['"*()]/g, ' ')
+        .split(/\s+/)
+        .filter((word) => word.length > 0)
+        .map((word) => `"${word}"`)
+        .join(' OR ');
+
+      if (!cleanQuery) {
+        return [];
+      }
+
+      const results = this.db
+        .prepare(
+          `SELECT 
+            f.id,
+            f.note_id,
+            f.note_title,
+            f.content,
+            bm25(chunk_fts) as rank
+          FROM chunk_fts f
+          WHERE chunk_fts MATCH ?
+          ORDER BY rank
+          LIMIT ?`,
+        )
+        .all(cleanQuery, topK) as Array<{
+        id: string;
+        note_id: string;
+        note_title: string;
+        content: string;
+        rank: number;
+      }>;
+
+      return results.map((r) => ({
+        id: r.id,
+        noteId: r.note_id,
+        noteTitle: r.note_title,
+        content: r.content,
+        distance: -r.rank, // BM25 排名转为距离（负值表示更好）
+        score: Math.max(0, 1 + r.rank * 0.1), // 将 BM25 排名转为 0-1 分数
+      }));
+    } catch (error) {
+      console.warn('[VectorStore] Keyword search failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 混合搜索（向量搜索 + 关键词搜索 + RRF 融合）
+   */
+  hybridSearch(queryEmbedding: number[], queryText: string, topK: number = 3): SearchResult[] {
+    // 并行执行两种搜索，每种多取一些结果用于融合
+    const vectorResults = this.search(queryEmbedding, topK * 2);
+    const keywordResults = this.keywordSearch(queryText, topK * 2);
+
+    // 如果其中一种搜索没有结果，直接返回另一种
+    if (vectorResults.length === 0) {
+      return keywordResults.slice(0, topK);
+    }
+    if (keywordResults.length === 0) {
+      return vectorResults.slice(0, topK);
+    }
+
+    // RRF 融合排序
+    const fusedResults = this.reciprocalRankFusion([vectorResults, keywordResults], topK);
+
+    console.log(
+      `[HybridSearch] Vector: ${vectorResults.length}, Keyword: ${keywordResults.length}, Fused: ${fusedResults.length}`,
+    );
+
+    return fusedResults;
+  }
+
+  /**
+   * Reciprocal Rank Fusion (RRF) 算法
+   * 融合多个搜索结果列表
+   */
+  private reciprocalRankFusion(
+    resultSets: SearchResult[][],
+    topK: number,
+    k: number = 60, // RRF 参数，通常取 60
+  ): SearchResult[] {
+    const scoreMap = new Map<string, { score: number; result: SearchResult }>();
+
+    for (const results of resultSets) {
+      results.forEach((result, rank) => {
+        const rrfScore = 1 / (k + rank + 1);
+        const existing = scoreMap.get(result.id);
+
+        if (existing) {
+          existing.score += rrfScore;
+          // 如果找到相同结果，保留分数更高的那个
+          if (result.score > existing.result.score) {
+            existing.result = result;
+          }
+        } else {
+          scoreMap.set(result.id, { score: rrfScore, result });
+        }
+      });
+    }
+
+    // 按 RRF 分数排序并返回 topK
+    return Array.from(scoreMap.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK)
+      .map((item) => ({
+        ...item.result,
+        score: item.score, // 用 RRF 分数替换原分数
+      }));
   }
 
   /**

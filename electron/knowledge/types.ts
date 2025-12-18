@@ -13,6 +13,8 @@ export interface VectorMetadata {
   noteTitle: string;
   chunkIndex: number;
   content: string;
+  /** 内容 Hash（用于增量更新时的变更检测） */
+  contentHash?: string;
 }
 
 /**
@@ -90,6 +92,16 @@ export interface IVectorStore {
   search(queryEmbedding: number[], topK?: number): SearchResult[];
 
   /**
+   * 关键词搜索（使用 FTS5）
+   */
+  keywordSearch?(query: string, topK?: number): SearchResult[];
+
+  /**
+   * 混合搜索（向量搜索 + 关键词搜索 + RRF 融合）
+   */
+  hybridSearch?(queryEmbedding: number[], queryText: string, topK?: number): SearchResult[];
+
+  /**
    * 获取统计信息
    */
   getStats(): VectorStoreStats;
@@ -106,6 +118,20 @@ export interface IVectorStore {
    * 获取笔记索引列表
    */
   getNoteIndexList?(): NoteIndexInfo[];
+
+  /**
+   * 获取指定笔记的所有 chunks 及其 hash（用于增量更新）
+   */
+  getChunksByNoteId?(noteId: string): Array<{
+    id: string;
+    chunkIndex: number;
+    contentHash: string | null;
+  }>;
+
+  /**
+   * 批量删除指定 ID 的向量
+   */
+  deleteByIds?(ids: string[]): number;
 
   /**
    * 清空所有数据

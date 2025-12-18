@@ -124,6 +124,15 @@ export function chunkText(
 
 // ============ 辅助函数 ============
 
+import crypto from 'node:crypto';
+
+/**
+ * 计算内容的 MD5 Hash（用于变更检测）
+ */
+function computeHash(text: string): string {
+  return crypto.createHash('md5').update(text).digest('hex');
+}
+
 /**
  * 延迟指定毫秒
  */
@@ -322,7 +331,7 @@ export async function rebuildAllIndex(): Promise<{
 }
 
 /**
- * 语义搜索
+ * 语义搜索（使用混合搜索：向量 + 关键词 + RRF 融合）
  */
 export async function semanticSearch(
   query: string,
@@ -340,8 +349,15 @@ export async function semanticSearch(
     // 获取查询向量
     const queryVector = await embeddingService.embed(query);
 
-    // 搜索
-    const results = store.search(queryVector, topK);
+    // 使用混合搜索（如果支持），否则回退到纯向量搜索
+    let results;
+    if (store.hybridSearch) {
+      results = store.hybridSearch(queryVector, query, topK);
+      console.log(`[KnowledgeIndex] Using hybrid search for query: "${query}"`);
+    } else {
+      results = store.search(queryVector, topK);
+      console.log(`[KnowledgeIndex] Using vector-only search for query: "${query}"`);
+    }
 
     // 转换为面向 UI 的结果
     return results.map((r) => ({
@@ -389,11 +405,12 @@ export function deleteNoteFromIndex(noteId: string): number {
 }
 
 /**
- * 重新索引单个笔记
+ * 重新索引单个笔记（使用智能增量更新）
  */
 export async function reindexNote(noteId: string): Promise<{
   success: boolean;
   vectorCount: number;
+  unchanged?: number;
   error?: string;
 }> {
   try {
@@ -408,13 +425,160 @@ export async function reindexNote(noteId: string): Promise<{
     }
 
     const embeddingService = createEmbeddingService(config.embedding);
-    const count = await indexNote(noteId, note.title, note.content, embeddingService);
+    const result = await smartIndexNote(noteId, note.title, note.content, embeddingService);
 
-    return { success: true, vectorCount: count };
+    return {
+      success: true,
+      vectorCount: result.embedded,
+      unchanged: result.unchanged,
+    };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     return { success: false, vectorCount: 0, error: msg };
   }
+}
+
+/**
+ * 智能索引单个笔记（增量更新）
+ * 通过 chunk 级别的 hash 比对，仅对真正变化的内容重新调用 Embedding API
+ */
+export async function smartIndexNote(
+  noteId: string,
+  title: string,
+  content: any,
+  embeddingService: EmbeddingService,
+): Promise<{
+  embedded: number;
+  unchanged: number;
+  deleted: number;
+}> {
+  const store = getVectorStore();
+  const config = currentIndexingConfig;
+
+  // 提取文本
+  const text = extractNoteText(content);
+  if (!text || text.length < 10) {
+    // 内容太短，删除所有现有索引
+    const deleted = store.deleteByNoteId(noteId);
+    console.log(`[SmartIndex] Note ${noteId}: too short, deleted ${deleted} vectors`);
+    return { embedded: 0, unchanged: 0, deleted };
+  }
+
+  // 分块并计算 hash
+  const newChunks = chunkText(text, config.chunkSize, config.chunkOverlap).map((chunk) => ({
+    ...chunk,
+    hash: computeHash(chunk.text),
+  }));
+
+  // 获取现有索引
+  const existingChunks = store.getChunksByNoteId?.(noteId) ?? [];
+  const existingMap = new Map(
+    existingChunks.map((c) => [c.id, { chunkIndex: c.chunkIndex, hash: c.contentHash }]),
+  );
+
+  // 比对差异
+  const toEmbed: typeof newChunks = [];
+  const toDelete: string[] = [];
+  let unchanged = 0;
+
+  // 新 chunks 的 ID 映射
+  const newChunkIds = new Set<string>();
+
+  for (const chunk of newChunks) {
+    const chunkId = `${noteId}-${chunk.index}`;
+    newChunkIds.add(chunkId);
+
+    const existing = existingMap.get(chunkId);
+    if (!existing || existing.hash !== chunk.hash) {
+      // 需要重新 embedding（新增或内容变化）
+      toEmbed.push(chunk);
+    } else {
+      // hash 相同，跳过
+      unchanged++;
+    }
+  }
+
+  // 检查需要删除的 chunks（旧索引中存在但新内容中不存在）
+  for (const [id] of existingMap) {
+    if (!newChunkIds.has(id)) {
+      toDelete.push(id);
+    }
+  }
+
+  // 删除不再需要的 chunks
+  if (toDelete.length > 0 && store.deleteByIds) {
+    store.deleteByIds(toDelete);
+  }
+
+  console.log(
+    `[SmartIndex] Note ${noteId}: ${toEmbed.length} to embed, ${unchanged} unchanged, ${toDelete.length} deleted`,
+  );
+
+  // 如果没有需要 embedding 的 chunks，直接返回
+  if (toEmbed.length === 0) {
+    return { embedded: 0, unchanged, deleted: toDelete.length };
+  }
+
+  let embeddedCount = 0;
+
+  // 分批处理需要 embedding 的 chunks
+  for (let i = 0; i < toEmbed.length; i += config.batchSize) {
+    const batchChunks = toEmbed.slice(i, i + config.batchSize);
+    const batchTexts = batchChunks.map((chunk) => chunk.text);
+
+    try {
+      // 批量获取向量
+      const vectors = await embeddingService.embedBatch(batchTexts);
+
+      // 准备批量插入数据
+      const batchItems: Array<{
+        id: string;
+        embedding: number[];
+        metadata: VectorMetadata;
+      }> = [];
+
+      for (let j = 0; j < vectors.length; j++) {
+        const chunk = batchChunks[j];
+        const vector = vectors[j];
+
+        if (vector && vector.length > 0) {
+          const vectorId = `${noteId}-${chunk.index}`;
+          const metadata: VectorMetadata = {
+            noteId,
+            noteTitle: title,
+            chunkIndex: chunk.index,
+            content: chunk.text.slice(0, 200),
+            contentHash: chunk.hash, // 保存 hash
+          };
+
+          batchItems.push({ id: vectorId, embedding: vector, metadata });
+          embeddedCount++;
+        }
+      }
+
+      // 批量插入
+      if (batchItems.length > 0) {
+        store.upsertBatch(batchItems);
+      }
+
+      // 如果还有更多批次，添加延迟避免速率限制
+      if (i + config.batchSize < toEmbed.length) {
+        await delay(config.batchDelayMs);
+      }
+    } catch (error) {
+      console.error(`[SmartIndex] Failed to embed batch starting at chunk ${i}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('429') || errorMsg.includes('RPM') || errorMsg.includes('rate')) {
+        console.log(
+          `[SmartIndex] Rate limited, waiting ${config.rateLimitRetryMs}ms before retry...`,
+        );
+        await delay(config.rateLimitRetryMs);
+        i -= config.batchSize;
+      }
+    }
+  }
+
+  return { embedded: embeddedCount, unchanged, deleted: toDelete.length };
 }
 
 /**

@@ -1,9 +1,8 @@
 /**
- * TipTap Editor Hooks
- * 统一导出所有自定义 Hooks
+ * TipTap Editor Hooks 统一导出
  */
 
-export { useEditorState, useEditorUpdate } from './useEditorState';
+export { useImageUpload } from './useImageUpload';
 export {
   useMenuState,
   useHeadingState,
@@ -11,5 +10,6 @@ export {
   useAlignState,
   useTableState,
 } from './useMenuState';
-export { useImageUpload } from './useImageUpload';
 export type { MenuTriggerState } from './useMenuState';
+// 官方 useEditorState（selector 模式）和兼容版本
+export { useEditorState, useForceUpdateOnEditor } from './useEditorState';

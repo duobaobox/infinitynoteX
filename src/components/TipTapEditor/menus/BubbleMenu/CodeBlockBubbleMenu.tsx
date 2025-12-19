@@ -7,7 +7,7 @@ import React from 'react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { Editor } from '@tiptap/react';
 import { Copy, Trash2, Check } from 'lucide-react';
-import { useEditorState } from '../../hooks';
+import { useForceUpdateOnEditor } from '../../hooks';
 import './BubbleMenu.css';
 
 interface CodeBlockBubbleMenuProps {
@@ -36,7 +36,7 @@ export const CodeBlockBubbleMenu: React.FC<CodeBlockBubbleMenuProps> = ({ editor
   const [copied, setCopied] = React.useState(false);
 
   // 订阅编辑器状态变化，确保光标移动到不同代码块时组件重新渲染
-  useEditorState(editor);
+  useForceUpdateOnEditor(editor);
 
   if (!editor) {
     return null;

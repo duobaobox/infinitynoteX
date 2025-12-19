@@ -1,63 +1,30 @@
 /**
  * 编辑器状态管理 Hook
- * 监听编辑器的选区和内容变化，触发组件重渲染
  *
- * 优化策略：使用简单的计数器触发重渲染，避免复杂的状态比较
+ * 基于官方 TipTap useEditorState 的规范实现
+ * @see https://tiptap.dev/docs/guides/performance
+ *
+ * 优化策略：
+ * - 使用官方 useEditorState 的 selector 模式
+ * - 只在订阅的状态变化时重渲染
  */
 
-import { useEffect, useState } from 'react';
 import type { Editor } from '@tiptap/core';
+import { useEditorState as useEditorStateOriginal } from '@tiptap/react';
+
+// 直接从 @tiptap/react 重新导出官方 useEditorState
+export { useEditorState } from '@tiptap/react';
 
 /**
- * 使用编辑器状态更新
- * 监听编辑器的 selectionUpdate 和 transaction 事件
- * 返回一个递增的数字，用于触发组件重渲染
- *
- * 这是一个简单但有效的方式，让依赖编辑器状态的组件能够响应变化
+ * 简化版本：仅用于触发组件重渲染
+ * 当需要在编辑器状态变化时重渲染组件，但不需要选择特定状态时使用
  */
-export const useEditorState = (editor: Editor | null) => {
-  const [updateCount, setUpdateCount] = useState(0);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    const update = () => setUpdateCount((x) => x + 1);
-
-    // 监听编辑器事件
-    editor.on('selectionUpdate', update);
-    editor.on('transaction', update);
-
-    return () => {
-      editor.off('selectionUpdate', update);
-      editor.off('transaction', update);
-    };
-  }, [editor]);
-
-  return updateCount;
-};
-
-/**
- * 简化版本：包含 update 事件的完整监听
- * 用于需要响应内容变化的场景
- */
-export const useEditorUpdate = (editor: Editor | null) => {
-  const [updateCount, setUpdateCount] = useState(0);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    const update = () => setUpdateCount((x) => x + 1);
-
-    editor.on('selectionUpdate', update);
-    editor.on('transaction', update);
-    editor.on('update', update);
-
-    return () => {
-      editor.off('selectionUpdate', update);
-      editor.off('transaction', update);
-      editor.off('update', update);
-    };
-  }, [editor]);
-
-  return updateCount;
+export const useForceUpdateOnEditor = (editor: Editor | null) => {
+  return useEditorStateOriginal({
+    editor,
+    // 返回一个始终递增的计数器，确保每次 transaction 都触发重渲染
+    selector: () => Date.now(),
+    // 始终认为状态已变化，触发重渲染
+    equalityFn: () => false,
+  });
 };

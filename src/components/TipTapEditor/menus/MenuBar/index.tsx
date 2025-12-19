@@ -8,7 +8,7 @@ import type { Editor } from '@tiptap/core';
 import { ToolbarButton } from './ToolbarButton';
 import { ToolbarDivider } from './ToolbarDivider';
 import { GroupDropdown } from './GroupDropdown';
-import { useEditorState, useMenuState, useImageUpload } from '../../hooks';
+import { useForceUpdateOnEditor, useMenuState, useImageUpload } from '../../hooks';
 import {
   getHeadingMenuItems,
   getListMenuItems,
@@ -27,8 +27,8 @@ export interface MenuBarProps {
  * 按照 Tiptap 官方最佳实践重构的工具栏
  */
 const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
-  // 使用自定义 Hooks 监听编辑器状态变化
-  useEditorState(editor);
+  // 使用官方推荐的方式触发编辑器状态变化时的重渲染
+  useForceUpdateOnEditor(editor);
   const { headingState, listState, alignState, tableState } = useMenuState(editor);
   const { fileInputRef, handleImageUpload, triggerUpload } = useImageUpload(editor);
 

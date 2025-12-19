@@ -12,14 +12,16 @@
  */
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Button, Spin, Empty, Tooltip } from 'antd';
+import { Button, Spin, Empty, Tooltip, message } from 'antd';
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
   ReloadOutlined,
   HomeOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
+import { useSettingsStore } from '../../../../store/settingsStore';
 import './BrowserViewer.css';
 
 // Electron webview 类型扩展
@@ -105,6 +107,20 @@ export const BrowserViewer: React.FC = () => {
     }
   };
 
+  // 设为外部AI入口
+  const externalAiUrl = useSettingsStore((state) => state.externalAiUrl);
+  const setExternalAiUrl = useSettingsStore((state) => state.setExternalAiUrl);
+
+  // 判断当前页面是否已设为外部AI入口
+  const isCurrentAiEntry = currentUrl && externalAiUrl === currentUrl;
+
+  const handleSetAsExternalAI = () => {
+    if (currentUrl) {
+      setExternalAiUrl(currentUrl);
+      message.success('已设为外部 AI 入口');
+    }
+  };
+
   // ============ 主渲染 ============
 
   if (!selectedCard) {
@@ -146,6 +162,17 @@ export const BrowserViewer: React.FC = () => {
         <div className="browser-toolbar-url">
           {loading && <Spin size="small" style={{ marginRight: 8 }} />}
           <span className="browser-url-text">{currentUrl}</span>
+        </div>
+        <div className="browser-toolbar-actions">
+          <Tooltip title={isCurrentAiEntry ? '当前是外部 AI 入口' : '设为外部 AI 入口'}>
+            <Button
+              type="text"
+              icon={<RocketOutlined />}
+              onClick={handleSetAsExternalAI}
+              disabled={!currentUrl}
+              className={isCurrentAiEntry ? 'browser-ai-btn--active' : ''}
+            />
+          </Tooltip>
         </div>
       </div>
 

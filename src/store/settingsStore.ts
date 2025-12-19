@@ -32,6 +32,14 @@ import {
   ThemeMode,
 } from '../theme/theme';
 
+// ============ 常量定义 ============
+
+/** 外部AI页面URL的localStorage键 */
+const EXTERNAL_AI_URL_KEY = 'note_external_ai_url';
+
+/** 默认外部AI页面URL（豆包） */
+export const DEFAULT_EXTERNAL_AI_URL = 'https://www.doubao.com/chat/';
+
 // ============ 类型定义 ============
 
 export type ProviderStatus = 'ready' | 'missingKey' | 'incomplete' | 'unconfigured';
@@ -89,6 +97,9 @@ interface SettingsState {
 
   // ============ 知识库 ============
   knowledgeBaseEnabled: boolean;
+
+  // ============ 外部AI页面 ============
+  externalAiUrl: string;
 
   // ============ 设置弹窗刷新触发器 ============
   /** 设置弹窗打开时递增，用于触发 Tab 组件刷新数据 */
@@ -150,6 +161,10 @@ interface SettingsState {
   setKnowledgeBaseEnabled: (enabled: boolean) => void;
   loadKnowledgeBaseConfig: () => Promise<void>;
 
+  // 外部AI页面
+  setExternalAiUrl: (url: string) => void;
+  loadExternalAiUrl: () => void;
+
   // 设置弹窗
   /** 触发设置弹窗内 Tab 刷新数据 */
   triggerSettingsModalRefresh: () => void;
@@ -200,6 +215,9 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 知识库
       knowledgeBaseEnabled: false,
+
+      // 外部AI页面
+      externalAiUrl: localStorage.getItem(EXTERNAL_AI_URL_KEY) || DEFAULT_EXTERNAL_AI_URL,
 
       // 设置弹窗刷新触发器
       settingsModalOpenTrigger: 0,
@@ -522,6 +540,17 @@ export const useSettingsStore = create<SettingsState>()(
           console.error('Failed to load knowledge base config:', error);
           set({ knowledgeBaseEnabled: false });
         }
+      },
+
+      // 外部AI页面
+      setExternalAiUrl: (url) => {
+        localStorage.setItem(EXTERNAL_AI_URL_KEY, url);
+        set({ externalAiUrl: url });
+      },
+
+      loadExternalAiUrl: () => {
+        const saved = localStorage.getItem(EXTERNAL_AI_URL_KEY);
+        set({ externalAiUrl: saved || DEFAULT_EXTERNAL_AI_URL });
       },
 
       // 设置弹窗刷新

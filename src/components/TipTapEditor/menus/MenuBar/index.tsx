@@ -1,6 +1,9 @@
 /**
  * MenuBar 主组件
  * 整合所有工具栏功能和菜单组件
+ *
+ * 性能优化：使用 useMenuBarState 替代 useForceUpdateOnEditor
+ * @see https://tiptap.dev/docs/guides/performance
  */
 
 import React, { useCallback } from 'react';
@@ -8,7 +11,7 @@ import type { Editor } from '@tiptap/core';
 import { ToolbarButton } from './ToolbarButton';
 import { ToolbarDivider } from './ToolbarDivider';
 import { GroupDropdown } from './GroupDropdown';
-import { useForceUpdateOnEditor, useMenuState, useImageUpload } from '../../hooks';
+import { useMenuState, useImageUpload, useMenuBarState } from '../../hooks';
 import {
   getHeadingMenuItems,
   getListMenuItems,
@@ -25,10 +28,14 @@ export interface MenuBarProps {
 /**
  * MenuBar 组件
  * 按照 Tiptap 官方最佳实践重构的工具栏
+ *
+ * 性能优化说明：
+ * - 使用 useMenuBarState 的 selector 模式，只在工具栏需要的状态变化时重渲染
+ * - 使用 React.memo 避免父组件更新导致的不必要重渲染
  */
 const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
-  // 使用官方推荐的方式触发编辑器状态变化时的重渲染
-  useForceUpdateOnEditor(editor);
+  // 使用优化的 selector 模式 - 只在工具栏相关状态变化时重渲染
+  const menuBarState = useMenuBarState(editor);
   const { headingState, listState, alignState, tableState } = useMenuState(editor);
   const { fileInputRef, handleImageUpload, triggerUpload } = useImageUpload(editor);
 
@@ -38,7 +45,7 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
   }, []);
 
   // 编辑器未就绪时不渲染
-  if (!editor) {
+  if (!editor || !menuBarState) {
     return null;
   }
 
@@ -66,45 +73,45 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       {/* 文本格式 - 常驻按钮 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
-        isActive={editor.isActive('bold')}
+        isActive={menuBarState.isBold}
         title="粗体 (Ctrl+B)"
         icon="ri-bold"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        isActive={editor.isActive('italic')}
+        isActive={menuBarState.isItalic}
         title="斜体 (Ctrl+I)"
         icon="ri-italic"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive('underline')}
+        isActive={menuBarState.isUnderline}
         title="下划线 (Ctrl+U)"
         icon="ri-underline"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        isActive={editor.isActive('strike')}
+        isActive={menuBarState.isStrike}
         title="删除线"
         icon="ri-strikethrough"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
-        isActive={editor.isActive('code')}
+        isActive={menuBarState.isCode}
         title="行内代码"
         icon="ri-code-line"
       />
       {/* 下标按钮 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleSubscript().run()}
-        isActive={editor.isActive('subscript')}
+        isActive={menuBarState.isSubscript}
         title="下标"
         icon="ri-subscript-2"
       />
       {/* 上标按钮 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleSuperscript().run()}
-        isActive={editor.isActive('superscript')}
+        isActive={menuBarState.isSuperscript}
         title="上标"
         icon="ri-superscript-2"
       />
@@ -112,14 +119,14 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       <GroupDropdown
         label="高亮"
         icon="ri-mark-pen-line"
-        active={editor.isActive('highlight')}
+        active={menuBarState.isHighlight}
         items={getHighlightMenuItems(editor)}
       />
       {/* 文字颜色下拉菜单 */}
       <GroupDropdown
         label="颜色"
         icon="ri-font-color"
-        active={!!editor.getAttributes('textStyle')?.color}
+        active={menuBarState.hasTextColor}
         items={getTextColorMenuItems(editor)}
       />
 
@@ -168,13 +175,13 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       {/* 其他常用功能 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        isActive={editor.isActive('codeBlock')}
+        isActive={menuBarState.isCodeBlock}
         title="代码块"
         icon="ri-code-s-slash-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive('blockquote')}
+        isActive={menuBarState.isBlockquote}
         title="引用"
         icon="ri-double-quotes-l"
       />
@@ -199,11 +206,13 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       {/* 撤销/重做 */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
+        disabled={!menuBarState.canUndo}
         title="撤销 (Ctrl+Z)"
         icon="ri-arrow-go-back-line"
       />
       <ToolbarButton
         onClick={() => editor.chain().focus().redo().run()}
+        disabled={!menuBarState.canRedo}
         title="重做 (Ctrl+Y)"
         icon="ri-arrow-go-forward-line"
       />

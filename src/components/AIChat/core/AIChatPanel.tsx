@@ -201,8 +201,8 @@ export const AIChatPanel = ({
   // 知识库开关状态（本次对话是否使用知识库）
   const [useKnowledgeBase, setUseKnowledgeBase] = useState(false);
 
-  // 从 store 读取知识库功能是否启用（响应式）
-  const { knowledgeBaseEnabled, loadKnowledgeBaseConfig } = useSettingsStore();
+  // 从 store 读取知识库功能是否启用（响应式）+ 外部AI页面URL
+  const { knowledgeBaseEnabled, loadKnowledgeBaseConfig, externalAiUrl } = useSettingsStore();
 
   // 组件挂载时加载知识库配置
   useEffect(() => {
@@ -771,9 +771,9 @@ export const AIChatPanel = ({
           </div>
         </>
       ) : (
-        /* 三方 AI - 豆包 webview */
+        /* 三方 AI - 外部页面 webview */
         <webview
-          src="https://www.doubao.com/chat/"
+          src={externalAiUrl}
           partition="persist:browser"
           className="ai-third-party-webview"
           // @ts-expect-error webview 属性 TypeScript 不识别

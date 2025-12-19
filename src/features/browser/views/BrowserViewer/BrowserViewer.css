@@ -60,3 +60,19 @@
   height: 100%;
   border: none;
 }
+
+.browser-toolbar-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+/* AI助手入口按钮激活状态 */
+.browser-ai-btn--active {
+  color: var(--ant-color-primary, #1677ff) !important;
+  background: var(--ant-color-primary-bg, rgba(22, 119, 255, 0.1)) !important;
+}
+
+.browser-ai-btn--active:hover {
+  background: var(--ant-color-primary-bg-hover, rgba(22, 119, 255, 0.15)) !important;
+}

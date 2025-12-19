@@ -540,3 +540,48 @@ ul[data-type='taskList'] li[data-checked='true'] > div {
   font-size: 0.75em;
   vertical-align: super;
 }
+
+/* ==================== 性能优化 - content-visibility ==================== */
+
+/**
+ * 使用 content-visibility: auto 优化长文档渲染性能
+ * 让浏览器跳过屏幕外内容的布局和绘制
+ *
+ * @see https://web.dev/content-visibility/
+ * @see ProseMirror 社区验证有效的 Chrome 优化方案
+ *
+ * 注意：
+ * - 只对非头部元素应用，避免影响初始可见内容
+ * - contain-intrinsic-size 防止滚动条抖动
+ * - 仅 Chrome 85+ 和现代浏览器支持
+ */
+
+/* 对编辑器中的块级元素应用 content-visibility 优化 */
+.tiptap-editor > p:nth-child(n + 10),
+.tiptap-editor > h1:nth-child(n + 10),
+.tiptap-editor > h2:nth-child(n + 10),
+.tiptap-editor > h3:nth-child(n + 10),
+.tiptap-editor > h4:nth-child(n + 10),
+.tiptap-editor > h5:nth-child(n + 10),
+.tiptap-editor > h6:nth-child(n + 10),
+.tiptap-editor > ul:nth-child(n + 10),
+.tiptap-editor > ol:nth-child(n + 10),
+.tiptap-editor > blockquote:nth-child(n + 10),
+.tiptap-editor > pre:nth-child(n + 10),
+.tiptap-editor > .tiptap-table-wrapper:nth-child(n + 10),
+.tiptap-editor > div[data-type]:nth-child(n + 10) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 50px;
+}
+
+/* 对任务列表项单独优化 - 它们可能数量很多 */
+ul[data-type='taskList'] > li:nth-child(n + 20) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 32px;
+}
+
+/* 对表格行进行优化 - 大表格的性能改进 */
+.tiptap-table tr:nth-child(n + 15) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40px;
+}

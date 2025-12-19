@@ -4,6 +4,8 @@
  */
 
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
 
@@ -22,10 +24,12 @@ export interface EditorConfig {
  * - BulletList, OrderedList, ListItem
  * - Blockquote, HorizontalRule
  * - HardBreak, History (Undo/Redo)
- * - Link, Underline (v3 新增)
- * - Dropcursor (拖拽光标指示)
+ * - Dropcursor, Gapcursor
+ * - ListKeymap, TrailingNode (v3 新增)
  *
- * 注意: 禁用了 StarterKit 自带的 CodeBlock，改用 CodeBlockLowlight
+ * 注意:
+ * - 禁用了 StarterKit 自带的 CodeBlock，改用 CodeBlockLowlight
+ * - Link 和 Underline 不在 StarterKit 中，需单独添加
  */
 export const getBasicExtensions = () => {
   return [
@@ -39,18 +43,22 @@ export const getBasicExtensions = () => {
         width: 2,
         class: 'tiptap-dropcursor',
       },
-      // Link 扩展配置
-      link: {
-        openOnClick: false, // 编辑模式下点击不打开链接
-        autolink: true, // 自动检测 URL 并转换为链接
-        defaultProtocol: 'https',
-        HTMLAttributes: {
-          class: 'editor-link',
-          target: '_blank',
-          rel: 'noopener noreferrer',
-        },
+    }),
+
+    // Link 扩展（不在 StarterKit 中，需单独添加）
+    Link.configure({
+      openOnClick: false, // 编辑模式下点击不打开链接
+      autolink: true, // 自动检测 URL 并转换为链接
+      defaultProtocol: 'https',
+      HTMLAttributes: {
+        class: 'editor-link',
+        target: '_blank',
+        rel: 'noopener noreferrer',
       },
     }),
+
+    // Underline 扩展（不在 StarterKit 中，需单独添加）
+    Underline,
 
     // 代码块语法高亮扩展
     CodeBlockLowlight.configure({

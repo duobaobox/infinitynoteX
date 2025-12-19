@@ -1,8 +1,6 @@
 /**
  * 格式化扩展配置
  * 包含文本对齐、高亮、上下标、文字颜色等格式化功能
- *
- * 注意: Underline 和 Link 已包含在 StarterKit v3 中，无需重复添加
  */
 
 import TextAlign from '@tiptap/extension-text-align';
@@ -21,9 +19,7 @@ import Color from '@tiptap/extension-color';
  * - TextStyle: 文字样式基础 (Color 依赖)
  * - Color: 文字颜色
  *
- * StarterKit v3 已包含:
- * - Underline: 下划线
- * - Link: 超链接
+ * 注意: Link 和 Underline 在 basic.ts 中配置
  */
 export const getFormattingExtensions = () => {
   return [

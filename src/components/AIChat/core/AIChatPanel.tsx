@@ -776,8 +776,7 @@ export const AIChatPanel = ({
           src={externalAiUrl}
           partition="persist:browser"
           className="ai-third-party-webview"
-          // @ts-expect-error webview 属性 TypeScript 不识别
-          allowpopups="true"
+          {...({ allowpopups: 'true', autosize: 'on' } as React.HTMLAttributes<HTMLElement>)}
         />
       )}
     </div>

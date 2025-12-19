@@ -182,6 +182,8 @@ export const BrowserViewer: React.FC = () => {
           ref={webviewRef as React.RefObject<HTMLElement>}
           partition="persist:browser"
           className="browser-webview"
+          // @ts-expect-error webview 属性 TypeScript 不识别
+          autosize="on"
         />
       </div>
     </div>

@@ -53,12 +53,18 @@
   position: relative;
   min-height: 0;
   background: #fff;
+  /* 渲染优化：允许浏览器跳过离屏内容渲染 */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
 }
 
 .browser-webview {
   width: 100%;
   height: 100%;
   border: none;
+  /* GPU 加速层，提升滚动/渲染性能 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .browser-toolbar-actions {

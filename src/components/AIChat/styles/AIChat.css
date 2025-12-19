@@ -624,6 +624,12 @@
   width: 100%;
   border: none;
   background-color: #fff;
+  /* GPU 加速层，提升渲染性能 */
+  will-change: transform;
+  transform: translateZ(0);
+  /* 渲染优化：允许浏览器跳过离屏内容渲染 */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
 }
 
 :root[data-theme='dark'] .ai-third-party-webview {

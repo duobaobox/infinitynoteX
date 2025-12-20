@@ -45,6 +45,10 @@
 .base-card__body {
   position: relative;
   z-index: 10;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 28px; /* 为右上角操作按钮预留空间 */
 }
 
 .base-card__title {
@@ -55,6 +59,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .base-card__content {

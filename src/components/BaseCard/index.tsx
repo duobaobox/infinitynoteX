@@ -124,7 +124,7 @@ const BaseCard: React.FC<BaseCardProps> = ({
       {/* 内容 */}
       <div className="base-card__body">
         <div className="base-card__title" title={title}>
-          {title.length > 10 ? title.slice(0, 10) + '…' : title}
+          {title}
         </div>
         <div className="base-card__content">{content}</div>
       </div>

@@ -16,6 +16,8 @@ import { getFeaturesByWorkspaceView } from './config/featureRegistry';
 import './features/note';
 import './features/ai-workbench';
 import './features/browser';
+import './features/todo';
+
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 import { useStorageEvents } from './hooks/useStorageEvents';
 

@@ -7,6 +7,7 @@ export { createFolderSlice, type FolderSlice } from './folderSlice';
 export { createNoteSlice, type NoteSlice } from './noteSlice';
 export { createAIConversationSlice, type AIConversationSlice } from './aiConversationSlice';
 export { createBrowserCardsSlice, type BrowserCardsSlice } from './browserCardsSlice';
+export { createTodoSlice, type TodoSlice } from './todoSlice';
 export {
   createWorkspaceViewSlice,
   type WorkspaceViewSlice,

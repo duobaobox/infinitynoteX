@@ -15,6 +15,8 @@ import { AIStorage } from './AIStorage';
 import { TrashStorage } from './TrashStorage';
 import { AttachmentStorage } from './AttachmentStorage';
 import { BrowserCardStorage } from './BrowserCardStorage';
+import { TodoListStorage } from './TodoListStorage';
+import { ManualTaskStorage } from './ManualTaskStorage';
 import { DeviceManager } from './core/DeviceManager';
 import { IndexCache } from './core/IndexCache';
 import type {
@@ -58,6 +60,8 @@ export class StorageManager {
   readonly trash: TrashStorage;
   readonly attachments: AttachmentStorage;
   readonly browserCards: BrowserCardStorage;
+  readonly todoLists: TodoListStorage;
+  readonly manualTasks: ManualTaskStorage;
 
   constructor() {
     const initialPath = this.resolveInitialDataPath();
@@ -74,12 +78,16 @@ export class StorageManager {
     this.trash = new TrashStorage(this.context);
     this.attachments = new AttachmentStorage(this.context.dataDir);
     this.browserCards = new BrowserCardStorage(this.context);
+    this.todoLists = new TodoListStorage(this.context);
+    this.manualTasks = new ManualTaskStorage(this.context);
 
     // 注入 IndexCache 到使用 BaseDirectoryStorage 的模块
     this.notes.setIndexCache(this.indexCache);
     this.ai.setIndexCache(this.indexCache);
     this.browserCards.setIndexCache(this.indexCache);
     this.trash.setIndexCache(this.indexCache);
+    this.todoLists.setIndexCache(this.indexCache);
+    this.manualTasks.setIndexCache(this.indexCache);
   }
 
   /**
@@ -191,6 +199,8 @@ export class StorageManager {
       await this.ai.rebuildIndex();
       await this.trash.rebuildIndex();
       await this.browserCards.rebuildIndex();
+      await this.todoLists.rebuildIndex();
+      await this.manualTasks.rebuildIndex();
 
       await this.loadAllCaches();
 
@@ -202,6 +212,9 @@ export class StorageManager {
 
       // 初始化预设浏览器卡片（如果尚未初始化）
       await this.browserCards.initializePresets();
+
+      // 初始化默认 Todo 清单（如果尚未初始化）
+      await this.todoLists.initializeDefault();
 
       return;
     }
@@ -226,6 +239,9 @@ export class StorageManager {
     // 初始化预设浏览器卡片
     await this.browserCards.initializePresets();
 
+    // 初始化默认 Todo 清单
+    await this.todoLists.initializeDefault();
+
     // 加载缓存
     await this.loadAllCaches();
   }
@@ -247,6 +263,8 @@ export class StorageManager {
       this.ai.loadCache(),
       this.trash.loadCache(),
       this.browserCards.loadCache(),
+      this.todoLists.loadCache(),
+      this.manualTasks.loadCache(),
     ]);
   }
 
@@ -259,6 +277,8 @@ export class StorageManager {
     this.ai.clearCache();
     this.trash.clearCache();
     this.browserCards.clearCache();
+    this.todoLists.clearCache();
+    this.manualTasks.clearCache();
   }
 
   /**

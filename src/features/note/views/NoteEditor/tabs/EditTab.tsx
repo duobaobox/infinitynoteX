@@ -24,6 +24,8 @@ interface EditTabProps {
   editorContent: TipTapJSONContent | string | null;
   onTitleChange: (title: string) => void;
   onContentChange: (content: TipTapJSONContent) => void;
+  taskPath?: number[] | null;
+  onTaskLocated?: () => void;
 }
 
 // 固定的编辑器 key，避免每次切换便签都销毁重建编辑器
@@ -35,6 +37,8 @@ export const EditTab: React.FC<EditTabProps> = ({
   editorContent,
   onTitleChange,
   onContentChange,
+  taskPath,
+  onTaskLocated,
 }) => {
   // noteId 用于调试，实际不影响渲染
   void noteId;
@@ -57,6 +61,8 @@ export const EditTab: React.FC<EditTabProps> = ({
         onContentChange={onContentChange}
         title={noteTitle}
         onTitleChange={onTitleChange}
+        taskPath={taskPath}
+        onTaskLocated={onTaskLocated}
       />
     </Suspense>
   );

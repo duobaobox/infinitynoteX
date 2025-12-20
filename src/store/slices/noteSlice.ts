@@ -16,14 +16,17 @@ export interface NoteSlice {
   notes: NoteIndex[];
   selectedNoteId: string | null;
   refreshListTrigger: number;
+  /** 任务路径定位参数（用于 Todo 跳转时定位到特定任务） */
+  noteTaskPath: number[] | null;
 
   // ============ Actions ============
   setNotes: (notes: NoteIndex[]) => void;
-  setSelectedNote: (noteId: string | null) => void;
+  setSelectedNote: (noteId: string | null, taskPath?: number[] | null) => void;
   loadNotes: (folderId: string) => Promise<void>;
   createNote: (folderId: string) => Promise<Note>;
   deleteNote: (id: string) => Promise<void>;
   triggerListRefresh: () => void;
+  clearNoteTaskPath: () => void;
 }
 
 export const createNoteSlice: StateCreator<NoteSlice & NoteSliceDeps, [], [], NoteSlice> = (
@@ -34,16 +37,21 @@ export const createNoteSlice: StateCreator<NoteSlice & NoteSliceDeps, [], [], No
   notes: [],
   selectedNoteId: null,
   refreshListTrigger: 0,
+  noteTaskPath: null,
 
   // Actions
   setNotes: (notes) => set({ notes }),
 
-  setSelectedNote: (noteId) =>
-    set({
+  setSelectedNote: (noteId, taskPath = null) =>
+    // 使用函数式更新，确保即使 ID 相同也能更新 showEditor
+    set((state) => ({
       selectedNoteId: noteId,
-      // 选中便签时自动显示编辑器
-      showEditor: !!noteId,
-    }),
+      noteTaskPath: taskPath,
+      // 强制设为 true（解决折叠后点击无法展开的问题）
+      showEditor: noteId ? true : state.showEditor,
+    })),
+
+  clearNoteTaskPath: () => set({ noteTaskPath: null }),
 
   loadNotes: async (folderId) => {
     try {

@@ -14,6 +14,7 @@ import { CharacterCount } from '../menus/components/CharacterCount';
 import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
 import { getThemeColor } from '../../../theme/theme';
+import { scrollToTask } from '../utils/taskLocator';
 import '../styles/editor.css';
 import '../styles/table.css';
 import '../styles/table-handles.css';
@@ -42,6 +43,8 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   title = '',
   onTitleChange,
   showTitleInput = true,
+  taskPath = null,
+  onTaskLocated,
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
 
@@ -158,6 +161,44 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       });
     }
   }, [editor, initialContent]);
+
+  // 任务定位：当 taskPath 参数变化或内容加载完成时，定位到对应任务
+  useEffect(() => {
+    if (!editor || !taskPath || taskPath.length === 0) {
+      return;
+    }
+
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    // 等待编辑器内容完全加载并渲染完成
+    // 增加更长的延迟，确保懒加载的组件和编辑器都已就绪
+    const timeout = setTimeout(() => {
+      if (!editor.isDestroyed) {
+        // 检查编辑器是否有内容
+        const hasContent = editor.state.doc.content.size > 2; // doc 至少有开始和结束标记
+
+        if (hasContent) {
+          scrollToTask(editor, taskPath);
+          onTaskLocated?.();
+        } else {
+          // 如果内容还没加载，再次延迟尝试
+          retryTimeout = setTimeout(() => {
+            if (!editor.isDestroyed) {
+              scrollToTask(editor, taskPath);
+              onTaskLocated?.();
+            }
+          }, 300);
+        }
+      }
+    }, 300); // 增加初始等待时间到 300ms
+
+    return () => {
+      clearTimeout(timeout);
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [editor, taskPath, onTaskLocated, initialContent]); // 添加 initialContent 依赖
 
   // 组件卸载时销毁编辑器实例（官方推荐）
   useEffect(() => {

@@ -39,6 +39,8 @@ export const NoteEditor: React.FC = () => {
   const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
   const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
   const resetEditorTabTrigger = useWorkspaceStore((state) => state.resetEditorTabTrigger);
+  const noteTaskPath = useWorkspaceStore((state) => state.noteTaskPath);
+  const clearNoteTaskPath = useWorkspaceStore((state) => state.clearNoteTaskPath);
 
   // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
@@ -217,6 +219,8 @@ export const NoteEditor: React.FC = () => {
             editorContent={editorContent}
             onTitleChange={handleTitleChange}
             onContentChange={handleContentChange}
+            taskPath={noteTaskPath}
+            onTaskLocated={clearNoteTaskPath}
           />
         );
       case 'tools':
@@ -249,6 +253,8 @@ export const NoteEditor: React.FC = () => {
         editorContent={editorContent}
         onTitleChange={handleTitleChange}
         onContentChange={handleContentChange}
+        taskPath={noteTaskPath}
+        onTaskLocated={clearNoteTaskPath}
       />
     );
   };

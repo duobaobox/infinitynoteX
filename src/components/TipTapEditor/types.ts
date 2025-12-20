@@ -27,6 +27,10 @@ export interface TipTapEditorProps {
   onTitleChange?: (title: string) => void;
   /** 是否显示标题输入框 */
   showTitleInput?: boolean;
+  /** 任务路径（用于定位到特定任务）*/
+  taskPath?: number[] | null;
+  /** 任务路径定位完成后的回调 */
+  onTaskLocated?: () => void;
 }
 
 export interface MenuBarProps {

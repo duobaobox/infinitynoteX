@@ -167,7 +167,41 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     description: '内置浏览器网页卡片（本地专用，不同步）',
   },
 
-  // ============ 待办事项（预留，暂未启用） ============
+  // ============ Todo 清单 ============
+  {
+    id: 'todo-lists',
+    name: 'Todo 清单',
+    path: 'todo-lists',
+    extension: '.json',
+    schema: z.any(), // TodoListSchema 在 schemas.ts 中定义
+    sync: { enabled: false, type: 'directory' },
+    features: {
+      softDelete: false,
+      generateExcerpt: false,
+      sortField: 'order',
+      hasIndex: true,
+    },
+    description: 'Todo 清单列表（本地专用，不同步）',
+  },
+
+  // ============ 手动任务 ============
+  {
+    id: 'manual-tasks',
+    name: '手动任务',
+    path: 'manual-tasks',
+    extension: '.json',
+    schema: z.any(), // ManualTaskSchema 在 schemas.ts 中定义
+    sync: { enabled: false, type: 'directory' },
+    features: {
+      softDelete: false,
+      generateExcerpt: false,
+      sortField: 'order',
+      hasIndex: true,
+    },
+    description: 'Todo 手动任务（本地专用，不同步）',
+  },
+
+  // ============ 待办事项（旧版预留，暂未启用） ============
   // {
   //   id: 'todos',
   //   name: '待办事项',

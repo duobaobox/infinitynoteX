@@ -1,0 +1,106 @@
+/* ============================================
+   TodoListCard - 清单卡片特有样式
+   设计规范与 NoteCard/BrowserCard 一致
+   ============================================ */
+
+/* 清单图标盒子 */
+.todo-list-icon__box {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  bottom: 10px;
+  left: 20px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transform: rotate(-12deg);
+  transition: all 0.3s ease-in-out;
+  /* 自定义清单使用蓝绿色渐变 */
+  background: linear-gradient(135deg, #b5f5ec 30%, #87e8de 100%);
+  opacity: 0.9;
+}
+
+/* 默认清单使用橙黄色渐变（与便签色系呼应） */
+.todo-list-icon__box--default {
+  background: linear-gradient(135deg, #ffe7ba 30%, #ffd591 100%);
+}
+
+/* 支持自定义颜色 */
+.todo-list-icon__box[style*='--todo-list-color'] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--todo-list-color) 30%, white 70%) 30%,
+    color-mix(in srgb, var(--todo-list-color) 50%, white 50%) 100%
+  );
+}
+
+.base-card:hover .todo-list-icon__box {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
+  transform: rotate(-15deg) translateY(-2px);
+}
+
+/* 高光效果 */
+.todo-list-icon__shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* 内容区域 */
+.todo-list-icon__content {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* 默认清单的勾选框样式 */
+.todo-list-icon__checkbox {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1.5px solid rgba(0, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 自定义清单的列表项样式 */
+.todo-list-icon__item {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.todo-list-icon__item:nth-child(2) {
+  width: 80%;
+}
+
+.todo-list-icon__item:nth-child(3) {
+  width: 60%;
+}
+
+/* ==================== 暗色模式 ==================== */
+[data-theme='dark'] .todo-list-icon__box {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #1d3932 30%, #134e4a 100%);
+}
+
+[data-theme='dark'] .todo-list-icon__box--default {
+  background: linear-gradient(135deg, #3d3222 30%, #4a3822 100%);
+}
+
+[data-theme='dark'] .todo-list-icon__checkbox {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .todo-list-icon__item {
+  background: rgba(255, 255, 255, 0.2);
+}

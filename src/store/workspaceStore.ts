@@ -22,6 +22,8 @@ import {
   createAIConversationSlice,
   BrowserCardsSlice,
   createBrowserCardsSlice,
+  TodoSlice,
+  createTodoSlice,
   WorkspaceViewSlice,
   createWorkspaceViewSlice,
 } from './slices';
@@ -32,6 +34,7 @@ export type WorkspaceState = UISlice &
   NoteSlice &
   AIConversationSlice &
   BrowserCardsSlice &
+  TodoSlice &
   WorkspaceViewSlice;
 
 // 为了向后兼容，保留 WorkspaceView 类型导出
@@ -46,6 +49,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       ...createNoteSlice(...a),
       ...createAIConversationSlice(...a),
       ...createBrowserCardsSlice(...a),
+      ...createTodoSlice(...a),
       ...createWorkspaceViewSlice(...a),
     }),
     {
@@ -54,6 +58,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     },
   ),
 );
+
 // ============ 数据同步副作用 ============
 
 /**

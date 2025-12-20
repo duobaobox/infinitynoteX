@@ -102,6 +102,28 @@ contextBridge.exposeInMainWorld('storage', {
   deleteTrashItemPermanently: (id: string) =>
     ipcRenderer.invoke('storage:deleteTrashItemPermanently', id),
   emptyTrash: () => ipcRenderer.invoke('storage:emptyTrash'),
+
+  // Todo 清单操作
+  listTodoLists: () => ipcRenderer.invoke('storage:listTodoLists'),
+  createTodoList: (name: string, color?: string) =>
+    ipcRenderer.invoke('storage:createTodoList', name, color),
+  updateTodoList: (id: string, patch: { name?: string; color?: string; order?: number }) =>
+    ipcRenderer.invoke('storage:updateTodoList', id, patch),
+  deleteTodoList: (id: string) => ipcRenderer.invoke('storage:deleteTodoList', id),
+
+  // 手动任务操作
+  listManualTasks: (listId?: string) => ipcRenderer.invoke('storage:listManualTasks', listId),
+  createManualTask: (listId: string, text: string) =>
+    ipcRenderer.invoke('storage:createManualTask', listId, text),
+  updateManualTask: (
+    id: string,
+    listId: string,
+    patch: { text?: string; checked?: boolean; order?: number },
+  ) => ipcRenderer.invoke('storage:updateManualTask', id, listId, patch),
+  deleteManualTask: (id: string, listId: string) =>
+    ipcRenderer.invoke('storage:deleteManualTask', id, listId),
+  toggleManualTask: (id: string, listId: string) =>
+    ipcRenderer.invoke('storage:toggleManualTask', id, listId),
 });
 
 // --------- Expose storage events API ---------

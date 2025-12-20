@@ -13,6 +13,35 @@ export type NoteColor = NoteCardColor;
 // ============ 数据模型 ============
 
 /**
+ * AI 对话消息
+ */
+export interface AIMessage {
+  id?: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  reasoning?: string;
+  ragSources?: Array<{
+    key: number;
+    title: string;
+    description?: string;
+    noteId?: string;
+  }>;
+}
+
+/**
+ * AI 对话
+ */
+export interface AIConversation {
+  id: string;
+  title: string;
+  excerpt: string;
+  messages: AIMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/**
  * 文件夹
  */
 export interface Folder {
@@ -229,4 +258,115 @@ export interface UpdateStatusPayload {
   transferredBytes?: number;
   totalBytes?: number;
   errorMessage?: string;
+}
+
+// ============ Todo 相关类型 ============
+
+/**
+ * Todo 清单
+ */
+export interface TodoList {
+  id: string;
+  name: string;
+  color?: string;
+  isDefault: boolean;
+  createdAt: number;
+  updatedAt: number;
+  order: number;
+}
+
+/**
+ * 手动任务
+ */
+export interface ManualTask {
+  id: string;
+  listId: string;
+  text: string;
+  checked: boolean;
+  createdAt: number;
+  updatedAt: number;
+  order: number;
+}
+
+/**
+ * 手动任务索引（用于列表展示）
+ */
+export interface ManualTaskIndex {
+  id: string;
+  listId: string;
+  text: string;
+  checked: boolean;
+  order: number;
+  updatedAt: number;
+}
+
+// ============ 扩展 window.storage 类型 ============
+
+declare global {
+  interface Window {
+    storage: {
+      // 路径管理
+      getDefaultPath(): Promise<string>;
+      getCurrentPath(): Promise<string>;
+      isFirstLaunch(): Promise<boolean>;
+      markInitialized(): Promise<void>;
+      setStoragePath(nextPath: string, options?: SetStoragePathOptions): Promise<void>;
+      healthCheck(): Promise<HealthCheckResult>;
+      openInFinder(): Promise<void>;
+      getStats(): Promise<StorageStats>;
+      createBackup(): Promise<string>;
+      exportData(targetPath: string): Promise<void>;
+      resetAllData(): Promise<void>;
+
+      // 文件夹操作
+      listFolders(): Promise<Folder[]>;
+      createFolder(name: string): Promise<Folder>;
+      renameFolder(id: string, name: string): Promise<Folder>;
+      deleteFolder(id: string): Promise<void>;
+
+      // 便签操作
+      listNotes(folderId?: string): Promise<NoteIndex[]>;
+      createNote(folderId: string, payload?: CreateNotePayload): Promise<Note>;
+      getNote(id: string): Promise<Note>;
+      updateNote(id: string, patch: UpdateNotePayload): Promise<Note>;
+      deleteNote(id: string): Promise<void>;
+
+      // AI 对话操作
+      getAIConversations(): Promise<AIConversation[]>;
+      createAIConversation(title?: string): Promise<AIConversation>;
+      deleteAIConversation(id: string): Promise<void>;
+      saveAIConversationMessages(
+        id: string,
+        messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>,
+      ): Promise<AIConversation>;
+      updateAIConversationTitle(id: string, title: string): Promise<AIConversation>;
+
+      // 回收站操作
+      listTrash(): Promise<TrashIndex[]>;
+      getTrashItem(id: string): Promise<TrashItem>;
+      restoreNote(trashItemId: string, targetFolderId?: string): Promise<Note>;
+      deleteTrashItemPermanently(id: string): Promise<void>;
+      emptyTrash(): Promise<number>;
+
+      // Todo 清单操作
+      listTodoLists(): Promise<TodoList[]>;
+      createTodoList(name: string, color?: string): Promise<TodoList>;
+      updateTodoList(
+        id: string,
+        patch: { name?: string; color?: string; order?: number },
+      ): Promise<TodoList>;
+      deleteTodoList(id: string): Promise<void>;
+
+      // 手动任务操作
+      listManualTasks(listId?: string): Promise<ManualTaskIndex[]>;
+      createManualTask(listId: string, text: string): Promise<ManualTask>;
+      updateManualTask(
+        id: string,
+        listId: string,
+        patch: { text?: string; checked?: boolean; order?: number },
+      ): Promise<ManualTask>;
+      deleteManualTask(id: string, listId: string): Promise<void>;
+      toggleManualTask(id: string, listId: string): Promise<ManualTask>;
+    };
+  }
 }

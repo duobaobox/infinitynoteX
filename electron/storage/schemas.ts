@@ -224,3 +224,56 @@ export const BrowserCardsIndexArraySchema = z.array(BrowserCardIndexSchema);
 // 从 Schema 推导类型
 export type BrowserCard = z.infer<typeof BrowserCardSchema>;
 export type BrowserCardIndex = z.infer<typeof BrowserCardIndexSchema>;
+
+// ============ Todo 清单 Schema ============
+
+export const TodoListSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  color: z.string().optional(),
+  isDefault: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  order: z.number(),
+});
+
+export const TodoListIndexSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isDefault: z.boolean(),
+  order: z.number(),
+  updatedAt: z.number(),
+});
+
+export const TodoListsIndexArraySchema = z.array(TodoListIndexSchema);
+
+// 从 Schema 推导类型
+export type TodoList = z.infer<typeof TodoListSchema>;
+export type TodoListIndex = z.infer<typeof TodoListIndexSchema>;
+
+// ============ 手动任务 Schema ============
+
+export const ManualTaskSchema = z.object({
+  id: z.string(),
+  listId: z.string(),
+  text: z.string(),
+  checked: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  order: z.number(),
+});
+
+export const ManualTaskIndexSchema = z.object({
+  id: z.string(),
+  listId: z.string(),
+  text: z.string(),
+  checked: z.boolean(),
+  order: z.number(),
+  updatedAt: z.number(),
+});
+
+export const ManualTasksIndexArraySchema = z.array(ManualTaskIndexSchema);
+
+// 从 Schema 推导类型
+export type ManualTask = z.infer<typeof ManualTaskSchema>;
+export type ManualTaskIndex = z.infer<typeof ManualTaskIndexSchema>;

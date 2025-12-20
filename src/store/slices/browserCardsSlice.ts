@@ -44,11 +44,12 @@ export const createBrowserCardsSlice: StateCreator<
   // Actions
   setBrowserCards: (cards) => set({ browserCards: cards }),
   selectBrowserCard: (id) =>
-    set({
+    // 使用函数式更新，确保即使 ID 相同也能更新 showEditor
+    set((state) => ({
       selectedBrowserCardId: id,
-      // 选中卡片时自动显示编辑器
-      showEditor: !!id,
-    }),
+      // 强制设为 true（解决折叠后点击无法展开的问题）
+      showEditor: id ? true : state.showEditor,
+    })),
 
   loadBrowserCards: async () => {
     try {

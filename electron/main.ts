@@ -505,6 +505,91 @@ ipcMain.handle('storage:emptyTrash', async () => {
   return await storageManager.emptyTrash();
 });
 
+// ============ Todo 清单 IPC 处理器 ============
+
+/**
+ * 获取所有 Todo 清单
+ */
+ipcMain.handle('storage:listTodoLists', async () => {
+  return await storageManager.todoLists.getAll();
+});
+
+/**
+ * 创建 Todo 清单
+ */
+ipcMain.handle('storage:createTodoList', async (_, name: string, color?: string) => {
+  const nextOrder = await storageManager.todoLists.getNextOrder();
+  return await storageManager.todoLists.create({ name, color, order: nextOrder });
+});
+
+/**
+ * 更新 Todo 清单
+ */
+ipcMain.handle(
+  'storage:updateTodoList',
+  async (_, id: string, patch: { name?: string; color?: string; order?: number }) => {
+    return await storageManager.todoLists.update(id, patch);
+  },
+);
+
+/**
+ * 删除 Todo 清单
+ */
+ipcMain.handle('storage:deleteTodoList', async (_, id: string) => {
+  // 同时删除该清单的所有手动任务
+  await storageManager.manualTasks.deleteByListId(id);
+  return await storageManager.todoLists.delete(id);
+});
+
+// ============ 手动任务 IPC 处理器 ============
+
+/**
+ * 获取手动任务列表（按清单过滤）
+ */
+ipcMain.handle('storage:listManualTasks', async (_, listId?: string) => {
+  if (listId) {
+    return await storageManager.manualTasks.listByListId(listId);
+  }
+  return await storageManager.manualTasks.list();
+});
+
+/**
+ * 创建手动任务
+ */
+ipcMain.handle('storage:createManualTask', async (_, listId: string, text: string) => {
+  const nextOrder = await storageManager.manualTasks.getNextOrder(listId);
+  return await storageManager.manualTasks.create({ listId, text, order: nextOrder });
+});
+
+/**
+ * 更新手动任务
+ */
+ipcMain.handle(
+  'storage:updateManualTask',
+  async (
+    _,
+    id: string,
+    _listId: string,
+    patch: { text?: string; checked?: boolean; order?: number },
+  ) => {
+    return await storageManager.manualTasks.update(id, patch);
+  },
+);
+
+/**
+ * 删除手动任务
+ */
+ipcMain.handle('storage:deleteManualTask', async (_, id: string) => {
+  return await storageManager.manualTasks.delete(id);
+});
+
+/**
+ * 切换手动任务完成状态
+ */
+ipcMain.handle('storage:toggleManualTask', async (_, id: string) => {
+  return await storageManager.manualTasks.toggleChecked(id);
+});
+
 // ============ 浏览器卡片 IPC 处理器 ============
 
 /**

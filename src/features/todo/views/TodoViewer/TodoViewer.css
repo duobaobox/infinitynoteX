@@ -1,0 +1,145 @@
+/**
+ * TodoViewer 样式
+ * 使用动态主题色变量 --dynamic-theme-color（由 React 组件设置）
+ */
+
+/* 头部区域 */
+.todo-viewer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  margin-bottom: 12px;
+}
+
+.todo-viewer__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  display: flex;
+  align-items: center;
+}
+
+/* 添加任务区域 */
+.todo-viewer__add-task {
+  margin-bottom: 12px;
+}
+
+/* 任务列表区域 */
+.todo-viewer__list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 任务项 */
+.todo-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 12px;
+  margin: 4px 0;
+  background: var(--panel-bg, #fff);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color, #f0f0f0);
+}
+
+.todo-task-item:hover {
+  /* 使用动态主题色边框，不改变背景 */
+  border-color: var(--dynamic-theme-color, #1677ff);
+}
+
+.todo-task-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-task-item__text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+  word-break: break-word;
+}
+
+.todo-task-item__text.checked {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.todo-task-item__meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.todo-task-item__source {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.todo-task-item__source:hover {
+  /* 使用动态主题色 */
+  color: var(--dynamic-theme-color, #1677ff);
+}
+
+.todo-task-item__time {
+  display: flex;
+  align-items: center;
+}
+
+.todo-task-item__delete {
+  opacity: 0;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  font-size: 14px;
+  padding: 4px;
+  cursor: pointer;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
+  align-self: center;
+}
+
+.todo-task-item:hover .todo-task-item__delete {
+  opacity: 1;
+}
+
+.todo-task-item__delete:hover {
+  color: #ff4d4f;
+}
+
+/* ==================== 暗黑模式 ==================== */
+[data-theme='dark'] .todo-viewer__header {
+  border-color: var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .todo-viewer__title {
+  color: var(--text-primary, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .todo-task-item {
+  background: var(--panel-bg, rgba(255, 255, 255, 0.04));
+  border-color: var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+[data-theme='dark'] .todo-task-item__text {
+  color: var(--text-primary, rgba(255, 255, 255, 0.85));
+}
+
+[data-theme='dark'] .todo-task-item__meta {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+}
+
+[data-theme='dark'] .todo-task-item__source {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+}
+
+[data-theme='dark'] .todo-task-item__delete {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+}

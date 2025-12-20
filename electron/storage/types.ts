@@ -29,6 +29,14 @@ export type {
   BrowserCard,
   BrowserCardIndex,
 
+  // Todo 清单
+  TodoList,
+  TodoListIndex,
+
+  // 手动任务
+  ManualTask,
+  ManualTaskIndex,
+
   // 存储元数据
   StorageMeta,
   HealthCheckResult,

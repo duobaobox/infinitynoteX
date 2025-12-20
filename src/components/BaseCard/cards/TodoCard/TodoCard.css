@@ -1,0 +1,72 @@
+/**
+ * TodoCard 样式
+ */
+
+/* 任务图标 - 采用装饰性背景风格 */
+.todo-icon__box {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  bottom: 10px;
+  left: 20px;
+  border-radius: 12px;
+  /* 绿色渐变背景 */
+  background: linear-gradient(135deg, #f6ffed 30%, #d9f7be 100%);
+  border: 1.5px solid rgba(82, 196, 26, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #52c41a;
+  font-size: 24px;
+
+  /* 装饰性旋转和阴影 */
+  transform: rotate(-12deg);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* Hover 效果 */
+.base-card:hover .todo-icon__box {
+  transform: rotate(-8deg) translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 16px rgba(82, 196, 26, 0.25);
+  background: linear-gradient(135deg, #f6ffed 10%, #b7eb8f 100%);
+}
+
+/* 已完成任务图标样式 */
+.todo-icon--checked .todo-icon__box {
+  background: linear-gradient(135deg, #f5f5f5 30%, #d9d9d9 100%);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #8c8c8c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.base-card:hover .todo-icon--checked .todo-icon__box {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* 已完成任务的文字样式 */
+.todo-card--checked .base-card__title,
+.todo-card--checked .base-card__content {
+  opacity: 0.45;
+  text-decoration: line-through;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* ==================== 暗色模式 ==================== */
+[data-theme='dark'] .todo-icon__box {
+  background: linear-gradient(135deg, #135200 30%, #237804 100%);
+  border-color: rgba(82, 196, 26, 0.3);
+  color: #95de64;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .base-card:hover .todo-icon__box {
+  background: linear-gradient(135deg, #135200 10%, #389e0d 100%);
+}
+
+[data-theme='dark'] .todo-icon--checked .todo-icon__box {
+  background: linear-gradient(135deg, #262626 30%, #434343 100%);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #595959;
+}

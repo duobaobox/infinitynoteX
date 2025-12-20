@@ -43,11 +43,12 @@ export const createAIConversationSlice: StateCreator<
   setAIConversations: (conversations) => set({ aiConversations: conversations }),
   setSelectedTool: (toolId) => set({ selectedToolId: toolId }),
   setSelectedToolItem: (itemId) =>
-    set({
+    // 使用函数式更新，确保即使 ID 相同也能更新 showEditor
+    set((state) => ({
       selectedToolItemId: itemId,
-      // 选中对话时自动显示编辑器，与 NoteSlice 保持一致
-      showEditor: !!itemId,
-    }),
+      // 强制设为 true（解决折叠后点击无法展开的问题）
+      showEditor: itemId ? true : state.showEditor,
+    })),
 
   loadAIConversations: async () => {
     try {

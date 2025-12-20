@@ -47,6 +47,7 @@ export const NoteEditor: React.FC = () => {
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKeyType>('edit');
   const [noteColor, setNoteColor] = useState<NoteColorType>('ffffff');
+  const [isContentLoading, setIsContentLoading] = useState(false);
 
   // 使用保存 hook
   const { pendingSaveRef, saveTimerRef, debouncedSave, flushPendingSave } = useNoteSave();
@@ -142,14 +143,18 @@ export const NoteEditor: React.FC = () => {
   }, [pendingSaveRef, saveTimerRef]);
 
   const loadNote = async (id: string) => {
+    setIsContentLoading(true);
     try {
       const note = await window.storage.getNote(id);
       setNoteTitle(note.title);
       setEditorContent(note.content);
       setNoteColor(note.color || 'ffffff');
+      // 延迟重置加载状态，给编辑器一点时间处理内容更新
+      setTimeout(() => setIsContentLoading(false), 50);
     } catch (error) {
       console.error('Failed to load note:', error);
       message.error('加载便签失败');
+      setIsContentLoading(false);
     }
   };
 
@@ -221,6 +226,7 @@ export const NoteEditor: React.FC = () => {
             onContentChange={handleContentChange}
             taskPath={noteTaskPath}
             onTaskLocated={clearNoteTaskPath}
+            isLoading={isContentLoading}
           />
         );
       case 'tools':
@@ -255,6 +261,7 @@ export const NoteEditor: React.FC = () => {
         onContentChange={handleContentChange}
         taskPath={noteTaskPath}
         onTaskLocated={clearNoteTaskPath}
+        isLoading={isContentLoading}
       />
     );
   };

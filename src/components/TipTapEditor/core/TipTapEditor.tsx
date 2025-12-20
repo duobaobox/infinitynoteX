@@ -127,38 +127,45 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       return;
     }
 
-    try {
-      const incoming = JSON.stringify(initialContent ?? { type: 'doc', content: [] });
-      if (incoming !== lastSyncedContentRef.current) {
-        // 使用 requestAnimationFrame 确保 DOM 更新在下一帧执行，避免阻塞主线程
-        requestAnimationFrame(() => {
-          if (!editor.isDestroyed) {
-            // 通过选项 emitUpdate: false，避免递归触发 onUpdate
-            editor.commands.setContent(
-              initialContent as import('@tiptap/pm/model').Node | Record<string, unknown>,
-              { emitUpdate: false },
-            );
-            // 更新快照，保持与编辑器内部一致
-            lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
-            lastContentRef.current = initialContent;
-          }
-        });
-      } else {
-        // 内容相同但引用不同，只更新引用
-        lastContentRef.current = initialContent;
+    // 类型断言辅助
+    type JSONContent = { type?: string; content?: unknown[] };
+    const content = (initialContent ?? { type: 'doc', content: [] }) as JSONContent;
+    const prevContent = lastContentRef.current as JSONContent | null;
+
+    // 优化：先做轻量级比较（引用 + 内容数组长度），减少不必要的 JSON序列化
+    const quickCheckDifferent =
+      !prevContent || content?.content?.length !== prevContent?.content?.length;
+
+    // 只有快速检查发现可能不同，或者快速检查相同时再做深度比较
+    let contentChanged = quickCheckDifferent;
+    if (!quickCheckDifferent) {
+      // 快速检查相同时，用序列化做精确比较
+      try {
+        const incoming = JSON.stringify(content);
+        contentChanged = incoming !== lastSyncedContentRef.current;
+      } catch {
+        contentChanged = true; // 序列化失败视为内容变化
       }
-    } catch (e) {
-      // 如果序列化失败，兜底直接设置一次内容
-      requestAnimationFrame(() => {
+    }
+
+    if (contentChanged) {
+      // 使用 setTimeout 让内容设置真正异步执行
+      // 这给浏览器事件循环喘息的机会，避免主线程长时间阻塞导致卡顿
+      setTimeout(() => {
         if (!editor.isDestroyed) {
+          // 通过选项 emitUpdate: false，避免递归触发 onUpdate
           editor.commands.setContent(
             initialContent as import('@tiptap/pm/model').Node | Record<string, unknown>,
             { emitUpdate: false },
           );
+          // 更新快照，保持与编辑器内部一致
           lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
           lastContentRef.current = initialContent;
         }
-      });
+      }, 0);
+    } else {
+      // 内容相同但引用不同，只更新引用
+      lastContentRef.current = initialContent;
     }
   }, [editor, initialContent]);
 

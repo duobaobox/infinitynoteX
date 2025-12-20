@@ -585,3 +585,39 @@ ul[data-type='taskList'] > li:nth-child(n + 20) {
   content-visibility: auto;
   contain-intrinsic-size: auto 40px;
 }
+
+/* ==================== 编辑器加载过渡 ==================== */
+
+/* 编辑选项卡容器 */
+.edit-tab-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 加载遮罩层 */
+.editor-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--panel-bg-rgb, 255, 255, 255), 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: editorFadeIn 0.15s ease-out;
+  pointer-events: none; /* 允许继续交互，仅作视觉提示 */
+}
+
+@keyframes editorFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Input, Badge, Button, message, Modal, Empty, Form } from 'antd';
+import { Input, Badge, Button, message, Modal, Empty, Form, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import BrowserCard, { CardListContext } from '../../../../components/BaseCard/cards/BrowserCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -70,24 +70,14 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
   };
 
   /** 删除卡片 */
-  const handleDeleteCard = async (id: string, name: string) => {
-    Modal.confirm({
-      title: '删除网页',
-      content: `确定删除"${name}"吗？`,
-      okText: '删除',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      async onOk() {
-        try {
-          await deleteBrowserCard(id);
-          message.success('删除成功');
-        } catch (error) {
-          console.error('Failed to delete browser card:', error);
-          message.error('删除失败');
-          throw error;
-        }
-      },
-    });
+  const handleDeleteCard = async (id: string) => {
+    try {
+      await deleteBrowserCard(id);
+      message.success('删除成功');
+    } catch (error) {
+      console.error('Failed to delete browser card:', error);
+      message.error('删除失败');
+    }
   };
 
   // ============ 派生数据 ============
@@ -157,15 +147,24 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
                   onClick={() => selectBrowserCard(card.id)}
                   actions={
                     !card.isBuiltIn && (
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCard(card.id, card.name);
+                      <Popconfirm
+                        title="删除网页"
+                        description={`确定删除"${card.name}"吗？`}
+                        onConfirm={(e) => {
+                          e?.stopPropagation();
+                          handleDeleteCard(card.id);
                         }}
-                      />
+                        okText="删除"
+                        cancelText="取消"
+                        placement="right"
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </Popconfirm>
                     )
                   }
                 />

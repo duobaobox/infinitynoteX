@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Input, Badge, Button, message, Modal, Empty } from 'antd';
+import { Input, Badge, Button, message, Popconfirm, Empty } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import ConversationCard, {
   CardListContext,
@@ -87,23 +87,13 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
   };
 
   /** 删除对话 */
-  const handleDeleteAIConversation = async (id: string, title: string) => {
-    Modal.confirm({
-      title: '删除对话',
-      content: `确定删除对话"${title}"吗？`,
-      okText: '删除',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      async onOk() {
-        try {
-          await deleteAIConversation(id);
-        } catch (error) {
-          console.error('Failed to delete AI conversation:', error);
-          message.error('删除对话失败');
-          throw error;
-        }
-      },
-    });
+  const handleDeleteAIConversation = async (id: string) => {
+    try {
+      await deleteAIConversation(id);
+    } catch (error) {
+      console.error('Failed to delete AI conversation:', error);
+      message.error('删除对话失败');
+    }
   };
 
   // ============ 派生数据 ============
@@ -176,15 +166,24 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
                     resetEditorTab(); // 切换对话时重置 Tab 到默认
                   }}
                   actions={
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAIConversation(session.id, session.title);
+                    <Popconfirm
+                      title="删除对话"
+                      description={`确定删除"${session.title}"吗？`}
+                      onConfirm={(e) => {
+                        e?.stopPropagation();
+                        handleDeleteAIConversation(session.id);
                       }}
-                    />
+                      okText="删除"
+                      cancelText="取消"
+                      placement="right"
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Popconfirm>
                   }
                   id={session.id}
                 />

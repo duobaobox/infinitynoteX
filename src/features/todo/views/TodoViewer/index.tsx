@@ -9,13 +9,14 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Segmented, Button, Checkbox, Empty, Input, Popconfirm } from 'antd';
+import { Segmented, Button, Checkbox, Empty, Input, Popconfirm, Modal } from 'antd';
 import {
   FileTextOutlined,
   CheckSquareOutlined,
   ClockCircleOutlined,
   PlusOutlined,
   DeleteOutlined,
+  EditOutlined,
   LinkOutlined,
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -37,6 +38,7 @@ export const TodoViewer: React.FC = () => {
   const loadManualTasks = useWorkspaceStore((state) => state.loadManualTasks);
   const toggleParsedTaskChecked = useWorkspaceStore((state) => state.toggleParsedTaskChecked);
   const createManualTask = useWorkspaceStore((state) => state.createManualTask);
+  const updateManualTask = useWorkspaceStore((state) => state.updateManualTask);
   const toggleManualTask = useWorkspaceStore((state) => state.toggleManualTask);
   const deleteManualTask = useWorkspaceStore((state) => state.deleteManualTask);
   const setWorkspaceView = useWorkspaceStore((state) => state.setWorkspaceView);
@@ -46,6 +48,11 @@ export const TodoViewer: React.FC = () => {
   // ============ 本地状态 ============
   const [filter, setFilter] = useState<FilterType>('pending');
   const [newTaskText, setNewTaskText] = useState('');
+
+  // 编辑任务弹窗状态
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTaskText, setEditTaskText] = useState('');
 
   // 动态主题色
   const themeColor = useThemeColor();
@@ -121,6 +128,22 @@ export const TodoViewer: React.FC = () => {
     if (!newTaskText.trim() || !selectedTodoListId) return;
     await createManualTask(selectedTodoListId, newTaskText.trim());
     setNewTaskText('');
+  };
+
+  // 打开编辑任务弹窗
+  const handleOpenEditModal = (task: ManualTaskIndex) => {
+    setEditingTaskId(task.id);
+    setEditTaskText(task.text);
+    setIsEditModalOpen(true);
+  };
+
+  // 编辑手动任务
+  const handleEditTask = async () => {
+    if (!editingTaskId || !editTaskText.trim() || !selectedTodoListId) return;
+    await updateManualTask(editingTaskId, selectedTodoListId, { text: editTaskText.trim() });
+    setIsEditModalOpen(false);
+    setEditingTaskId(null);
+    setEditTaskText('');
   };
 
   // ============ 渲染 ============
@@ -260,20 +283,50 @@ export const TodoViewer: React.FC = () => {
                     </span>
                   </div>
                 </div>
-                <Popconfirm
-                  title="删除任务"
-                  description="确定要删除这个任务吗？"
-                  onConfirm={() => deleteManualTask(task.id, selectedTodoListId)}
-                  okText="删除"
-                  cancelText="取消"
-                >
-                  <DeleteOutlined className="todo-task-item__delete" />
-                </Popconfirm>
+                <div className="todo-task-item__actions">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => handleOpenEditModal(task)}
+                  />
+                  <Popconfirm
+                    title="删除任务"
+                    description="确定要删除这个任务吗？"
+                    onConfirm={() => deleteManualTask(task.id, selectedTodoListId)}
+                    okText="删除"
+                    cancelText="取消"
+                  >
+                    <Button type="text" size="small" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </div>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* 编辑任务弹窗 */}
+      <Modal
+        title="编辑任务"
+        open={isEditModalOpen}
+        onOk={handleEditTask}
+        onCancel={() => {
+          setIsEditModalOpen(false);
+          setEditingTaskId(null);
+          setEditTaskText('');
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Input
+          placeholder="请输入任务内容"
+          value={editTaskText}
+          onChange={(e) => setEditTaskText(e.target.value)}
+          onPressEnter={handleEditTask}
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 };

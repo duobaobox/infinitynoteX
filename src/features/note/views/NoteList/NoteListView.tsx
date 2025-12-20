@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Input, Badge, Button, message, Modal } from 'antd';
+import { Input, Badge, Button, message, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import NoteCard, { CardListContext } from '../../../../components/BaseCard/cards/NoteCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -80,27 +80,17 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   };
 
   /** 删除便签 */
-  const handleDeleteNote = async (id: string, title: string) => {
-    Modal.confirm({
-      title: '删除便签',
-      content: `确定删除便签"${title || '无标题'}"吗？`,
-      okText: '删除',
-      cancelText: '取消',
-      okButtonProps: { danger: true },
-      async onOk() {
-        try {
-          await deleteNote(id);
-          // 如果删除的是当前选中的便签，清空选中状态
-          if (selectedNoteId === id) {
-            setSelectedNote(null);
-          }
-        } catch (error) {
-          console.error('Failed to delete note:', error);
-          message.error('删除失败');
-          throw error;
-        }
-      },
-    });
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await deleteNote(id);
+      // 如果删除的是当前选中的便签，清空选中状态
+      if (selectedNoteId === id) {
+        setSelectedNote(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      message.error('删除失败');
+    }
   };
 
   /** 钉住便签 - 创建悬浮窗口 */
@@ -179,15 +169,24 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
                 }}
                 onPin={() => handlePinNote(note.id)}
                 actions={
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteNote(note.id, note.title);
+                  <Popconfirm
+                    title="删除便签"
+                    description={`确定删除"${note.title || '无标题'}"吗？`}
+                    onConfirm={(e) => {
+                      e?.stopPropagation();
+                      handleDeleteNote(note.id);
                     }}
-                  />
+                    okText="删除"
+                    cancelText="取消"
+                    placement="right"
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Popconfirm>
                 }
                 id={note.id}
               />

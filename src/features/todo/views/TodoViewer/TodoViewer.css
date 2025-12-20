@@ -94,23 +94,28 @@
   align-items: center;
 }
 
-.todo-task-item__delete {
+/* 任务操作按钮区域 */
+.todo-task-item__actions {
+  display: flex;
+  gap: 4px;
   opacity: 0;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
-  font-size: 14px;
-  padding: 4px;
-  cursor: pointer;
-  transition:
-    opacity 0.2s,
-    color 0.2s;
+  transition: opacity 0.2s;
   align-self: center;
 }
 
-.todo-task-item:hover .todo-task-item__delete {
+.todo-task-item:hover .todo-task-item__actions {
   opacity: 1;
 }
 
-.todo-task-item__delete:hover {
+.todo-task-item__actions .ant-btn-text {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.todo-task-item__actions .ant-btn-text:hover {
+  color: var(--dynamic-theme-color, #1677ff);
+}
+
+.todo-task-item__actions .ant-btn-text:last-child:hover {
   color: #ff4d4f;
 }
 
@@ -140,6 +145,6 @@
   color: var(--text-secondary, rgba(255, 255, 255, 0.45));
 }
 
-[data-theme='dark'] .todo-task-item__delete {
+[data-theme='dark'] .todo-task-item__actions .ant-btn-text {
   color: var(--text-secondary, rgba(255, 255, 255, 0.45));
 }

@@ -35,6 +35,7 @@ export interface TodoSlice {
   loadTodoLists: () => Promise<void>;
   selectTodoList: (id: string | null) => void;
   createTodoList: (name: string, color?: string) => Promise<void>;
+  updateTodoList: (id: string, patch: { name?: string; color?: string }) => Promise<void>;
   deleteTodoList: (id: string) => Promise<void>;
 
   // ============ 任务选中 Actions ============
@@ -47,6 +48,7 @@ export interface TodoSlice {
   // ============ 手动任务 Actions ============
   loadManualTasks: (listId: string) => Promise<void>;
   createManualTask: (listId: string, text: string) => Promise<void>;
+  updateManualTask: (taskId: string, listId: string, patch: { text?: string }) => Promise<void>;
   toggleManualTask: (taskId: string, listId: string) => Promise<void>;
   deleteManualTask: (taskId: string, listId: string) => Promise<void>;
 }
@@ -96,6 +98,16 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       set({ selectedTodoListId: newList.id, selectedTaskId: null });
     } catch (error) {
       console.error('[TodoSlice] Failed to create todo list:', error);
+      throw error;
+    }
+  },
+
+  updateTodoList: async (id, patch) => {
+    try {
+      await window.storage.updateTodoList(id, patch);
+      await get().loadTodoLists();
+    } catch (error) {
+      console.error('[TodoSlice] Failed to update todo list:', error);
       throw error;
     }
   },
@@ -205,6 +217,16 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       await get().loadManualTasks(listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to create manual task:', error);
+      throw error;
+    }
+  },
+
+  updateManualTask: async (taskId, listId, patch) => {
+    try {
+      await window.storage.updateManualTask(taskId, listId, patch);
+      await get().loadManualTasks(listId);
+    } catch (error) {
+      console.error('[TodoSlice] Failed to update manual task:', error);
       throw error;
     }
   },

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Button, Popconfirm } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import BaseCard, { CardListContext } from '../../index';
 import './TodoListCard.css';
 
@@ -18,6 +18,7 @@ export interface TodoListCardProps {
   isDefault: boolean;
   color?: string;
   onClick?: () => void;
+  onEdit?: () => void;
   onDelete?: () => void;
 }
 
@@ -27,6 +28,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
   isDefault,
   color,
   onClick,
+  onEdit,
   onDelete,
 }) => {
   // 图标装饰：类似 NoteCard 的设计
@@ -56,27 +58,42 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
     </div>
   );
 
-  // 使用 Button 组件，与 BaseCard 的 actions 样式一致
+  // 操作按钮：仅非默认清单显示编辑和删除按钮
   const actions =
-    !isDefault && onDelete ? (
-      <Popconfirm
-        title="删除清单"
-        description="确定要删除这个清单吗？"
-        onConfirm={(e) => {
-          e?.stopPropagation();
-          onDelete();
-        }}
-        okText="删除"
-        cancelText="取消"
-        placement="right"
-      >
-        <Button
-          type="text"
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </Popconfirm>
+    !isDefault && (onEdit || onDelete) ? (
+      <>
+        {onEdit && (
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          />
+        )}
+        {onDelete && (
+          <Popconfirm
+            title="删除清单"
+            description="确定要删除这个清单吗？"
+            onConfirm={(e) => {
+              e?.stopPropagation();
+              onDelete();
+            }}
+            okText="删除"
+            cancelText="取消"
+            placement="right"
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Popconfirm>
+        )}
+      </>
     ) : undefined;
 
   return (

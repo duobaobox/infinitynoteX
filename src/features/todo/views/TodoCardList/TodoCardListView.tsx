@@ -4,7 +4,7 @@
  * 【组件职责】
  * - 左侧列表：显示所有 Todo 清单（使用 BaseCard 统一样式）
  * - 第一个默认清单是「便签任务」
- * - 可创建和删除自定义清单
+ * - 可创建、编辑和删除自定义清单
  */
 
 import React, { useEffect, useState } from 'react';
@@ -27,6 +27,7 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
   const selectTodoList = useWorkspaceStore((state) => state.selectTodoList);
   const loadTodoLists = useWorkspaceStore((state) => state.loadTodoLists);
   const createTodoList = useWorkspaceStore((state) => state.createTodoList);
+  const updateTodoList = useWorkspaceStore((state) => state.updateTodoList);
   const deleteTodoList = useWorkspaceStore((state) => state.deleteTodoList);
 
   // ============ Hooks ============
@@ -34,6 +35,11 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
+
+  // 编辑弹窗状态
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editListName, setEditListName] = useState('');
 
   // ============ 副作用 ============
 
@@ -54,6 +60,20 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
     await createTodoList(newListName.trim());
     setNewListName('');
     setIsCreateModalOpen(false);
+  };
+
+  const handleOpenEditModal = (list: TodoList) => {
+    setEditingListId(list.id);
+    setEditListName(list.name);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditList = async () => {
+    if (!editingListId || !editListName.trim()) return;
+    await updateTodoList(editingListId, { name: editListName.trim() });
+    setIsEditModalOpen(false);
+    setEditingListId(null);
+    setEditListName('');
   };
 
   const handleDeleteList = async (listId: string) => {
@@ -108,6 +128,7 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
                   isDefault={list.isDefault}
                   color={list.color}
                   onClick={() => selectTodoList(list.id)}
+                  onEdit={list.isDefault ? undefined : () => handleOpenEditModal(list)}
                   onDelete={list.isDefault ? undefined : () => handleDeleteList(list.id)}
                 />
               ))
@@ -133,6 +154,28 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
           value={newListName}
           onChange={(e) => setNewListName(e.target.value)}
           onPressEnter={handleCreateList}
+          autoFocus
+        />
+      </Modal>
+
+      {/* 编辑清单弹窗 */}
+      <Modal
+        title="编辑清单"
+        open={isEditModalOpen}
+        onOk={handleEditList}
+        onCancel={() => {
+          setIsEditModalOpen(false);
+          setEditingListId(null);
+          setEditListName('');
+        }}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Input
+          placeholder="请输入清单名称"
+          value={editListName}
+          onChange={(e) => setEditListName(e.target.value)}
+          onPressEnter={handleEditList}
           autoFocus
         />
       </Modal>

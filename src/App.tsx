@@ -7,7 +7,9 @@ import EditorPanel from './features/layout/EditorPanel';
 
 import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
+import FloatingTodoWindow from './components/FloatingTodoWindow/FloatingTodoWindow';
 import PillWindow from './components/PillWindow/PillWindow';
+import TodoPillWindow from './components/TodoPillWindow/TodoPillWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 import { getFeaturesByWorkspaceView } from './config/featureRegistry';
@@ -45,6 +47,8 @@ function App() {
     const hash = window.location.hash;
     if (hash.startsWith('#/floating/')) return 'floating';
     if (hash.startsWith('#/pill/')) return 'pill';
+    if (hash.startsWith('#/floating-todo/')) return 'floating-todo';
+    if (hash.startsWith('#/todo-pill/')) return 'todo-pill';
     return 'main';
   }, []);
 
@@ -154,6 +158,18 @@ function App() {
   if (windowType === 'pill') {
     const noteId = window.location.hash.replace('#/pill/', '');
     return <PillWindow noteId={noteId} />;
+  }
+
+  // Todo 悬浮窗口
+  if (windowType === 'floating-todo') {
+    const listId = window.location.hash.replace('#/floating-todo/', '');
+    return <FloatingTodoWindow listId={listId} />;
+  }
+
+  // Todo 药丸窗口
+  if (windowType === 'todo-pill') {
+    const listId = window.location.hash.replace('#/todo-pill/', '');
+    return <TodoPillWindow listId={listId} />;
   }
 
   // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发

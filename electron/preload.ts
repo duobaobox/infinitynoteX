@@ -165,6 +165,15 @@ contextBridge.exposeInMainWorld('floatingWindow', {
   restoreWindow: (noteId: string) => ipcRenderer.invoke('floating:restoreWindow', noteId),
 });
 
+// --------- Expose floating todo window API ---------
+contextBridge.exposeInMainWorld('floatingTodo', {
+  createWindow: (listId: string) => ipcRenderer.invoke('floatingTodo:createWindow', listId),
+  closeWindow: (listId: string) => ipcRenderer.invoke('floatingTodo:closeWindow', listId),
+  listWindows: () => ipcRenderer.invoke('floatingTodo:listWindows'),
+  minimizeWindow: (listId: string) => ipcRenderer.invoke('floatingTodo:minimizeWindow', listId),
+  restoreWindow: (listId: string) => ipcRenderer.invoke('floatingTodo:restoreWindow', listId),
+});
+
 // --------- Expose auto-updater API ---------
 contextBridge.exposeInMainWorld('autoUpdater', {
   checkForUpdates: () => ipcRenderer.invoke('updater:check-now'),

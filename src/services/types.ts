@@ -368,5 +368,13 @@ declare global {
       deleteManualTask(id: string, listId: string): Promise<void>;
       toggleManualTask(id: string, listId: string): Promise<ManualTask>;
     };
+
+    floatingTodo?: {
+      createWindow(listId: string): Promise<{ success: boolean; message?: string }>;
+      closeWindow(listId: string): Promise<{ success: boolean; message?: string }>;
+      listWindows(): Promise<string[]>;
+      minimizeWindow(listId: string): Promise<{ success: boolean; message?: string }>;
+      restoreWindow(listId: string): Promise<{ success: boolean; message?: string }>;
+    };
   }
 }

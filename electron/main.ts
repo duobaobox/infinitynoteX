@@ -64,9 +64,9 @@ let isQuitting = false; // 用于在 macOS 区分真正退出与仅关闭窗口
 
 // 窗口状态接口（保持向后兼容，实际使用 config.window）
 
-// 悬浮窗口管理
+// 便签悬浮窗口管理
 const floatingWindows = new Map<string, BrowserWindow>();
-// 药丸窗口管理
+// 便签药丸窗口管理
 const pillWindows = new Map<string, BrowserWindow>();
 // 悬浮窗口最小化前尺寸记录
 interface StoredBounds {
@@ -77,6 +77,15 @@ interface StoredBounds {
 }
 const minimizedBounds = new Map<string, StoredBounds>();
 const PILL_SIZE = { width: 130, height: 48 }; // 药丸窗口固定大小
+
+// Todo 悬浮窗口管理
+const floatingTodoWindows = new Map<string, BrowserWindow>();
+// Todo 药丸窗口管理
+const todoPillWindows = new Map<string, BrowserWindow>();
+// Todo 悬浮窗口最小化前尺寸记录
+const todoMinimizedBounds = new Map<string, StoredBounds>();
+const TODO_FLOATING_SIZE = { width: 320, height: 400 }; // Todo 悬浮窗口默认大小
+const TODO_PILL_SIZE = { width: 130, height: 48 }; // Todo 药丸窗口固定大小，与便签一致
 
 // 默认悬浮窗口大小
 let defaultFloatingWindowSize = {
@@ -925,6 +934,229 @@ ipcMain.on('note:changed', (_event, noteId: string) => {
 ipcMain.on('floating-note:changed', (_event, noteId: string) => {
   if (win && !win.isDestroyed()) {
     win.webContents.send('floating-note:updated', noteId);
+  }
+});
+
+// ============ Todo 悬浮窗口 IPC 处理器 ============
+
+/**
+ * 创建 Todo 悬浮窗口
+ */
+ipcMain.handle('floatingTodo:createWindow', async (_, listId: string) => {
+  // 防止重复创建同一清单的悬浮窗口
+  if (floatingTodoWindows.has(listId)) {
+    const existingWindow = floatingTodoWindows.get(listId);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      existingWindow.focus();
+      return { success: true, message: '窗口已存在' };
+    }
+  }
+
+  // 创建悬浮窗口
+  const floatingWindow = new BrowserWindow({
+    width: TODO_FLOATING_SIZE.width,
+    height: TODO_FLOATING_SIZE.height,
+    minWidth: 280,
+    minHeight: 300,
+    frame: false,
+    transparent: false,
+    hasShadow: true,
+    alwaysOnTop: true,
+    resizable: true,
+    show: false,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载 Todo 悬浮窗口页面
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating-todo/${listId}`);
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/floating-todo/${listId}`,
+    });
+  }
+
+  // 准备好后显示
+  floatingWindow.once('ready-to-show', () => {
+    floatingWindow.show();
+  });
+
+  // 窗口关闭时清理
+  floatingWindow.on('closed', () => {
+    floatingTodoWindows.delete(listId);
+  });
+
+  // 保存到管理器
+  floatingTodoWindows.set(listId, floatingWindow);
+
+  return { success: true, message: '创建成功' };
+});
+
+/**
+ * 关闭 Todo 悬浮窗口
+ */
+ipcMain.handle('floatingTodo:closeWindow', async (_, listId: string) => {
+  const floatingWindow = floatingTodoWindows.get(listId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.close();
+    floatingTodoWindows.delete(listId);
+    return { success: true };
+  }
+  return { success: false, message: '窗口不存在' };
+});
+
+/**
+ * 最小化 Todo 悬浮窗口为药丸
+ */
+ipcMain.handle('floatingTodo:minimizeWindow', async (_, listId: string) => {
+  const floatingWin = floatingTodoWindows.get(listId);
+  if (!floatingWin || floatingWin.isDestroyed()) {
+    return { success: false, message: '窗口不存在' };
+  }
+
+  // 记录当前窗口位置和尺寸
+  const bounds = floatingWin.getBounds();
+  todoMinimizedBounds.set(listId, bounds);
+
+  // 创建药丸窗口在相同位置
+  const pillWindow = new BrowserWindow({
+    width: TODO_PILL_SIZE.width,
+    height: TODO_PILL_SIZE.height,
+    x: bounds.x,
+    y: bounds.y,
+    frame: false,
+    transparent: false,
+    hasShadow: true,
+    alwaysOnTop: true,
+    resizable: false,
+    show: false,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载药丸页面
+  if (VITE_DEV_SERVER_URL) {
+    pillWindow.loadURL(`${VITE_DEV_SERVER_URL}#/todo-pill/${listId}`);
+  } else {
+    pillWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/todo-pill/${listId}`,
+    });
+  }
+
+  // 准备好后显示药丸，同时关闭正常窗口
+  pillWindow.once('ready-to-show', () => {
+    pillWindow.show();
+    floatingWin.close();
+  });
+
+  // 药丸窗口关闭时清理
+  pillWindow.on('closed', () => {
+    todoPillWindows.delete(listId);
+  });
+
+  // 保存到管理器
+  todoPillWindows.set(listId, pillWindow);
+
+  return { success: true };
+});
+
+/**
+ * 还原 Todo 悬浮窗口
+ */
+ipcMain.handle('floatingTodo:restoreWindow', async (_, listId: string) => {
+  const pillWin = todoPillWindows.get(listId);
+  if (!pillWin || pillWin.isDestroyed()) {
+    return { success: false, message: '药丸窗口不存在' };
+  }
+
+  // 获取记录的窗口位置和尺寸
+  const stored = todoMinimizedBounds.get(listId);
+  if (!stored) {
+    return { success: false, message: '未找到保存的窗口尺寸' };
+  }
+
+  // 创建正常悬浮窗口
+  const floatingWindow = new BrowserWindow({
+    width: stored.width,
+    height: stored.height,
+    x: stored.x,
+    y: stored.y,
+    minWidth: 280,
+    minHeight: 300,
+    frame: false,
+    transparent: false,
+    hasShadow: true,
+    alwaysOnTop: true,
+    resizable: true,
+    show: false,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+    },
+  });
+
+  // 加载悬浮窗口页面
+  if (VITE_DEV_SERVER_URL) {
+    floatingWindow.loadURL(`${VITE_DEV_SERVER_URL}#/floating-todo/${listId}`);
+  } else {
+    floatingWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+      hash: `/floating-todo/${listId}`,
+    });
+  }
+
+  // 准备好后显示正常窗口，同时关闭药丸
+  floatingWindow.once('ready-to-show', () => {
+    floatingWindow.show();
+    pillWin.close();
+  });
+
+  // 窗口关闭时清理
+  floatingWindow.on('closed', () => {
+    floatingTodoWindows.delete(listId);
+  });
+
+  // 保存到管理器并清理记录
+  floatingTodoWindows.set(listId, floatingWindow);
+  todoMinimizedBounds.delete(listId);
+
+  return { success: true };
+});
+
+/**
+ * 获取所有 Todo 悬浮窗口的 listId 列表
+ */
+ipcMain.handle('floatingTodo:listWindows', async () => {
+  const listIds = Array.from(floatingTodoWindows.keys());
+  return listIds.filter((listId) => {
+    const window = floatingTodoWindows.get(listId);
+    return window && !window.isDestroyed();
+  });
+});
+
+/**
+ * 处理 Todo 数据变化，转发到相关悬浮窗口
+ */
+ipcMain.on('todo:changed', (_event, listId: string) => {
+  // 获取指定 listId 的悬浮窗口，并发送更新通知
+  const floatingWindow = floatingTodoWindows.get(listId);
+  if (floatingWindow && !floatingWindow.isDestroyed()) {
+    floatingWindow.webContents.send('todo:updated', listId);
+  }
+
+  // 获取指定 listId 的药丸窗口，并发送更新通知
+  const pillWindow = todoPillWindows.get(listId);
+  if (pillWindow && !pillWindow.isDestroyed()) {
+    pillWindow.webContents.send('todo:updated', listId);
+  }
+
+  // 同时通知主窗口
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('todo:updated', listId);
   }
 });
 

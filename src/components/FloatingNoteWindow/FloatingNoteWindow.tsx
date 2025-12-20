@@ -1,17 +1,18 @@
 /**
  * FloatingNoteWindow.tsx
- * 悬浮便签窗口组件 - 复用 TipTapEditor
+ * 悬浮便签窗口组件 - 使用 BaseFloatingWindow 基础组件
  *
  * 微软便签风格：头部颜色根据便签卡片颜色动态变动
  */
 
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { message, Spin } from 'antd';
+import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
 import './FloatingNoteWindow.css';
 
-// 懒加载编辑器（优化：减少初始 bundle 体积）
+// 懒加载编辑器
 const TipTapEditor = lazy(() =>
   import('../TipTapEditor').then((module) => ({ default: module.TipTapEditor })),
 );
@@ -49,7 +50,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     loadNote();
   }, [noteId]);
 
-  // 监听便签数据变化（主窗口编辑时同步更新）
+  // 监听便签数据变化
   useEffect(() => {
     if (!noteId) return;
 
@@ -59,7 +60,6 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           const note = await window.storage.getNote(noteId);
           setNoteTitle(note.title);
           setNoteColor(note.color || 'ffffff');
-          // 只有当编辑器已初始化时才更新内容
           if (editorContent) {
             setEditorContent(note.content);
           }
@@ -70,13 +70,12 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
     };
 
     window.ipcRenderer?.on('note:updated', handleNoteUpdate);
-
     return () => {
       window.ipcRenderer?.off('note:updated', handleNoteUpdate);
     };
   }, [noteId, editorContent]);
 
-  // 防抖保存函数 (2秒延迟，减少 I/O 操作频率)
+  // 防抖保存
   const debouncedSave = useCallback(
     (title: string, content: TipTapJSONContent) => {
       if (!noteId) return;
@@ -87,39 +86,32 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
 
       saveTimerRef.current = setTimeout(async () => {
         try {
-          await window.storage.updateNote(noteId, {
-            title,
-            content,
-          });
+          await window.storage.updateNote(noteId, { title, content });
           console.log('Floating note auto-saved');
-          // 通知主窗口更新该便签的数据（改为 note:updated）
           window.ipcRenderer?.send('note:updated', noteId);
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');
         }
-      }, 2000); // 优化：2秒防抖，避免频繁 I/O
+      }, 2000);
     },
     [noteId],
   );
 
-  // 内容变更处理
   const handleContentChange = (newContent: TipTapJSONContent) => {
     setEditorContent(newContent);
     debouncedSave(noteTitle, newContent);
   };
 
-  // 关闭窗口
   const handleClose = () => {
     window.floatingWindow?.closeWindow(noteId);
   };
 
-  // 最小化为药丸窗口
   const handleMinimize = async () => {
     await window.floatingWindow?.minimizeWindow(noteId);
   };
 
-  // 组件卸载时清除定时器
+  // 清除定时器
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) {
@@ -129,46 +121,20 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
   }, []);
 
   if (isLoading) {
-    // 加载时不显示任何内容，避免闪烁
     return null;
   }
 
-  // 计算标题栏文字颜色（根据背景色亮度自适应）
   const titlebarTextColor = isDark ? '#ffffff' : '#2d2d2d';
 
   return (
-    <div className="floating-note-container">
-      {/* 自定义标题栏 - 颜色根据便签卡片颜色动态变动 */}
-      <div
-        className="floating-note-titlebar"
-        style={{
-          backgroundColor: headerBgColor,
-        }}
-      >
-        <span className="floating-note-title" style={{ color: titlebarTextColor }}>
-          {noteTitle || '无标题'}
-        </span>
-        <div className="floating-note-controls">
-          <button
-            className="floating-note-control-btn"
-            onClick={handleMinimize}
-            title="最小化为药丸"
-            style={{ color: titlebarTextColor }}
-          >
-            <i className="ri-subtract-line" />
-          </button>
-          <button
-            className="floating-note-control-btn floating-note-close-btn"
-            onClick={handleClose}
-            title="关闭"
-            style={{ color: titlebarTextColor }}
-          >
-            <i className="ri-close-line" />
-          </button>
-        </div>
-      </div>
-
-      {/* 编辑器内容 */}
+    <BaseFloatingWindow
+      title={noteTitle || '无标题'}
+      headerColor={headerBgColor}
+      titleColor={titlebarTextColor}
+      onClose={handleClose}
+      onMinimize={handleMinimize}
+      className="floating-note-window"
+    >
       <div className="floating-note-editor">
         <Suspense
           fallback={
@@ -187,7 +153,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
           />
         </Suspense>
       </div>
-    </div>
+    </BaseFloatingWindow>
   );
 };
 

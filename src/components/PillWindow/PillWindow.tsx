@@ -1,14 +1,15 @@
 /**
  * PillWindow.tsx
- * 药丸最小化窗口组件 - 轻量级显示便签标题
+ * 便签药丸窗口组件 - 使用 BasePillWindow 基础组件
  */
 
 import React, { useState, useEffect } from 'react';
+import { BasePillWindow } from '../BasePillWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { NoteColor } from '../../services/types';
 import './PillWindow.css';
 
-// 便签图标（内联，避免依赖）
+// 便签装饰图标
 const NoteIcon: React.FC = () => (
   <div className="pill-note-icon">
     <div className="pill-note-icon__card">
@@ -27,10 +28,8 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
   const [noteColor, setNoteColor] = useState<NoteColor>('ffffff');
   const [isLoading, setIsLoading] = useState(true);
 
-  // 使用便签卡片主题 hook 获取颜色
   const { bgColor: pillBgColor, isDark } = useNoteCardTheme(noteColor, '#ffffff', false);
 
-  // 加载便签基本信息（仅标题和颜色）
   useEffect(() => {
     if (!noteId) {
       setIsLoading(false);
@@ -56,7 +55,6 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
     loadNoteInfo();
   }, [noteId]);
 
-  // 监听便签标题和颜色变化
   useEffect(() => {
     if (!noteId) return;
 
@@ -73,55 +71,37 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
     };
 
     window.ipcRenderer?.on('note:updated', handleNoteUpdate);
-
     return () => {
       window.ipcRenderer?.off('note:updated', handleNoteUpdate);
     };
   }, [noteId]);
 
-  // 恢复到正常窗口
   const handleRestore = async () => {
     await window.floatingWindow?.restoreWindow(noteId);
   };
 
   if (isLoading) {
     return (
-      <div
-        className="pill-window"
-        style={{
-          backgroundColor: pillBgColor,
-          color: isDark ? '#ffffff' : '#2d2d2d',
-        }}
-      >
-        <NoteIcon />
-        <span className="pill-title">加载中...</span>
-      </div>
+      <BasePillWindow
+        title="加载中..."
+        bgColor={pillBgColor}
+        textColor={isDark ? '#ffffff' : '#2d2d2d'}
+        icon={<NoteIcon />}
+        onRestore={handleRestore}
+        className="note-pill-window"
+      />
     );
   }
 
   return (
-    <div
-      className="pill-window"
-      style={{
-        backgroundColor: pillBgColor,
-        color: isDark ? '#ffffff' : '#2d2d2d',
-      }}
-    >
-      <NoteIcon />
-      <span className="pill-title" title={noteTitle || '无标题'}>
-        {noteTitle || '无标题'}
-      </span>
-      <div className="pill-buttons">
-        <button
-          className="pill-btn"
-          title="恢复"
-          onClick={handleRestore}
-          style={{ color: isDark ? '#ffffff' : '#2d2d2d' }}
-        >
-          <i className="ri-fullscreen-line" />
-        </button>
-      </div>
-    </div>
+    <BasePillWindow
+      title={noteTitle || '无标题'}
+      bgColor={pillBgColor}
+      textColor={isDark ? '#ffffff' : '#2d2d2d'}
+      icon={<NoteIcon />}
+      onRestore={handleRestore}
+      className="note-pill-window"
+    />
   );
 };
 

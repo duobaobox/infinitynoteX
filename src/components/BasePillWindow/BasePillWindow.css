@@ -1,0 +1,70 @@
+/**
+ * BasePillWindow.css
+ * 基础药丸窗口样式
+ */
+
+.base-pill-window {
+  width: 130px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 500;
+  -webkit-app-region: drag;
+  user-select: none;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  position: relative;
+}
+
+.base-pill-window:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.base-pill-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.base-pill-buttons {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.base-pill-window:hover .base-pill-buttons {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.base-pill-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  color: inherit;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.base-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.45);
+}

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Button, Popconfirm } from 'antd';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PushpinOutlined } from '@ant-design/icons';
 import BaseCard, { CardListContext } from '../../index';
 import './TodoListCard.css';
 
@@ -18,6 +18,7 @@ export interface TodoListCardProps {
   isDefault: boolean;
   color?: string;
   onClick?: () => void;
+  onPin?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -28,6 +29,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
   isDefault,
   color,
   onClick,
+  onPin,
   onEdit,
   onDelete,
 }) => {
@@ -58,43 +60,54 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
     </div>
   );
 
-  // 操作按钮：仅非默认清单显示编辑和删除按钮
-  const actions =
-    !isDefault && (onEdit || onDelete) ? (
-      <>
-        {onEdit && (
+  // 操作按钮
+  const actions = (
+    <>
+      {onPin && (
+        <Button
+          type="text"
+          size="small"
+          icon={<PushpinOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin();
+          }}
+          title="悬浮窗口"
+        />
+      )}
+      {!isDefault && onEdit && (
+        <Button
+          type="text"
+          size="small"
+          icon={<EditOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+        />
+      )}
+      {!isDefault && onDelete && (
+        <Popconfirm
+          title="删除清单"
+          description="确定要删除这个清单吗？"
+          onConfirm={(e) => {
+            e?.stopPropagation();
+            onDelete();
+          }}
+          okText="删除"
+          cancelText="取消"
+          placement="right"
+        >
           <Button
             type="text"
             size="small"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
+            icon={<DeleteOutlined />}
+            onClick={(e) => e.stopPropagation()}
           />
-        )}
-        {onDelete && (
-          <Popconfirm
-            title="删除清单"
-            description="确定要删除这个清单吗？"
-            onConfirm={(e) => {
-              e?.stopPropagation();
-              onDelete();
-            }}
-            okText="删除"
-            cancelText="取消"
-            placement="right"
-          >
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </Popconfirm>
-        )}
-      </>
-    ) : undefined;
+        </Popconfirm>
+      )}
+    </>
+  );
 
   return (
     <BaseCard

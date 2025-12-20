@@ -8,7 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Input, Button, Modal, Empty } from 'antd';
+import { Input, Button, Modal, Empty, message } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import TodoListCard, { CardListContext } from '../../../../components/BaseCard/cards/TodoListCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -60,6 +60,21 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
     await createTodoList(newListName.trim());
     setNewListName('');
     setIsCreateModalOpen(false);
+  };
+
+  /** 钉住清单 - 创建悬浮窗口 */
+  const handlePinList = async (listId: string) => {
+    try {
+      const result = await window.floatingTodo?.createWindow(listId);
+      if (result?.success) {
+        message.success('已创建悬浮清单');
+      } else {
+        message.info(result?.message || '窗口已存在');
+      }
+    } catch (error) {
+      console.error('Failed to create floating todo window:', error);
+      message.error('创建悬浮窗口失败');
+    }
   };
 
   const handleOpenEditModal = (list: TodoList) => {
@@ -128,6 +143,7 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
                   isDefault={list.isDefault}
                   color={list.color}
                   onClick={() => selectTodoList(list.id)}
+                  onPin={() => handlePinList(list.id)}
                   onEdit={list.isDefault ? undefined : () => handleOpenEditModal(list)}
                   onDelete={list.isDefault ? undefined : () => handleDeleteList(list.id)}
                 />

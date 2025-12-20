@@ -17,9 +17,15 @@
  * - CardListContext: 用于传递选中状态
  */
 
-import React, { useEffect } from 'react';
-import { Input, Badge, Button, message, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Input, Badge, Button, message, Popconfirm, Tooltip } from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from '@ant-design/icons';
 import NoteCard, { CardListContext } from '../../../../components/BaseCard/cards/NoteCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
@@ -51,6 +57,10 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
   const themeColor = useThemeColor();
   const { scrollableRef, containerRef } = useScrollOverflow();
   const { searchInput, setSearchInput, searchQuery } = useDebouncedSearch();
+
+  // 排序状态：'asc' = 旧→新，'desc' = 新→旧
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = () => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
 
   // ============ 副作用 ============
 
@@ -115,6 +125,11 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
     note.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // 排序：按 createdAt 排序
+  const sortedNotes = [...filteredNotes].sort((a, b) =>
+    sortOrder === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt,
+  );
+
   // ============ 主渲染 ============
 
   return (
@@ -133,6 +148,14 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Badge count={filteredNotes.length} showZero style={{ backgroundColor: themeColor }} />
+            <Tooltip title={sortOrder === 'asc' ? '当前：旧→新' : '当前：新→旧'}>
+              <Button
+                type="text"
+                size="small"
+                icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                onClick={toggleSort}
+              />
+            </Tooltip>
             <Button
               type="text"
               size="small"
@@ -157,7 +180,7 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
       <div className="flex-vertical-equal" ref={containerRef}>
         <CardListContext.Provider value={{ selectedId: selectedNoteId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableRef}>
-            {filteredNotes.map((note) => (
+            {sortedNotes.map((note) => (
               <NoteCard
                 key={note.id}
                 title={note.title}

@@ -14,6 +14,7 @@ export interface AIConversationPreview {
   id: string;
   title: string;
   excerpt: string;
+  createdAt: number;
   updatedAt: number;
   color?: NoteColor;
 }
@@ -23,6 +24,7 @@ export const DEFAULT_AI_CONVERSATIONS: AIConversationPreview[] = [
     id: 'ai-session-default',
     title: '新建对话',
     excerpt: '开始对话，与 AI 互动',
+    createdAt: Date.now(),
     updatedAt: Date.now(),
     color: 'd6e4ff',
   },

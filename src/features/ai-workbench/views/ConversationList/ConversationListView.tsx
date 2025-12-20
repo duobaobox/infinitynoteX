@@ -16,9 +16,15 @@
  * - CardListContext: 用于传递选中状态
  */
 
-import React, { useEffect } from 'react';
-import { Input, Badge, Button, message, Popconfirm, Empty } from 'antd';
-import { PlusOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Input, Badge, Button, message, Popconfirm, Empty, Tooltip } from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from '@ant-design/icons';
 import ConversationCard, {
   CardListContext,
 } from '../../../../components/BaseCard/cards/ConversationCard';
@@ -50,7 +56,11 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
   // ============ Hooks ============
   const themeColor = useThemeColor();
   const { scrollableRef, containerRef } = useScrollOverflow();
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 排序状态：'asc' = 旧→新，'desc' = 新→旧
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const toggleSort = () => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
 
   // ============ 副作用 ============
 
@@ -103,6 +113,11 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
     item.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  // 排序：按 createdAt 排序
+  const sortedConversations = [...filteredAiConversations].sort((a, b) =>
+    sortOrder === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt,
+  );
+
   // ============ 主渲染 ============
 
   return (
@@ -125,6 +140,14 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
               showZero
               style={{ backgroundColor: themeColor }}
             />
+            <Tooltip title={sortOrder === 'asc' ? '当前：旧→新' : '当前：新→旧'}>
+              <Button
+                type="text"
+                size="small"
+                icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                onClick={toggleSort}
+              />
+            </Tooltip>
             <Button
               type="text"
               size="small"
@@ -149,14 +172,14 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
       <div className="flex-vertical-equal" ref={containerRef}>
         <CardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
           <div className="scrollable-list" ref={scrollableRef}>
-            {filteredAiConversations.length === 0 ? (
+            {sortedConversations.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={searchQuery ? '没有找到匹配的对话' : '点击 + 开始新对话'}
                 style={{ marginTop: 40 }}
               />
             ) : (
-              filteredAiConversations.map((session) => (
+              sortedConversations.map((session) => (
                 <ConversationCard
                   key={session.id}
                   title={session.title}

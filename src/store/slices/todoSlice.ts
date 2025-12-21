@@ -219,6 +219,8 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
     try {
       await window.storage.createManualTask(listId, text, dueDate);
       await get().loadManualTasks(listId);
+      // 通知悬浮窗口同步
+      window.ipcRenderer?.send('todo:changed', listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to create manual task:', error);
       throw error;
@@ -229,6 +231,8 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
     try {
       await window.storage.updateManualTask(taskId, listId, patch);
       await get().loadManualTasks(listId);
+      // 通知悬浮窗口同步
+      window.ipcRenderer?.send('todo:changed', listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to update manual task:', error);
       throw error;
@@ -239,6 +243,8 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
     try {
       await window.storage.toggleManualTask(taskId, listId);
       await get().loadManualTasks(listId);
+      // 通知悬浮窗口同步
+      window.ipcRenderer?.send('todo:changed', listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to toggle manual task:', error);
       throw error;
@@ -249,6 +255,8 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
     try {
       await window.storage.deleteManualTask(taskId, listId);
       await get().loadManualTasks(listId);
+      // 通知悬浮窗口同步
+      window.ipcRenderer?.send('todo:changed', listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to delete manual task:', error);
       throw error;

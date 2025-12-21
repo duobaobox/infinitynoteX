@@ -29,7 +29,7 @@ export interface BaseFloatingWindowProps {
 
 const BaseFloatingWindow: React.FC<BaseFloatingWindowProps> = ({
   title,
-  headerColor = '#52c41a',
+  headerColor = '#8f8f8fff',
   titleColor = '#ffffff',
   onClose,
   onMinimize,

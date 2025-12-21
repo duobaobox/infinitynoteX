@@ -35,6 +35,7 @@ export const TodoViewer: React.FC = () => {
   const parsedTasks = useWorkspaceStore((state) => state.parsedTasks);
   const manualTasks = useWorkspaceStore((state) => state.manualTasks);
 
+  const loadTodoLists = useWorkspaceStore((state) => state.loadTodoLists);
   const loadParsedTasks = useWorkspaceStore((state) => state.loadParsedTasks);
   const loadManualTasks = useWorkspaceStore((state) => state.loadManualTasks);
   const toggleParsedTaskChecked = useWorkspaceStore((state) => state.toggleParsedTaskChecked);
@@ -61,10 +62,17 @@ export const TodoViewer: React.FC = () => {
   const themeColor = useThemeColor();
 
   // ============ 辅助函数 ============
-  const getDueStatus = (dueDate?: number) => {
+  // 日期状态类型：overdue/today/tomorrow/future
+  type DueDateStatus = 'overdue' | 'today' | 'tomorrow' | 'future';
+
+  const getDueStatus = (dueDate?: number): DueDateStatus => {
     if (!dueDate) return 'future';
     const now = dayjs();
     const due = dayjs(dueDate);
+    const today = now.startOf('day');
+    const tomorrow = today.add(1, 'day');
+    const dueDay = due.startOf('day');
+
     // 判断是否有具体时间（不是 00:00:00）
     const hasTime = due.hour() !== 0 || due.minute() !== 0 || due.second() !== 0;
 
@@ -72,12 +80,12 @@ export const TodoViewer: React.FC = () => {
       // 有具体时间：精确比较
       if (due.isBefore(now)) return 'overdue';
       if (due.isSame(now, 'day')) return 'today';
+      if (dueDay.isSame(tomorrow)) return 'tomorrow';
     } else {
       // 纯日期：按日比较
-      const nowDay = now.startOf('day');
-      const dueDay = due.startOf('day');
-      if (dueDay.isBefore(nowDay)) return 'overdue';
-      if (dueDay.isSame(nowDay)) return 'today';
+      if (dueDay.isBefore(today)) return 'overdue';
+      if (dueDay.isSame(today)) return 'today';
+      if (dueDay.isSame(tomorrow)) return 'tomorrow';
     }
     return 'future';
   };
@@ -102,6 +110,27 @@ export const TodoViewer: React.FC = () => {
       loadManualTasks(selectedTodoListId);
     }
   }, [selectedTodoListId, isDefaultList, loadManualTasks]);
+
+  // 监听悬浮窗口的任务变化，同步刷新数据
+  useEffect(() => {
+    const handleTodoUpdate = async (_event: unknown, updatedListId: string) => {
+      // 如果更新的是当前选中的清单，重新加载数据
+      if (updatedListId === selectedTodoListId) {
+        if (isDefaultList) {
+          await loadParsedTasks();
+        } else {
+          await loadManualTasks(updatedListId);
+        }
+      }
+      // 同时刷新清单列表（以更新任务计数等）
+      await loadTodoLists();
+    };
+
+    window.ipcRenderer?.on('todo:updated', handleTodoUpdate);
+    return () => {
+      window.ipcRenderer?.off('todo:updated', handleTodoUpdate);
+    };
+  }, [selectedTodoListId, isDefaultList, loadParsedTasks, loadManualTasks, loadTodoLists]);
 
   // ============ 派生数据 ============
 
@@ -191,19 +220,30 @@ export const TodoViewer: React.FC = () => {
 
   // ============ 渲染组件 ============
 
+  // 格式化显示日期（统一格式）
+  const formatDueDate = (dueDate: number, status: DueDateStatus): string => {
+    const due = dayjs(dueDate);
+    const hasTime = due.hour() !== 0 || due.minute() !== 0;
+
+    switch (status) {
+      case 'overdue':
+        return hasTime ? `逾期 ${due.format('MM/DD HH:mm')}` : `逾期 ${due.format('MM/DD')}`;
+      case 'today':
+        return hasTime ? `今天 ${due.format('HH:mm')}` : '今天';
+      case 'tomorrow':
+        return hasTime ? `明天 ${due.format('HH:mm')}` : '明天';
+      default:
+        return hasTime ? due.format('MM/DD HH:mm') : due.format('MM/DD');
+    }
+  };
+
   const renderDueDate = (dueDate?: number) => {
     if (!dueDate) return null;
     const status = getDueStatus(dueDate);
-    const dateObj = dayjs(dueDate);
-    // 判断是否有时间部分（不是 00:00:00）
-    const hasTime = dateObj.hour() !== 0 || dateObj.minute() !== 0 || dateObj.second() !== 0;
-    const formatStr = hasTime ? 'YYYY/MM/DD HH:mm' : 'YYYY/MM/DD';
     return (
       <span className={`todo-task-item__due ${status}`}>
         <ClockCircleOutlined style={{ marginRight: 4 }} />
-        {dateObj.format(formatStr)}
-        {status === 'overdue' && ' (逾期)'}
-        {status === 'today' && ' (今天)'}
+        {formatDueDate(dueDate, status)}
       </span>
     );
   };

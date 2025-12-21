@@ -97,59 +97,64 @@
 /* ==================== 截止日期状态颜色定义 ==================== */
 /* 
  * 状态定义：
- * - overdue: 已过期（红色）- 视觉强调需要紧急处理
- * - today:   今天到期（橙色）- 提醒用户今日需要关注
- * - future:  未来到期（灰色）- 正常状态无需特别关注
+ * - overdue:  已过期（红色）- 视觉强调需要紧急处理
+ * - today:    今天到期（橙色）- 提醒用户今日需要关注
+ * - tomorrow: 明天到期（蓝色）- 提前提醒
+ * - future:   未来到期（绿色）- 正常状态
  */
 
 .todo-task-item__due {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;
   font-size: 12px;
-  border: 1px solid transparent;
 }
 
-/* 未来到期 - 灰色 */
+/* 未来到期 - 绿色 */
 .todo-task-item__due.future {
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
-  background: var(--border-color, #f5f5f5);
-  border-color: var(--border-color, #d9d9d9);
+  color: #389e0d;
+  background: #f6ffed;
+}
+
+/* 明天到期 - 蓝色提醒 */
+.todo-task-item__due.tomorrow {
+  color: #1677ff;
+  background: #e6f4ff;
 }
 
 /* 今天到期 - 橙色警告 */
 .todo-task-item__due.today {
   color: #d46b08;
   background: #fff7e6;
-  border-color: #ffd591;
 }
 
 /* 已过期 - 红色危险 */
 .todo-task-item__due.overdue {
   color: #cf1322;
   background: #fff1f0;
-  border-color: #ffa39e;
 }
 
 /* ==================== 暗黑模式下的截止日期状态 ==================== */
 [data-theme='dark'] .todo-task-item__due.future {
-  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  color: #95de64;
+  background: rgba(82, 196, 26, 0.15);
+}
+
+[data-theme='dark'] .todo-task-item__due.tomorrow {
+  color: #69b1ff;
+  background: rgba(22, 119, 255, 0.15);
 }
 
 [data-theme='dark'] .todo-task-item__due.today {
   color: #ffc53d;
   background: rgba(250, 140, 22, 0.15);
-  border-color: rgba(250, 140, 22, 0.3);
 }
 
 [data-theme='dark'] .todo-task-item__due.overdue {
   color: #ff7875;
   background: rgba(255, 77, 79, 0.15);
-  border-color: rgba(255, 77, 79, 0.3);
 }
 
 /* 任务操作按钮区域 */

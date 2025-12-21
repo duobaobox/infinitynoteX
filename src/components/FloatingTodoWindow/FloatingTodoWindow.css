@@ -1,16 +1,223 @@
 /**
  * FloatingTodoWindow.css
  * Todo 悬浮窗口特有样式
+ *
+ * 设计方案：内嵌日期时间选择器（方案二）
  */
 
-/* 添加任务区域 */
+/* ==================== 添加任务区域 ==================== */
 .floating-todo-add {
   padding: 12px;
   border-bottom: 1px solid var(--border-color, #f0f0f0);
   flex-shrink: 0;
 }
 
-/* 任务列表 */
+/* 输入行 */
+.floating-todo-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.floating-todo-input {
+  flex: 1;
+}
+
+/* 日历按钮 */
+.floating-todo-calendar-btn {
+  color: #bfbfbf;
+  transition: color 0.2s;
+}
+
+.floating-todo-calendar-btn:hover,
+.floating-todo-calendar-btn.active {
+  color: #1677ff !important;
+}
+
+.floating-todo-calendar-btn.has-date {
+  color: #52c41a !important;
+}
+
+/* 添加按钮 */
+.floating-todo-add-btn {
+  flex-shrink: 0;
+}
+
+/* ==================== 日期选择面板 ==================== */
+.floating-todo-date-panel {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.02));
+  border-radius: 8px;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== 月份导航 ==================== */
+.floating-todo-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.floating-todo-month-label {
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 90px;
+  text-align: center;
+  color: var(--text-primary, #333);
+}
+
+/* 清除日期按钮 */
+.floating-todo-clear-date-btn {
+  color: #bfbfbf;
+  margin-left: 8px;
+}
+
+.floating-todo-clear-date-btn:hover {
+  color: #ff4d4f !important;
+}
+
+/* ==================== 时间选择行 ==================== */
+.floating-todo-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-color, #f0f0f0);
+}
+
+.floating-todo-time-label {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+}
+
+.floating-todo-time-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.floating-todo-time-dropdown {
+  width: 50px;
+  height: 28px;
+  font-size: 14px;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 6px;
+  background: var(--panel-bg, #fff);
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  outline: none;
+  padding: 0 8px;
+  text-align: center;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 12px;
+  padding-right: 20px;
+}
+
+.floating-todo-time-dropdown:hover {
+  border-color: #1677ff;
+}
+
+.floating-todo-time-dropdown:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
+
+.floating-todo-time-separator {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+/* ==================== 迷你日历 ==================== */
+.floating-todo-mini-calendar {
+  user-select: none;
+}
+
+.floating-todo-calendar-weekdays {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.floating-todo-weekday {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+  padding: 4px 0;
+}
+
+.floating-todo-calendar-days {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.floating-todo-calendar-day {
+  width: 14.28%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.floating-todo-calendar-day.empty {
+  cursor: default;
+}
+
+.floating-todo-calendar-day:not(.empty):hover {
+  background: rgba(22, 119, 255, 0.1);
+}
+
+.floating-todo-calendar-day.today {
+  border: 1px solid #1677ff;
+  font-weight: 500;
+}
+
+.floating-todo-calendar-day.selected {
+  background: #1677ff;
+  color: #fff;
+}
+
+.floating-todo-calendar-day.selected.today {
+  border-color: #1677ff;
+}
+
+/* 已选日期显示 */
+.floating-todo-selected-date {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, #f0f0f0);
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  text-align: center;
+}
+
+/* ==================== 任务列表 ==================== */
 .floating-todo-list {
   flex: 1;
   overflow-y: auto;
@@ -21,19 +228,20 @@
 
 /* 自定义滚动条 */
 .floating-todo-list::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
   background: transparent;
 }
 
 .floating-todo-list::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb, rgba(160, 160, 160, 0.25));
-  border-radius: 6px;
+  border-radius: 3px;
 }
 
 .floating-todo-list:hover::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb-hover, rgba(160, 160, 160, 0.45));
 }
 
+/* ==================== 任务项 ==================== */
 .floating-todo-item {
   display: flex;
   align-items: flex-start;
@@ -46,25 +254,12 @@
 }
 
 .floating-todo-item:hover {
-  background: var(--hover-bg, #f0f0f0);
+  background: var(--control-hover-bg, #f0f0f0);
 }
 
 .floating-todo-item.checked .floating-todo-item-text {
   text-decoration: line-through;
   opacity: 0.5;
-}
-
-.floating-todo-item-text {
-  flex: 1;
-  font-size: 13px;
-  color: var(--text-primary, #2d2d2d);
-  word-break: break-word;
-  cursor: text;
-}
-
-.floating-todo-item-text:hover {
-  text-decoration: underline;
-  text-decoration-style: dotted;
 }
 
 /* 任务内容区域 */
@@ -76,31 +271,73 @@
   gap: 4px;
 }
 
-/* 截止日期显示 */
-.floating-todo-item-due {
-  font-size: 11px;
-  color: var(--text-secondary, #999);
-  display: flex;
-  align-items: center;
+.floating-todo-item-text {
+  font-size: 13px;
+  color: var(--text-primary, #2d2d2d);
+  word-break: break-word;
+  cursor: text;
+  line-height: 1.4;
 }
 
+.floating-todo-item-text:hover {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+/* 编辑输入框 */
 .floating-todo-item-edit {
   flex: 1;
   font-size: 13px;
   color: var(--text-primary, #2d2d2d);
-  border: 1px solid var(--primary-color, #52c41a);
+  border: 1px solid #1677ff;
   border-radius: 4px;
   padding: 4px 8px;
   outline: none;
   background: var(--app-bg, #ffffff);
 }
 
+/* ==================== 截止日期标签 ==================== */
+.floating-todo-due-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+/* 逾期 - 红色 */
+.floating-todo-due-tag.overdue {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+/* 今天 - 橙色 */
+.floating-todo-due-tag.today {
+  background: #fff7e6;
+  color: #d46b08;
+}
+
+/* 明天 - 蓝色 */
+.floating-todo-due-tag.tomorrow {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+
+/* 未来 - 绿色 */
+.floating-todo-due-tag.future {
+  background: #f6ffed;
+  color: #389e0d;
+}
+
+/* 删除按钮 */
 .floating-todo-item-delete {
   opacity: 0;
   color: var(--text-secondary, #999);
   transition:
     opacity 0.2s,
     color 0.2s;
+  flex-shrink: 0;
 }
 
 .floating-todo-item:hover .floating-todo-item-delete {
@@ -111,7 +348,7 @@
   color: #ff4d4f !important;
 }
 
-/* 底部统计 */
+/* ==================== 底部统计 ==================== */
 .floating-todo-footer {
   height: 32px;
   display: flex;
@@ -126,15 +363,58 @@
   margin: 0 4px;
 }
 
-/* 暗黑模式 */
+/* ==================== 暗黑模式 ==================== */
 [data-theme='dark'] .floating-todo-item {
   background: var(--panel-bg, rgba(255, 255, 255, 0.04));
 }
 
 [data-theme='dark'] .floating-todo-item:hover {
-  background: var(--hover-bg, rgba(255, 255, 255, 0.08));
+  background: var(--control-hover-bg, rgba(255, 255, 255, 0.08));
 }
 
 [data-theme='dark'] .floating-todo-add {
   border-color: var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+[data-theme='dark'] .floating-todo-date-panel {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .floating-todo-time-dropdown {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+[data-theme='dark'] .floating-todo-calendar-day {
+  color: var(--text-primary, #fff);
+}
+
+[data-theme='dark'] .floating-todo-calendar-day:not(.empty):hover {
+  background: rgba(22, 119, 255, 0.2);
+}
+
+[data-theme='dark'] .floating-todo-selected-date {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 暗黑模式下的截止日期标签 */
+[data-theme='dark'] .floating-todo-due-tag.overdue {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
+[data-theme='dark'] .floating-todo-due-tag.today {
+  background: rgba(250, 140, 22, 0.15);
+  color: #ffc53d;
+}
+
+[data-theme='dark'] .floating-todo-due-tag.tomorrow {
+  background: rgba(22, 119, 255, 0.15);
+  color: #69b1ff;
+}
+
+[data-theme='dark'] .floating-todo-due-tag.future {
+  background: rgba(82, 196, 26, 0.15);
+  color: #95de64;
 }

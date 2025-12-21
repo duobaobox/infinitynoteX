@@ -59,8 +59,19 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
   const [searchQuery, setSearchQuery] = useState('');
 
   // 排序状态：'asc' = 旧→新，'desc' = 新→旧
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const toggleSort = () => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  // 排序状态：'asc' = 旧→新，'desc' = 新→旧
+  const STORAGE_KEY = 'ai_list_sort_order';
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
+    return (localStorage.getItem(STORAGE_KEY) as 'asc' | 'desc') || 'asc';
+  });
+
+  const toggleSort = () => {
+    setSortOrder((prev) => {
+      const next = prev === 'asc' ? 'desc' : 'asc';
+      localStorage.setItem(STORAGE_KEY, next);
+      return next;
+    });
+  };
 
   // ============ 副作用 ============
 

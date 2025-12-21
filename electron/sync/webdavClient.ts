@@ -172,9 +172,22 @@ export class WebDAVSyncClient {
   /**
    * 上传文件
    */
-  async uploadFile(remotePath: string, content: string | Buffer): Promise<void> {
+  async uploadFile(
+    remotePath: string,
+    content: string | Buffer,
+    options?: { ifMatch?: string; ifNoneMatch?: boolean },
+  ): Promise<void> {
     const client = this.ensureClient();
-    await client.putFileContents(remotePath, content);
+    const headers: Record<string, string> = {};
+
+    if (options?.ifMatch) {
+      headers['If-Match'] = options.ifMatch;
+    }
+    if (options?.ifNoneMatch) {
+      headers['If-None-Match'] = '*';
+    }
+
+    await client.putFileContents(remotePath, content, { headers } as unknown as object);
   }
 
   /**
@@ -271,7 +284,7 @@ export class WebDAVSyncClient {
       }
 
       const stat = await this.stat(manifestPath);
-      const etag = (stat as any)?.etag as string | undefined;
+      const etag = (stat as unknown as Record<string, unknown>)?.etag as string | undefined;
 
       const content = await this.downloadFile(manifestPath);
       return { manifest: JSON.parse(content) as RemoteSyncManifest, etag };
@@ -302,7 +315,9 @@ export class WebDAVSyncClient {
       headers['If-None-Match'] = '*';
     }
 
-    const client: any = this.ensureClient();
+    const client = this.ensureClient() as {
+      customRequest?: (path: string, options: unknown) => Promise<unknown>;
+    };
     if (typeof client.customRequest === 'function') {
       await client.customRequest(manifestPath, {
         method: 'PUT',
@@ -312,8 +327,9 @@ export class WebDAVSyncClient {
       return;
     }
 
-    // 兜底：不支持自定义请求时直接覆盖写入（可能丢失并发保护）
-    await this.uploadFile(manifestPath, body);
+    // 即使是使用 putFileContents，我们也尝试通过 options传递 header
+    // webdav 库的 putFileContents 第三个参数是 options
+    await this.uploadFile(manifestPath, body, options);
   }
 
   /**
@@ -366,9 +382,10 @@ export class WebDAVSyncClient {
       throw new Error(`Remote file not found: ${relativePath}`);
     }
 
-    const lastmod = (stat as any)?.lastmod as string | undefined;
+    const lastmod = (stat as unknown as Record<string, unknown>)?.lastmod as string | undefined;
     const modifiedAt = lastmod ? Date.parse(lastmod) : Date.now();
-    const size = (stat as any)?.size ? Number((stat as any).size) : 0;
+    const statRecord = stat as unknown as Record<string, unknown>;
+    const size = statRecord?.size ? Number(statRecord.size) : 0;
 
     if (relativePath.endsWith('.json')) {
       const content = await this.downloadFile(remotePath);

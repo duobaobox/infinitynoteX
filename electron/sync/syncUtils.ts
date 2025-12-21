@@ -123,7 +123,10 @@ export function generateDeviceId(): string {
  * @param storagePath 存储根目录
  * @returns 文件信息列表
  */
-export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo[]> {
+export async function scanLocalFiles(
+  storagePath: string,
+  localSyncState?: LocalSyncState | null,
+): Promise<LocalFileInfo[]> {
   const files: LocalFileInfo[] = [];
 
   // 扫描单独的文件（如 folders.json）
@@ -131,6 +134,32 @@ export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo
     const filePath = path.join(storagePath, fileName);
     try {
       const stat = await fs.stat(filePath);
+
+      // 增量检查：如果 mtime 没变，直接复用上次的 hash
+      const savedState = localSyncState?.files[fileName];
+      if (
+        savedState &&
+        savedState.localModifiedAt &&
+        Math.abs(savedState.localModifiedAt - stat.mtimeMs) < 1 // 允许 1ms 误差
+      ) {
+        files.push({
+          path: fileName,
+          hash: savedState.syncedHash,
+          modifiedAt: stat.mtimeMs,
+          size: stat.size,
+          // 增量模式下不加载 content，除非 verifyContent=true（此处简化，需在 SyncEngine 中处理上传时的 content 读取）
+          // 但是 LocalFileInfo 类型定义里 content 是可选的
+          // 如果需要上传，SyncEngine 会发现 hash 变了（或者没变），如果没变就不会上传，所以不需要 content
+          // 如果 hash 变了，说明 mtime 肯定变了，这里就会重新读取 content
+          // 唯一例外：mtime 没变但内容变了（极少见），或者 mtime 变了但内容没变
+          // 现在的逻辑是：mtime 没变 -> 认为 hash 没变 -> 不读 content
+          isBinary: false,
+        });
+        // 调试日志
+        // console.log(`[Sync] Incremental scan skip: ${fileName}`);
+        continue;
+      }
+
       const content = await fs.readFile(filePath, 'utf-8');
       files.push({
         path: fileName,
@@ -164,6 +193,23 @@ export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo
         try {
           const stat = await fs.stat(filePath);
           const isJson = entry.name.endsWith('.json');
+
+          // 增量检查
+          const savedState = localSyncState?.files[relativePath];
+          if (
+            savedState &&
+            savedState.localModifiedAt &&
+            Math.abs(savedState.localModifiedAt - stat.mtimeMs) < 1
+          ) {
+            files.push({
+              path: relativePath,
+              hash: savedState.syncedHash,
+              modifiedAt: stat.mtimeMs,
+              size: stat.size,
+              isBinary: !isJson,
+            });
+            continue;
+          }
 
           if (isJson) {
             // JSON 文件：读取内容并计算规范化哈希
@@ -204,9 +250,10 @@ export async function scanLocalFiles(storagePath: string): Promise<LocalFileInfo
 
 /**
  * 读取本地同步状态
+ * @param appPath 应用目录路径（存储同步系统文件）
  */
-export async function readLocalSyncState(storagePath: string): Promise<LocalSyncState | null> {
-  const statePath = path.join(storagePath, LOCAL_STATE_FILE);
+export async function readLocalSyncState(appPath: string): Promise<LocalSyncState | null> {
+  const statePath = path.join(appPath, LOCAL_STATE_FILE);
   try {
     const content = await fs.readFile(statePath, 'utf-8');
     return JSON.parse(content) as LocalSyncState;
@@ -217,12 +264,10 @@ export async function readLocalSyncState(storagePath: string): Promise<LocalSync
 
 /**
  * 保存本地同步状态
+ * @param appPath 应用目录路径（存储同步系统文件）
  */
-export async function writeLocalSyncState(
-  storagePath: string,
-  state: LocalSyncState,
-): Promise<void> {
-  const statePath = path.join(storagePath, LOCAL_STATE_FILE);
+export async function writeLocalSyncState(appPath: string, state: LocalSyncState): Promise<void> {
+  const statePath = path.join(appPath, LOCAL_STATE_FILE);
   await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf-8');
 }
 

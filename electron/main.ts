@@ -1318,11 +1318,10 @@ ipcMain.handle('sync:setConfig', async (_, providerId: string, config: unknown) 
 });
 
 /**
- * 打开同步日志目录（本地 .sync-logs）
+ * 打开同步日志目录（应用目录 sync-logs）
  */
 ipcMain.handle('sync:openLogDir', async () => {
-  const storagePath = storageManager.getCurrentPath();
-  const logDir = path.join(storagePath, '.sync-logs');
+  const logDir = path.join(app.getPath('userData'), 'sync-logs');
   await fs.mkdir(logDir, { recursive: true });
   await shell.openPath(logDir);
 });

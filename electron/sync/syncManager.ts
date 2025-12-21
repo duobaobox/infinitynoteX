@@ -6,6 +6,7 @@
 import { WebDAVSyncClient } from './webdavClient';
 import { SyncEngine } from './syncEngine';
 import { readAppConfig, writeAppConfig } from '../config';
+import { app } from 'electron';
 import type {
   WebDAVConfig,
   SyncConfig,
@@ -69,7 +70,7 @@ export class SyncManager {
               username: config.username || '',
               password: config.password || '',
               remotePath: config.remotePath || '/InfinityNoteX',
-              conflictStrategy: (config.conflictStrategy as any) || 'newest',
+              conflictStrategy: config.conflictStrategy || 'newest',
             },
           },
         },
@@ -97,8 +98,11 @@ export class SyncManager {
     // 初始化 WebDAV 客户端
     this.webdavClient.initialize(config);
 
+    // 获取应用目录路径
+    const appPath = app.getPath('userData');
+
     // 创建同步引擎
-    this.syncEngine = new SyncEngine(this.webdavClient, storagePath);
+    this.syncEngine = new SyncEngine(this.webdavClient, storagePath, appPath);
 
     // 设置进度回调
     if (this.progressCallback) {
@@ -133,8 +137,11 @@ export class SyncManager {
     // 初始化 WebDAV 客户端
     this.webdavClient.initialize(config);
 
+    // 获取应用目录路径
+    const appPath = app.getPath('userData');
+
     // 创建同步引擎
-    this.syncEngine = new SyncEngine(this.webdavClient, storagePath);
+    this.syncEngine = new SyncEngine(this.webdavClient, storagePath, appPath);
 
     return await this.syncEngine.preview();
   }

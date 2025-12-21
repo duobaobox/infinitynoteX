@@ -43,11 +43,8 @@ import { WebDAVSyncClient } from './webdavClient';
  */
 class SyncLogger {
   private logs: SyncLogEntry[] = [];
-  private storagePath: string;
 
-  constructor(storagePath: string) {
-    this.storagePath = storagePath;
-  }
+  constructor(private appPath: string) {}
 
   log(
     level: SyncLogEntry['level'],
@@ -98,7 +95,7 @@ class SyncLogger {
   async save(): Promise<void> {
     if (this.logs.length === 0) return;
 
-    const logDir = path.join(this.storagePath, '.sync-logs');
+    const logDir = path.join(this.appPath, 'sync-logs');
     await fsNode.mkdir(logDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -129,13 +126,15 @@ class SyncLogger {
 export class SyncEngine {
   private webdavClient: WebDAVSyncClient;
   private storagePath: string;
+  private appPath: string;
   private onProgress?: SyncProgressCallback;
   private logger: SyncLogger;
 
-  constructor(webdavClient: WebDAVSyncClient, storagePath: string) {
+  constructor(webdavClient: WebDAVSyncClient, storagePath: string, appPath: string) {
     this.webdavClient = webdavClient;
     this.storagePath = storagePath;
-    this.logger = new SyncLogger(storagePath);
+    this.appPath = appPath;
+    this.logger = new SyncLogger(appPath);
   }
 
   /**
@@ -206,7 +205,7 @@ export class SyncEngine {
     const keepConflictBackup = options.keepConflictBackup ?? true;
 
     // 创建新的日志实例
-    this.logger = new SyncLogger(this.storagePath);
+    this.logger = new SyncLogger(this.appPath);
     this.logger.info('sync', `开始同步，策略: ${conflictStrategy}`);
 
     let uploaded = 0;
@@ -225,25 +224,32 @@ export class SyncEngine {
       );
       this.logger.info('connect', '服务器连接成功');
 
-      // 2. 扫描本地文件
-      this.reportProgress({ stage: 'scanning', percent: 10, message: '正在扫描本地文件...' });
-      const localFiles = await scanLocalFiles(this.storagePath);
-      this.logger.info('scan', `扫描到 ${localFiles.length} 个本地文件`);
-
-      // 3. 读取本地同步状态
-      let localState = await readLocalSyncState(this.storagePath);
+      // 3. 读取本地同步状态（提前读取，用于增量扫描）
+      let localState = await readLocalSyncState(this.appPath);
       if (!localState) {
         localState = createInitialSyncState();
         this.logger.info('state', '创建初始同步状态');
       }
 
+      // 2. 扫描本地文件（传入 localState 进行增量扫描）
+      // 注意：这里顺序调整了，先读取状态再扫描文件
+      this.reportProgress({ stage: 'scanning', percent: 10, message: '正在扫描本地文件...' });
+      const localFiles = await scanLocalFiles(this.storagePath, localState);
+      this.logger.info('scan', `扫描到 ${localFiles.length} 个本地文件`);
+
       // 4. 获取远程清单
+      // 4. 获取远程清单 (带 ETag)
       this.reportProgress({ stage: 'comparing', percent: 20, message: '正在获取远程状态...' });
-      let remoteManifest = await this.withRetry(
-        () => this.webdavClient.readManifest(),
+
+      const manifestResult = await this.withRetry(
+        () => this.webdavClient.readManifestWithEtag(),
         'readManifest',
         maxRetries,
       );
+
+      let remoteManifest = manifestResult.manifest;
+      const manifestEtag = manifestResult.etag;
+
       if (!remoteManifest) {
         remoteManifest = createInitialManifest(localState.deviceId);
         this.logger.info('manifest', '创建初始远程清单');
@@ -419,14 +425,23 @@ export class SyncEngine {
 
       try {
         await this.withRetry(
-          () => this.webdavClient.writeManifest(remoteManifest),
+          () => this.webdavClient.writeManifest(remoteManifest, { ifMatch: manifestEtag }),
           'writeManifest',
           maxRetries,
         );
         this.logger.info('manifest', '远程清单更新成功');
       } catch (manifestError) {
+        // 处理 412 Precondition Failed (Etag 不匹配)
+        if (
+          manifestError instanceof Error &&
+          (manifestError.message.includes('412') ||
+            manifestError.message.includes('Precondition Failed'))
+        ) {
+          this.logger.warn('manifest', '远程清单在同步过程中已变更 (ETag mismatch)，建议重试');
+          throw new Error('SYNC_CONFLICT_MANIFEST_CHANGED');
+        }
+
         // manifest 写入失败是严重问题，但不应导致整个同步失败
-        // 记录警告并继续保存本地状态
         this.logger.error(
           'manifest',
           `远程清单写入失败: ${manifestError instanceof Error ? manifestError.message : '未知错误'}`,
@@ -440,7 +455,7 @@ export class SyncEngine {
 
       // 更新本地状态
       localState.lastSyncAt = Date.now();
-      await writeLocalSyncState(this.storagePath, localState);
+      await writeLocalSyncState(this.appPath, localState);
       this.logger.info('state', '本地状态更新成功');
 
       // 保存同步日志
@@ -479,6 +494,31 @@ export class SyncEngine {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       this.logger.error('sync', `同步失败: ${errorMessage}`);
+
+      // 如果是 manifest 并发冲突，尝试自动重试整个同步流程
+      if (errorMessage === 'SYNC_CONFLICT_MANIFEST_CHANGED' && maxRetries > 0) {
+        this.logger.warn('sync', '检测到 Manifest 并发冲突，正在重新开始同步...');
+        // 建议前端/调用方处理重试，或者这里返回特定状态
+        return {
+          success: false,
+          message: `同步冲突：远程状态已更新，请重试`,
+          startTime,
+          endTime: Date.now(),
+          uploaded,
+          downloaded,
+          deleted,
+          skipped,
+          conflictsResolved,
+          errors: [
+            {
+              code: 'SYNC_CONFLICT_RETRY_NEEDED',
+              message: '远程状态已更新，请重试同步',
+              retryable: true,
+            },
+          ],
+        };
+      }
+
       await this.logger.save();
 
       this.reportProgress({ stage: 'error', percent: 0, message: '同步失败' });
@@ -756,6 +796,7 @@ export class SyncEngine {
     localState.files[diff.path] = {
       syncedHash: local.hash,
       syncedAt: Date.now(),
+      localModifiedAt: local.modifiedAt, // 记录 mtime，用于增量扫描
     };
 
     console.log(`[Sync] Uploaded: ${diff.path}${local.isBinary ? ' (binary)' : ''}`);
@@ -790,6 +831,8 @@ export class SyncEngine {
     localState.files[diff.path] = {
       syncedHash: remote.hash,
       syncedAt: Date.now(),
+      // 对于下载的文件，我们需要获取本地文件的实际 mtime
+      localModifiedAt: (await fsNode.stat(localPath)).mtimeMs,
     };
 
     console.log(`[Sync] Downloaded: ${diff.path}${isBinary ? ' (binary)' : ''}`);
@@ -845,7 +888,7 @@ export class SyncEngine {
 
     const localFiles = await scanLocalFiles(this.storagePath);
 
-    let localState = await readLocalSyncState(this.storagePath);
+    let localState = await readLocalSyncState(this.appPath);
     if (!localState) {
       localState = createInitialSyncState();
     }

@@ -69,7 +69,7 @@ export class StorageManager {
 
     // 核心组件（存储在应用目录）
     this.device = new DeviceManager(this.context.devicePath);
-    this.indexCache = new IndexCache(this.context.cachePath);
+    this.indexCache = new IndexCache(this.context.appDatabasePath);
 
     // 子模块
     this.folders = new FolderStorage(this.context);

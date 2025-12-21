@@ -71,10 +71,10 @@ export class StorageContext {
   }
 
   /**
-   * 获取 SQLite 缓存路径（在应用目录）
+   * 获取应用 SQLite 数据库路径（在应用目录）
    */
-  get cachePath(): string {
-    return path.join(this._appDir, 'cache.sqlite');
+  get appDatabasePath(): string {
+    return path.join(this._appDir, 'app.sqlite');
   }
 
   /**

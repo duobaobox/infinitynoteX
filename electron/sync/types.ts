@@ -46,6 +46,8 @@ export interface LocalFileSyncState {
   syncedHash: string;
   /** 上次同步时间 */
   syncedAt: number;
+  /** 本地文件最后修改时间（用于增量扫描，mtimeMs） */
+  localModifiedAt?: number;
 }
 
 // ============ 远程同步清单 ============

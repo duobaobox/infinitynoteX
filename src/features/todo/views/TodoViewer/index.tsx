@@ -9,15 +9,16 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Segmented, Button, Checkbox, Empty, Input, Popconfirm, Modal } from 'antd';
+import { Segmented, Button, Checkbox, Empty, Input, Popconfirm, Modal, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import {
   FileTextOutlined,
   CheckSquareOutlined,
-  ClockCircleOutlined,
   PlusOutlined,
   DeleteOutlined,
   EditOutlined,
   LinkOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useThemeColor } from '../../../../hooks/useThemeColor';
@@ -48,14 +49,38 @@ export const TodoViewer: React.FC = () => {
   // ============ 本地状态 ============
   const [filter, setFilter] = useState<FilterType>('pending');
   const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState<number | undefined>();
 
   // 编辑任务弹窗状态
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskText, setEditTaskText] = useState('');
+  const [editTaskDueDate, setEditTaskDueDate] = useState<number | undefined>();
 
   // 动态主题色
   const themeColor = useThemeColor();
+
+  // ============ 辅助函数 ============
+  const getDueStatus = (dueDate?: number) => {
+    if (!dueDate) return 'future';
+    const now = dayjs();
+    const due = dayjs(dueDate);
+    // 判断是否有具体时间（不是 00:00:00）
+    const hasTime = due.hour() !== 0 || due.minute() !== 0 || due.second() !== 0;
+
+    if (hasTime) {
+      // 有具体时间：精确比较
+      if (due.isBefore(now)) return 'overdue';
+      if (due.isSame(now, 'day')) return 'today';
+    } else {
+      // 纯日期：按日比较
+      const nowDay = now.startOf('day');
+      const dueDay = due.startOf('day');
+      if (dueDay.isBefore(nowDay)) return 'overdue';
+      if (dueDay.isSame(nowDay)) return 'today';
+    }
+    return 'future';
+  };
 
   // ============ 派生数据 ============
   const isDefaultList = selectedTodoListId === DEFAULT_TODO_LIST_ID;
@@ -90,7 +115,13 @@ export const TodoViewer: React.FC = () => {
       result = result.filter((t: ParsedTask) => t.checked);
     }
 
-    return result.sort((a: ParsedTask, b: ParsedTask) => b.updatedAt - a.updatedAt);
+    return result.sort((a: ParsedTask, b: ParsedTask) => {
+      // 优先按截止日期排序，再按更新时间
+      if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return b.updatedAt - a.updatedAt;
+    });
   }, [parsedTasks, filter]);
 
   // 筛选手动任务
@@ -103,7 +134,13 @@ export const TodoViewer: React.FC = () => {
       result = result.filter((t: ManualTaskIndex) => t.checked);
     }
 
-    return result.sort((a: ManualTaskIndex, b: ManualTaskIndex) => a.order - b.order);
+    return result.sort((a, b) => {
+      // 如果有截止日期，按截止日期排序，否则按 order
+      if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return a.order - b.order;
+    });
   }, [currentManualTasks, filter]);
 
   // 统计
@@ -126,24 +163,49 @@ export const TodoViewer: React.FC = () => {
   // 添加手动任务
   const handleAddTask = async () => {
     if (!newTaskText.trim() || !selectedTodoListId) return;
-    await createManualTask(selectedTodoListId, newTaskText.trim());
+    await createManualTask(selectedTodoListId, newTaskText.trim(), newTaskDueDate);
     setNewTaskText('');
+    setNewTaskDueDate(undefined);
   };
 
   // 打开编辑任务弹窗
   const handleOpenEditModal = (task: ManualTaskIndex) => {
     setEditingTaskId(task.id);
     setEditTaskText(task.text);
+    setEditTaskDueDate(task.dueDate);
     setIsEditModalOpen(true);
   };
 
   // 编辑手动任务
   const handleEditTask = async () => {
     if (!editingTaskId || !editTaskText.trim() || !selectedTodoListId) return;
-    await updateManualTask(editingTaskId, selectedTodoListId, { text: editTaskText.trim() });
+    await updateManualTask(editingTaskId, selectedTodoListId, {
+      text: editTaskText.trim(),
+      dueDate: editTaskDueDate,
+    });
     setIsEditModalOpen(false);
     setEditingTaskId(null);
     setEditTaskText('');
+    setEditTaskDueDate(undefined);
+  };
+
+  // ============ 渲染组件 ============
+
+  const renderDueDate = (dueDate?: number) => {
+    if (!dueDate) return null;
+    const status = getDueStatus(dueDate);
+    const dateObj = dayjs(dueDate);
+    // 判断是否有时间部分（不是 00:00:00）
+    const hasTime = dateObj.hour() !== 0 || dateObj.minute() !== 0 || dateObj.second() !== 0;
+    const formatStr = hasTime ? 'YYYY/MM/DD HH:mm' : 'YYYY/MM/DD';
+    return (
+      <span className={`todo-task-item__due ${status}`}>
+        <ClockCircleOutlined style={{ marginRight: 4 }} />
+        {dateObj.format(formatStr)}
+        {status === 'overdue' && ' (逾期)'}
+        {status === 'today' && ' (今天)'}
+      </span>
+    );
   };
 
   // ============ 渲染 ============
@@ -189,21 +251,34 @@ export const TodoViewer: React.FC = () => {
 
         {/* 添加任务输入框（仅自定义清单） */}
         {!isDefaultList && (
-          <div className="todo-viewer__add-task">
+          <div className="todo-viewer__add-task" style={{ display: 'flex', gap: 8 }}>
             <Input
-              placeholder="添加新任务，按回车确认"
+              placeholder="添加新任务"
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
-              onPressEnter={handleAddTask}
               prefix={<PlusOutlined style={{ color: '#bfbfbf' }} />}
-              suffix={
-                newTaskText.trim() && (
-                  <Button type="link" size="small" onClick={handleAddTask}>
-                    添加
-                  </Button>
-                )
-              }
+              style={{ flex: 1 }}
             />
+            <DatePicker
+              showTime={{ format: 'HH:mm' }}
+              format="YYYY-MM-DD HH:mm"
+              placeholder="截止时间"
+              value={newTaskDueDate ? dayjs(newTaskDueDate) : null}
+              onChange={(date) => setNewTaskDueDate(date ? date.valueOf() : undefined)}
+              style={{ width: 180 }}
+            />
+            <Button
+              type="primary"
+              disabled={!newTaskText.trim()}
+              onClick={handleAddTask}
+              style={{
+                backgroundColor: themeColor,
+                borderColor: themeColor,
+                color: 'var(--white)',
+              }}
+            >
+              添加
+            </Button>
           </div>
         )}
 
@@ -243,10 +318,7 @@ export const TodoViewer: React.FC = () => {
                         {task.noteTitle}
                         <LinkOutlined style={{ marginLeft: 4, fontSize: 10 }} />
                       </span>
-                      <span className="todo-task-item__time">
-                        <ClockCircleOutlined style={{ marginRight: 4 }} />
-                        {new Date(task.updatedAt).toLocaleDateString()}
-                      </span>
+                      {renderDueDate(task.dueDate)}
                     </div>
                   </div>
                 </div>
@@ -276,12 +348,7 @@ export const TodoViewer: React.FC = () => {
                   <div className={`todo-task-item__text ${task.checked ? 'checked' : ''}`}>
                     {task.text}
                   </div>
-                  <div className="todo-task-item__meta">
-                    <span className="todo-task-item__time">
-                      <ClockCircleOutlined style={{ marginRight: 4 }} />
-                      {new Date(task.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                  <div className="todo-task-item__meta">{renderDueDate(task.dueDate)}</div>
                 </div>
                 <div className="todo-task-item__actions">
                   <Button
@@ -315,17 +382,31 @@ export const TodoViewer: React.FC = () => {
           setIsEditModalOpen(false);
           setEditingTaskId(null);
           setEditTaskText('');
+          setEditTaskDueDate(undefined);
         }}
         okText="保存"
         cancelText="取消"
       >
-        <Input
-          placeholder="请输入任务内容"
-          value={editTaskText}
-          onChange={(e) => setEditTaskText(e.target.value)}
-          onPressEnter={handleEditTask}
-          autoFocus
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Input
+            placeholder="请输入任务内容"
+            value={editTaskText}
+            onChange={(e) => setEditTaskText(e.target.value)}
+            onPressEnter={handleEditTask}
+            autoFocus
+          />
+          <div>
+            <div style={{ marginBottom: 8, fontSize: 12, color: '#8c8c8c' }}>截止日期：</div>
+            <DatePicker
+              showTime={{ format: 'HH:mm' }}
+              format="YYYY-MM-DD HH:mm"
+              placeholder="选择日期时间"
+              value={editTaskDueDate ? dayjs(editTaskDueDate) : null}
+              onChange={(date) => setEditTaskDueDate(date ? date.valueOf() : undefined)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   );

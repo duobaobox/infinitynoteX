@@ -261,6 +261,7 @@ export const ManualTaskSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   order: z.number(),
+  dueDate: z.number().optional(),
 });
 
 export const ManualTaskIndexSchema = z.object({
@@ -270,6 +271,7 @@ export const ManualTaskIndexSchema = z.object({
   checked: z.boolean(),
   order: z.number(),
   updatedAt: z.number(),
+  dueDate: z.number().optional(),
 });
 
 export const ManualTasksIndexArraySchema = z.array(ManualTaskIndexSchema);

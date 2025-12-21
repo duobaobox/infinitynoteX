@@ -36,7 +36,7 @@
 
 .floating-todo-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 10px 8px;
   border-radius: 8px;
@@ -65,6 +65,23 @@
 .floating-todo-item-text:hover {
   text-decoration: underline;
   text-decoration-style: dotted;
+}
+
+/* 任务内容区域 */
+.floating-todo-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 截止日期显示 */
+.floating-todo-item-due {
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+  display: flex;
+  align-items: center;
 }
 
 .floating-todo-item-edit {

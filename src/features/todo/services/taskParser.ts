@@ -15,16 +15,34 @@ export function parseTasksFromNote(note: Note): ParsedTask[] {
 
   function traverse(node: TipTapJSONContent, path: number[]) {
     if (node.type === 'taskItem') {
-      const text = extractTextFromNode(node);
-      if (text.trim()) {
+      let text = extractTextFromNode(node).trim();
+      let dueDate: number | undefined;
+
+      // 解析截止日期：支持多种格式
+      // - YYYY-MM-DD HH:mm:ss
+      // - YYYY-MM-DD HH:mm
+      // - YYYY-MM-DD
+      const dateTimeMatch = text.match(/(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)$/);
+      if (dateTimeMatch) {
+        const dateStr = dateTimeMatch[1].trim();
+        const dateObj = new Date(dateStr.replace(' ', 'T'));
+        if (!isNaN(dateObj.getTime())) {
+          dueDate = dateObj.getTime();
+          // 清理文本中的日期标记
+          text = text.replace(/\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?$/, '').trim();
+        }
+      }
+
+      if (text) {
         tasks.push({
           id: `${note.id}#${path.join('.')}`,
           noteId: note.id,
           noteTitle: note.title,
           folderId: note.folderId,
           path: [...path],
-          text: text.trim(),
+          text,
           checked: Boolean(node.attrs?.checked),
+          dueDate,
           updatedAt: note.updatedAt,
         });
       }

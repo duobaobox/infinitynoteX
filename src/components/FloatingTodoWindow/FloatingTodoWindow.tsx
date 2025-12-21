@@ -1,11 +1,16 @@
 /**
  * FloatingTodoWindow.tsx
  * 悬浮 Todo 窗口组件 - 使用 BaseFloatingWindow 基础组件
+ *
+ * 设计理念：保持轻量简洁，专注于快速任务管理
+ * - 快速添加任务（不支持设置截止日期，需在主应用中设置）
+ * - 显示已有任务的截止日期
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { message, Input, Checkbox, Button, Empty, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { PlusOutlined, DeleteOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import type { ManualTaskIndex, TodoList } from '../../services/types';
 import './FloatingTodoWindow.css';
@@ -69,6 +74,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
   const handleAddTask = async () => {
     if (!newTaskText.trim()) return;
     try {
+      // 悬浮窗口不支持设置截止日期，保持简洁
       await window.storage.createManualTask(listId, newTaskText.trim());
       setNewTaskText('');
       await loadData();
@@ -164,7 +170,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
       footer={footer}
       className="floating-todo-window"
     >
-      {/* 添加任务输入框 */}
+      {/* 添加任务输入框 - 简洁版，不含日期选择 */}
       <div className="floating-todo-add">
         <Input
           placeholder="添加新任务..."
@@ -208,13 +214,21 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
                   }}
                 />
               ) : (
-                <span
-                  className="floating-todo-item-text"
-                  onDoubleClick={() => handleStartEdit(task)}
-                  title="双击编辑"
-                >
-                  {task.text}
-                </span>
+                <div className="floating-todo-item-content">
+                  <span
+                    className="floating-todo-item-text"
+                    onDoubleClick={() => handleStartEdit(task)}
+                    title="双击编辑"
+                  >
+                    {task.text}
+                  </span>
+                  {task.dueDate && (
+                    <span className="floating-todo-item-due">
+                      <ClockCircleOutlined style={{ marginRight: 4, fontSize: 10 }} />
+                      {dayjs(task.dueDate).format('MM/DD HH:mm')}
+                    </span>
+                  )}
+                </div>
               )}
               <Popconfirm
                 title="删除任务"

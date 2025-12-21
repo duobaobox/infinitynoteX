@@ -113,12 +113,12 @@ contextBridge.exposeInMainWorld('storage', {
 
   // 手动任务操作
   listManualTasks: (listId?: string) => ipcRenderer.invoke('storage:listManualTasks', listId),
-  createManualTask: (listId: string, text: string) =>
-    ipcRenderer.invoke('storage:createManualTask', listId, text),
+  createManualTask: (listId: string, text: string, dueDate?: number) =>
+    ipcRenderer.invoke('storage:createManualTask', listId, text, dueDate),
   updateManualTask: (
     id: string,
     listId: string,
-    patch: { text?: string; checked?: boolean; order?: number },
+    patch: { text?: string; checked?: boolean; order?: number; dueDate?: number },
   ) => ipcRenderer.invoke('storage:updateManualTask', id, listId, patch),
   deleteManualTask: (id: string, listId: string) =>
     ipcRenderer.invoke('storage:deleteManualTask', id, listId),

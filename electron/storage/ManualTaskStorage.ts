@@ -85,6 +85,7 @@ export class ManualTaskStorage extends BaseDirectoryStorage<ManualTask, ManualTa
       checked: task.checked,
       order: task.order,
       updatedAt: task.updatedAt,
+      dueDate: task.dueDate,
     };
   }
 
@@ -102,6 +103,7 @@ export class ManualTaskStorage extends BaseDirectoryStorage<ManualTask, ManualTa
       text: payload.text || '',
       checked: payload.checked ?? false,
       order: payload.order ?? 0,
+      dueDate: payload.dueDate,
       createdAt: now,
       updatedAt: now,
     };

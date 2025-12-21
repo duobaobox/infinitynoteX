@@ -286,6 +286,7 @@ export interface ManualTask {
   createdAt: number;
   updatedAt: number;
   order: number;
+  dueDate?: number;
 }
 
 /**
@@ -298,6 +299,7 @@ export interface ManualTaskIndex {
   checked: boolean;
   order: number;
   updatedAt: number;
+  dueDate?: number;
 }
 
 // ============ 扩展 window.storage 类型 ============
@@ -359,11 +361,11 @@ declare global {
 
       // 手动任务操作
       listManualTasks(listId?: string): Promise<ManualTaskIndex[]>;
-      createManualTask(listId: string, text: string): Promise<ManualTask>;
+      createManualTask(listId: string, text: string, dueDate?: number): Promise<ManualTask>;
       updateManualTask(
         id: string,
         listId: string,
-        patch: { text?: string; checked?: boolean; order?: number },
+        patch: { text?: string; checked?: boolean; order?: number; dueDate?: number },
       ): Promise<ManualTask>;
       deleteManualTask(id: string, listId: string): Promise<void>;
       toggleManualTask(id: string, listId: string): Promise<ManualTask>;

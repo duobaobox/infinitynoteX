@@ -25,6 +25,8 @@ export interface ParsedTask {
   text: string;
   /** 是否完成 */
   checked: boolean;
+  /** 截止日期（可选） */
+  dueDate?: number;
   /** 便签更新时间 */
   updatedAt: number;
 }

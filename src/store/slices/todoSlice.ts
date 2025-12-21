@@ -47,8 +47,12 @@ export interface TodoSlice {
 
   // ============ 手动任务 Actions ============
   loadManualTasks: (listId: string) => Promise<void>;
-  createManualTask: (listId: string, text: string) => Promise<void>;
-  updateManualTask: (taskId: string, listId: string, patch: { text?: string }) => Promise<void>;
+  createManualTask: (listId: string, text: string, dueDate?: number) => Promise<void>;
+  updateManualTask: (
+    taskId: string,
+    listId: string,
+    patch: { text?: string; dueDate?: number },
+  ) => Promise<void>;
   toggleManualTask: (taskId: string, listId: string) => Promise<void>;
   deleteManualTask: (taskId: string, listId: string) => Promise<void>;
 }
@@ -211,9 +215,9 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
     }
   },
 
-  createManualTask: async (listId, text) => {
+  createManualTask: async (listId, text, dueDate) => {
     try {
-      await window.storage.createManualTask(listId, text);
+      await window.storage.createManualTask(listId, text, dueDate);
       await get().loadManualTasks(listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to create manual task:', error);

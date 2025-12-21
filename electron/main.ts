@@ -565,10 +565,13 @@ ipcMain.handle('storage:listManualTasks', async (_, listId?: string) => {
 /**
  * 创建手动任务
  */
-ipcMain.handle('storage:createManualTask', async (_, listId: string, text: string) => {
-  const nextOrder = await storageManager.manualTasks.getNextOrder(listId);
-  return await storageManager.manualTasks.create({ listId, text, order: nextOrder });
-});
+ipcMain.handle(
+  'storage:createManualTask',
+  async (_, listId: string, text: string, dueDate?: number) => {
+    const nextOrder = await storageManager.manualTasks.getNextOrder(listId);
+    return await storageManager.manualTasks.create({ listId, text, order: nextOrder, dueDate });
+  },
+);
 
 /**
  * 更新手动任务
@@ -579,7 +582,7 @@ ipcMain.handle(
     _,
     id: string,
     _listId: string,
-    patch: { text?: string; checked?: boolean; order?: number },
+    patch: { text?: string; checked?: boolean; order?: number; dueDate?: number },
   ) => {
     return await storageManager.manualTasks.update(id, patch);
   },

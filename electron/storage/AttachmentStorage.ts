@@ -11,7 +11,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import sharp from 'sharp';
+import { nativeImage } from 'electron';
 
 /**
  * 压缩配置
@@ -90,7 +90,7 @@ export class AttachmentStorage {
       try {
         const compressed = await this.compressImage(buffer);
         finalBuffer = Buffer.from(compressed);
-        finalExt = 'webp'; // 压缩后统一使用 webp 格式
+        finalExt = 'jpg'; // 压缩后统一使用 jpg 格式
       } catch (error) {
         console.warn('[AttachmentStorage] Compression failed, using original:', error);
         // 压缩失败时使用原始数据
@@ -150,8 +150,8 @@ export class AttachmentStorage {
    * 同步获取附件路径（假设为 webp 格式，用于协议处理）
    */
   getPathSync(id: string): string {
-    // 先尝试 webp（压缩后的格式）
-    return path.join(this.attachmentsDir, `${id}.webp`);
+    // 先尝试 jpg（压缩后的格式）
+    return path.join(this.attachmentsDir, `${id}.jpg`);
   }
 
   /**
@@ -233,23 +233,28 @@ export class AttachmentStorage {
   }
 
   /**
-   * 压缩图片
+   * 压缩图片（使用 Electron nativeImage）
    */
   private async compressImage(buffer: Buffer): Promise<Buffer> {
-    const image = sharp(buffer);
-    const metadata = await image.metadata();
+    const image = nativeImage.createFromBuffer(buffer);
 
-    let pipeline = image;
-
-    // 如果宽度超过最大值，则缩小
-    if (metadata.width && metadata.width > this.compression.maxWidth) {
-      pipeline = pipeline.resize({
-        width: this.compression.maxWidth,
-        withoutEnlargement: true,
-      });
+    if (image.isEmpty()) {
+      throw new Error('Failed to create image from buffer');
     }
 
-    // 转换为 WebP 格式
-    return pipeline.webp({ quality: this.compression.quality }).toBuffer();
+    const size = image.getSize();
+
+    // 如果宽度超过最大值，则缩小
+    if (size.width > this.compression.maxWidth) {
+      const scale = this.compression.maxWidth / size.width;
+      const newWidth = Math.round(size.width * scale);
+      const newHeight = Math.round(size.height * scale);
+      const resized = image.resize({ width: newWidth, height: newHeight });
+      // 转换为 JPEG 格式（nativeImage 不支持 WebP 输出）
+      return resized.toJPEG(this.compression.quality);
+    }
+
+    // 不需要缩放，直接转 JPEG
+    return image.toJPEG(this.compression.quality);
   }
 }

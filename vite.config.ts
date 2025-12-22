@@ -9,6 +9,10 @@ export default defineConfig({
   server: {
     port: 1997,
   },
+  resolve: {
+    // 确保使用正确的 React 导出
+    dedupe: ['react', 'react-dom'],
+  },
   plugins: [
     react(),
     electron({
@@ -20,7 +24,7 @@ export default defineConfig({
           build: {
             rollupOptions: {
               // 将原生模块作为外部依赖，避免打包问题
-              external: ['sharp', 'better-sqlite3', 'sqlite-vec'],
+              external: ['better-sqlite3', 'sqlite-vec'],
             },
           },
         },
@@ -53,31 +57,15 @@ export default defineConfig({
       preserveSymlinks: true,
     },
   },
+  define: {
+    // 为生产构建提供 process polyfill
+    'process.env': {},
+    'process.versions': JSON.stringify({}),
+  },
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       external: ['electron-updater', 'electron'],
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // 拆分大型库为独立 chunk，提升缓存和并行加载
-            if (id.includes('@tiptap')) {
-              return 'tiptap';
-            }
-            if (id.includes('antd') || id.includes('@ant-design')) {
-              return 'antd';
-            }
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('zustand')) {
-              return 'zustand';
-            }
-            // 其他依赖
-            return 'vendor';
-          }
-        },
-      },
     },
   },
 });

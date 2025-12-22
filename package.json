@@ -24,7 +24,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "rebuild": "electron-rebuild -f -w better-sqlite3"
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@ant-design/icons": "^5.0.0",

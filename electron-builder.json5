@@ -3,10 +3,10 @@
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
   appId: 'com.duobaobox.infinitynotex',
   asar: true,
-  asarUnpack: [
-    'node_modules/better-sqlite3/**',
-    'node_modules/sqlite-vec/**'
-  ],
+  asarUnpack: ['node_modules/better-sqlite3/**', 'node_modules/sqlite-vec/**'],
+  // 原生模块构建配置
+  npmRebuild: true,
+  nodeGypRebuild: false,
   productName: 'InfinityNoteX',
   publish: [
     {
@@ -19,7 +19,21 @@
   directories: {
     output: 'release/${version}',
   },
-  files: ['dist', 'dist-electron'],
+  files: [
+    'dist',
+    'dist-electron',
+    // 确保原生模块被包含（asarUnpack 会从这里解包）
+    'node_modules/better-sqlite3/**/*',
+    'node_modules/sqlite-vec/**/*',
+    // better-sqlite3 的依赖
+    'node_modules/bindings/**/*',
+    'node_modules/file-uri-to-path/**/*',
+    // 排除不需要的文件
+    '!node_modules/**/*.{md,markdown,txt}',
+    '!node_modules/**/test/**',
+    '!node_modules/**/tests/**',
+    '!node_modules/**/docs/**',
+  ],
   mac: {
     target: ['dmg', 'zip'],
     artifactName: '${productName}-Mac-${version}-Installer.${ext}',

@@ -84,6 +84,14 @@ export class StorageContext {
     return path.join(this._appDir, 'device.json');
   }
 
+  /**
+   * 获取本地状态文件路径（在应用目录，不同步）
+   * 存储设备本地的状态，如 initialized 标记
+   */
+  get localStatePath(): string {
+    return path.join(this._appDir, 'local-state.json');
+  }
+
   // ============ 数据目录路径（可自定义） ============
 
   /**
@@ -115,10 +123,10 @@ export class StorageContext {
   }
 
   /**
-   * 获取文件夹配置文件路径（在数据目录）
+   * 获取文件夹目录路径（在数据目录）
    */
-  get foldersPath(): string {
-    return path.join(this._dataDir, 'folders.json');
+  get foldersDir(): string {
+    return path.join(this._dataDir, 'folders');
   }
   // ============ 动态路径获取 ============
 

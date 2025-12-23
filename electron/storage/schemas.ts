@@ -143,7 +143,7 @@ export const StorageMetaSchema = z.object({
   schemaVersion: z.number(),
   storageId: z.string(),
   createdAt: z.number(),
-  initialized: z.boolean().optional(),
+  // 注意：initialized 字段已迁移到 local-state.json（不同步）
 });
 
 // 从 Schema 推导类型

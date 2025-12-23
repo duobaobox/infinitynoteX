@@ -82,6 +82,7 @@ export class StorageManager {
     this.manualTasks = new ManualTaskStorage(this.context);
 
     // 注入 IndexCache 到使用 BaseDirectoryStorage 的模块
+    this.folders.setIndexCache(this.indexCache);
     this.notes.setIndexCache(this.indexCache);
     this.ai.setIndexCache(this.indexCache);
     this.browserCards.setIndexCache(this.indexCache);
@@ -151,17 +152,22 @@ export class StorageManager {
 
   /**
    * 检查是否首次启动（未初始化）
+   * 读取本地状态文件（不同步），避免多端冲突
    */
   async isFirstLaunch(): Promise<boolean> {
+    // 首先检查数据目录是否存在
     const metaExists = await fileExists(this.context.metaPath);
-
     if (!metaExists) {
       return true;
     }
 
+    // 检查本地设备是否已完成初始化
     try {
-      const meta = await readJsonFile<StorageMeta>(this.context.metaPath);
-      return !meta.initialized;
+      const localState = await readJsonFile<{ initialized?: boolean }>(
+        this.context.localStatePath,
+        { initialized: false },
+      );
+      return !localState.initialized;
     } catch {
       return true;
     }
@@ -169,16 +175,16 @@ export class StorageManager {
 
   /**
    * 标记为已初始化
+   * 写入本地状态文件（不同步），每个设备独立记录
    */
   async markInitialized(): Promise<void> {
-    const meta = await readJsonFile<StorageMeta>(this.context.metaPath, {
-      schemaVersion: 1,
-      storageId: generateId(),
-      createdAt: Date.now(),
-    });
+    const localState = await readJsonFile<{ initialized?: boolean; lastSyncAt?: number }>(
+      this.context.localStatePath,
+      {},
+    );
 
-    meta.initialized = true;
-    await writeJsonFile(this.context.metaPath, meta);
+    localState.initialized = true;
+    await writeJsonFile(this.context.localStatePath, localState);
   }
 
   /**
@@ -195,6 +201,7 @@ export class StorageManager {
 
       // 重建索引（从目录扫描，确保索引与实际文件一致）
       console.log('[Storage] Rebuilding indexes from directory scan...');
+      await this.folders.rebuildIndex();
       await this.notes.rebuildIndex();
       await this.ai.rebuildIndex();
       await this.trash.rebuildIndex();
@@ -587,11 +594,11 @@ export class StorageManager {
   // 以下方法保持原有 API 的兼容性
 
   async listFolders() {
-    return this.folders.list();
+    return this.folders.getAll();
   }
 
   async createFolder(name: string) {
-    return this.folders.create(name);
+    return this.folders.createFolder(name);
   }
 
   async renameFolder(id: string, name: string) {
@@ -599,7 +606,7 @@ export class StorageManager {
   }
 
   async deleteFolder(id: string) {
-    await this.folders.delete(id, async (folderId) => {
+    await this.folders.deleteFolder(id, async (folderId) => {
       const notes = await this.notes.list(folderId);
       for (const note of notes) {
         await this.notes.moveToFolder(note.id, 'default');

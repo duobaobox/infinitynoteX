@@ -236,12 +236,23 @@ export async function validateMigrationPath(targetPath: string): Promise<void> {
  * 注意：.index.json 文件已被 SQLite 缓存替代，不再检查
  */
 export async function validateStorageIntegrity(storagePath: string): Promise<void> {
-  const requiredFiles = ['meta.json', 'folders.json'];
+  // 检查必需的文件
+  const requiredFiles = ['meta.json'];
   for (const file of requiredFiles) {
     const filePath = path.join(storagePath, file);
     const exists = await fileExists(filePath);
     if (!exists) {
       throw new Error(`Missing required file: ${file}`);
+    }
+  }
+
+  // 检查必需的目录
+  const requiredDirs = ['folders', 'notes'];
+  for (const dir of requiredDirs) {
+    const dirPath = path.join(storagePath, dir);
+    const exists = await fileExists(dirPath);
+    if (!exists) {
+      throw new Error(`Missing required directory: ${dir}`);
     }
   }
 }

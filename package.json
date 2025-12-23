@@ -24,8 +24,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "rebuild": "electron-rebuild -f -w better-sqlite3,sqlite-vec",
+    "postinstall": "electron-rebuild -f -w better-sqlite3,sqlite-vec"
   },
   "dependencies": {
     "@ant-design/icons": "^5.0.0",
@@ -61,9 +61,11 @@
     "@tiptap/suggestion": "^3.13.0",
     "antd": "^6.0.0",
     "better-sqlite3": "^12.5.0",
+    "bindings": "^1.5.0",
     "dayjs": "^1.11.19",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
+    "file-uri-to-path": "^2.0.0",
     "highlight.js": "^11.0.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.556.0",

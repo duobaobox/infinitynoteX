@@ -47,7 +47,25 @@ export class IndexCache {
     // 确保目录存在
     await fs.mkdir(path.dirname(this.dbPath), { recursive: true });
 
-    this.db = new Database(this.dbPath);
+    try {
+      console.log(`[IndexCache] Initializing database at: ${this.dbPath}`);
+      this.db = new Database(this.dbPath);
+      console.log('[IndexCache] better-sqlite3 loaded successfully');
+    } catch (error) {
+      // 详细记录原生模块加载错误
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[IndexCache] Failed to load better-sqlite3:', errorMessage);
+      console.error('[IndexCache] This is likely a native module compilation issue.');
+      console.error('[IndexCache] Database path:', this.dbPath);
+
+      // 重新抛出错误，但附加更多上下文
+      throw new Error(
+        `Failed to initialize SQLite database: ${errorMessage}. ` +
+          `This may be caused by native module compatibility issues. ` +
+          `Please ensure better-sqlite3 is properly rebuilt for Electron.`,
+      );
+    }
+
     this.db.pragma('journal_mode = WAL');
 
     // 创建主表
@@ -99,6 +117,8 @@ export class IndexCache {
         VALUES (NEW.rowid, NEW.id, NEW.module, NEW.title, NEW.excerpt);
       END;
     `);
+
+    console.log('[IndexCache] Database initialized successfully');
   }
 
   /**

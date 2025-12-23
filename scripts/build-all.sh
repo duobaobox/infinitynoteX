@@ -127,6 +127,29 @@ fi
 EB="npx --yes electron-builder"
 EXTRA_FLAGS=${BUILDER_EXTRA_FLAGS:-}
 
+# 原生模块重建函数
+rebuild_native() {
+  local target_platform="$1"  # darwin, win32, linux
+  local target_arch="$2"      # x64, arm64
+  
+  info "Rebuilding native modules for $target_platform-$target_arch..."
+  
+  if [[ $DRY_RUN -eq 1 ]]; then
+    echo "[dry-run] npx @electron/rebuild --platform=$target_platform --arch=$target_arch -w better-sqlite3,sqlite-vec"
+    return 0
+  fi
+  
+  npx --yes @electron/rebuild \
+    --platform="$target_platform" \
+    --arch="$target_arch" \
+    --module-dir=node_modules \
+    -w better-sqlite3,sqlite-vec || {
+      warn "Native module rebuild failed for $target_platform-$target_arch"
+      return 1
+    }
+  ok "Native modules rebuilt for $target_platform-$target_arch"
+}
+
 run_builder() {
   local cmd="$1"
   if [[ $DRY_RUN -eq 1 ]]; then
@@ -143,6 +166,11 @@ run_builder() {
 
 build_mac() {
   info "Packaging for macOS (x64, arm64)"
+  
+  # 重建原生模块
+  rebuild_native darwin x64 || warn "x64 native rebuild had issues, continuing..."
+  rebuild_native darwin arm64 || warn "arm64 native rebuild had issues, continuing..."
+  
   if run_builder "$EB --mac --x64 --arm64"; then
     ok "macOS DMG build finished"
   else
@@ -159,6 +187,10 @@ build_mac() {
 
 build_win() {
   info "Packaging for Windows (x64)"
+  
+  # 重建原生模块（交叉编译可能失败，继续尝试打包）
+  rebuild_native win32 x64 || warn "Windows native rebuild had issues, electron-builder will try to handle it..."
+  
   if command -v wine >/dev/null 2>&1; then
     info "wine detected: building NSIS installer (default target)"
     if ! run_builder "$EB --win --x64"; then
@@ -179,6 +211,10 @@ build_win() {
 
 build_linux() {
   info "Packaging for Linux (x64)"
+  
+  # 重建原生模块（交叉编译可能失败，继续尝试打包）
+  rebuild_native linux x64 || warn "Linux native rebuild had issues, electron-builder will try to handle it..."
+  
   if run_builder "$EB --linux --x64"; then
     ok "Linux build finished"
   else

@@ -67,18 +67,19 @@ export interface StorageModuleConfig {
  * 3. （可选）如需特殊逻辑，创建继承 BaseStorage 的子类
  */
 export const STORAGE_MODULES: StorageModuleConfig[] = [
-  // ============ 文件夹（特殊处理，单文件存储） ============
+  // ============ 文件夹（目录存储，每个文件夹一个文件） ============
   {
     id: 'folders',
     name: '文件夹',
-    path: 'folders.json',
+    path: 'folders',
     extension: '.json',
     schema: z.any(), // folders 使用特殊存储，不需要严格 schema
-    sync: { enabled: true, type: 'file' },
+    sync: { enabled: true, type: 'directory' },
     features: {
       softDelete: false,
       generateExcerpt: false,
-      hasIndex: false,
+      sortField: 'order',
+      hasIndex: true,
     },
     description: '文件夹配置信息',
   },

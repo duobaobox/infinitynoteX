@@ -27,13 +27,13 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-            build_cmd: npm run electron:build:mac
+            build_cmd: npm run web:build && electron-builder --mac --publish never
           - os: windows-latest
             platform: win
-            build_cmd: npm run electron:build:win
+            build_cmd: npm run web:build && electron-builder --win --publish never
           - os: ubuntu-latest
             platform: linux
-            build_cmd: npm run electron:build:linux
+            build_cmd: npm run web:build && electron-builder --linux --publish never
 
     runs-on: ${{ matrix.os }}
 
@@ -64,6 +64,8 @@ jobs:
             release/**/*.zip
             release/**/*.exe
             release/**/*.AppImage
+            release/**/*.yml
+            release/**/*.blockmap
           retention-days: 7
 
   # 可选：自动发布到 GitHub Releases
@@ -89,6 +91,8 @@ jobs:
             artifacts/**/*.zip
             artifacts/**/*.exe
             artifacts/**/*.AppImage
+            artifacts/**/*.yml
+            artifacts/**/*.blockmap
           draft: true
           generate_release_notes: true
         env:

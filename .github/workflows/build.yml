@@ -15,6 +15,10 @@ on:
     tags:
       - 'v*'
 
+# 授予 GITHUB_TOKEN 写入权限
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:

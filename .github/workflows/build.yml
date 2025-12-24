@@ -1,16 +1,10 @@
 name: Build & Release
 
 on:
-  # 手动触发（在 GitHub 网页上点击按钮）
+  # 手动触发
   workflow_dispatch:
-    inputs:
-      release:
-        description: '是否发布到 Release'
-        required: false
-        default: 'false'
-        type: boolean
 
-  # 推送 tag 时自动触发（如 v1.0.0）
+  # 推送 tag 时自动触发
   push:
     tags:
       - 'v*'
@@ -27,13 +21,10 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-            build_cmd: npm run web:build && electron-builder --mac --publish never
           - os: windows-latest
             platform: win
-            build_cmd: npm run web:build && electron-builder --win --publish never
           - os: ubuntu-latest
             platform: linux
-            build_cmd: npm run web:build && electron-builder --linux --publish never
 
     runs-on: ${{ matrix.os }}
 
@@ -50,10 +41,20 @@ jobs:
       - name: 📦 安装依赖
         run: npm install
 
-      - name: 🔨 构建应用
-        run: ${{ matrix.build_cmd }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🔨 构建前端
+        run: npm run web:build
+
+      - name: 📦 打包 Electron (Mac)
+        if: matrix.platform == 'mac'
+        run: npx electron-builder --mac --publish never
+
+      - name: 📦 打包 Electron (Windows)
+        if: matrix.platform == 'win'
+        run: npx electron-builder --win --publish never
+
+      - name: 📦 打包 Electron (Linux)
+        if: matrix.platform == 'linux'
+        run: npx electron-builder --linux --publish never
 
       - name: 📤 上传构建产物
         uses: actions/upload-artifact@v4
@@ -68,10 +69,9 @@ jobs:
             release/**/*.blockmap
           retention-days: 7
 
-  # 可选：自动发布到 GitHub Releases
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release == 'true'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:

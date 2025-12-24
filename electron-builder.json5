@@ -35,8 +35,11 @@
     '!node_modules/**/docs/**',
   ],
   mac: {
-    target: ['dmg', 'zip'],
-    artifactName: '${productName}-Mac-${version}-Installer.${ext}',
+    target: [
+      { target: 'dmg', arch: ['x64', 'arm64'] },
+      { target: 'zip', arch: ['x64', 'arm64'] },
+    ],
+    artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
     identity: null, // 禁用代码签名（没有 Apple Developer 证书时必须）
   },
   win: {
@@ -45,7 +48,7 @@
       { target: 'portable', arch: ['x64'] },
       { target: 'zip', arch: ['x64'] },
     ],
-    artifactName: '${productName}-Windows-${version}-Setup.${ext}',
+    artifactName: '${productName}-Windows-${version}-${arch}.${ext}',
   },
   nsis: {
     oneClick: false,

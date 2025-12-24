@@ -37,6 +37,7 @@
   mac: {
     target: ['dmg', 'zip'],
     artifactName: '${productName}-Mac-${version}-Installer.${ext}',
+    identity: null, // 禁用代码签名（没有 Apple Developer 证书时必须）
   },
   win: {
     target: [

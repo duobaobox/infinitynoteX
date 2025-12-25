@@ -71,9 +71,24 @@ export const MarkdownPasteHandler = Extension.create({
             // 获取 HTML 内容（如果有）
             const html = clipboardData.getData('text/html');
 
-            // 如果有 HTML 内容，让默认处理器处理（可能来自富文本编辑器）
+            // 如果有 HTML 内容，清除内联颜色样式后插入
+            // 这解决了暗色模式下复制的深色文本不可见的问题
             if (html && html.trim().length > 0) {
-              return false;
+              event.preventDefault();
+
+              // 清除 HTML 中的内联 color 样式
+              // 保留其他样式（如 background-color 用于高亮）
+              const cleanedHtml = html
+                // 移除 style 属性中的 color: xxx;
+                .replace(/\bcolor\s*:\s*[^;"}]+;?/gi, '')
+                // 清理可能残留的空 style 属性
+                .replace(/\bstyle\s*=\s*["']\s*["']/gi, '');
+
+              // 使用清理后的 HTML 插入
+              editor.commands.insertContent(cleanedHtml, {
+                contentType: 'html',
+              });
+              return true;
             }
 
             // 检测是否为 Markdown 格式

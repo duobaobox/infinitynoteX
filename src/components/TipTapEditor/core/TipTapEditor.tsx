@@ -45,6 +45,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   showTitleInput = true,
   taskPath = null,
   onTaskLocated,
+  contentId,
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
 
@@ -103,10 +104,10 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     },
   });
 
-  // 用于避免父组件每次 onUpdate 回传的内容再次触发 setContent，导致光标位置丢失/自动换行
+  // 用于由于外部 prop 更新导致的内容同步
   const lastSyncedContentRef = useRef<string | null>(null);
-  // 使用内容引用来快速判断是否需要更新（避免昂贵的 JSON.stringify 比较）
   const lastContentRef = useRef<unknown>(null);
+  const lastIdRef = useRef<string | undefined>(contentId);
 
   // 编辑器就绪时初始化同步内容快照
   // 注意：故意不包含 initialContent，只在 editor 初始化时执行一次
@@ -122,52 +123,54 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   useEffect(() => {
     if (!editor) return;
 
-    // 快速引用比较：如果是同一个对象引用，跳过更新
+    // 1. 如果提供了 contentId 且发生了变化，说明切换了笔记，必须更新
+    const isNoteSwitch = contentId !== undefined && contentId !== lastIdRef.current;
+
+    if (isNoteSwitch) {
+      lastIdRef.current = contentId;
+      // 切换笔记时强制更新内容
+      editor.commands.setContent(initialContent || { type: 'doc', content: [] }, {
+        emitUpdate: false,
+      });
+      lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
+      lastContentRef.current = initialContent;
+      return;
+    }
+
+    // 2. 如果是同一个笔记（或者没提供 ID），进行内容比对
+    // 如果引用相同，跳过
     if (initialContent === lastContentRef.current) {
       return;
     }
 
-    // 类型断言辅助
+    // 3. 深度比较 JSON
     type JSONContent = { type?: string; content?: unknown[] };
     const content = (initialContent ?? { type: 'doc', content: [] }) as JSONContent;
-    const prevContent = lastContentRef.current as JSONContent | null;
 
-    // 优化：先做轻量级比较（引用 + 内容数组长度），减少不必要的 JSON序列化
-    const quickCheckDifferent =
-      !prevContent || content?.content?.length !== prevContent?.content?.length;
-
-    // 只有快速检查发现可能不同，或者快速检查相同时再做深度比较
-    let contentChanged = quickCheckDifferent;
-    if (!quickCheckDifferent) {
-      // 快速检查相同时，用序列化做精确比较
-      try {
-        const incoming = JSON.stringify(content);
-        contentChanged = incoming !== lastSyncedContentRef.current;
-      } catch {
-        contentChanged = true; // 序列化失败视为内容变化
-      }
+    let contentChanged = false;
+    try {
+      const incoming = JSON.stringify(content);
+      contentChanged = incoming !== lastSyncedContentRef.current;
+    } catch {
+      contentChanged = true;
     }
 
-    if (contentChanged) {
-      // 使用 setTimeout 让内容设置真正异步执行
-      // 这给浏览器事件循环喘息的机会，避免主线程长时间阻塞导致卡顿
+    // 4. 如果内容确实变了，但编辑器正在聚焦，为了防止光标跳动，通常我们不强行同步
+    // 除非是强制切换（已经在第1步处理了）
+    if (contentChanged && !editor.isFocused) {
+      // 只有在非聚焦状态下才进行内容修复式同步，避免干扰用户输入
       setTimeout(() => {
-        if (!editor.isDestroyed) {
-          // 通过选项 emitUpdate: false，避免递归触发 onUpdate
-          editor.commands.setContent(
-            initialContent as import('@tiptap/pm/model').Node | Record<string, unknown>,
-            { emitUpdate: false },
-          );
-          // 更新快照，保持与编辑器内部一致
+        if (!editor.isDestroyed && !editor.isFocused) {
+          editor.commands.setContent(initialContent as any, { emitUpdate: false });
           lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
           lastContentRef.current = initialContent;
         }
       }, 0);
     } else {
-      // 内容相同但引用不同，只更新引用
+      // 虽然内容“变了”（可能是外部轻微差异），但为了稳定，我们只更新引用记录
       lastContentRef.current = initialContent;
     }
-  }, [editor, initialContent]);
+  }, [editor, initialContent, contentId]);
 
   // 任务定位：当 taskPath 参数变化或内容加载完成时，定位到对应任务
   useEffect(() => {

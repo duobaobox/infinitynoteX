@@ -6,7 +6,6 @@ import type {
   UpdateNotePayload,
 } from '../src/services/types';
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
-import { API_KEY_PLACEHOLDER } from '../src/services/aiConfig';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -1344,11 +1343,8 @@ ipcMain.handle('sync:openLogDir', async () => {
  */
 ipcMain.handle('ai:getConfig', async () => {
   const config = await readAIConfig();
-  if (!config) return null;
-  return {
-    ...config,
-    apiKey: config.apiKey ? API_KEY_PLACEHOLDER : '',
-  };
+  // 作为离线客户端，直接返回完整配置（包括真实 API Key）
+  return config;
 });
 
 /**

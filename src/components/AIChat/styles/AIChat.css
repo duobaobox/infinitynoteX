@@ -285,6 +285,85 @@
   color: #a6a6a6;
 }
 
+/* ==================== Ant Design X 气泡和 Markdown 暗色模式适配 ==================== */
+
+/**
+ * AI 气泡文本颜色 - 暗色模式
+ * Ant Design X 的 Bubble 组件在暗色模式下需要适配文本颜色
+ */
+:root[data-theme='dark'] .ai-chat-messages .ant-bubble-content {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Markdown 渲染器暗色模式 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* 标题 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h1,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h2,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h3,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h4,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h5,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h6 {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* 段落和列表 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light p,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light div,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light li,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ul,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ol {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* 列表标记颜色 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ul li::marker,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ol li::marker {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* 链接 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light a {
+  color: #4096ff;
+}
+
+/* 行内代码 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light code:not([class*='language-']) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ff7a45;
+}
+
+/* 引用块 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light blockquote {
+  border-left-color: #4096ff;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* 表格 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table th,
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table td {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table th {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 分割线 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light hr {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 强调文本 */
+:root[data-theme='dark'] .ai-chat-messages .x-markdown-light strong {
+  color: rgba(255, 255, 255, 0.95);
+}
+
 /* ==================== 知识库来源引用卡片 ==================== */
 
 /**

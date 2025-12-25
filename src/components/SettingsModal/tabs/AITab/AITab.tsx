@@ -318,7 +318,7 @@ const AITab: React.FC = () => {
                   </Button>
                 </Space.Compact>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Key 加密后存储在本地用户目录，不会上传到服务器。
+                  Key 保存在本地配置文件中，不会上传到服务器。
                 </Text>
               </Form.Item>
             </Form>

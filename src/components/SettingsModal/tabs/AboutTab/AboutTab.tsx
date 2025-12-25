@@ -7,6 +7,7 @@ import { Space, Typography, Button, Progress, Modal, message, Select, Input, Too
 import { ReloadOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { useAutoUpdater } from '../../../../hooks/useAutoUpdater';
+import logo from '../../../../assets/logo.svg';
 import './AboutTab.css';
 
 const { Text, Paragraph } = Typography;
@@ -209,10 +210,7 @@ const AboutTab: React.FC = () => {
       <div className="about-content">
         {/* Logo - 双击打开日志 */}
         <div className="about-logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
-          <img
-            src={new URL('../../../../assets/logo.png', import.meta.url).href}
-            alt="InfinityNoteX"
-          />
+          <img src={logo} alt="InfinityNoteX" />
         </div>
 
         {/* 标题和版本 */}

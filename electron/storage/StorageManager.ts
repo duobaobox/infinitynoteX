@@ -7,6 +7,7 @@ import { shell } from 'electron';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
+import AdmZip from 'adm-zip';
 
 import { StorageContext } from './StorageContext';
 import { FolderStorage } from './FolderStorage';
@@ -523,26 +524,112 @@ export class StorageManager {
     return await this.notes.rebuildIndex();
   }
 
-  // ============ 备份与导出 ============
+  // ============ 备份与还原 ============
 
   /**
-   * 创建备份
+   * 创建备份（zip 格式）
    */
   async createBackup(): Promise<string> {
     try {
-      const timestamp = Date.now();
-      const backupName = `backup-${timestamp}`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupName = `InfinityNoteX-backup-${timestamp}.zip`;
       const backupPath = path.join(this.context.backupsDir, backupName);
 
       console.log(`[Storage] Creating backup: ${backupName}`);
 
-      await copyDirectory(this.context.dataDir, backupPath);
+      // 确保备份目录存在
+      await fs.mkdir(this.context.backupsDir, { recursive: true });
+
+      // 创建 zip 文件
+      const zip = new AdmZip();
+      zip.addLocalFolder(this.context.dataDir);
+      zip.writeZip(backupPath);
 
       console.log(`[Storage] Backup created successfully: ${backupPath}`);
       return backupPath;
     } catch (error) {
       console.error('[Storage] Backup creation failed:', error);
       throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to create backup', error);
+    }
+  }
+  /**
+   * 从备份文件还原数据
+   */
+  async restoreBackup(backupFilePath: string): Promise<void> {
+    try {
+      console.log(`[Storage] Restoring from backup: ${backupFilePath}`);
+
+      // 验证文件存在
+      const exists = await fileExists(backupFilePath);
+      if (!exists) {
+        throw new Error('备份文件不存在');
+      }
+
+      // 验证是 zip 文件
+      if (!backupFilePath.endsWith('.zip')) {
+        throw new Error('无效的备份文件格式，请选择 .zip 文件');
+      }
+
+      // 解压到临时目录（使用系统临时目录，避免被清空）
+      const tempDir = path.join(this.context.tempDir, `restore-${Date.now()}`);
+      await fs.mkdir(tempDir, { recursive: true });
+
+      const zip = new AdmZip(backupFilePath);
+      zip.extractAllTo(tempDir, true);
+
+      // 备份当前数据（保存到系统目录，以防还原失败需要恢复）
+      const preRestoreBackupDir = path.join(this.context.appDir, 'pre-restore-backups');
+      await fs.mkdir(preRestoreBackupDir, { recursive: true });
+      const currentBackupPath = path.join(preRestoreBackupDir, `pre-restore-${Date.now()}.zip`);
+      const currentZip = new AdmZip();
+      currentZip.addLocalFolder(this.context.dataDir);
+      currentZip.writeZip(currentBackupPath);
+
+      // 清空当前数据目录（跳过 backups 目录，避免删除备份）
+      const entries = await fs.readdir(this.context.dataDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === 'backups') continue; // 跳过 backups 目录
+        const fullPath = path.join(this.context.dataDir, entry.name);
+        if (entry.isDirectory()) {
+          await deleteDirectory(fullPath);
+        } else {
+          await fs.unlink(fullPath);
+        }
+      }
+
+      // 复制还原的数据（跳过 backups 目录）
+      const restoreEntries = await fs.readdir(tempDir, { withFileTypes: true });
+      for (const entry of restoreEntries) {
+        if (entry.name === 'backups') continue; // 跳过备份中的 backups 目录
+        const srcPath = path.join(tempDir, entry.name);
+        const destPath = path.join(this.context.dataDir, entry.name);
+        if (entry.isDirectory()) {
+          await copyDirectory(srcPath, destPath);
+        } else {
+          await fs.copyFile(srcPath, destPath);
+        }
+      }
+
+      // 清理临时目录
+      await deleteDirectory(tempDir);
+
+      // 重建所有索引（确保 SQLite 索引与恢复的文件同步）
+      console.log('[Storage] Rebuilding indexes after restore...');
+      await this.folders.rebuildIndex();
+      await this.notes.rebuildIndex();
+      await this.ai.rebuildIndex();
+      await this.trash.rebuildIndex();
+      await this.browserCards.rebuildIndex();
+      await this.todoLists.rebuildIndex();
+      await this.manualTasks.rebuildIndex();
+
+      // 重新加载所有缓存
+      await this.loadAllCaches();
+
+      console.log(`[Storage] Data restored successfully from: ${backupFilePath}`);
+    } catch (error) {
+      console.error('[Storage] Restore failed:', error);
+      throw new StorageError(StorageErrorCode.E_IO_WRITE, 'Failed to restore backup', error);
     }
   }
 

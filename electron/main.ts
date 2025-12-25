@@ -245,6 +245,13 @@ ipcMain.handle('window-is-maximized', () => {
   return win?.isMaximized() ?? false;
 });
 
+// 刷新主窗口
+ipcMain.handle('window-reload', () => {
+  if (win) {
+    win.webContents.reload();
+  }
+});
+
 // 双击标题栏最大化行为
 ipcMain.on('window-double-click-titlebar', () => {
   if (win) {
@@ -421,6 +428,10 @@ ipcMain.handle('storage:getStats', async () => {
 
 ipcMain.handle('storage:createBackup', async () => {
   return await storageManager.createBackup();
+});
+
+ipcMain.handle('storage:restoreBackup', async (_, backupFilePath: string) => {
+  await storageManager.restoreBackup(backupFilePath);
 });
 
 ipcMain.handle('storage:exportData', async (_, targetPath: string) => {

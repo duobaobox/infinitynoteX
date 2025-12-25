@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   unmaximize: () => ipcRenderer.send('window-unmaximize'),
   close: () => ipcRenderer.send('window-close'),
   isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+  reload: () => ipcRenderer.invoke('window-reload'),
   onWindowStateChanged: (callback: (isMaximized: boolean) => void) => {
     ipcRenderer.on('window-state-changed', (_event, isMaximized: boolean) => {
       callback(isMaximized);
@@ -66,6 +67,8 @@ contextBridge.exposeInMainWorld('storage', {
   openInFinder: () => ipcRenderer.invoke('storage:openInFinder'),
   getStats: () => ipcRenderer.invoke('storage:getStats'),
   createBackup: () => ipcRenderer.invoke('storage:createBackup'),
+  restoreBackup: (backupFilePath: string) =>
+    ipcRenderer.invoke('storage:restoreBackup', backupFilePath),
   exportData: (targetPath: string) => ipcRenderer.invoke('storage:exportData', targetPath),
   resetAllData: () => ipcRenderer.invoke('storage:resetAllData'),
 

@@ -93,6 +93,7 @@ declare global {
       unmaximize(): void;
       close(): void;
       isMaximized(): Promise<boolean>;
+      reload(): Promise<void>;
       onWindowStateChanged(callback: (isMaximized: boolean) => void): void;
       showOpenDialog(
         options: OpenDialogOptions,
@@ -109,6 +110,7 @@ declare global {
       openInFinder(): Promise<void>;
       getStats(): Promise<StorageStats>;
       createBackup(): Promise<string>;
+      restoreBackup(backupFilePath: string): Promise<void>;
       exportData(targetPath: string): Promise<void>;
       resetAllData(): Promise<void>;
 

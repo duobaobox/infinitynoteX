@@ -57,10 +57,10 @@ export class StorageContext {
   }
 
   /**
-   * 获取备份目录路径（在应用目录）
+   * 获取备份目录路径（在数据目录下，便于用户访问）
    */
   get backupsDir(): string {
-    return path.join(this._appDir, 'backups');
+    return path.join(this._dataDir, 'backups');
   }
 
   /**

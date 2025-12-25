@@ -317,6 +317,7 @@ declare global {
       openInFinder(): Promise<void>;
       getStats(): Promise<StorageStats>;
       createBackup(): Promise<string>;
+      restoreBackup(backupFilePath: string): Promise<void>;
       exportData(targetPath: string): Promise<void>;
       resetAllData(): Promise<void>;
 

@@ -3,8 +3,13 @@
  */
 
 import React, { useEffect } from 'react';
-import { Form, Input, Button, Space, Typography, Divider, Progress, message } from 'antd';
-import { FolderOpenOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Space, Typography, Divider, Progress, message, Modal } from 'antd';
+import {
+  FolderOpenOutlined,
+  CopyOutlined,
+  CloudUploadOutlined,
+  CloudDownloadOutlined,
+} from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import './DataTab.css';
 
@@ -86,74 +91,22 @@ const DataTab: React.FC<DataTabProps> = () => {
           </div>
         </Form.Item>
 
-        <Divider />
-
-        <Form.Item label="更改存储路径">
+        <Form.Item label="备份与还原">
           <Space direction="vertical" style={{ width: '100%' }}>
             <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              选择新的数据存储位置。您可以选择是否迁移现有数据。
+              创建数据备份或从备份文件还原数据。备份文件保存在数据目录的 backups 文件夹中。
             </Paragraph>
             <Space>
               <Button
-                icon={<SyncOutlined />}
-                onClick={async () => {
-                  try {
-                    if (!window.electronAPI?.showOpenDialog) {
-                      message.error('当前环境不支持文件选择');
-                      return;
-                    }
-
-                    const result = await window.electronAPI.showOpenDialog({
-                      properties: ['openDirectory', 'createDirectory'],
-                      title: '选择数据存储目录',
-                    });
-
-                    if (result.canceled || !result.filePaths.length) {
-                      return;
-                    }
-
-                    const newPath = result.filePaths[0];
-                    const confirmed = window.confirm(
-                      `确定要将数据目录更改为:\n${newPath}\n\n是否迁移现有数据?`,
-                    );
-
-                    if (!confirmed) return;
-
-                    setMigrating(true);
-                    await window.storage.setStoragePath(newPath, {
-                      migrate: true,
-                    });
-                    message.success('数据迁移成功');
-                    await loadStorageInfo();
-                  } catch (error: unknown) {
-                    console.error('Failed to migrate data:', error);
-                    message.error(`迁移失败: ${getErrMsg(error)}`);
-                  } finally {
-                    setMigrating(false);
-                  }
-                }}
-                loading={migrating}
-              >
-                选择新路径并迁移
-              </Button>
-            </Space>
-            {migrating && <Progress percent={100} status="active" showInfo={false} />}
-          </Space>
-        </Form.Item>
-
-        <Divider />
-
-        <Form.Item label="备份与导出">
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              创建数据备份或导出到指定位置
-            </Paragraph>
-            <Space>
-              <Button
+                icon={<CloudUploadOutlined />}
                 onClick={async () => {
                   try {
                     const backupPath = await window.storage.createBackup();
-                    message.success(`备份创建成功: ${backupPath}`);
+                    const fileName = backupPath.split('/').pop() || backupPath;
+                    message.success({
+                      content: `备份创建成功：${fileName}`,
+                      duration: 3,
+                    });
                   } catch (error: unknown) {
                     console.error('Backup failed:', error);
                     message.error(`备份失败: ${getErrMsg(error)}`);
@@ -163,6 +116,7 @@ const DataTab: React.FC<DataTabProps> = () => {
                 创建备份
               </Button>
               <Button
+                icon={<CloudDownloadOutlined />}
                 onClick={async () => {
                   try {
                     if (!window.electronAPI?.showOpenDialog) {
@@ -171,26 +125,62 @@ const DataTab: React.FC<DataTabProps> = () => {
                     }
 
                     const result = await window.electronAPI.showOpenDialog({
-                      properties: ['openDirectory', 'createDirectory'],
-                      title: '选择导出目录',
+                      properties: ['openFile'],
+                      title: '选择备份文件',
+                      defaultPath: currentPath,
+                      filters: [{ name: '备份文件', extensions: ['zip'] }],
                     });
 
                     if (result.canceled || !result.filePaths.length) {
                       return;
                     }
 
-                    const exportPath = result.filePaths[0];
-                    await window.storage.exportData(exportPath);
-                    message.success(`数据已导出到: ${exportPath}`);
+                    const backupFile = result.filePaths[0];
+                    const fileName = backupFile.split('/').pop() || backupFile;
+
+                    Modal.confirm({
+                      title: '确认还原数据',
+                      content: (
+                        <div>
+                          <p>确定要从以下备份文件还原数据吗？</p>
+                          <p style={{ fontSize: 12, color: '#666', wordBreak: 'break-all' }}>
+                            {fileName}
+                          </p>
+                          <p style={{ color: '#ff4d4f', marginTop: 12 }}>
+                            ⚠️ 这将覆盖现有数据，系统会自动创建还原前的备份。
+                          </p>
+                        </div>
+                      ),
+                      okText: '确认还原',
+                      okType: 'danger',
+                      cancelText: '取消',
+                      onOk: async () => {
+                        try {
+                          setMigrating(true);
+                          await window.storage.restoreBackup(backupFile);
+                          message.success('数据还原成功，正在刷新应用...', 2);
+                          // 通过主进程刷新窗口
+                          setTimeout(() => {
+                            window.electronAPI?.reload?.();
+                          }, 1500);
+                        } catch (error: unknown) {
+                          console.error('Restore failed:', error);
+                          message.error(`还原失败: ${getErrMsg(error)}`);
+                          setMigrating(false);
+                        }
+                      },
+                    });
                   } catch (error: unknown) {
-                    console.error('Export failed:', error);
-                    message.error(`导出失败: ${getErrMsg(error)}`);
+                    console.error('File selection failed:', error);
+                    message.error(`文件选择失败: ${getErrMsg(error)}`);
                   }
                 }}
+                loading={migrating}
               >
-                导出数据
+                从备份还原
               </Button>
             </Space>
+            {migrating && <Progress percent={100} status="active" showInfo={false} />}
           </Space>
         </Form.Item>
 

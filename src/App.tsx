@@ -31,6 +31,7 @@ declare global {
       unmaximize: () => void;
       close: () => void;
       isMaximized: () => Promise<boolean>;
+      reload: () => Promise<void>;
       onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
       showOpenDialog: (options: OpenDialogOptions) => Promise<{
         canceled: boolean;

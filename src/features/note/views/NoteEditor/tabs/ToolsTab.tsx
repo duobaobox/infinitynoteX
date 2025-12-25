@@ -5,9 +5,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { message, Tooltip, Slider } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
+import { CheckOutlined, ToolOutlined } from '@ant-design/icons';
 import type { NoteColor as NoteColorType } from '../../../../../services/types';
 import { PRESET_COLORS } from '../../../../../hooks/useNoteCardTheme';
+import './EmptyState.css';
+
+/**
+ * 空状态组件 - 当没有便签选中时显示
+ */
+const EmptyState: React.FC = () => (
+  <div className="editor-empty-state">
+    <ToolOutlined className="editor-empty-icon" />
+    <p className="editor-empty-text">选择一个便签后可以使用工具</p>
+  </div>
+);
 
 interface ToolsTabProps {
   noteId: string | null;
@@ -72,6 +83,11 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
     // 直接调用父组件的回调，由父组件统一处理保存和通知
     onColorChange(color);
   };
+
+  // 没有选中便签时，显示空状态
+  if (!noteId) {
+    return <EmptyState />;
+  }
 
   return (
     <div style={{ padding: '16px' }}>

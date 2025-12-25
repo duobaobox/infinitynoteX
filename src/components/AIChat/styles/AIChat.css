@@ -147,6 +147,40 @@
 }
 
 /**
+ * AI 对话空状态样式
+ * 当没有选中对话时显示
+ */
+.ai-chat-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: #8c8c8c;
+  gap: 16px;
+}
+
+.ai-chat-empty-icon {
+  font-size: 64px;
+  color: #d9d9d9;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.ai-chat-empty-state:hover .ai-chat-empty-icon {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.ai-chat-empty-text {
+  margin: 0;
+  font-size: 15px;
+  color: #8c8c8c;
+  font-weight: 400;
+}
+
+/**
  * .ai-chat-input
  * 输入框容器，包含 Sender 组件
  * 使用位置：AIChatPanel.tsx L440

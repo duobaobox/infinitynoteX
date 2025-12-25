@@ -12,20 +12,38 @@
  */
 
 import React, { useCallback } from 'react';
+import { RobotOutlined } from '@ant-design/icons';
 import { AIChatPanel } from '../../../../../components/AIChat';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
+import './EmptyState.css';
+
+/**
+ * 空状态组件 - 当没有便签选中时显示
+ */
+const EmptyState: React.FC = () => (
+  <div className="editor-empty-state">
+    <RobotOutlined className="editor-empty-icon" />
+    <p className="editor-empty-text">选择一个便签后可以与 AI 对话</p>
+  </div>
+);
 
 interface AITabProps {
   noteId: string | null;
 }
 
 export const AITab: React.FC<AITabProps> = ({ noteId }) => {
+  // Hooks 必须在任何条件返回之前调用
   const { triggerAIConversationsRefresh } = useWorkspaceStore();
 
   // 标题变更时刷新对话列表
   const handleTitleChange = useCallback(() => {
     triggerAIConversationsRefresh();
   }, [triggerAIConversationsRefresh]);
+
+  // 没有选中便签时，显示空状态
+  if (!noteId) {
+    return <EmptyState />;
+  }
 
   return (
     <AIChatPanel

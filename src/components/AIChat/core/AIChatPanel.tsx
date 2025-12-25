@@ -39,6 +39,7 @@ import {
   FileTextOutlined,
   TranslationOutlined,
   BulbOutlined,
+  CommentOutlined,
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
@@ -93,6 +94,16 @@ const QUICK_COMMANDS: SuggestionItems = [
     icon: <BulbOutlined />,
   },
 ];
+
+/**
+ * 空状态组件 - 当没有选中对话时显示
+ */
+const EmptyState: React.FC = () => (
+  <div className="ai-chat-empty-state">
+    <CommentOutlined className="ai-chat-empty-icon" />
+    <p className="ai-chat-empty-text">选择或创建一个对话开始聊天</p>
+  </div>
+);
 
 /**
  * AI 对话面板组件
@@ -446,6 +457,15 @@ export const AIChatPanel = ({
         <div className="ai-chat-messages-empty">
           <div style={{ textAlign: 'center', color: '#999' }}>初始化中...</div>
         </div>
+      </div>
+    );
+  }
+
+  // 没有选中对话，显示空状态
+  if (!conversationId) {
+    return (
+      <div className={`ai-chat-container ${className}`}>
+        <EmptyState />
       </div>
     );
   }

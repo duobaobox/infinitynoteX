@@ -10,13 +10,25 @@
 
 import React, { lazy, Suspense } from 'react';
 import { Spin } from 'antd';
+import { FileTextOutlined } from '@ant-design/icons';
 import type { TipTapJSONContent } from '../../../../../services/types';
+import './EmptyState.css';
 
 // 懒加载编辑器（优化：减少初始 bundle 体积）
 const TipTapEditor = lazy(() =>
   import('../../../../../components/TipTapEditor').then((module) => ({
     default: module.TipTapEditor,
   })),
+);
+
+/**
+ * 空状态组件 - 当没有便签选中时显示
+ */
+const EmptyState: React.FC = () => (
+  <div className="editor-empty-state">
+    <FileTextOutlined className="editor-empty-icon" />
+    <p className="editor-empty-text">选择或创建一个便签开始编辑</p>
+  </div>
 );
 
 interface EditTabProps {
@@ -44,11 +56,18 @@ export const EditTab: React.FC<EditTabProps> = ({
   onTaskLocated,
   isLoading = false,
 }) => {
-  // noteId 用于调试，实际不影响渲染
-  void noteId;
+  // 没有选中便签时，显示空状态
+  if (!noteId) {
+    return <EmptyState />;
+  }
 
+  // 便签正在加载时，显示加载提示
   if (!editorContent) {
-    return <div style={{ padding: '16px' }}>编辑器加载中...</div>;
+    return (
+      <div className="editor-loading-container">
+        <Spin tip="编辑器加载中..." />
+      </div>
+    );
   }
 
   return (

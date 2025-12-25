@@ -1,0 +1,43 @@
+/**
+ * EmptyState.css
+ * 编辑器空状态样式
+ */
+
+.editor-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  color: #8c8c8c;
+  gap: 16px;
+}
+
+.editor-empty-icon {
+  font-size: 64px;
+  color: #d9d9d9;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.editor-empty-state:hover .editor-empty-icon {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.editor-empty-text {
+  margin: 0;
+  font-size: 15px;
+  color: #8c8c8c;
+  font-weight: 400;
+}
+
+.editor-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+}

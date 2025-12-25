@@ -10,6 +10,7 @@ import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWind
 import FloatingTodoWindow from './components/FloatingTodoWindow/FloatingTodoWindow';
 import PillWindow from './components/PillWindow/PillWindow';
 import TodoPillWindow from './components/TodoPillWindow/TodoPillWindow';
+import { AIChatWindow } from './pages/AIChatWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 import { getFeaturesByWorkspaceView } from './config/featureRegistry';
@@ -23,25 +24,6 @@ import './features/todo';
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 import { useStorageEvents } from './hooks/useStorageEvents';
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      minimize: () => void;
-      maximize: () => void;
-      unmaximize: () => void;
-      close: () => void;
-      isMaximized: () => Promise<boolean>;
-      reload: () => Promise<void>;
-      onWindowStateChanged: (callback: (isMaximized: boolean) => void) => void;
-      showOpenDialog: (options: OpenDialogOptions) => Promise<{
-        canceled: boolean;
-        filePaths: string[];
-      }>;
-    };
-  }
-}
-import type { OpenDialogOptions } from './services/types';
-
 function App() {
   // 检测窗口类型（Hooks 必须在顶层调用，在条件之前）
   const windowType = useMemo(() => {
@@ -50,6 +32,7 @@ function App() {
     if (hash.startsWith('#/pill/')) return 'pill';
     if (hash.startsWith('#/floating-todo/')) return 'floating-todo';
     if (hash.startsWith('#/todo-pill/')) return 'todo-pill';
+    if (hash.startsWith('#/ai-chat-window')) return 'ai-chat-window';
     return 'main';
   }, []);
 
@@ -171,6 +154,11 @@ function App() {
   if (windowType === 'todo-pill') {
     const listId = window.location.hash.replace('#/todo-pill/', '');
     return <TodoPillWindow listId={listId} />;
+  }
+
+  // AI 对话悬浮窗口
+  if (windowType === 'ai-chat-window') {
+    return <AIChatWindow />;
   }
 
   // 处理双击标题栏最大化 - 仅在至少 500ms 后的双击时触发

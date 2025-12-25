@@ -1,4 +1,14 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  protocol,
+  net,
+  shell,
+  globalShortcut,
+  screen,
+} from 'electron';
 import type { BrowserWindowConstructorOptions, OpenDialogOptions } from 'electron';
 import type {
   SetStoragePathOptions,
@@ -85,6 +95,9 @@ const todoPillWindows = new Map<string, BrowserWindow>();
 const todoMinimizedBounds = new Map<string, StoredBounds>();
 const TODO_FLOATING_SIZE = { width: 320, height: 400 }; // Todo 悬浮窗口默认大小
 const TODO_PILL_SIZE = { width: 130, height: 48 }; // Todo 药丸窗口固定大小，与便签一致
+
+// AI 对话悬浮窗口管理
+let aiChatWindow: BrowserWindow | null = null;
 
 // 默认悬浮窗口大小
 let defaultFloatingWindowSize = {
@@ -192,6 +205,145 @@ function createWindow() {
   }
 }
 
+/**
+ * 创建 AI 对话悬浮窗口
+ */
+function createAIChatWindow() {
+  try {
+    if (aiChatWindow && !aiChatWindow.isDestroyed()) {
+      log.info('AI chat window already exists, showing it');
+      aiChatWindow.show();
+      aiChatWindow.focus();
+      return;
+    }
+
+    log.info('Creating new AI chat window');
+
+    // 获取当前鼠标所在屏幕，支持多显示器
+    const cursorPoint = screen.getCursorScreenPoint();
+    const currentScreen = screen.getDisplayNearestPoint(cursorPoint);
+    const {
+      width: screenWidth,
+      height: screenHeight,
+      x: screenX,
+      y: screenY,
+    } = currentScreen.workArea;
+
+    log.info('Screen info', { screenWidth, screenHeight, screenX, screenY });
+
+    // 读取保存的窗口配置
+    const config = readAppConfig();
+    const savedBounds = config.aiChatWindow;
+
+    // 默认窗口尺寸
+    const windowWidth = 420;
+    const windowHeight = 600;
+
+    // 默认位置：屏幕右侧，留 20px 边距
+    let x = savedBounds?.x ?? screenX + screenWidth - windowWidth - 20;
+    let y = savedBounds?.y ?? screenY + (screenHeight - windowHeight) / 2;
+
+    // 如果有保存的位置，使用保存的位置（但确保在当前屏幕内）
+    if (savedBounds) {
+      x = Math.max(screenX, Math.min(savedBounds.x, screenX + screenWidth - windowWidth));
+      y = Math.max(screenY, Math.min(savedBounds.y, screenY + screenHeight - windowHeight));
+    }
+
+    log.info('Window position', {
+      x,
+      y,
+      width: savedBounds?.width ?? windowWidth,
+      height: savedBounds?.height ?? windowHeight,
+    });
+
+    aiChatWindow = new BrowserWindow({
+      width: savedBounds?.width ?? windowWidth,
+      height: savedBounds?.height ?? windowHeight,
+      x,
+      y,
+      minWidth: 380,
+      minHeight: 400,
+      frame: false,
+      transparent: false,
+      hasShadow: true,
+      alwaysOnTop: true,
+      resizable: true,
+      show: false,
+      backgroundColor: '#ffffff',
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.mjs'),
+        webviewTag: true, // 启用 webview 标签支持
+      },
+    });
+
+    log.info('BrowserWindow created');
+
+    // 加载 AI 对话窗口页面
+    if (VITE_DEV_SERVER_URL) {
+      const url = `${VITE_DEV_SERVER_URL}#/ai-chat-window`;
+      log.info('Loading URL', { url });
+      aiChatWindow.loadURL(url);
+    } else {
+      log.info('Loading file');
+      aiChatWindow.loadFile(path.join(RENDERER_DIST, 'index.html'), {
+        hash: '/ai-chat-window',
+      });
+    }
+
+    // 准备好后显示
+    aiChatWindow.once('ready-to-show', () => {
+      log.info('AI chat window ready to show');
+      aiChatWindow?.show();
+    });
+
+    // 窗口移动或调整大小时保存状态
+    const saveAIChatWindowState = () => {
+      if (aiChatWindow && !aiChatWindow.isDestroyed()) {
+        const bounds = aiChatWindow.getBounds();
+        const config = readAppConfig();
+        writeAppConfig({
+          ...config,
+          aiChatWindow: {
+            width: bounds.width,
+            height: bounds.height,
+            x: bounds.x,
+            y: bounds.y,
+          },
+        });
+      }
+    };
+
+    aiChatWindow.on('moved', saveAIChatWindowState);
+    aiChatWindow.on('resized', saveAIChatWindowState);
+
+    // 窗口关闭时清理
+    aiChatWindow.on('closed', () => {
+      log.info('AI chat window closed');
+      aiChatWindow = null;
+    });
+
+    log.info('AI chat window created successfully');
+  } catch (error) {
+    log.error('Failed to create AI chat window', error);
+  }
+}
+
+/**
+ * 显示/隐藏 AI 对话窗口
+ */
+function toggleAIChatWindow() {
+  if (aiChatWindow && !aiChatWindow.isDestroyed()) {
+    if (aiChatWindow.isVisible()) {
+      aiChatWindow.hide();
+    } else {
+      aiChatWindow.show();
+      aiChatWindow.focus();
+    }
+  } else {
+    createAIChatWindow();
+  }
+}
+
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
@@ -262,6 +414,24 @@ ipcMain.on('window-double-click-titlebar', () => {
   }
 });
 
+// ============ AI 对话窗口 IPC 处理器 ============
+ipcMain.handle('ai-chat-window:show', () => {
+  log.info('Show AI chat window requested');
+  createAIChatWindow();
+});
+
+ipcMain.handle('ai-chat-window:hide', () => {
+  log.info('Hide AI chat window requested');
+  if (aiChatWindow && !aiChatWindow.isDestroyed()) {
+    aiChatWindow.hide();
+  }
+});
+
+ipcMain.handle('ai-chat-window:toggle', () => {
+  log.info('Toggle AI chat window requested');
+  toggleAIChatWindow();
+});
+
 // 单例锁，二次启动唤起现有窗口
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -280,6 +450,8 @@ app.on('before-quit', () => {
   isQuitting = true;
   // 在应用完全退出前保存窗口状态
   saveWindowState();
+  // 注销所有全局快捷键
+  globalShortcut.unregisterAll();
 });
 
 // ============ 注册自定义协议 attachment:// ============
@@ -327,6 +499,20 @@ app.whenReady().then(async () => {
 
   createWindow();
   initAutoUpdater(() => win ?? null);
+
+  // 注册全局快捷键：从配置读取，默认为 CommandOrControl+Shift+Q
+  const config = readAppConfig();
+  const shortcut = config.shortcutKeys?.aiChatWindow || 'CommandOrControl+Shift+Q';
+  const registered = globalShortcut.register(shortcut, () => {
+    log.info('Global shortcut triggered', { shortcut });
+    toggleAIChatWindow();
+  });
+
+  if (registered) {
+    log.info('Global shortcut registered', { shortcut });
+  } else {
+    log.warn('Failed to register global shortcut', { shortcut });
+  }
 
   // 启动时记录日志
   log.info('App started', { version: app.getVersion() });
@@ -1197,6 +1383,29 @@ ipcMain.handle(
     return defaultFloatingWindowSize;
   },
 );
+
+// ============ 快捷键配置 IPC 处理器 ============
+
+/**
+ * 获取快捷键配置
+ */
+ipcMain.handle('config:getShortcutKeys', async () => {
+  const config = readAppConfig();
+  return config.shortcutKeys || { aiChatWindow: 'CommandOrControl+Shift+Q' };
+});
+
+/**
+ * 设置快捷键配置
+ */
+ipcMain.handle('config:setShortcutKeys', async (_, keys: { aiChatWindow: string }) => {
+  const config = readAppConfig();
+  writeAppConfig({
+    ...config,
+    shortcutKeys: keys,
+  });
+  log.info('Shortcut keys updated', keys);
+  return keys;
+});
 
 // ============ 数据同步 IPC 处理器 ============
 

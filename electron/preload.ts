@@ -52,6 +52,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   showOpenDialog: (options: OpenDialogOptions) =>
     ipcRenderer.invoke('dialog:showOpenDialog', options),
+
+  // AI 对话悬浮窗口
+  showAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:show'),
+  hideAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:hide'),
+  toggleAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:toggle'),
 });
 
 // --------- Expose storage API ---------
@@ -614,5 +619,20 @@ contextBridge.exposeInMainWorld('knowledge', {
       batchSize: number;
       batchDelayMs: number;
       rateLimitRetryMs: number;
+    }>,
+});
+
+// --------- Expose Config API ---------
+contextBridge.exposeInMainWorld('config', {
+  // 获取快捷键配置
+  getShortcutKeys: () =>
+    ipcRenderer.invoke('config:getShortcutKeys') as Promise<{
+      aiChatWindow: string;
+    }>,
+
+  // 设置快捷键配置
+  setShortcutKeys: (keys: { aiChatWindow: string }) =>
+    ipcRenderer.invoke('config:setShortcutKeys', keys) as Promise<{
+      aiChatWindow: string;
     }>,
 });

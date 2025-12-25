@@ -101,6 +101,11 @@ interface SettingsState {
   // ============ 外部AI页面 ============
   externalAiUrl: string;
 
+  // ============ 快捷键 ============
+  shortcutKeys: {
+    aiChatWindow: string;
+  };
+
   // ============ 设置弹窗刷新触发器 ============
   /** 设置弹窗打开时递增，用于触发 Tab 组件刷新数据 */
   settingsModalOpenTrigger: number;
@@ -165,6 +170,10 @@ interface SettingsState {
   setExternalAiUrl: (url: string) => void;
   loadExternalAiUrl: () => void;
 
+  // 快捷键
+  setShortcutKeys: (keys: { aiChatWindow: string }) => Promise<void>;
+  loadShortcutKeys: () => void;
+
   // 设置弹窗
   /** 触发设置弹窗内 Tab 刷新数据 */
   triggerSettingsModalRefresh: () => void;
@@ -218,6 +227,11 @@ export const useSettingsStore = create<SettingsState>()(
 
       // 外部AI页面
       externalAiUrl: localStorage.getItem(EXTERNAL_AI_URL_KEY) || DEFAULT_EXTERNAL_AI_URL,
+
+      // 快捷键
+      shortcutKeys: {
+        aiChatWindow: 'CommandOrControl+Shift+Q', // 默认值
+      },
 
       // 设置弹窗刷新触发器
       settingsModalOpenTrigger: 0,
@@ -551,6 +565,32 @@ export const useSettingsStore = create<SettingsState>()(
       loadExternalAiUrl: () => {
         const saved = localStorage.getItem(EXTERNAL_AI_URL_KEY);
         set({ externalAiUrl: saved || DEFAULT_EXTERNAL_AI_URL });
+      },
+
+      // 快捷键
+      setShortcutKeys: async (keys) => {
+        try {
+          // 保存到主进程配置
+          await window.config?.setShortcutKeys?.(keys);
+          set({ shortcutKeys: keys });
+        } catch (error) {
+          console.error('Failed to save shortcut keys:', error);
+          throw error;
+        }
+      },
+
+      loadShortcutKeys: () => {
+        // 从主进程加载快捷键配置
+        window.config
+          ?.getShortcutKeys?.()
+          .then((keys) => {
+            if (keys) {
+              set({ shortcutKeys: keys });
+            }
+          })
+          .catch((error) => {
+            console.error('Failed to load shortcut keys:', error);
+          });
       },
 
       // 设置弹窗刷新

@@ -67,6 +67,10 @@ export interface AppConfig {
   schemaVersion: number;
   storage: StorageConfig;
   window: WindowConfig;
+  aiChatWindow?: { width: number; height: number; x: number; y: number };
+  shortcutKeys?: {
+    aiChatWindow: string;
+  };
   theme: ThemeConfig;
   ai: AIConfig;
   sync: SyncConfig;

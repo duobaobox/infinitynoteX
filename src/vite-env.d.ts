@@ -98,6 +98,11 @@ declare global {
       showOpenDialog(
         options: OpenDialogOptions,
       ): Promise<{ canceled: boolean; filePaths: string[] }>;
+
+      // AI 对话悬浮窗口
+      showAIChatWindow(): Promise<void>;
+      hideAIChatWindow(): Promise<void>;
+      toggleAIChatWindow(): Promise<void>;
     };
     storage: {
       // 路径管理
@@ -336,6 +341,11 @@ declare global {
       warn(...args: unknown[]): void;
       info(...args: unknown[]): void;
       debug(...args: unknown[]): void;
+    };
+    // 配置 API
+    config?: {
+      getShortcutKeys(): Promise<{ aiChatWindow: string }>;
+      setShortcutKeys(keys: { aiChatWindow: string }): Promise<{ aiChatWindow: string }>;
     };
   }
 }

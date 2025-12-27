@@ -9,7 +9,7 @@
   --app-bg-light: transparent;
   --app-bg-dark: transparent;
   --app-bg: transparent;
-  --panel-bg: rgba(255, 255, 255, 0.8);
+  --panel-bg: rgba(255, 255, 255, 0.99);
   --text-primary: rgba(0, 0, 0, 0.88);
   --text-secondary: rgba(0, 0, 0, 0.65);
   --border-color: rgba(0, 0, 0, 0.1);
@@ -32,7 +32,7 @@
   --app-bg-light: transparent;
   --app-bg-dark: transparent;
   --app-bg: transparent;
-  --panel-bg: rgba(35, 35, 35, 0.88);
+  --panel-bg: rgba(35, 35, 35, 0.99);
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.65);
   --border-color: rgba(255, 255, 255, 0.15);

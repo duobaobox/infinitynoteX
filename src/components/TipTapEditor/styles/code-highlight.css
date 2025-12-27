@@ -93,65 +93,65 @@
 }
 
 /* 暗色主题 */
-[data-theme='dark'] .code-block-lowlight {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight {
   background: #161b22;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme='dark'] .code-block-lowlight code {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight code {
   color: #c9d1d9;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-comment,
-[data-theme='dark'] .code-block-lowlight .hljs-quote {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-comment,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-quote {
   color: #8b949e;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-keyword,
-[data-theme='dark'] .code-block-lowlight .hljs-selector-tag,
-[data-theme='dark'] .code-block-lowlight .hljs-addition {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-keyword,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-selector-tag,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-addition {
   color: #ff7b72;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-number,
-[data-theme='dark'] .code-block-lowlight .hljs-string,
-[data-theme='dark'] .code-block-lowlight .hljs-meta .hljs-meta-string,
-[data-theme='dark'] .code-block-lowlight .hljs-literal,
-[data-theme='dark'] .code-block-lowlight .hljs-doctag,
-[data-theme='dark'] .code-block-lowlight .hljs-regexp {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-number,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-string,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-meta .hljs-meta-string,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-literal,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-doctag,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-regexp {
   color: #a5d6ff;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-title,
-[data-theme='dark'] .code-block-lowlight .hljs-section,
-[data-theme='dark'] .code-block-lowlight .hljs-name,
-[data-theme='dark'] .code-block-lowlight .hljs-selector-id,
-[data-theme='dark'] .code-block-lowlight .hljs-selector-class {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-title,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-section,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-name,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-selector-id,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-selector-class {
   color: #d2a8ff;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-attribute,
-[data-theme='dark'] .code-block-lowlight .hljs-attr,
-[data-theme='dark'] .code-block-lowlight .hljs-variable,
-[data-theme='dark'] .code-block-lowlight .hljs-template-variable,
-[data-theme='dark'] .code-block-lowlight .hljs-class .hljs-title,
-[data-theme='dark'] .code-block-lowlight .hljs-type {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-attribute,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-attr,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-variable,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-template-variable,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-class .hljs-title,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-type {
   color: #79c0ff;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-symbol,
-[data-theme='dark'] .code-block-lowlight .hljs-bullet,
-[data-theme='dark'] .code-block-lowlight .hljs-subst,
-[data-theme='dark'] .code-block-lowlight .hljs-meta,
-[data-theme='dark'] .code-block-lowlight .hljs-link {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-symbol,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-bullet,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-subst,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-meta,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-link {
   color: #ffa657;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-built_in,
-[data-theme='dark'] .code-block-lowlight .hljs-deletion {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-built_in,
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-deletion {
   color: #7ee787;
 }
 
-[data-theme='dark'] .code-block-lowlight .hljs-formula {
+[data-theme='dark'] .tiptap-editor pre.code-block-lowlight .hljs-formula {
   background: #161b22;
 }

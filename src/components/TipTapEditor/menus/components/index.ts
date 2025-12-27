@@ -9,4 +9,5 @@ export { getAlignMenuItems } from './AlignMenu';
 export { getTableMenuItems } from './TableMenu';
 export { getHighlightMenuItems } from './HighlightMenu';
 export { getTextColorMenuItems } from './TextColorMenu';
+export { getMoreFormattingMenuItems } from './MoreFormattingMenu';
 export { ImageUploader } from './ImageUploader';

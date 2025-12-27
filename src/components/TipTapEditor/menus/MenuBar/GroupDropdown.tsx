@@ -10,7 +10,7 @@ export interface GroupDropdownProps {
   label: string;
   icon?: string;
   active?: boolean;
-  items: { key: string; node: React.ReactNode; disabled?: boolean }[];
+  items: { key: string; node?: React.ReactNode; disabled?: boolean; type?: 'divider' }[];
 }
 
 /**
@@ -21,11 +21,16 @@ export const GroupDropdown: React.FC<GroupDropdownProps> = ({ label, icon, activ
     <Dropdown
       trigger={['click']}
       menu={{
-        items: items.map((it) => ({
-          key: it.key,
-          label: it.node,
-          disabled: it.disabled,
-        })),
+        items: items.map((it) => {
+          if (it.type === 'divider') {
+            return { type: 'divider' };
+          }
+          return {
+            key: it.key,
+            label: it.node,
+            disabled: it.disabled,
+          };
+        }),
       }}
     >
       <button

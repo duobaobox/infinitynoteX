@@ -19,6 +19,7 @@ import {
   getTableMenuItems,
   getHighlightMenuItems,
   getTextColorMenuItems,
+  getMoreFormattingMenuItems,
 } from '../components';
 
 export interface MenuBarProps {
@@ -101,20 +102,7 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
         title="行内代码"
         icon="ri-code-line"
       />
-      {/* 下标按钮 */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleSubscript().run()}
-        isActive={menuBarState.isSubscript}
-        title="下标"
-        icon="ri-subscript-2"
-      />
-      {/* 上标按钮 */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleSuperscript().run()}
-        isActive={menuBarState.isSuperscript}
-        title="上标"
-        icon="ri-superscript-2"
-      />
+
       {/* 高亮下拉菜单 */}
       <GroupDropdown
         label="高亮"
@@ -168,6 +156,14 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
         icon={tableState.icon}
         active={tableState.active}
         items={tableItems}
+      />
+
+      {/* 更多格式下拉菜单 - 用户指定放在表格菜单旁 */}
+      <GroupDropdown
+        label="更多"
+        icon="ri-more-line"
+        active={menuBarState.isSubscript || menuBarState.isSuperscript}
+        items={getMoreFormattingMenuItems(editor)}
       />
 
       <ToolbarDivider />

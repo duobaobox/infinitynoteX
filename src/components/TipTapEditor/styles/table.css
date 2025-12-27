@@ -171,9 +171,14 @@ th:hover::after {
 .tableWrapper {
   position: relative;
   margin: 1em 0;
+  /* 给手柄留出空间 */
+  padding-left: 20px;
+  padding-top: 20px;
+  margin-left: -20px;
+  margin-top: -20px;
   /* 保留横向滚动，手动拖宽列后可用 */
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
 }
 
 /* 隐藏不必要的滚动条轨道（仅在真正需要滚动时显示） */

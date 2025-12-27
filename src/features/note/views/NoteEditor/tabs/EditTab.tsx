@@ -14,12 +14,15 @@ import { FileTextOutlined } from '@ant-design/icons';
 import type { TipTapJSONContent } from '../../../../../services/types';
 import './EmptyState.css';
 
-// 懒加载编辑器（优化：减少初始 bundle 体积）
+// ========== 自定义 TipTap 编辑器 ==========
 const TipTapEditor = lazy(() =>
   import('../../../../../components/TipTapEditor').then((module) => ({
     default: module.TipTapEditor,
   })),
 );
+
+// 固定的编辑器 key，避免切换便签时销毁重建
+const EDITOR_KEY = 'tiptap-editor-instance';
 
 /**
  * 空状态组件 - 当没有便签选中时显示
@@ -43,9 +46,6 @@ interface EditTabProps {
   isLoading?: boolean;
 }
 
-// 固定的编辑器 key，避免每次切换便签都销毁重建编辑器
-const EDITOR_KEY = 'tiptap-editor-instance';
-
 export const EditTab: React.FC<EditTabProps> = ({
   noteId,
   noteTitle,
@@ -65,19 +65,23 @@ export const EditTab: React.FC<EditTabProps> = ({
   if (!editorContent) {
     return (
       <div className="editor-loading-container">
-        <Spin tip="编辑器加载中..." />
+        <Spin tip="编辑器加载中...">
+          <div style={{ height: 100 }} />
+        </Spin>
       </div>
     );
   }
 
   return (
-    <div className="edit-tab-container">
+    <div className="edit-tab-container" style={{ height: '100%', overflow: 'hidden' }}>
       {/* 加载过渡遮罩 */}
       {isLoading && (
         <div className="editor-loading-overlay">
           <Spin size="small" />
         </div>
       )}
+
+      {/* TipTap 编辑器 */}
       <Suspense
         fallback={
           <div style={{ padding: '16px', textAlign: 'center' }}>

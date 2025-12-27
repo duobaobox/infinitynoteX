@@ -19,19 +19,25 @@ interface MenuItem {
   danger?: boolean;
 }
 
-const HANDLE_OFFSET = 8;
-
 const getTableWrapper = (table: HTMLElement) =>
   table.closest('.tableWrapper') as HTMLElement | null;
 
 /**
- * 创建手柄元素
+ * 创建手柄元素 - 官方 Grip 风格（三个点）
  */
 function createHandleElement(type: 'row' | 'column', index: number): HTMLDivElement {
   const handle = document.createElement('div');
   handle.className = `table-handle table-handle-${type}`;
   handle.setAttribute('data-handle-type', type);
   handle.setAttribute('data-handle-index', String(index));
+
+  // 添加三个点作为 grip 手柄样式
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'table-handle-dot';
+    handle.appendChild(dot);
+  }
+
   return handle;
 }
 
@@ -282,10 +288,11 @@ export const TableHandles = Extension.create({
             const row = rows[i];
             const rowRect = row.getBoundingClientRect();
             const element = handle as HTMLElement;
-            const top = rowRect.top - wrapperRect.top + wrapper.scrollTop;
-            const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - HANDLE_OFFSET;
+            // 贴在表格左边线上，居中定位到行的中间
+            const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - 5;
+            const top =
+              rowRect.top - wrapperRect.top + wrapper.scrollTop + (rowRect.height - 22) / 2;
             element.style.transform = `translate(${left}px, ${top}px)`;
-            element.style.height = `${rowRect.height}px`;
           }
         });
 
@@ -297,10 +304,11 @@ export const TableHandles = Extension.create({
               const cell = firstRow.cells[i];
               const cellRect = cell.getBoundingClientRect();
               const element = handle as HTMLElement;
-              const left = cellRect.left - wrapperRect.left + wrapper.scrollLeft;
-              const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - HANDLE_OFFSET;
+              // 贴在每列顶部边线上，居中定位到列的中间
+              const left =
+                cellRect.left - wrapperRect.left + wrapper.scrollLeft + (cellRect.width - 22) / 2;
+              const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - 5;
               element.style.transform = `translate(${left}px, ${top}px)`;
-              element.style.width = `${cellRect.width}px`;
             }
           });
         }
@@ -354,10 +362,10 @@ export const TableHandles = Extension.create({
         const handle = createHandleElement('row', i);
         handle.style.position = 'absolute';
         handle.style.pointerEvents = 'auto';
-        const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - HANDLE_OFFSET;
-        const top = rowRect.top - wrapperRect.top + wrapper.scrollTop;
+        // 贴在表格左边线上，居中定位到行的中间
+        const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - 5;
+        const top = rowRect.top - wrapperRect.top + wrapper.scrollTop + (rowRect.height - 22) / 2;
         handle.style.transform = `translate(${left}px, ${top}px)`;
-        handle.style.height = `${rowRect.height}px`;
 
         handle.addEventListener('click', (e) => {
           e.preventDefault();
@@ -378,10 +386,11 @@ export const TableHandles = Extension.create({
           const handle = createHandleElement('column', i);
           handle.style.position = 'absolute';
           handle.style.pointerEvents = 'auto';
-          const left = cellRect.left - wrapperRect.left + wrapper.scrollLeft;
-          const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - HANDLE_OFFSET;
+          // 贴在每列顶部边线上，居中定位到列的中间
+          const left =
+            cellRect.left - wrapperRect.left + wrapper.scrollLeft + (cellRect.width - 22) / 2;
+          const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - 5;
           handle.style.transform = `translate(${left}px, ${top}px)`;
-          handle.style.width = `${cellRect.width}px`;
 
           handle.addEventListener('click', (e) => {
             e.preventDefault();

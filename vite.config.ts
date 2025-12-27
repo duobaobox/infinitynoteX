@@ -12,6 +12,9 @@ export default defineConfig({
   resolve: {
     // 确保使用正确的 React 导出
     dedupe: ['react', 'react-dom'],
+    alias: {
+      '@': path.resolve(__dirname, 'src/tiptap'),
+    },
   },
   plugins: [
     react(),

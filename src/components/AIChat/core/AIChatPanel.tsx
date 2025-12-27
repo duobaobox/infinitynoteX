@@ -16,7 +16,6 @@ import {
   Button,
   Tooltip,
   Space,
-  Divider,
   Input,
   Dropdown,
   message,
@@ -28,7 +27,6 @@ import type { GetProp, GetRef, MenuProps } from 'antd';
 import {
   ReloadOutlined,
   DeleteOutlined,
-  SettingOutlined,
   RobotOutlined,
   UserOutlined,
   DownOutlined,
@@ -560,17 +558,6 @@ export const AIChatPanel = ({
                     icon={<DeleteOutlined />}
                     onClick={clearChat}
                     disabled={chatItems.length === 0}
-                  />
-                </Tooltip>
-                <Divider type="vertical" style={{ margin: '0', height: 'auto' }} />
-                <Tooltip title="打开设置">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<SettingOutlined />}
-                    onClick={() => {
-                      // TODO: 触发打开设置页面
-                    }}
                   />
                 </Tooltip>
               </Space>

@@ -1,163 +1,198 @@
 /**
  * ShortcutTab - 快捷键设置 Tab 组件
- * 允许用户自定义全局快捷键
+ * 参考截图布局：分组标题 + 左右对齐的快捷键行
  */
 
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Space, Typography, Divider, message, Tag } from 'antd';
-import { ReloadOutlined, KeyOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { message } from 'antd';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import './styles.css';
-
-const { Text, Paragraph } = Typography;
 
 // 默认快捷键
 const DEFAULT_SHORTCUT = 'CommandOrControl+Shift+Q';
 
+// 检测是否为 Mac 平台
+const isMac =
+  navigator.platform.toUpperCase().indexOf('MAC') >= 0 ||
+  navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+
+interface ShortcutRecorderProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange }) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 解析快捷键字符串为显示用的按键数组（区分平台）
+  const displayValue = value || DEFAULT_SHORTCUT;
+  const displayKeys = displayValue.split('+').map((k) => {
+    if (k === 'CommandOrControl') return isMac ? '⌘' : 'Ctrl';
+    if (k === 'Shift') return isMac ? '⇧' : 'Shift';
+    if (k === 'Alt') return isMac ? '⌥' : 'Alt';
+    if (k === 'Ctrl' || k === 'Control') return isMac ? '⌃' : 'Ctrl';
+    return k.toUpperCase();
+  });
+
+  const getElectronAccelerator = (e: React.KeyboardEvent) => {
+    const keys = [];
+    if (e.metaKey || e.ctrlKey) keys.push('CommandOrControl');
+    if (e.altKey) keys.push('Alt');
+    if (e.shiftKey) keys.push('Shift');
+
+    let key = '';
+    const code = e.code;
+
+    if (code.startsWith('Key')) {
+      key = code.slice(3);
+    } else if (code.startsWith('Digit')) {
+      key = code.slice(5);
+    } else if (code.startsWith('Numpad')) {
+      key = code.slice(6);
+    } else if (code === 'Space') {
+      key = 'Space';
+    } else if (code.startsWith('Arrow')) {
+      key = code.slice(5);
+    } else {
+      const codeMap: Record<string, string> = {
+        Escape: 'Esc',
+        Enter: 'Enter',
+        Backspace: 'Backspace',
+        Delete: 'Delete',
+        Tab: 'Tab',
+        Home: 'Home',
+        End: 'End',
+        PageUp: 'PageUp',
+        PageDown: 'PageDown',
+        Minus: '-',
+        Equal: '=',
+        BracketLeft: '[',
+        BracketRight: ']',
+        Backslash: '\\',
+        Semicolon: ';',
+        Quote: "'",
+        Comma: ',',
+        Period: '.',
+        Slash: '/',
+        Backquote: '`',
+      };
+      key = codeMap[code] || '';
+
+      // 如果没有映射，检查是否为单个 ASCII 字符（排除修饰键）
+      if (!key && e.key.length === 1) {
+        const charCode = e.key.charCodeAt(0);
+        const isAscii = charCode >= 32 && charCode <= 126; // 可打印 ASCII 范围
+        const modifiers = ['META', 'CONTROL', 'ALT', 'SHIFT'];
+        if (isAscii && !modifiers.includes(e.key.toUpperCase())) {
+          key = e.key.toUpperCase();
+        }
+      }
+    }
+
+    if (!key) {
+      return keys.length > 0 ? keys.join('+') : '';
+    }
+
+    keys.push(key);
+    return keys.join('+');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isRecording) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.key === 'Escape') {
+      setIsRecording(false);
+      return;
+    }
+
+    const accelerator = getElectronAccelerator(e);
+    if (accelerator) {
+      const parts = accelerator.split('+');
+      const lastPart = parts[parts.length - 1];
+      const isModifierOnly = ['CommandOrControl', 'Alt', 'Shift', 'Ctrl', 'Meta'].includes(
+        lastPart,
+      );
+
+      if (!isModifierOnly) {
+        onChange(accelerator);
+        setIsRecording(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsRecording(false);
+      }
+    };
+
+    if (isRecording) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isRecording]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`shortcut-recorder ${isRecording ? 'recording' : ''}`}
+      onClick={() => setIsRecording(true)}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      {isRecording ? (
+        <span className="recording-text">请按下快捷键...</span>
+      ) : (
+        <div className="keys-display">
+          {displayKeys.map((k, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span className="key-separator">+</span>}
+              <span className="key-cap">{k}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ShortcutTab: React.FC = () => {
   const { shortcutKeys, setShortcutKeys, loadShortcutKeys } = useSettingsStore();
-  const [form] = Form.useForm();
-  const [saving, setSaving] = useState(false);
 
-  // 加载快捷键配置
   useEffect(() => {
     loadShortcutKeys();
   }, [loadShortcutKeys]);
 
-  // 同步 store 到表单
-  useEffect(() => {
-    form.setFieldsValue({
-      aiChatWindow: shortcutKeys.aiChatWindow || DEFAULT_SHORTCUT,
-    });
-  }, [shortcutKeys, form]);
-
-  // 保存快捷键
-  const handleSave = async () => {
+  const handleShortcutChange = async (newShortcut: string) => {
     try {
-      setSaving(true);
-      const values = await form.validateFields();
-
-      // 验证快捷键格式
-      const shortcut = values.aiChatWindow.trim();
-      if (!isValidShortcut(shortcut)) {
-        message.error('快捷键格式不正确，请参考示例格式');
-        return;
-      }
-
-      // 保存到 store 和主进程
-      await setShortcutKeys({ aiChatWindow: shortcut });
-
-      message.success('快捷键已保存，将在下次启动应用时生效');
+      await setShortcutKeys({ aiChatWindow: newShortcut });
+      message.success('快捷键已更新，重启应用后生效');
     } catch (error) {
       console.error('Failed to save shortcut:', error);
-      message.error('保存快捷键失败');
-    } finally {
-      setSaving(false);
+      message.error('保存失败');
     }
-  };
-
-  // 恢复默认
-  const handleReset = () => {
-    form.setFieldsValue({ aiChatWindow: DEFAULT_SHORTCUT });
-  };
-
-  // 简单的快捷键格式验证
-  const isValidShortcut = (shortcut: string): boolean => {
-    const validPattern =
-      /^(CommandOrControl|Ctrl|Command|Alt|Shift|Meta)(\+(CommandOrControl|Ctrl|Command|Alt|Shift|Meta|[A-Z0-9]))+((\+[A-Z0-9])?)?$/i;
-    return validPattern.test(shortcut);
   };
 
   return (
     <div className="settings-panel shortcut-tab">
-      <h3>快捷键设置</h3>
+      {/* 分组标题 */}
+      <h4 className="shortcut-group-title">全局</h4>
 
-      <Paragraph type="secondary">
-        自定义全局快捷键，快速访问应用功能。修改后需要重启应用才能生效。
-      </Paragraph>
-
-      <Form form={form} layout="vertical" onFinish={handleSave}>
-        <Form.Item
-          label="AI 助手快捷键"
-          name="aiChatWindow"
-          rules={[
-            { required: true, message: '请输入快捷键' },
-            {
-              validator: (_, value) => {
-                if (value && !isValidShortcut(value)) {
-                  return Promise.reject('快捷键格式不正确');
-                }
-                return Promise.resolve();
-              },
-            },
-          ]}
-          extra={<Text type="secondary">用于呼出/隐藏 AI 对话窗口</Text>}
-        >
-          <Space.Compact style={{ width: '100%', maxWidth: 400 }}>
-            <Input prefix={<KeyOutlined />} placeholder="例如: CommandOrControl+Shift+Q" />
-          </Space.Compact>
-        </Form.Item>
-
-        <Space>
-          <Button type="primary" htmlType="submit" loading={saving}>
-            保存设置
-          </Button>
-          <Button icon={<ReloadOutlined />} onClick={handleReset}>
-            恢复默认
-          </Button>
-        </Space>
-      </Form>
-
-      <Divider />
-
-      <div className="shortcut-help">
-        <h4>快捷键格式说明</h4>
-        <Paragraph type="secondary">可用的修饰键：</Paragraph>
-        <div className="shortcut-keys">
-          <Tag>CommandOrControl</Tag>
-          <span>Mac 上为 Command（⌘），Windows/Linux 上为 Ctrl</span>
-        </div>
-        <div className="shortcut-keys">
-          <Tag>Ctrl</Tag>
-          <span>Ctrl 键</span>
-        </div>
-        <div className="shortcut-keys">
-          <Tag>Alt</Tag>
-          <span>Alt 键（Mac 上为 Option）</span>
-        </div>
-        <div className="shortcut-keys">
-          <Tag>Shift</Tag>
-          <span>Shift 键</span>
-        </div>
-
-        <Divider style={{ margin: '16px 0' }} />
-
-        <Paragraph type="secondary">示例格式：</Paragraph>
-        <div className="shortcut-examples">
-          <div className="shortcut-example-item">
-            <Tag color="blue">CommandOrControl+Shift+Q</Tag>
-            <Text type="secondary">推荐（跨平台）</Text>
-          </div>
-          <div className="shortcut-example-item">
-            <Tag color="blue">Alt+Space</Tag>
-            <Text type="secondary">Alt + 空格</Text>
-          </div>
-          <div className="shortcut-example-item">
-            <Tag color="blue">Ctrl+Alt+A</Tag>
-            <Text type="secondary">Ctrl + Alt + A</Text>
-          </div>
-        </div>
-
-        <Divider style={{ margin: '16px 0' }} />
-
-        <Paragraph type="secondary">
-          <Text strong>注意事项：</Text>
-        </Paragraph>
-        <ul className="shortcut-notes">
-          <li>避免使用系统保留的快捷键（如 Ctrl+C、Ctrl+V 等）</li>
-          <li>Mac 上避免使用 Command+Q（系统退出快捷键）</li>
-          <li>建议使用多个修饰键组合，避免冲突</li>
-        </ul>
+      {/* 快捷键行 */}
+      <div className="shortcut-row">
+        <span className="shortcut-label">唤起 AI 助手侧边栏</span>
+        <ShortcutRecorder
+          value={shortcutKeys.aiChatWindow || DEFAULT_SHORTCUT}
+          onChange={handleShortcutChange}
+        />
       </div>
     </div>
   );

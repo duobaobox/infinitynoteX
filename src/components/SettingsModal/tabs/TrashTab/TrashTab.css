@@ -14,6 +14,9 @@
 
 .trash-tab {
   padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ============ 头部 ============ */
@@ -23,6 +26,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .trash-tab .trash-header-left {
@@ -53,6 +57,7 @@
   margin-bottom: 16px;
   background: var(--ant-color-fill-quaternary);
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .trash-tab .trash-hint-left {
@@ -69,13 +74,23 @@
 
 /* ============ 列表 ============ */
 
+.trash-tab .ant-spin-nested-loading,
+.trash-tab .ant-spin-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .trash-tab .trash-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 380px;
+  flex: 1;
   overflow-y: auto;
   padding-right: 4px;
+  min-height: 0;
 }
 
 /* 滚动条美化 */

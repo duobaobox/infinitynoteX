@@ -25,10 +25,10 @@ const menuItems = [
   { key: 'appearance', label: '外观' },
   { key: 'ai', label: 'AI 管理' },
   { key: 'knowledge', label: '知识库' },
-  { key: 'shortcut', label: '快捷键' },
   { key: 'data', label: '数据管理' },
   { key: 'sync', label: '数据同步' },
   { key: 'trash', label: '回收站' },
+  { key: 'shortcut', label: '快捷键' },
   { key: 'about', label: '关于' },
 ];
 

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect } from 'react';
-import { MinusOutlined, CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { AIChatPanel } from '../../components/AIChat/core/AIChatPanel';
 import { useSettingsStore } from '../../store/settingsStore';
+import { subscribeToConfigChanges, applyDataTheme, loadThemeFromConfig } from '../../theme/theme';
 import './styles.css';
 
 /**
@@ -10,6 +11,20 @@ import './styles.css';
  */
 export const AIChatWindow: React.FC = React.memo(() => {
   const { loadKnowledgeBaseConfig } = useSettingsStore();
+
+  // 初始化主题同步
+  useEffect(() => {
+    // 从主进程加载主题配置
+    loadThemeFromConfig().then(() => {
+      // 应用主题
+      applyDataTheme();
+    });
+
+    // 订阅配置变化（跨窗口同步）
+    const unsubscribe = subscribeToConfigChanges();
+
+    return unsubscribe;
+  }, []);
 
   // 窗口可见时重新加载配置，确保状态同步
   useEffect(() => {
@@ -28,10 +43,6 @@ export const AIChatWindow: React.FC = React.memo(() => {
     };
   }, [loadKnowledgeBaseConfig]);
 
-  const handleMinimize = useCallback(() => {
-    window.electronAPI?.hideAIChatWindow?.();
-  }, []);
-
   const handleClose = useCallback(() => {
     window.electronAPI?.hideAIChatWindow?.();
   }, []);
@@ -44,20 +55,12 @@ export const AIChatWindow: React.FC = React.memo(() => {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <div className="ai-chat-window-title">
-          <span className="ai-chat-window-icon">🤖</span>
           <span>AI 助手</span>
         </div>
         <div
           className="ai-chat-window-controls"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <button
-            className="ai-chat-window-control-btn"
-            onClick={handleMinimize}
-            title="隐藏窗口 (Ctrl+Shift+Q)"
-          >
-            <MinusOutlined />
-          </button>
           <button
             className="ai-chat-window-control-btn ai-chat-window-close-btn"
             onClick={handleClose}

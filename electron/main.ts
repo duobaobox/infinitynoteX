@@ -296,21 +296,29 @@ function createAIChatWindow() {
       aiChatWindow?.show();
     });
 
-    // 窗口移动或调整大小时保存状态
+    // 窗口移动或调整大小时保存状态（使用防抖避免频繁写入）
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
     const saveAIChatWindowState = () => {
-      if (aiChatWindow && !aiChatWindow.isDestroyed()) {
-        const bounds = aiChatWindow.getBounds();
-        const config = readAppConfig();
-        writeAppConfig({
-          ...config,
-          aiChatWindow: {
-            width: bounds.width,
-            height: bounds.height,
-            x: bounds.x,
-            y: bounds.y,
-          },
-        });
+      // 清除之前的定时器
+      if (saveTimer) {
+        clearTimeout(saveTimer);
       }
+      // 500ms 后保存，如果期间有新的移动/调整会重新计时
+      saveTimer = setTimeout(() => {
+        if (aiChatWindow && !aiChatWindow.isDestroyed()) {
+          const bounds = aiChatWindow.getBounds();
+          const config = readAppConfig();
+          writeAppConfig({
+            ...config,
+            aiChatWindow: {
+              width: bounds.width,
+              height: bounds.height,
+              x: bounds.x,
+              y: bounds.y,
+            },
+          });
+        }
+      }, 500);
     };
 
     aiChatWindow.on('moved', saveAIChatWindowState);

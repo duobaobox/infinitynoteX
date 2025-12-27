@@ -163,9 +163,24 @@ th:hover::after {
 }
 
 /* ============ 表格选择控制 ============ */
-.ProseMirror-selectednode {
+/* 排除图片节点（.node-image 和 .ProseMirror-selectednode 在同一个外层 span 上） */
+.ProseMirror-selectednode:not(.node-image) {
   outline: 2px solid #40a9ff;
   outline-offset: 2px;
+}
+
+/* 图片选中样式 - 1px 主题色边框 */
+.node-image.ProseMirror-selectednode {
+  outline: none !important;
+}
+
+/* 边框直接应用在图片上，确保紧贴图片边缘 */
+.node-image.ProseMirror-selectednode .resizable-image-container {
+  overflow: visible; /* 允许边框溢出显示 */
+}
+
+.node-image.ProseMirror-selectednode .resizable-image-container img {
+  box-shadow: 0 0 0 2px var(--theme-color, #1890ff);
 }
 
 .tableWrapper {
@@ -293,7 +308,7 @@ th p {
     background-color: #177ddc;
   }
 
-  .ProseMirror-selectednode {
+  .ProseMirror-selectednode:not(.node-image) {
     outline-color: #177ddc;
   }
 }
@@ -340,7 +355,7 @@ th p {
   background-color: var(--theme-color, #1890ff);
 }
 
-[data-theme='dark'] .ProseMirror-selectednode {
+[data-theme='dark'] .ProseMirror-selectednode:not(.node-image) {
   outline-color: var(--theme-color, #1890ff);
 }
 

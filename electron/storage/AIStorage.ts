@@ -78,9 +78,45 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
 
   /**
    * 保存 AI 对话消息
+   * 如果对话不存在，会自动创建（支持便签、悬浮窗等场景）
    */
   async saveMessages(id: string, messages: AIMessage[]): Promise<AIConversation> {
-    const conversation = await this.get(id);
+    let conversation: AIConversation;
+
+    try {
+      conversation = await this.get(id);
+    } catch (error) {
+      // 对话不存在，自动创建
+      // BaseStorage.get 抛出的是普通 Error，消息格式为 "AI 对话 not found: xxx"
+      const isNotFound =
+        (error instanceof StorageError && error.code === StorageErrorCode.E_NOT_FOUND) ||
+        (error instanceof Error && error.message.includes('not found'));
+
+      if (isNotFound) {
+        const now = Date.now();
+        // 从消息中提取第一条用户消息作为标题
+        const firstUserMessage = messages.find((m) => m.role === 'user');
+        const title = firstUserMessage
+          ? firstUserMessage.content.slice(0, 30) +
+            (firstUserMessage.content.length > 30 ? '...' : '')
+          : generateConversationTitle();
+
+        conversation = {
+          id, // 使用传入的 id（便签 id 或 global-ai-chat）
+          title,
+          excerpt: '开始对话',
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        // 写入文件并添加到索引
+        await this.writeFile(conversation);
+        this.addToIndex(conversation);
+      } else {
+        throw error;
+      }
+    }
 
     conversation.messages = messages.map((message, index) => ({
       ...message,

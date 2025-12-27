@@ -35,7 +35,7 @@ export const BubbleMenus: React.FC<BubbleMenusProps> = ({ editor }) => {
       <TextBubbleMenu editor={editor} />
       <ImageBubbleMenu editor={editor} />
       <LinkBubbleMenu editor={editor} />
-      <CodeBlockBubbleMenu editor={editor} />
+      {/* CodeBlockBubbleMenu 已移除，改为使用 NodeView 内置工具栏 */}
     </>
   );
 };

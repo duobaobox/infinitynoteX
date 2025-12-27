@@ -7,7 +7,9 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { ReactNodeViewRenderer } from '@tiptap/react';
 import { common, createLowlight } from 'lowlight';
+import { CodeBlockWithToolbar } from '../components/CodeBlockWithToolbar';
 
 // 创建 lowlight 实例，使用常用语言包
 const lowlight = createLowlight(common);
@@ -15,6 +17,16 @@ const lowlight = createLowlight(common);
 export interface EditorConfig {
   placeholder?: string;
 }
+
+/**
+ * 自定义 CodeBlockLowlight 扩展
+ * 使用 React NodeView 渲染，实现固定右上角工具栏
+ */
+const CustomCodeBlock = CodeBlockLowlight.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeBlockWithToolbar);
+  },
+});
 
 /**
  * 获取基础扩展
@@ -28,13 +40,13 @@ export interface EditorConfig {
  * - ListKeymap, TrailingNode (v3 新增)
  *
  * 注意:
- * - 禁用了 StarterKit 自带的 CodeBlock，改用 CodeBlockLowlight
+ * - 禁用了 StarterKit 自带的 CodeBlock，改用自定义 CodeBlockLowlight
  * - Link 和 Underline 不在 StarterKit 中，需单独添加
  */
 export const getBasicExtensions = () => {
   return [
     // StarterKit 包含了大部分基础扩展
-    // 禁用默认的 CodeBlock，使用 CodeBlockLowlight 替代
+    // 禁用默认的 CodeBlock，使用 CustomCodeBlock 替代
     StarterKit.configure({
       codeBlock: false,
       // 拖拽光标指示扩展配置
@@ -60,8 +72,8 @@ export const getBasicExtensions = () => {
     // Underline 扩展（不在 StarterKit 中，需单独添加）
     Underline,
 
-    // 代码块语法高亮扩展
-    CodeBlockLowlight.configure({
+    // 代码块语法高亮扩展（带自定义 NodeView）
+    CustomCodeBlock.configure({
       lowlight,
       HTMLAttributes: {
         class: 'code-block-lowlight',

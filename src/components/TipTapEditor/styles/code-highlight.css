@@ -3,16 +3,17 @@
  * 基于 highlight.js 的 GitHub 主题
  */
 
-/* 代码块容器 - 使用更高优先级的选择器 */
+/* 代码块容器 - 浅灰色带边框 */
 .tiptap-editor pre.code-block-lowlight {
   position: relative;
-  margin: 1em 0;
-  padding: 0.75rem 1rem;
-  background: var(--code-bg, #f6f8fa);
+  margin: 0.75em 0;
+  padding: 16px;
+  background: #f6f8fa;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 6px;
-  font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   overflow-x: auto;
   tab-size: 2;
 }
@@ -20,7 +21,8 @@
 .tiptap-editor pre.code-block-lowlight code {
   display: block;
   padding: 0;
-  background: transparent;
+  background: transparent !important;
+  border: none !important;
   color: var(--text-primary, #24292e);
   font-family: inherit;
   white-space: pre;
@@ -92,7 +94,8 @@
 
 /* 暗色主题 */
 [data-theme='dark'] .code-block-lowlight {
-  background: var(--code-bg, #161b22);
+  background: #161b22;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .code-block-lowlight code {

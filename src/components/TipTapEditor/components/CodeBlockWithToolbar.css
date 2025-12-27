@@ -1,0 +1,181 @@
+/**
+ * 代码块工具栏样式
+ * Notion/GitHub 风格 - 工具栏固定在右上角
+ */
+
+/* ============ 代码块包装器 ============ */
+.code-block-wrapper {
+  position: relative;
+  margin: 0.75em 0;
+}
+
+/* ============ 右上角工具栏 ============ */
+.code-block-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+/* 悬停时显示工具栏 */
+.code-block-wrapper:hover .code-block-toolbar {
+  opacity: 1;
+}
+
+/* ============ 语言选择下拉菜单 ============ */
+.language-dropdown {
+  position: relative;
+}
+
+.language-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #57606a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.language-trigger:hover {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #24292f;
+}
+
+.language-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 120px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+
+.language-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #24292f;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.language-option:hover {
+  background: #f3f4f6;
+}
+
+.language-option.active {
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+}
+
+/* ============ 工具栏按钮 ============ */
+.code-block-toolbar .toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: #57606a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.code-block-toolbar .toolbar-btn:hover {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #24292f;
+}
+
+.code-block-toolbar .toolbar-btn.copied {
+  background: #dafbe1;
+  border-color: #34d058;
+  color: #22863a;
+}
+
+.code-block-toolbar .toolbar-btn.danger:hover {
+  background: #ffeef0;
+  border-color: #f85149;
+  color: #cf222e;
+}
+
+/* ============ 暗色模式 ============ */
+[data-theme='dark'] .language-trigger {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #8b949e;
+}
+
+[data-theme='dark'] .language-trigger:hover {
+  background: #21262d;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e6edf3;
+}
+
+[data-theme='dark'] .language-dropdown-menu {
+  background: #161b22;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .language-option {
+  color: #e6edf3;
+}
+
+[data-theme='dark'] .language-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .language-option.active {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+[data-theme='dark'] .code-block-toolbar .toolbar-btn {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #8b949e;
+}
+
+[data-theme='dark'] .code-block-toolbar .toolbar-btn:hover {
+  background: #21262d;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e6edf3;
+}
+
+[data-theme='dark'] .code-block-toolbar .toolbar-btn.copied {
+  background: rgba(46, 160, 67, 0.15);
+  border-color: #3fb950;
+  color: #3fb950;
+}
+
+[data-theme='dark'] .code-block-toolbar .toolbar-btn.danger:hover {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: #f85149;
+  color: #f85149;
+}

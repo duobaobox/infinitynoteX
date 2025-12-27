@@ -183,31 +183,34 @@
   margin: 0.25em 0;
 }
 
-/* 行内代码 */
-.tiptap-editor code {
-  background: var(--code-bg);
+/* 行内代码 - 浅灰色带边框（排除代码块内的 code） */
+.tiptap-editor code:not(pre code) {
+  background: #f6f8fa;
   padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'Courier New', Consolas, monospace;
-  font-size: 0.9em;
-  color: #d63384;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  color: #24292f;
 }
 
 /* 代码块 - 使用 code-block-lowlight 类的样式在 code-highlight.css 中定义 */
 /* 这里只处理没有 lowlight 类的代码块(兜底) */
 .tiptap-editor pre:not(.code-block-lowlight) {
-  background: var(--code-bg);
-  padding: 12px;
-  border-radius: 4px;
+  background: #f6f8fa;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  border-radius: 6px;
   overflow-x: auto;
-  margin: 0.5em 0;
+  margin: 0.75em 0;
 }
 
 .tiptap-editor pre:not(.code-block-lowlight) code {
-  background: transparent;
+  background: transparent !important;
+  border: none !important;
   padding: 0;
-  font-size: 0.85em;
-  color: inherit;
+  font-size: 0.875em;
+  color: #24292f;
   white-space: pre;
   display: block;
 }
@@ -620,4 +623,23 @@ ul[data-type='taskList'] > li:nth-child(n + 20) {
   to {
     opacity: 1;
   }
+}
+
+/* ==================== 暗色模式代码样式 ==================== */
+
+[data-theme='dark'] .tiptap-editor code:not(pre code) {
+  background: #21262d;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e6edf3;
+}
+
+[data-theme='dark'] .tiptap-editor pre:not(.code-block-lowlight) {
+  background: #161b22;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .tiptap-editor pre:not(.code-block-lowlight) code {
+  background: transparent !important;
+  border: none !important;
+  color: #e6edf3;
 }

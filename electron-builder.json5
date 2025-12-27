@@ -2,18 +2,12 @@
 {
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
   appId: 'com.duobaobox.infinitynotex',
-  productName: 'InfinityNoteX',
-
-  // ========== ASAR 配置 ==========
   asar: true,
-  // 原生模块需要解包，不能放在 asar 中
   asarUnpack: ['node_modules/better-sqlite3/**', 'node_modules/sqlite-vec/**'],
-
-  // ========== 原生模块构建配置 ==========
+  // 原生模块构建配置
   npmRebuild: true,
   nodeGypRebuild: false,
-
-  // ========== 发布配置 ==========
+  productName: 'InfinityNoteX',
   publish: [
     {
       provider: 'github',
@@ -22,65 +16,32 @@
       releaseType: 'draft',
     },
   ],
-
-  // ========== 目录配置 ==========
   directories: {
     output: 'release/${version}',
-    // 指定构建资源目录
-    buildResources: 'build',
   },
-
-  // ========== 打包文件配置 ==========
   files: [
-    // 包含打包后的前端和 Electron 代码
     'dist',
     'dist-electron',
-    // 原生模块及其依赖
+    // 确保原生模块被包含（asarUnpack 会从这里解包）
     'node_modules/better-sqlite3/**/*',
     'node_modules/sqlite-vec/**/*',
+    // better-sqlite3 的依赖
     'node_modules/bindings/**/*',
     'node_modules/file-uri-to-path/**/*',
-    // 排除不需要的文件以减小包体积
-    '!**/*.{md,markdown,txt,ts,map}',
-    '!**/test/**',
-    '!**/tests/**',
-    '!**/docs/**',
-    '!**/example/**',
-    '!**/examples/**',
-    '!**/.git/**',
-    '!**/.*',
-    // 排除开发时的分析文件
-    '!dist/stats.html',
+    // 排除不需要的文件
+    '!node_modules/**/*.{md,markdown,txt}',
+    '!node_modules/**/test/**',
+    '!node_modules/**/tests/**',
+    '!node_modules/**/docs/**',
   ],
-
-  // ========== 压缩配置 ==========
-  compression: 'maximum', // 使用最大压缩，减小包体积
-
-  // ========== macOS 配置 ==========
   mac: {
     target: [
       { target: 'dmg', arch: ['x64', 'arm64'] },
       { target: 'zip', arch: ['x64', 'arm64'] },
     ],
     artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
-    category: 'public.app-category.productivity',
     identity: null, // 禁用代码签名（没有 Apple Developer 证书时必须）
-    // DMG 配置
-    darkModeSupport: true,
   },
-  dmg: {
-    // DMG 安装窗口配置
-    contents: [
-      { x: 130, y: 220 },
-      { x: 410, y: 220, type: 'link', path: '/Applications' },
-    ],
-    window: {
-      width: 540,
-      height: 380,
-    },
-  },
-
-  // ========== Windows 配置 ==========
   win: {
     target: [
       { target: 'nsis', arch: ['x64'] },
@@ -94,38 +55,9 @@
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     deleteAppDataOnUninstall: false,
-    // 安装包语言
-    language: '2052', // 简体中文
-    // 安装包图标
-    installerIcon: 'build/icon.ico',
-    uninstallerIcon: 'build/icon.ico',
-    // 快捷方式
-    createDesktopShortcut: true,
-    createStartMenuShortcut: true,
-    shortcutName: 'InfinityNoteX',
   },
-  portable: {
-    artifactName: '${productName}-Windows-${version}-Portable.${ext}',
-  },
-
-  // ========== Linux 配置 ==========
   linux: {
-    target: [
-      { target: 'AppImage', arch: ['x64'] },
-      { target: 'zip', arch: ['x64'] },
-    ],
-    artifactName: '${productName}-Linux-${version}-${arch}.${ext}',
-    category: 'Office',
-    // 桌面集成
-    desktop: {
-      Name: 'InfinityNoteX',
-      Comment: '高效笔记应用',
-      Categories: 'Office;TextTools;Utility;',
-      StartupWMClass: 'infinitynotex',
-    },
-  },
-  appImage: {
-    // AppImage 配置
-    license: null,
+    target: ['AppImage', 'zip'],
+    artifactName: '${productName}-Linux-${version}.${ext}',
   },
 }

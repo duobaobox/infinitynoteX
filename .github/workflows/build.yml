@@ -44,59 +44,8 @@ jobs:
       - name: 🔨 构建前端
         run: npm run web:build
 
-      - name: 📦 打包 Electron (Mac)
-        if: matrix.platform == 'mac'
-        run: npx electron-builder --mac --publish never
-
-      - name: 📦 打包 Electron (Windows)
-        if: matrix.platform == 'win'
-        run: npx electron-builder --win --publish never
-
-      - name: 📦 打包 Electron (Linux)
-        if: matrix.platform == 'linux'
-        run: npx electron-builder --linux --publish never
-
-      - name: 📤 上传构建产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.platform }}-build
-          path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
-            release/**/*.AppImage
-            release/**/latest*.yml
-            release/**/*.blockmap
-            !release/**/builder-debug.yml
-            !release/**/app-update.yml
-          retention-days: 7
-
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 下载所有构建产物
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: 📋 列出下载的文件
-        run: ls -R artifacts
-
-      - name: 🚀 创建 Release
-        uses: softprops/action-gh-release@v1
-        with:
-          repository: duobaobox/duobaobox-infinitynotex-releases
-          files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.zip
-            artifacts/**/*.exe
-            artifacts/**/*.AppImage
-            artifacts/**/latest*.yml
-            artifacts/**/*.blockmap
-          draft: true
-          generate_release_notes: true
+      - name: 🚀 打包并直接发布 Electron
+        # 核心改动：使用 --publish always 直接推送到发布仓库，绕过 Artifacts 500MB 限制
+        run: npx electron-builder --${{ matrix.platform }} --publish always
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}

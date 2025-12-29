@@ -135,9 +135,17 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null) {
   });
 
   autoUpdater.on('error', (error) => {
+    let errorMessage = error instanceof Error ? error.message : String(error);
+
+    // 针对 macOS 签名校验失败的特殊处理
+    if (process.platform === 'darwin' && errorMessage.includes('Code signature')) {
+      errorMessage =
+        'macOS 系统安全限制：由于应用未经过 Apple 官方签名，无法执行自动覆盖更新。请前往发布页面手动下载最新版安装包直接覆盖安装即可。';
+    }
+
     sendStatus({
       state: 'error',
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage,
     });
   });
 

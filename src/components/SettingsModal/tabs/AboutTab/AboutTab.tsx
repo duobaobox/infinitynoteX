@@ -244,6 +244,20 @@ const AboutTab: React.FC = () => {
               >
                 检查更新
               </Button>
+              {updaterStatus?.state === 'error' && (
+                <Button
+                  size="small"
+                  type="link"
+                  onClick={() =>
+                    window.open(
+                      'https://github.com/duobaobox/duobaobox-infinitynotex-releases/releases',
+                      '_blank',
+                    )
+                  }
+                >
+                  手动下载最新版
+                </Button>
+              )}
               {updaterStatus?.state === 'downloaded' && (
                 <Button
                   type="primary"

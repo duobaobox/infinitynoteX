@@ -12,9 +12,6 @@ export default defineConfig({
   resolve: {
     // 确保使用正确的 React 导出
     dedupe: ['react', 'react-dom'],
-    alias: {
-      '@': path.resolve(__dirname, 'src/tiptap'),
-    },
   },
   plugins: [
     react(),
@@ -27,7 +24,7 @@ export default defineConfig({
           build: {
             rollupOptions: {
               // 将原生模块作为外部依赖，避免打包问题
-              external: ['better-sqlite3', 'sqlite-vec', 'adm-zip', 'electron-log'],
+              external: ['better-sqlite3', 'sqlite-vec'],
             },
           },
         },
@@ -67,63 +64,8 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1500,
-    // 启用 CSS 代码分割
-    cssCodeSplit: true,
-    // 生产环境压缩配置 - 使用 esbuild（更快）
-    minify: 'esbuild',
     rollupOptions: {
       external: ['electron-updater', 'electron'],
-      output: {
-        // 代码分割策略 - 使用函数形式更灵活
-        manualChunks(id: string) {
-          // Ant Design 相关
-          if (id.includes('node_modules/antd/')) {
-            return 'vendor-antd';
-          }
-          if (id.includes('node_modules/@ant-design/icons')) {
-            return 'vendor-antd-icons';
-          }
-          if (id.includes('node_modules/@ant-design/x')) {
-            return 'vendor-antd-x';
-          }
-          // Tiptap 富文本编辑器
-          if (id.includes('node_modules/@tiptap/')) {
-            return 'vendor-tiptap';
-          }
-          // 代码高亮
-          if (id.includes('node_modules/highlight.js/') || id.includes('node_modules/lowlight/')) {
-            return 'vendor-highlight';
-          }
-          // React 核心
-          if (id.includes('node_modules/react-dom/') || id.includes('node_modules/react/')) {
-            return 'vendor-react';
-          }
-          // Zustand
-          if (id.includes('node_modules/zustand/')) {
-            return 'vendor-zustand';
-          }
-          // Lucide 图标
-          if (id.includes('node_modules/lucide-react/')) {
-            return 'vendor-lucide';
-          }
-          // Radix UI
-          if (id.includes('node_modules/@radix-ui/')) {
-            return 'vendor-radix';
-          }
-          // Floating UI
-          if (id.includes('node_modules/@floating-ui/')) {
-            return 'vendor-floating';
-          }
-        },
-        // 优化 chunk 命名
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-      },
     },
-    // 启用 source map 便于调试（可根据需要关闭）
-    sourcemap: false,
-    // 输出目录清理
-    emptyOutDir: true,
   },
 });

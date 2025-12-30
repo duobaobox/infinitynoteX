@@ -20,19 +20,28 @@
     output: 'release/${version}',
   },
   files: [
-    'dist',
-    'dist-electron',
-    // 确保原生模块被包含（asarUnpack 会从这里解包）
+    'dist/**/*',
+    'dist-electron/**/*',
+    // Native modules
     'node_modules/better-sqlite3/**/*',
     'node_modules/sqlite-vec/**/*',
-    // better-sqlite3 的依赖
     'node_modules/bindings/**/*',
     'node_modules/file-uri-to-path/**/*',
-    // 排除不需要的文件
-    '!node_modules/**/*.{md,markdown,txt}',
-    '!node_modules/**/test/**',
-    '!node_modules/**/tests/**',
-    '!node_modules/**/docs/**',
+    // Production dependencies used in main process
+    'node_modules/adm-zip/**/*',
+    'node_modules/electron-log/**/*',
+    'node_modules/electron-updater/**/*',
+    'node_modules/webdav/**/*',
+    'node_modules/uuid/**/*',
+    'node_modules/zod/**/*',
+    // Exclude source files and metadata
+    '!**/*.{md,markdown,txt}',
+    '!**/test/**',
+    '!**/tests/**',
+    '!**/docs/**',
+    '!node_modules/**/*.{map,ts,tsx,js.map}',
+    '!node_modules/**/obj/**',
+    '!node_modules/**/src/**',
   ],
   mac: {
     target: [
@@ -43,9 +52,7 @@
     identity: null, // 禁用代码签名（没有 Apple Developer 证书时必须）
   },
   win: {
-    target: [
-      { target: 'nsis', arch: ['x64'] },
-    ],
+    target: [{ target: 'nsis', arch: ['x64'] }],
     artifactName: '${productName}-Windows-${version}-${arch}.${ext}',
   },
   nsis: {

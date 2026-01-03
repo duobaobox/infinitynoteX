@@ -62,6 +62,8 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
       color: 'ffffff',
       createdAt: now,
       updatedAt: now,
+      canvasX: null,
+      canvasY: null,
     };
 
     // 使用基类的写入和索引更新方法
@@ -105,6 +107,8 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
       pinned: note.pinned,
       tags: note.tags,
       color: note.color,
+      canvasX: note.canvasX,
+      canvasY: note.canvasY,
     };
   }
 
@@ -122,6 +126,8 @@ export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
       color: payload.color || 'ffffff',
       createdAt: now,
       updatedAt: now,
+      canvasX: payload.canvasX ?? null,
+      canvasY: payload.canvasY ?? null,
     };
   }
 

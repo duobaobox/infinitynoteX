@@ -34,6 +34,9 @@ export const NoteSchema = z.object({
   color: z.enum(['bae0ff', 'd9f7be', 'ffd6e7', 'd6e4ff', 'ffd666', 'ffffff']).optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
+  // 画布坐标 - 用于无限画布功能
+  canvasX: z.number().nullable().optional(),
+  canvasY: z.number().nullable().optional(),
 });
 
 export const NoteIndexSchema = z.object({
@@ -46,6 +49,9 @@ export const NoteIndexSchema = z.object({
   pinned: z.boolean(),
   tags: z.array(z.string()),
   color: z.enum(['bae0ff', 'd9f7be', 'ffd6e7', 'd6e4ff', 'ffd666', 'ffffff']).optional(),
+  // 画布坐标 - 用于无限画布功能
+  canvasX: z.number().nullable().optional(),
+  canvasY: z.number().nullable().optional(),
 });
 
 export const NotesIndexArraySchema = z.array(NoteIndexSchema);

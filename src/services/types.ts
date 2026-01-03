@@ -78,6 +78,10 @@ export interface Note {
   color?: NoteColor;
   createdAt: number;
   updatedAt: number;
+  /** 画布 X 坐标 */
+  canvasX?: number | null;
+  /** 画布 Y 坐标 */
+  canvasY?: number | null;
 }
 
 /**
@@ -94,6 +98,10 @@ export interface NoteIndex {
   tags: string[];
   /** 便签颜色（用于列表渲染） */
   color?: NoteColor;
+  /** 画布 X 坐标 */
+  canvasX?: number | null;
+  /** 画布 Y 坐标 */
+  canvasY?: number | null;
 }
 
 /**
@@ -193,6 +201,10 @@ export interface UpdateNotePayload {
   tags?: string[];
   pinned?: boolean;
   color?: NoteColor;
+  /** 画布 X 坐标 */
+  canvasX?: number | null;
+  /** 画布 Y 坐标 */
+  canvasY?: number | null;
 }
 
 export interface SetStoragePathOptions {

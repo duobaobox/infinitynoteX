@@ -28,7 +28,7 @@ import { useWorkspaceStore } from '../../../../store/workspaceStore';
 // 从模块导入
 import type { TabKeyType } from './types';
 import { useNoteSave } from './hooks/useNoteSave';
-import { EditTab, ToolsTab, AITab, OtherTab, TAB_CONFIG } from './tabs';
+import { EditTab, ToolsTab, AITab, CanvasTab, TAB_CONFIG } from './tabs';
 import './tabs/AITab.css';
 
 /**
@@ -240,7 +240,7 @@ export const NoteEditor: React.FC = () => {
       case 'ai':
         return null; // AI Tab 的内容在主渲染中处理
       case 'other':
-        return <OtherTab noteId={selectedNoteId} />;
+        return <CanvasTab />;
       default:
         return null;
     }

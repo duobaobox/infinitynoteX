@@ -21,7 +21,7 @@ import type { TabKeyType } from '../types';
 export { EditTab } from './EditTab';
 export { ToolsTab } from './ToolsTab';
 export { AITab } from './AITab';
-export { OtherTab } from './OtherTab';
+export { CanvasTab } from './CanvasTab';
 
 // ============ Tab 配置 ============
 

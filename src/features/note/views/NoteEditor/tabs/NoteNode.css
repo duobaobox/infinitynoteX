@@ -1,0 +1,71 @@
+/**
+ * NoteNode 样式
+ */
+
+.note-node {
+  width: 200px;
+  min-height: 80px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e8e8e8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.note-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.note-node--selected {
+  border-color: var(--theme-color, #1677ff);
+  box-shadow: 0 0 0 2px var(--theme-color-light, rgba(22, 119, 255, 0.2));
+}
+
+.note-node__content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-node__title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary, #262626);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-node__excerpt {
+  font-size: 12px;
+  color: var(--text-secondary, #8c8c8c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* 连接点样式 - 默认隐藏，V2 启用 */
+.note-node__handle {
+  opacity: 0;
+  width: 8px;
+  height: 8px;
+}
+
+/* 暗色模式适配 */
+[data-theme='dark'] .note-node {
+  border-color: var(--border-color-dark, #424242);
+  background-color: #2a2a2a !important;
+}
+
+[data-theme='dark'] .note-node__title {
+  color: var(--text-primary-dark, #e8e8e8);
+}
+
+[data-theme='dark'] .note-node__excerpt {
+  color: var(--text-secondary-dark, #a0a0a0);
+}

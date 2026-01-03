@@ -29,6 +29,7 @@ export interface BaseCardProps {
   renderIcon?: () => React.ReactNode;
   onClick?: () => void;
   onPin?: () => void;
+  onDoubleClick?: () => void;
   actions?: React.ReactNode;
   className?: string;
 }
@@ -99,6 +100,7 @@ const BaseCard: React.FC<BaseCardProps> = ({
   pinnable = false,
   renderIcon,
   onClick,
+  onDoubleClick,
   onPin,
   actions,
   className = '',
@@ -114,6 +116,7 @@ const BaseCard: React.FC<BaseCardProps> = ({
     <div
       className={`base-card ${isSelected ? 'base-card--selected' : ''} ${className}`}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       style={{ background: bgColor, borderColor }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

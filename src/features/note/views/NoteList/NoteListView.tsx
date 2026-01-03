@@ -199,7 +199,10 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
                 color={note.color || 'ffffff'}
                 onClick={() => {
                   setSelectedNote(note.id);
-                  resetEditorTab(); // 切换便签时重置 Tab 到默认
+                }}
+                onDoubleClick={() => {
+                  setSelectedNote(note.id);
+                  resetEditorTab();
                 }}
                 onPin={() => handlePinNote(note.id)}
                 actions={

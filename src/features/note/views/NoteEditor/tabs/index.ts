@@ -40,6 +40,6 @@ export const TAB_CONFIG: Array<{
 }> = [
   { key: 'edit', icon: EditOutlined, label: '编辑' },
   { key: 'ai', icon: RobotOutlined, label: 'AI' },
-  { key: 'other', icon: AppstoreOutlined, label: '其他' },
+  { key: 'other', icon: AppstoreOutlined, label: '画布' },
   { key: 'tools', icon: ToolOutlined, label: '工具' },
 ];

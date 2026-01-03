@@ -41,7 +41,7 @@ export const TAB_CONFIG: Array<{
   icon: typeof RobotOutlined;
   label?: string;
 }> = [
-  { key: 'ai', icon: RobotOutlined }, // AI 对话
-  { key: 'kit', icon: AppstoreOutlined }, // 工具组件
-  { key: 'settings', icon: SettingOutlined }, // 设置
+  { key: 'ai', icon: RobotOutlined, label: '对话' },
+  { key: 'kit', icon: AppstoreOutlined, label: '工坊' },
+  { key: 'settings', icon: SettingOutlined, label: '设置' },
 ];

@@ -52,10 +52,11 @@ export const ChatEditor: React.FC = () => {
   // 根据 TAB_CONFIG 生成 Segmented 选项
   const segmentOptions = useMemo(
     () =>
-      TAB_CONFIG.map(({ key, icon: Icon }) => ({
+      TAB_CONFIG.map(({ key, icon: Icon, label }) => ({
         label: (
           <span>
             <Icon style={{ marginRight: 4 }} />
+            {label}
           </span>
         ),
         value: key,

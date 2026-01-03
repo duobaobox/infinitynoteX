@@ -29,6 +29,12 @@ interface AIConversationFull {
       description?: string;
       noteId?: string;
     }>;
+    references?: Array<{
+      id: string;
+      title: string;
+      byteLength: number;
+      content: string;
+    }>;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -167,6 +173,8 @@ export const useAIChat = ({
                   timestamp: msg.timestamp ?? Date.now(),
                   // 从存储中恢复 RAG 来源引用
                   ragSources: msg.ragSources,
+                  // 从存储中恢复便签引用
+                  references: msg.references,
                 },
               };
             });
@@ -223,6 +231,7 @@ export const useAIChat = ({
                   content,
                   timestamp: msg.timestamp ?? Date.now(),
                   ragSources: msg.ragSources,
+                  references: msg.references,
                 },
               };
             });
@@ -259,6 +268,8 @@ export const useAIChat = ({
             reasoning,
             // 保存 RAG 来源引用（仅 AI 消息有）
             ragSources: item.ragSources,
+            // 保存便签引用（仅用户消息有）
+            references: item.references,
           };
         });
 

@@ -16,6 +16,7 @@ import type {
   UpdateNotePayload,
 } from '../src/services/types';
 import type { AIConfig, ChatPayload } from '../src/services/aiConfig';
+import type { AIMessage } from '../src/services/types';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -39,12 +40,6 @@ import log, {
   getLogPath,
   getLogStats,
 } from './logger';
-
-type AIConversationMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -691,7 +686,7 @@ ipcMain.handle(
   async (
     _,
     id: string,
-    messages: AIConversationMessage[],
+    messages: AIMessage[],
     options?: { source?: 'note' | 'workbench' | 'global' },
   ) => {
     return await storageManager.saveAIConversationMessages(id, messages, options);

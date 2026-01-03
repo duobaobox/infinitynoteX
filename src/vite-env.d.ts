@@ -151,6 +151,12 @@ declare global {
             content: string;
             timestamp: number;
             reasoning?: string;
+            references?: Array<{
+              id: string;
+              title: string;
+              byteLength: number;
+              content: string;
+            }>;
           }>;
           createdAt: number;
           updatedAt: number;
@@ -167,6 +173,12 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          references?: Array<{
+            id: string;
+            title: string;
+            byteLength: number;
+            content: string;
+          }>;
         }>;
         createdAt: number;
         updatedAt: number;
@@ -179,6 +191,12 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          references?: Array<{
+            id: string;
+            title: string;
+            byteLength: number;
+            content: string;
+          }>;
         }>,
         options?: { source?: 'note' | 'workbench' | 'global' },
       ): Promise<{
@@ -191,6 +209,12 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          references?: Array<{
+            id: string;
+            title: string;
+            byteLength: number;
+            content: string;
+          }>;
         }>;
         createdAt: number;
         updatedAt: number;

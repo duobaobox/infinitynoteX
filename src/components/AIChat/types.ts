@@ -1,16 +1,6 @@
-/**
- * AIChat Types - AI 对话核心类型定义
- */
+import type { NoteReference } from '../../services/types';
 
-/**
- * 便签引用（用户引用的便签）
- */
-export interface NoteReference {
-  id: string;
-  title: string;
-  byteLength: number;
-  content: string; // 便签纯文本内容，用于发送给 AI
-}
+export type { NoteReference };
 
 /**
  * 聊天消息项（UI 层使用）
@@ -49,6 +39,8 @@ export interface AIMessageData {
     description?: string;
     noteId?: string;
   }>;
+  /** 用户引用的便签（仅用户消息） */
+  references?: NoteReference[];
 }
 
 /**

@@ -21,7 +21,6 @@ export type {
   TrashIndex,
 
   // AI 对话
-  AIMessage,
   AIConversation,
   AIConversationIndex,
 
@@ -49,7 +48,12 @@ export type {
 
 // ============ TipTap JSON 类型（外部依赖，手动定义） ============
 
-export type { TipTapJSONContent, NoteColor } from '../../src/services/types';
+export type {
+  TipTapJSONContent,
+  NoteColor,
+  NoteReference,
+  AIMessage,
+} from '../../src/services/types';
 
 // ============ 错误码 ============
 

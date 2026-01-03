@@ -111,6 +111,16 @@ export const AIMessageSchema = z.object({
       }),
     )
     .optional(),
+  references: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        byteLength: z.number(),
+        content: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export const AIConversationSchema = z.object({

@@ -18,6 +18,12 @@ export interface AIMessage {
     description?: string;
     noteId?: string;
   }>;
+  references?: Array<{
+    id: string;
+    title: string;
+    byteLength: number;
+    content: string;
+  }>;
 }
 
 class AIConversationService {

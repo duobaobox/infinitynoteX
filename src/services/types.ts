@@ -13,6 +13,16 @@ export type NoteColor = NoteCardColor;
 // ============ 数据模型 ============
 
 /**
+ * 便签引用
+ */
+export interface NoteReference {
+  id: string;
+  title: string;
+  byteLength: number;
+  content: string; // 便签纯文本内容，用于发送给 AI
+}
+
+/**
  * AI 对话消息
  */
 export interface AIMessage {
@@ -27,6 +37,7 @@ export interface AIMessage {
     description?: string;
     noteId?: string;
   }>;
+  references?: NoteReference[];
 }
 
 /**
@@ -340,7 +351,14 @@ declare global {
       deleteAIConversation(id: string): Promise<void>;
       saveAIConversationMessages(
         id: string,
-        messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>,
+        messages: Array<{
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: number;
+          reasoning?: string;
+          references?: NoteReference[];
+        }>,
+        options?: { source?: 'note' | 'workbench' | 'global' },
       ): Promise<AIConversation>;
       updateAIConversationTitle(id: string, title: string): Promise<AIConversation>;
 

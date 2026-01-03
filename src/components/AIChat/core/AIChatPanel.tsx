@@ -1,46 +1,6 @@
-/**
- * AIChatPanel - AI 对话面板组件
- *
- * 纯 UI 组件，展示 AI 对话界面，包含：
- * - 消息气泡列表
- * - 输入框
- * - Provider 切换
- * - 标题编辑
- */
-
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Sender, Bubble, Actions, Suggestion, FileCard } from '@ant-design/x';
-import {
-  Alert,
-  Avatar,
-  Button,
-  Tooltip,
-  Space,
-  Input,
-  Dropdown,
-  message,
-  Flex,
-  Tag,
-  Segmented,
-} from 'antd';
-import type { GetProp, GetRef, MenuProps } from 'antd';
-import {
-  ReloadOutlined,
-  DeleteOutlined,
-  RobotOutlined,
-  UserOutlined,
-  DownOutlined,
-  CopyOutlined,
-  SaveOutlined,
-  BookOutlined,
-  EditOutlined,
-  FileTextOutlined,
-  TranslationOutlined,
-  BulbOutlined,
-  CommentOutlined,
-} from '@ant-design/icons';
-import { MarkdownRenderer } from '../components/MarkdownRenderer';
-import { getProviderBrandColor } from '../../../services/aiProviders';
+import { message, Segmented } from 'antd';
+import type { MenuProps } from 'antd';
 import { noteService, folderService, aiConversationService } from '../../../services';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { useAIConfig, useAIChat } from '../hooks';
@@ -54,55 +14,11 @@ import {
 import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
 
-// Bubble.List 类型
-type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
-
-// Suggestion 类型
-type SuggestionItems = Exclude<GetProp<typeof Suggestion, 'items'>, () => void>;
-
-// 快捷指令配置
-const QUICK_COMMANDS: SuggestionItems = [
-  {
-    label: '摘要总结',
-    value: 'summarize',
-    icon: <FileTextOutlined />,
-  },
-  {
-    label: '翻译',
-    value: 'translate',
-    icon: <TranslationOutlined />,
-    children: [
-      { label: '翻译成中文', value: 'translate_zh' },
-      { label: '翻译成英文', value: 'translate_en' },
-      { label: '翻译成日文', value: 'translate_ja' },
-    ],
-  },
-  {
-    label: '改写优化',
-    value: 'rewrite',
-    icon: <EditOutlined />,
-    children: [
-      { label: '语气更正式', value: 'rewrite_formal' },
-      { label: '语气更口语化', value: 'rewrite_casual' },
-      { label: '精简压缩', value: 'rewrite_concise' },
-    ],
-  },
-  {
-    label: '灵感建议',
-    value: 'inspire',
-    icon: <BulbOutlined />,
-  },
-];
-
-/**
- * 空状态组件 - 当没有选中对话时显示
- */
-const EmptyState: React.FC = () => (
-  <div className="ai-chat-empty-state">
-    <CommentOutlined className="ai-chat-empty-icon" />
-    <p className="ai-chat-empty-text">选择或创建一个对话开始聊天</p>
-  </div>
-);
+// 引入子组件
+import { ChatHeader } from './components/ChatHeader';
+import { MessageList } from './components/MessageList';
+import { ChatInput } from './components/ChatInput';
+import { EmptyState, UnconfiguredState } from './components/EmptyState';
 
 /**
  * AI 对话面板组件
@@ -147,7 +63,7 @@ export const AIChatPanel = ({
           notes.forEach((note) => {
             items.push({
               key: note.id,
-              icon: <FileTextOutlined />,
+              // icon: <FileTextOutlined />, // 移到子组件处理或传递 ReactNode
               label: note.title || '无标题',
             });
           });
@@ -212,7 +128,7 @@ export const AIChatPanel = ({
   }, [knowledgeBaseEnabled]);
 
   // 处理标题变更
-  const handleTitleChange = useCallback((newTitle: string) => {
+  const handleTitleChangeCallback = useCallback((newTitle: string) => {
     setConversationTitle(newTitle);
   }, []);
 
@@ -230,12 +146,9 @@ export const AIChatPanel = ({
     conversationId,
     isConfigured,
     useKnowledgeBase,
-    onTitleChange: handleTitleChange,
+    onTitleChange: handleTitleChangeCallback,
     source,
   });
-
-  // Sender ref
-  const senderRef = useRef<GetRef<typeof Sender>>(null);
 
   // 复制状态
   const [copiedBubbleKey, setCopiedBubbleKey] = useState<string | null>(null);
@@ -254,7 +167,7 @@ export const AIChatPanel = ({
     try {
       const exported = stripThinkBlocks(content);
       const tipTapContent = convertMarkdownToTipTap(exported);
-      // 标题从“回答正文”提取
+      // 标题从"回答正文"提取
       const titleSource = exported;
       const firstLine = (titleSource.split('\n').find((l) => l.trim().length > 0) || '').trim();
       const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
@@ -337,115 +250,17 @@ export const AIChatPanel = ({
     }
   };
 
-  // 转换为 Bubble.List items
-  const bubbleItems = chatItems.map((m) => {
-    const isCopied = copiedBubbleKey === m.key;
+  // 消息发送处理
+  const handleSend = useCallback(
+    (value: string, attachments?: any[]) => {
+      sendMessage(value, attachments);
+      // 清空已选便签
+      setSelectedNotes([]);
+    },
+    [sendMessage],
+  );
 
-    // AI 消息的操作按钮
-    const actionItems =
-      m.role === 'ai'
-        ? [
-            {
-              key: 'copy',
-              icon: <CopyOutlined />,
-              label: isCopied ? '已复制' : '复制',
-            },
-            {
-              key: 'save',
-              icon: <SaveOutlined />,
-              label: '保存到便签',
-            },
-          ]
-        : [];
-
-    const item: BubbleListItem = {
-      key: m.key,
-      role: m.role,
-      content: m.content,
-      placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
-      contentRender: (content) => {
-        // 用户消息：过滤掉便签上下文，只显示用户输入
-        const displayContent =
-          m.role === 'user'
-            ? (content as string)
-                .replace(/\n\n以下是用户引用的便签内容，请结合这些内容回答：[\s\S]*/g, '')
-                .trim()
-            : content;
-
-        // AI 消息：传递 ragSources 用于引用展示
-        const sources = m.role === 'ai' && m.ragSources ? m.ragSources : undefined;
-
-        return (
-          <>
-            <MarkdownRenderer
-              content={displayContent as string}
-              streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
-              sources={sources}
-            />
-            {/* 用户消息显示引用的便签 FileCard */}
-            {m.role === 'user' && m.references && m.references.length > 0 && (
-              <div className="ai-chat-reference-cards">
-                {m.references.map((ref) => (
-                  <FileCard
-                    key={ref.id}
-                    name={`${ref.title}.md`}
-                    byte={ref.byteLength}
-                    icon="markdown"
-                    size="small"
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        );
-      },
-      avatar:
-        m.role === 'ai' ? (
-          <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1890ff' }} />
-        ) : (
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
-        ),
-    };
-
-    if (m.role === 'ai') {
-      item.footer = (content) => (
-        <Actions
-          items={actionItems}
-          onClick={({ key }) => {
-            if (key === 'copy') {
-              handleCopyAnswer(m);
-            } else if (key === 'save') {
-              handleSaveToNote(content as string);
-            }
-          }}
-        />
-      );
-
-      // Actions 按钮位置配置
-      item.footerPlacement = 'outer-end';
-
-      if (!m.content.trim() && m.isStreaming) {
-        item.loading = true;
-      } else if (m.isStreaming && m.content.trim()) {
-        item.typing = { effect: 'typing', step: 5, interval: 50 };
-      }
-    }
-
-    return item;
-  });
-
-  // 初始化中
-  if (isInitializing) {
-    return (
-      <div className={`ai-chat-container ${className}`}>
-        <div className="ai-chat-messages-empty">
-          <div style={{ textAlign: 'center', color: '#999' }}>初始化中...</div>
-        </div>
-      </div>
-    );
-  }
-
-  // 没有选中对话，显示空状态
+  // 没有选中对话，显示空状态（屏蔽整个页面）
   if (!conversationId) {
     return (
       <div className={`ai-chat-container ${className}`}>
@@ -454,29 +269,9 @@ export const AIChatPanel = ({
     );
   }
 
-  // 未配置
-  if (!isConfigured) {
-    return (
-      <div className={`ai-chat-container ${className}`}>
-        <div className="ai-chat-messages-empty">
-          <Alert
-            message="未配置 AI 模型"
-            description="请先在设置页面中配置 AI 模型信息（设置 > AI 管理）以开始对话"
-            type="warning"
-            showIcon
-            style={{ maxWidth: '500px', marginBottom: '16px' }}
-          />
-          <div style={{ color: '#666', fontSize: '13px', maxWidth: '500px', textAlign: 'center' }}>
-            <p style={{ marginBottom: '8px' }}>支持以下模型：</p>
-            <ul style={{ textAlign: 'left', display: 'inline-block' }}>
-              <li>OpenAI: gpt-4o, gpt-3.5-turbo</li>
-              <li>本地 Ollama: mistral, llama2 等</li>
-              <li>其他 OpenAI 兼容服务</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
+  // UnconfiguredState 可以在这里直接使用，也可以作为组件返回
+  if (!isInitializing && !isConfigured) {
+    return <UnconfiguredState className={className} />;
   }
 
   return (
@@ -498,270 +293,58 @@ export const AIChatPanel = ({
         <>
           {/* 顶部状态栏 */}
           {showTitleEditor && (
-            <div className="ai-chat-header">
-              <div className="ai-chat-header-left">
-                {isEditingTitle ? (
-                  <Input
-                    value={tempTitle}
-                    onChange={(e) => setTempTitle(e.target.value)}
-                    onBlur={saveTitle}
-                    onKeyDown={handleTitleKeyDown}
-                    autoFocus
-                    size="small"
-                    style={{
-                      width: '200px',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                    }}
-                    placeholder="输入对话标题"
-                  />
-                ) : (
-                  <span
-                    className="ai-chat-header-title"
-                    onDoubleClick={startEditingTitle}
-                    style={{ cursor: 'pointer' }}
-                    title="双击编辑标题"
-                  >
-                    {conversationTitle}
-                  </span>
-                )}
-              </div>
-
-              <Space size="small">
-                <Tooltip title="清除错误">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<ReloadOutlined />}
-                    onClick={clearError}
-                    disabled={!error}
-                  />
-                </Tooltip>
-                <Tooltip title="清空对话">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={clearChat}
-                    disabled={chatItems.length === 0}
-                  />
-                </Tooltip>
-              </Space>
-            </div>
-          )}
-
-          {/* 错误提示 */}
-          {error && (
-            <Alert
-              message="出错"
-              description={error}
-              type="error"
-              showIcon
-              closable
-              onClose={clearError}
-              className="ai-chat-alert"
+            <ChatHeader
+              title={conversationTitle}
+              isEditing={isEditingTitle}
+              tempTitle={tempTitle}
+              error={error}
+              hasMessages={chatItems.length > 0}
+              onEditStart={startEditingTitle}
+              onEditSave={saveTitle}
+              onEditCancel={cancelEditingTitle}
+              onTitleChange={setTempTitle}
+              onKeyDown={handleTitleKeyDown}
+              onClearError={clearError}
+              onClearChat={clearChat}
             />
           )}
 
           {/* 消息列表 */}
-          <div className="ai-chat-messages">
-            {isLoadingHistory ? (
-              // 加载历史时显示简单的 loading 状态（不显示空状态，避免闪烁）
-              <div className="ai-chat-messages-empty">
-                <p style={{ fontSize: '12px', color: '#999' }}>加载中...</p>
-              </div>
-            ) : bubbleItems.length === 0 ? (
-              <div className="ai-chat-messages-empty">
-                <p style={{ fontSize: '14px' }}>开始对话，与 AI 互动</p>
-                <p style={{ fontSize: '12px', color: '#999' }}>输入你的问题，AI 将为你答疑解惑</p>
-              </div>
-            ) : (
-              <Bubble.List items={bubbleItems} />
-            )}
-          </div>
-
-          {/* 已选便签展示 */}
-          {selectedNotes.length > 0 && (
-            <div className="ai-chat-selected-notes">
-              {selectedNotes.map((note) => (
-                <Tag
-                  key={note.id}
-                  closable
-                  onClose={() => handleRemoveNote(note.id)}
-                  icon={<FileTextOutlined />}
-                >
-                  {note.title}
-                </Tag>
-              ))}
-            </div>
-          )}
+          <MessageList
+            isLoadingHistory={isLoadingHistory}
+            isInitializing={isInitializing}
+            isConfigured={isConfigured}
+            conversationId={conversationId}
+            items={chatItems}
+            copiedBubbleKey={copiedBubbleKey}
+            onCopyAnswer={handleCopyAnswer}
+            onSaveToNote={handleSaveToNote}
+          />
 
           {/* 输入框 */}
-          <div className="ai-chat-input">
-            <Suggestion
-              items={QUICK_COMMANDS}
-              onSelect={(value) => {
-                // 快捷指令功能开发中
-                message.info(`快捷指令"${value}"即将推出`);
-              }}
-            >
-              {({ onTrigger, onKeyDown: suggestionKeyDown }) => (
-                <Sender
-                  ref={senderRef}
-                  loading={isLoading}
-                  placeholder="输入消息"
-                  onKeyDown={(e) => {
-                    // 监听 @ 键唤起快捷指令
-                    if (e.key === '@') {
-                      onTrigger();
-                    } else {
-                      onTrigger(false);
-                    }
-                    // 传递给 Suggestion 的 onKeyDown
-                    suggestionKeyDown?.(e);
-                  }}
-                  onSubmit={async (value) => {
-                    if (value.trim()) {
-                      // 将 selectedNotes 转换为 NoteReference 格式
-                      const references = selectedNotes.map((note) => ({
-                        id: note.id,
-                        title: note.title,
-                        byteLength: new TextEncoder().encode(note.content).length,
-                        content: note.content,
-                      }));
-
-                      // 构建便签上下文（作为隐藏上下文发送给 AI）
-                      let noteContext = '';
-                      if (selectedNotes.length > 0) {
-                        noteContext = '\n\n以下是用户引用的便签内容，请结合这些内容回答：\n\n';
-                        selectedNotes.forEach((note, i) => {
-                          noteContext += `[引用 ${i + 1}: ${note.title}]\n${note.content}\n\n`;
-                        });
-                      }
-
-                      // 发送消息，传递 references
-                      sendMessage(
-                        value + noteContext,
-                        references.length > 0 ? references : undefined,
-                      );
-                      senderRef.current?.clear?.();
-                      // 清空已选便签
-                      setSelectedNotes([]);
-                    }
-                  }}
-                  onCancel={() => {
-                    // 取消按钮 = 中止当前流式请求
-                    if (isLoading) {
-                      abort();
-                    }
-                    senderRef.current?.clear?.();
-                    message.info(isLoading ? '已中止生成' : '已取消发送');
-                  }}
-                  footer={(_, { components }) => {
-                    const { SendButton, LoadingButton } = components;
-
-                    // Provider 切换菜单
-                    const providerColor = config
-                      ? getProviderBrandColor(currentProviderId)
-                      : '#d9d9d9';
-                    const providerMenuItems: MenuProps['items'] = providerOptions.map((option) => {
-                      const isActive = option.providerId === currentProviderId;
-                      return {
-                        key: option.providerId,
-                        label: (
-                          <div className="ai-meta-option">
-                            <div className="ai-meta-option__row">
-                              <span
-                                className="ai-meta-option__dot"
-                                style={{
-                                  backgroundColor: getProviderBrandColor(option.providerId),
-                                }}
-                              />
-                              <span className="ai-meta-option__provider">
-                                {option.config.provider}
-                              </span>
-                              {isActive && <span className="ai-meta-option__badge">当前</span>}
-                            </div>
-                            <div className="ai-meta-option__model">{option.config.model}</div>
-                          </div>
-                        ),
-                      };
-                    });
-
-                    const hasProviderConfigs = providerOptions.length > 0;
-
-                    return (
-                      <Flex justify="space-between" align="center">
-                        <Flex gap="small" align="center">
-                          {/* AI Provider 切换器 */}
-                          {hasProviderConfigs && config ? (
-                            <Dropdown
-                              menu={{
-                                items: providerMenuItems,
-                                onClick: ({ key }) => switchProvider(key as string),
-                              }}
-                              trigger={['click']}
-                              placement="topLeft"
-                            >
-                              <Button
-                                size="small"
-                                loading={isSwitching}
-                                className="ai-model-switcher"
-                              >
-                                <span
-                                  className="ai-chat-meta-dot"
-                                  style={{ backgroundColor: providerColor }}
-                                />
-                                <span style={{ marginLeft: 6 }}>{config.model}</span>
-                                <DownOutlined
-                                  style={{ fontSize: 10, marginLeft: 4, color: '#8c8c8c' }}
-                                />
-                              </Button>
-                            </Dropdown>
-                          ) : null}
-                          {/* 便签引用 - 圆形背景 icon */}
-                          {noteItems && noteItems.length > 0 && (
-                            <Dropdown
-                              menu={{
-                                items: noteItems,
-                                onClick: handleNoteSelect,
-                              }}
-                              trigger={['click']}
-                              placement="topLeft"
-                            >
-                              <Tooltip title="引用便签">
-                                <span className="ai-icon-btn">
-                                  <FileTextOutlined style={{ fontSize: 14 }} />
-                                </span>
-                              </Tooltip>
-                            </Dropdown>
-                          )}
-                          {/* 知识库开关 */}
-                          {knowledgeBaseEnabled && (
-                            <Tooltip
-                              title={useKnowledgeBase ? '已开启知识库增强' : '点击开启知识库问答'}
-                            >
-                              <span
-                                className={`ai-icon-btn ${useKnowledgeBase ? 'ai-icon-btn--active' : ''}`}
-                                onClick={() => setUseKnowledgeBase(!useKnowledgeBase)}
-                              >
-                                <BookOutlined style={{ fontSize: 14 }} />
-                              </span>
-                            </Tooltip>
-                          )}
-                        </Flex>
-                        <Flex align="center">
-                          {isLoading ? <LoadingButton /> : <SendButton type="primary" />}
-                        </Flex>
-                      </Flex>
-                    );
-                  }}
-                  suffix={false}
-                  autoSize={{ minRows: 2, maxRows: 6 }}
-                />
-              )}
-            </Suggestion>
-          </div>
+          <ChatInput
+            isLoading={isLoading}
+            onSend={handleSend}
+            onAbort={abort}
+            selectedNotes={selectedNotes}
+            onRemoveNote={handleRemoveNote}
+            providerConfig={{
+              config,
+              options: providerOptions,
+              currentId: currentProviderId,
+              isSwitching,
+              onSwitch: switchProvider,
+            }}
+            knowledgeBase={{
+              enabled: knowledgeBaseEnabled,
+              inUse: useKnowledgeBase,
+              onToggle: setUseKnowledgeBase,
+            }}
+            noteReference={{
+              items: noteItems,
+              onSelect: handleNoteSelect,
+            }}
+          />
         </>
       ) : (
         /* 三方 AI - 外部页面 webview */

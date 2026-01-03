@@ -73,7 +73,7 @@ export const AIChatWindow: React.FC = React.memo(() => {
 
       {/* AI 对话内容区域 */}
       <div className="ai-chat-window-content">
-        <AIChatPanel conversationId="global-ai-chat" title="全局 AI 对话" />
+        <AIChatPanel conversationId="global-ai-chat" title="全局 AI 对话" source="global" />
       </div>
     </div>
   );

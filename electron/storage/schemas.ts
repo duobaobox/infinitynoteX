@@ -120,6 +120,8 @@ export const AIConversationSchema = z.object({
   messages: z.array(AIMessageSchema),
   createdAt: z.number(),
   updatedAt: z.number(),
+  /** 对话来源：note=便签, workbench=AI工坊, global=全局悬浮窗 */
+  source: z.enum(['note', 'workbench', 'global']).optional(),
 });
 
 export const AIConversationIndexSchema = z.object({
@@ -128,6 +130,8 @@ export const AIConversationIndexSchema = z.object({
   excerpt: z.string(),
   createdAt: z.number(),
   updatedAt: z.number(),
+  /** 对话来源：note=便签, workbench=AI工坊, global=全局悬浮窗 */
+  source: z.enum(['note', 'workbench', 'global']).optional(),
 });
 
 export const AIConversationsIndexArraySchema = z.array(AIConversationIndexSchema);

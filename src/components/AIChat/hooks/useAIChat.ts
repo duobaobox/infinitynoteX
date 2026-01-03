@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useXChat } from '@ant-design/x-sdk';
 import { aiConversationService } from '../../../services';
+import { useWorkspaceStore } from '../../../store/workspaceStore';
 import type { ChatItem, NoteReference, UseAIChatReturn, StreamChunkData } from '../types';
 import type { AIMessage } from '../../../services/aiConfig';
 import { IpcChatProvider, type IpcStreamInput, type XChatMessage } from '../xsdk/IpcChatProvider';
@@ -43,6 +44,8 @@ interface UseAIChatOptions {
   useKnowledgeBase?: boolean;
   /** 标题变更回调 */
   onTitleChange?: (title: string) => void;
+  /** 对话来源：note=便签, workbench=AI工坊, global=全局 */
+  source?: 'note' | 'workbench' | 'global';
 }
 
 /**
@@ -53,6 +56,7 @@ export const useAIChat = ({
   isConfigured,
   useKnowledgeBase = false,
   onTitleChange,
+  source = 'workbench',
 }: UseAIChatOptions): UseAIChatReturn => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +158,8 @@ export const useAIChat = ({
               }
 
               return {
-                id: msg.id ?? `${msg.role}-${msg.timestamp}-${index}`,
+                // 使用 hist_ 前缀确保与 useXChat 生成的 msg_X 格式不冲突
+                id: msg.id ?? `hist_${conversationId}_${index}`,
                 status: 'success' as const,
                 message: {
                   role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
@@ -183,6 +188,54 @@ export const useAIChat = ({
     loadConversationHistory();
   }, [conversationId, onTitleChange, setMessages]);
 
+  // 监听其他实例触发的刷新信号，重新加载历史
+  const messageRefreshTrigger = useWorkspaceStore(
+    (state) => (conversationId ? state.messageRefreshTriggers[conversationId] : 0) ?? 0,
+  );
+  const prevRefreshTriggerRef = useRef(messageRefreshTrigger);
+
+  useEffect(() => {
+    // 仅当 trigger 变化且不是初始值时重新加载
+    if (
+      messageRefreshTrigger !== prevRefreshTriggerRef.current &&
+      conversationId &&
+      !isRequesting
+    ) {
+      prevRefreshTriggerRef.current = messageRefreshTrigger;
+      // 延迟加载，避免与当前实例的保存冲突
+      const timer = setTimeout(async () => {
+        try {
+          const conversations =
+            (await aiConversationService.getConversations()) as AIConversationFull[];
+          const conversation = conversations.find((c) => c.id === conversationId);
+          if (conversation?.messages && conversation.messages.length > 0) {
+            const infos = conversation.messages.map((msg, index) => {
+              let content = msg.content;
+              if (msg.reasoning) {
+                const sanitizedReasoning = msg.reasoning.replace(/\n\n+/g, '\n');
+                content = `<think>${sanitizedReasoning}</think>\n${msg.content}`;
+              }
+              return {
+                id: msg.id ?? `hist_${conversationId}_${index}`,
+                status: 'success' as const,
+                message: {
+                  role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
+                  content,
+                  timestamp: msg.timestamp ?? Date.now(),
+                  ragSources: msg.ragSources,
+                },
+              };
+            });
+            setMessages(infos);
+          }
+        } catch (err) {
+          console.error('[useAIChat] Failed to refresh from external update:', err);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messageRefreshTrigger, conversationId, isRequesting, setMessages]);
+
   // 保存对话历史
   const saveConversationHistory = useCallback(
     async (items: ChatItem[]) => {
@@ -198,7 +251,8 @@ export const useAIChat = ({
             : item.content;
 
           return {
-            id: item.key || `${item.role}-${item.timestamp}-${index}`,
+            // 使用时间戳+索引生成持久化唯一 ID，避免 useXChat 的 msg_X 格式在重挂载时重复
+            id: `${conversationId}_${item.timestamp ?? Date.now()}_${index}`,
             role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
             content,
             timestamp: item.timestamp ?? Date.now(),
@@ -208,7 +262,9 @@ export const useAIChat = ({
           };
         });
 
-        await aiConversationService.saveMessages(conversationId, messages);
+        await aiConversationService.saveMessages(conversationId, messages, { source });
+        // 触发刷新，通知其他使用同一 conversationId 的实例
+        useWorkspaceStore.getState().triggerMessageRefresh(conversationId);
       } catch (err) {
         console.error('Failed to save conversation history:', err);
       }

@@ -119,10 +119,16 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
 
   // ============ 派生数据 ============
 
-  // 根据搜索关键词过滤对话列表
-  const filteredAiConversations = aiConversations.filter((item) =>
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // 根据来源和搜索关键词过滤对话列表
+  // 只显示 workbench 对话，排除 global 和 note
+  const filteredAiConversations = aiConversations.filter((item) => {
+    // 排除全局 AI 助手和便签关联对话
+    if (item.source === 'global' || item.source === 'note') {
+      return false;
+    }
+    // 兼容旧数据：未设置 source 或 source === 'workbench' 都显示
+    return item.title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   // 排序：按 createdAt 排序
   const sortedConversations = [...filteredAiConversations].sort((a, b) =>
@@ -195,6 +201,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
                   key={session.id}
                   title={session.title}
                   content={session.excerpt}
+                  source={session.source}
                   onClick={() => {
                     setSelectedToolItem(session.id);
                     resetEditorTab(); // 切换对话时重置 Tab 到默认

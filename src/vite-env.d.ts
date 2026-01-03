@@ -154,6 +154,7 @@ declare global {
           }>;
           createdAt: number;
           updatedAt: number;
+          source?: 'note' | 'workbench' | 'global';
         }>
       >;
       createAIConversation(title?: string): Promise<{
@@ -179,6 +180,7 @@ declare global {
           timestamp: number;
           reasoning?: string;
         }>,
+        options?: { source?: 'note' | 'workbench' | 'global' },
       ): Promise<{
         id: string;
         title: string;
@@ -192,6 +194,7 @@ declare global {
         }>;
         createdAt: number;
         updatedAt: number;
+        source?: 'note' | 'workbench' | 'global';
       }>;
       updateAIConversationTitle(
         id: string,

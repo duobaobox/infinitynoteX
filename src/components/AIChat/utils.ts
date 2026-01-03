@@ -25,10 +25,30 @@ const createTempEditor = () => {
 export const stripThinkBlocks = (markdown: string): string => {
   if (!markdown) return '';
 
-  const removedClosed = markdown.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
+  const removedClosed = markdown.replace(/<think>[\sS]*?<\/think>\s*/g, '');
   // 容错：未闭合的 <think>，直接从 <think> 起丢弃到结尾
-  const removedOpen = removedClosed.replace(/<think>[\s\S]*/g, '');
+  const removedOpen = removedClosed.replace(/<think>[\sS]*/g, '');
   return removedOpen.trim();
+};
+
+/**
+ * 从 TipTap JSON 内容中提取纯文本
+ * 递归遍历节点，提取所有文本内容
+ */
+export const extractTipTapText = (content: unknown): string => {
+  if (!content || typeof content !== 'object') return '';
+  const node = content as { text?: string; content?: unknown[]; type?: string };
+  let text = node.text || '';
+  if (node.content && Array.isArray(node.content)) {
+    for (const child of node.content) {
+      text += extractTipTapText(child);
+      const childNode = child as { type?: string };
+      if (childNode.type === 'paragraph' || childNode.type === 'heading') {
+        text += '\n';
+      }
+    }
+  }
+  return text;
 };
 
 /**

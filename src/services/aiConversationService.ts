@@ -52,8 +52,12 @@ class AIConversationService {
   /**
    * 保存对话消息
    */
-  async saveMessages(id: string, messages: AIMessage[]): Promise<void> {
-    await window.storage.saveAIConversationMessages(id, messages);
+  async saveMessages(
+    id: string,
+    messages: AIMessage[],
+    options?: { source?: 'note' | 'workbench' | 'global' },
+  ): Promise<void> {
+    await window.storage.saveAIConversationMessages(id, messages, options);
   }
 }
 

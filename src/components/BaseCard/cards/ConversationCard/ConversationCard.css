@@ -28,9 +28,22 @@
   transform: rotate(-15deg) translateY(-2px);
 }
 
+/* ==================== 便签来源 - 橙色样式 ==================== */
+.robot-icon--note .robot-icon__box {
+  background: linear-gradient(135deg, #fff7e6 30%, #ffd591 100%);
+  border-color: rgba(250, 173, 20, 0.3);
+  color: #fa8c16;
+}
+
 /* ==================== 暗色模式 ==================== */
 [data-theme='dark'] .robot-icon__box {
   border-color: rgba(255, 255, 255, 0.15);
   background: linear-gradient(135deg, #111d2c 30%, #0a2540 100%);
   color: #177ddc;
+}
+
+[data-theme='dark'] .robot-icon--note .robot-icon__box {
+  background: linear-gradient(135deg, #2b1d11 30%, #3d2817 100%);
+  border-color: rgba(250, 173, 20, 0.25);
+  color: #d89614;
 }

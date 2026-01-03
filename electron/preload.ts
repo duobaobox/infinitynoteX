@@ -97,8 +97,11 @@ contextBridge.exposeInMainWorld('storage', {
   createAIConversation: (title?: string) =>
     ipcRenderer.invoke('storage:createAIConversation', title),
   deleteAIConversation: (id: string) => ipcRenderer.invoke('storage:deleteAIConversation', id),
-  saveAIConversationMessages: (id: string, messages: AIConversationMessage[]) =>
-    ipcRenderer.invoke('storage:saveAIConversationMessages', id, messages),
+  saveAIConversationMessages: (
+    id: string,
+    messages: AIConversationMessage[],
+    options?: { source?: 'note' | 'workbench' | 'global' },
+  ) => ipcRenderer.invoke('storage:saveAIConversationMessages', id, messages, options),
   updateAIConversationTitle: (id: string, title: string) =>
     ipcRenderer.invoke('storage:updateAIConversationTitle', id, title),
 

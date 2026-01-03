@@ -51,6 +51,7 @@ export const AITab: React.FC<AITabProps> = ({ noteId }) => {
       onTitleChange={handleTitleChange}
       showTitleEditor={false}
       className="ai-tab-panel"
+      source="note"
     />
   );
 };

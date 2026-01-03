@@ -688,8 +688,13 @@ ipcMain.handle('storage:deleteAIConversation', async (_, id: string) => {
 
 ipcMain.handle(
   'storage:saveAIConversationMessages',
-  async (_, id: string, messages: AIConversationMessage[]) => {
-    return await storageManager.saveAIConversationMessages(id, messages);
+  async (
+    _,
+    id: string,
+    messages: AIConversationMessage[],
+    options?: { source?: 'note' | 'workbench' | 'global' },
+  ) => {
+    return await storageManager.saveAIConversationMessages(id, messages, options);
   },
 );
 

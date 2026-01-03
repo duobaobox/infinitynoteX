@@ -845,8 +845,9 @@ export class StorageManager {
   async saveAIConversationMessages(
     id: string,
     messages: Parameters<typeof this.ai.saveMessages>[1],
+    options?: { source?: 'note' | 'workbench' | 'global' },
   ) {
-    return this.ai.saveMessages(id, messages);
+    return this.ai.saveMessages(id, messages, options);
   }
 
   async updateAIConversationTitle(id: string, title: string) {

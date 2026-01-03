@@ -80,7 +80,11 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
    * 保存 AI 对话消息
    * 如果对话不存在，会自动创建（支持便签、悬浮窗等场景）
    */
-  async saveMessages(id: string, messages: AIMessage[]): Promise<AIConversation> {
+  async saveMessages(
+    id: string,
+    messages: AIMessage[],
+    options?: { source?: 'note' | 'workbench' | 'global' },
+  ): Promise<AIConversation> {
     let conversation: AIConversation;
 
     try {
@@ -108,6 +112,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
           messages: [],
           createdAt: now,
           updatedAt: now,
+          source: options?.source, // 保存对话来源
         };
 
         // 写入文件并添加到索引
@@ -164,6 +169,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       excerpt: conversation.excerpt,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
+      source: conversation.source,
     };
   }
 

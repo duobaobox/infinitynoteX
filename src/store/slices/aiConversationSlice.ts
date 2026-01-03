@@ -16,6 +16,8 @@ export interface AIConversationSlice {
   selectedToolId: string | null;
   selectedToolItemId: string | null;
   refreshAIConversationsTrigger: number;
+  /** 单个对话消息刷新触发器 - key 是 conversationId，value 是触发次数 */
+  messageRefreshTriggers: Record<string, number>;
 
   // ============ Actions ============
   setAIConversations: (conversations: AIConversationPreview[]) => void;
@@ -25,6 +27,8 @@ export interface AIConversationSlice {
   createAIConversation: () => Promise<void>;
   deleteAIConversation: (id: string) => Promise<void>;
   triggerAIConversationsRefresh: () => void;
+  /** 触发特定对话的消息刷新 */
+  triggerMessageRefresh: (conversationId: string) => void;
 }
 
 export const createAIConversationSlice: StateCreator<
@@ -38,6 +42,7 @@ export const createAIConversationSlice: StateCreator<
   selectedToolId: null,
   selectedToolItemId: null,
   refreshAIConversationsTrigger: 0,
+  messageRefreshTriggers: {},
 
   // Actions
   setAIConversations: (conversations) => set({ aiConversations: conversations }),
@@ -86,5 +91,13 @@ export const createAIConversationSlice: StateCreator<
   triggerAIConversationsRefresh: () =>
     set((state) => ({
       refreshAIConversationsTrigger: state.refreshAIConversationsTrigger + 1,
+    })),
+
+  triggerMessageRefresh: (conversationId) =>
+    set((state) => ({
+      messageRefreshTriggers: {
+        ...state.messageRefreshTriggers,
+        [conversationId]: (state.messageRefreshTriggers[conversationId] ?? 0) + 1,
+      },
     })),
 });

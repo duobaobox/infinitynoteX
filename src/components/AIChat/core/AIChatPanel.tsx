@@ -41,7 +41,7 @@ import {
 } from '@ant-design/icons';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { getProviderBrandColor } from '../../../services/aiProviders';
-import { noteService, folderService } from '../../../services';
+import { noteService, folderService, aiConversationService } from '../../../services';
 import { useSettingsStore } from '../../../store/settingsStore';
 import { useAIConfig, useAIChat } from '../hooks';
 import {
@@ -49,6 +49,7 @@ import {
   convertMarkdownToTipTap,
   copyToClipboard,
   stripThinkBlocks,
+  extractTipTapText,
 } from '../utils';
 import type { ChatItem, AIChatPanelProps } from '../types';
 import '../styles/AIChat.css';
@@ -112,6 +113,7 @@ export const AIChatPanel = ({
   onTitleChange,
   showTitleEditor = true,
   className = '',
+  source = 'workbench',
 }: AIChatPanelProps) => {
   // AI 配置
   const {
@@ -168,23 +170,7 @@ export const AIChatPanel = ({
       }
       try {
         const note = await noteService.getNote(key);
-        // 提取纯文本内容
-        const extractText = (content: unknown): string => {
-          if (!content || typeof content !== 'object') return '';
-          const node = content as { text?: string; content?: unknown[] };
-          let text = node.text || '';
-          if (node.content && Array.isArray(node.content)) {
-            for (const child of node.content) {
-              text += extractText(child);
-              const childNode = child as { type?: string };
-              if (childNode.type === 'paragraph' || childNode.type === 'heading') {
-                text += '\n';
-              }
-            }
-          }
-          return text;
-        };
-        const textContent = extractText(note.content);
+        const textContent = extractTipTapText(note.content);
         setSelectedNotes((prev) => [
           ...prev,
           { id: key, title: note.title || '无标题', content: textContent },
@@ -245,6 +231,7 @@ export const AIChatPanel = ({
     isConfigured,
     useKnowledgeBase,
     onTitleChange: handleTitleChange,
+    source,
   });
 
   // Sender ref
@@ -325,7 +312,6 @@ export const AIChatPanel = ({
     }
 
     try {
-      const { aiConversationService } = await import('../../../services');
       await aiConversationService.updateTitle(conversationId, tempTitle.trim());
       setConversationTitle(tempTitle.trim());
       setIsEditingTitle(false);
@@ -615,15 +601,15 @@ export const AIChatPanel = ({
             <Suggestion
               items={QUICK_COMMANDS}
               onSelect={(value) => {
-                // TODO: 后续实现快捷指令具体功能
-                message.info(`选择了快捷指令: ${value}`);
+                // 快捷指令功能开发中
+                message.info(`快捷指令"${value}"即将推出`);
               }}
             >
               {({ onTrigger, onKeyDown: suggestionKeyDown }) => (
                 <Sender
                   ref={senderRef}
                   loading={isLoading}
-                  placeholder="输入消息，输入 @ 唤起快捷指令"
+                  placeholder="输入消息"
                   onKeyDown={(e) => {
                     // 监听 @ 键唤起快捷指令
                     if (e.key === '@') {

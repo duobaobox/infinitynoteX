@@ -87,10 +87,50 @@ const CanvasInner: React.FC = () => {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
 
-  // 当 notes 变化时更新节点
+  // 当 notes 变化时，合并更新节点数据，但保留当前位置
   useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
+    setNodes((nds) => {
+      // 创建当前节点的映射，方便查找
+      const currentNodesMap = new Map(nds.map((n) => [n.id, n]));
+
+      return notes.map((note, index) => {
+        const currentNode = currentNodesMap.get(note.id);
+
+        // 计算目标位置：
+        // 1. 如果当前画布已有该节点，优先使用当前画布的位置（避免拖拽时跳变）
+        // 2. 如果是新节点，且数据库有保存位置，使用数据库位置
+        // 3. 否则使用网格布局计算初始位置
+        let position = { x: 0, y: 0 };
+
+        if (currentNode) {
+          position = currentNode.position;
+        } else if (note.canvasX != null && note.canvasY != null) {
+          position = { x: note.canvasX, y: note.canvasY };
+        } else {
+          position = calculateInitialPosition(index);
+        }
+
+        const nodeData: NoteNodeData = {
+          title: note.title,
+          excerpt: note.excerpt,
+          color: note.color,
+          isSelected: note.id === selectedNoteId,
+        };
+
+        return {
+          id: note.id,
+          type: 'note',
+          position,
+          data: nodeData,
+        };
+      });
+    });
+  }, [notes, selectedNoteId, setNodes]);
+
+  // FIXME: 上面的 useEffect 已经包含了 selectedNoteId 的依赖，这会导致每次选中都会重新计算所有节点
+  // 虽然逻辑上是对的（更新 isSelected），但如果 notes 列表很大，可能会有性能问题。
+  // 不过考虑到这是个简单的便签应用，目前这样写更健壮，不容易出 bug。
+  // 关键在于：我们在 map 时使用了 currentNode.position，这样就保留了 ReactFlow 内部状态中的位置。
 
   // 列表选中变化时，飞入画布对应节点
   useEffect(() => {
@@ -100,13 +140,16 @@ const CanvasInner: React.FC = () => {
     }
 
     if (selectedNoteId) {
-      const node = getNode(selectedNoteId);
-      if (node) {
-        setCenter(node.position.x + NODE_WIDTH / 2, node.position.y + NODE_HEIGHT / 2, {
-          zoom: 1,
-          duration: 500,
-        });
-      }
+      // 稍微延迟一点，确保节点已经渲染
+      setTimeout(() => {
+        const node = getNode(selectedNoteId);
+        if (node) {
+          setCenter(node.position.x + NODE_WIDTH / 2, node.position.y + NODE_HEIGHT / 2, {
+            zoom: 1,
+            duration: 500,
+          });
+        }
+      }, 50);
     }
   }, [selectedNoteId, getNode, setCenter]);
 

@@ -82,6 +82,10 @@ export interface Note {
   canvasX?: number | null;
   /** 画布 Y 坐标 */
   canvasY?: number | null;
+  /** 画布宽度 */
+  canvasWidth?: number | null;
+  /** 画布高度 */
+  canvasHeight?: number | null;
 }
 
 /**
@@ -102,6 +106,10 @@ export interface NoteIndex {
   canvasX?: number | null;
   /** 画布 Y 坐标 */
   canvasY?: number | null;
+  /** 画布宽度 */
+  canvasWidth?: number | null;
+  /** 画布高度 */
+  canvasHeight?: number | null;
 }
 
 /**
@@ -205,6 +213,10 @@ export interface UpdateNotePayload {
   canvasX?: number | null;
   /** 画布 Y 坐标 */
   canvasY?: number | null;
+  /** 画布宽度 */
+  canvasWidth?: number | null;
+  /** 画布高度 */
+  canvasHeight?: number | null;
 }
 
 export interface SetStoragePathOptions {

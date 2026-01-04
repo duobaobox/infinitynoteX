@@ -37,6 +37,9 @@ export const NoteSchema = z.object({
   // 画布坐标 - 用于无限画布功能
   canvasX: z.number().nullable().optional(),
   canvasY: z.number().nullable().optional(),
+  // 画布尺寸 - 用于无限画布功能
+  canvasWidth: z.number().nullable().optional(),
+  canvasHeight: z.number().nullable().optional(),
 });
 
 export const NoteIndexSchema = z.object({
@@ -52,6 +55,9 @@ export const NoteIndexSchema = z.object({
   // 画布坐标 - 用于无限画布功能
   canvasX: z.number().nullable().optional(),
   canvasY: z.number().nullable().optional(),
+  // 画布尺寸 - 用于无限画布功能
+  canvasWidth: z.number().nullable().optional(),
+  canvasHeight: z.number().nullable().optional(),
 });
 
 export const NotesIndexArraySchema = z.array(NoteIndexSchema);

@@ -31,11 +31,11 @@ const nodeTypes = {
 };
 
 // 网格布局参数
-const GRID_COLS = 4;
-const NODE_WIDTH = 220;
-const NODE_HEIGHT = 120;
-const GAP_X = 30;
-const GAP_Y = 30;
+const GRID_COLS = 3;
+const NODE_WIDTH = 400;
+const NODE_HEIGHT = 400;
+const GAP_X = 40;
+const GAP_Y = 40;
 
 /**
  * 计算节点的初始位置（网格布局）
@@ -70,6 +70,7 @@ const CanvasInner: React.FC = () => {
           : calculateInitialPosition(index);
 
       const nodeData: NoteNodeData = {
+        noteId: note.id,
         title: note.title,
         excerpt: note.excerpt,
         color: note.color,
@@ -81,6 +82,8 @@ const CanvasInner: React.FC = () => {
         type: 'note',
         position,
         data: nodeData,
+        width: note.canvasWidth ?? NODE_WIDTH,
+        height: note.canvasHeight ?? NODE_HEIGHT,
       };
     });
   }, [notes, selectedNoteId]);
@@ -111,6 +114,7 @@ const CanvasInner: React.FC = () => {
         }
 
         const nodeData: NoteNodeData = {
+          noteId: note.id,
           title: note.title,
           excerpt: note.excerpt,
           color: note.color,
@@ -122,6 +126,8 @@ const CanvasInner: React.FC = () => {
           type: 'note',
           position,
           data: nodeData,
+          width: currentNode?.width ?? note.canvasWidth ?? NODE_WIDTH,
+          height: currentNode?.height ?? note.canvasHeight ?? NODE_HEIGHT,
         };
       });
     });
@@ -161,7 +167,7 @@ const CanvasInner: React.FC = () => {
     [setSelectedNote],
   );
 
-  // 节点拖拽结束：保存位置
+  // 节点拖拽结束：保存位置和尺寸
   const handleNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,12 +175,21 @@ const CanvasInner: React.FC = () => {
 
       // 处理拖拽结束事件
       changes.forEach((change) => {
+        // 保存位置变化
         if (change.type === 'position' && change.dragging === false && change.position) {
           const { id, position } = change;
-          // 保存到数据库
           window.storage.updateNote(id, {
             canvasX: position.x,
             canvasY: position.y,
+          });
+        }
+
+        // 保存尺寸变化
+        if (change.type === 'dimensions' && change.resizing === false && change.dimensions) {
+          const { id, dimensions } = change;
+          window.storage.updateNote(id, {
+            canvasWidth: dimensions.width,
+            canvasHeight: dimensions.height,
           });
         }
       });
@@ -194,6 +209,7 @@ const CanvasInner: React.FC = () => {
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         proOptions={{ hideAttribution: true }}
+        nodeDragThreshold={1}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls />

@@ -1,21 +1,27 @@
 /**
  * NoteNode 样式
+ * 画布便签卡片样式，包含 header 拖拽区域和编辑器区域
  */
 
 .note-node {
-  width: 200px;
-  min-height: 80px;
-  padding: 12px;
+  width: 100%;
+  height: 100%;
+  min-width: 300px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
   border-radius: 8px;
   border: 1px solid var(--border-color, #e8e8e8);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .note-node:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  transform: translateY(-1px);
 }
 
 .note-node--selected {
@@ -23,10 +29,26 @@
   box-shadow: 0 0 0 2px var(--theme-color-light, rgba(22, 119, 255, 0.2));
 }
 
-.note-node__content {
+/* Header 区域 - 拖拽手柄 */
+.note-node__header {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+  cursor: grab;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.note-node__header:active {
+  cursor: grabbing;
+}
+
+.note-node__drag-icon {
+  color: var(--text-tertiary, #bfbfbf);
+  font-size: 14px;
 }
 
 .note-node__title {
@@ -36,16 +58,61 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
 }
 
+/* 编辑器区域 */
+.note-node__editor {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* 编辑器内部样式覆盖 */
+.note-node__editor .tiptap-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.note-node__editor .tiptap-editor-wrapper {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.note-node__editor .tiptap-editor {
+  min-height: 100%;
+  outline: none;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* 隐藏编辑器底部字符计数 */
+.note-node__editor .editor-footer {
+  display: none;
+}
+
+/* 加载状态 */
+.note-node__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 100px;
+}
+
+/* 摘要显示（内容未加载时） */
 .note-node__excerpt {
-  font-size: 12px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--text-secondary, #8c8c8c);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 10;
+  line-clamp: 10;
   -webkit-box-orient: vertical;
 }
 
@@ -56,14 +123,24 @@
   height: 8px;
 }
 
-/* 暗色模式适配 */
+/* ============ 暗色模式适配 ============ */
+
 [data-theme='dark'] .note-node {
   border-color: var(--border-color-dark, #424242);
   background-color: #2a2a2a !important;
 }
 
+[data-theme='dark'] .note-node__header {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom-color: var(--border-color-dark, #424242);
+}
+
 [data-theme='dark'] .note-node__title {
   color: var(--text-primary-dark, #e8e8e8);
+}
+
+[data-theme='dark'] .note-node__drag-icon {
+  color: var(--text-tertiary-dark, #595959);
 }
 
 [data-theme='dark'] .note-node__excerpt {

@@ -123,6 +123,11 @@
   height: 8px;
 }
 
+/* 隐藏 NodeResizer 的控制点，但保留调整大小功能 */
+.note-node .react-flow__resize-control.handle {
+  opacity: 0 !important;
+}
+
 /* ============ 暗色模式适配 ============ */
 
 [data-theme='dark'] .note-node {

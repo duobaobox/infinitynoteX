@@ -7,7 +7,7 @@
  * - TipTap 编辑器区域（可编辑内容）
  */
 
-import React, { memo, lazy, Suspense, useCallback, useState, useEffect, useMemo } from 'react';
+import React, { memo, lazy, Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { HolderOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
@@ -75,15 +75,26 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
   }, [data.noteId, isLoaded]);
 
   // 防抖保存函数（500ms 内无输入后才保存）
-  const debouncedSave = useMemo(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    return (noteId: string, patch: { content?: TipTapJSONContent; title?: string }) => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedSave = useCallback(
+    (noteId: string, patch: { content?: TipTapJSONContent; title?: string }) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-      timeoutId = setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         window.storage.updateNote(noteId, patch);
       }, 500);
+    },
+    [],
+  );
+
+  // 组件卸载时清理 timeout
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
@@ -110,13 +121,8 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       className={`note-node ${isSelected ? 'note-node--selected' : ''}`}
       style={{ backgroundColor: bgColor }}
     >
-      {/* 节点尺寸调整器 */}
-      <NodeResizer
-        color="var(--theme-color, #1677ff)"
-        isVisible={isSelected}
-        minWidth={300}
-        minHeight={200}
-      />
+      {/* 节点尺寸调整器 - 功能保留但视觉隐藏 */}
+      <NodeResizer color="transparent" isVisible={isSelected} minWidth={300} minHeight={200} />
 
       {/* 连接点（V2 可用于连线） */}
       <Handle type="target" position={Position.Top} className="note-node__handle" />
@@ -128,7 +134,7 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       </div>
 
       {/* 编辑器区域 */}
-      <div className="note-node__editor">
+      <div className="note-node__editor nowheel nodrag">
         {isLoading ? (
           <div className="note-node__loading">
             <Spin size="small" />
@@ -142,7 +148,6 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
             }
           >
             <TipTapEditor
-              key={data.noteId}
               initialContent={content}
               onContentChange={handleContentChange}
               onTitleChange={handleTitleChange}

@@ -47,8 +47,11 @@ export const getBasicExtensions = () => {
   return [
     // StarterKit 包含了大部分基础扩展
     // 禁用默认的 CodeBlock，使用 CustomCodeBlock 替代
+    // 禁用 Link 和 Underline，使用自定义配置
     StarterKit.configure({
       codeBlock: false,
+      link: false,
+      underline: false,
       // 拖拽光标指示扩展配置
       dropcursor: {
         color: 'var(--theme-color, #1890ff)',

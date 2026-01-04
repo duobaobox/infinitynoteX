@@ -25,10 +25,10 @@ import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
 import './CanvasTab.css';
 
-// 注册自定义节点类型
+// 注册自定义节点类型（在组件外部定义，避免重复创建）
 const nodeTypes = {
   note: NoteNode,
-};
+} as const;
 
 // 网格布局参数
 const GRID_COLS = 3;
@@ -113,12 +113,15 @@ const CanvasInner: React.FC = () => {
           position = calculateInitialPosition(index);
         }
 
+        // 获取当前节点的 isSelected 状态，避免重新计算
+        const isSelected = currentNode?.data?.isSelected ?? false;
+
         const nodeData: NoteNodeData = {
           noteId: note.id,
           title: note.title,
           excerpt: note.excerpt,
           color: note.color,
-          isSelected: note.id === selectedNoteId,
+          isSelected,
         };
 
         return {
@@ -131,12 +134,17 @@ const CanvasInner: React.FC = () => {
         };
       });
     });
-  }, [notes, selectedNoteId, setNodes]);
+  }, [notes, setNodes]);
 
-  // FIXME: 上面的 useEffect 已经包含了 selectedNoteId 的依赖，这会导致每次选中都会重新计算所有节点
-  // 虽然逻辑上是对的（更新 isSelected），但如果 notes 列表很大，可能会有性能问题。
-  // 不过考虑到这是个简单的便签应用，目前这样写更健壮，不容易出 bug。
-  // 关键在于：我们在 map 时使用了 currentNode.position，这样就保留了 ReactFlow 内部状态中的位置。
+  // 只更新 isSelected 状态，避免重新计算所有节点
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => ({
+        ...node,
+        data: { ...node.data, isSelected: node.id === selectedNoteId },
+      })),
+    );
+  }, [selectedNoteId, setNodes]);
 
   // 列表选中变化时，飞入画布对应节点
   useEffect(() => {
@@ -210,6 +218,13 @@ const CanvasInner: React.FC = () => {
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         proOptions={{ hideAttribution: true }}
         nodeDragThreshold={1}
+        // 排除编辑器区域的拖动（使用 noDragClassName）
+        noDragClassName="nodrag"
+        // 允许节点内部区域使用滚轮进行内容滚动
+        zoomOnScroll={true}
+        panOnScroll={false}
+        // 排除带有 nowheel 类名的元素，不进行缩放拦截
+        noWheelClassName="nowheel"
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls />

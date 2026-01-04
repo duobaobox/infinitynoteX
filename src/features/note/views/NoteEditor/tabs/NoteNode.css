@@ -66,6 +66,7 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
+  cursor: text;
 }
 
 /* 编辑器内部样式覆盖 */
@@ -86,6 +87,16 @@
   outline: none;
   font-size: 13px;
   line-height: 1.6;
+  cursor: text;
+}
+
+/* 确保编辑器光标可见 */
+.note-node__editor .ProseMirror {
+  cursor: text;
+}
+
+.note-node__editor .ProseMirror-focused {
+  outline: none;
 }
 
 /* 隐藏编辑器底部字符计数 */

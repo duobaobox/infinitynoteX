@@ -53,6 +53,7 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
   const [content, setContent] = useState<TipTapJSONContent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // 加载便签完整内容
   useEffect(() => {
@@ -116,6 +117,17 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
     [data.noteId, debouncedSave],
   );
 
+  // 点击编辑器区域时聚焦到 TipTap 编辑器
+  const handleEditorClick = useCallback(() => {
+    // 延迟确保编辑器已渲染
+    setTimeout(() => {
+      const prosemirror = editorRef.current?.querySelector('.ProseMirror') as HTMLElement;
+      if (prosemirror) {
+        prosemirror.focus();
+      }
+    }, 0);
+  }, []);
+
   return (
     <div
       className={`note-node ${isSelected ? 'note-node--selected' : ''}`}
@@ -134,7 +146,7 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       </div>
 
       {/* 编辑器区域 */}
-      <div className="note-node__editor nowheel nodrag">
+      <div ref={editorRef} className="note-node__editor nowheel nodrag" onClick={handleEditorClick}>
         {isLoading ? (
           <div className="note-node__loading">
             <Spin size="small" />
@@ -154,6 +166,7 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
               showMenuBar={false}
               showTitleInput={false}
               contentId={data.noteId}
+              editable={true}
             />
           </Suspense>
         ) : (

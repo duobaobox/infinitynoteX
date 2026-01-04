@@ -159,7 +159,7 @@ const CanvasInner: React.FC = () => {
         const node = getNode(selectedNoteId);
         if (node) {
           setCenter(node.position.x + NODE_WIDTH / 2, node.position.y + NODE_HEIGHT / 2, {
-            zoom: 1,
+            zoom: 1.16,
             duration: 500,
           });
         }

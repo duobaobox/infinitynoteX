@@ -7,7 +7,7 @@
  * - 与左侧列表双向联动
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -59,52 +59,35 @@ const CanvasInner: React.FC = () => {
 
   const { setCenter, getNode } = useReactFlow();
   const isInitialMount = useRef(true);
+  const prevNotesRef = useRef(notes);
 
-  // 将便签数据转换为 ReactFlow 节点
-  const initialNodes = useMemo(() => {
-    return notes.map((note, index) => {
-      // 如果有保存的坐标，使用保存的；否则使用网格布局
-      const position =
-        note.canvasX != null && note.canvasY != null
-          ? { x: note.canvasX, y: note.canvasY }
-          : calculateInitialPosition(index);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
 
-      const nodeData: NoteNodeData = {
-        noteId: note.id,
-        title: note.title,
-        excerpt: note.excerpt,
-        color: note.color,
-        isSelected: note.id === selectedNoteId,
-      };
-
-      return {
-        id: note.id,
-        type: 'note',
-        position,
-        data: nodeData,
-        width: note.canvasWidth ?? NODE_WIDTH,
-        height: note.canvasHeight ?? NODE_HEIGHT,
-      };
-    });
-  }, [notes, selectedNoteId]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-
-  // 当 notes 变化时，合并更新节点数据，但保留当前位置
+  // 统一处理节点更新：notes 变化或 selectedNoteId 变化
   useEffect(() => {
-    setNodes((nds) => {
-      // 创建当前节点的映射，方便查找
-      const currentNodesMap = new Map(nds.map((n) => [n.id, n]));
+    const prevNotes = prevNotesRef.current;
+    const notesChanged = notes !== prevNotes;
+
+    setNodes((currentNodes) => {
+      // 如果只是选中状态变化，快速更新 isSelected
+      if (!notesChanged && currentNodes.length === notes.length) {
+        return currentNodes.map((node) => ({
+          ...node,
+          data: { ...node.data, isSelected: node.id === selectedNoteId },
+        }));
+      }
+
+      // notes 发生变化，需要完整更新
+      const currentNodesMap = new Map(currentNodes.map((n) => [n.id, n]));
 
       return notes.map((note, index) => {
         const currentNode = currentNodesMap.get(note.id);
 
-        // 计算目标位置：
-        // 1. 如果当前画布已有该节点，优先使用当前画布的位置（避免拖拽时跳变）
-        // 2. 如果是新节点，且数据库有保存位置，使用数据库位置
-        // 3. 否则使用网格布局计算初始位置
+        // 位置优先级：
+        // 1. 保留当前画布位置（用户正在拖拽的状态）
+        // 2. 使用数据库保存的位置
+        // 3. 使用网格布局计算初始位置
         let position = { x: 0, y: 0 };
-
         if (currentNode) {
           position = currentNode.position;
         } else if (note.canvasX != null && note.canvasY != null) {
@@ -113,15 +96,19 @@ const CanvasInner: React.FC = () => {
           position = calculateInitialPosition(index);
         }
 
-        // 获取当前节点的 isSelected 状态，避免重新计算
-        const isSelected = currentNode?.data?.isSelected ?? false;
+        // 尺寸优先级：
+        // 1. 保留当前画布尺寸（用户正在调整的状态）
+        // 2. 使用数据库保存的尺寸
+        // 3. 使用默认尺寸
+        const width = currentNode?.measured?.width ?? note.canvasWidth ?? NODE_WIDTH;
+        const height = currentNode?.measured?.height ?? note.canvasHeight ?? NODE_HEIGHT;
 
         const nodeData: NoteNodeData = {
           noteId: note.id,
           title: note.title,
           excerpt: note.excerpt,
           color: note.color,
-          isSelected,
+          isSelected: note.id === selectedNoteId,
         };
 
         return {
@@ -129,22 +116,14 @@ const CanvasInner: React.FC = () => {
           type: 'note',
           position,
           data: nodeData,
-          width: currentNode?.width ?? note.canvasWidth ?? NODE_WIDTH,
-          height: currentNode?.height ?? note.canvasHeight ?? NODE_HEIGHT,
+          width,
+          height,
         };
       });
     });
-  }, [notes, setNodes]);
 
-  // 只更新 isSelected 状态，避免重新计算所有节点
-  useEffect(() => {
-    setNodes((nds) =>
-      nds.map((node) => ({
-        ...node,
-        data: { ...node.data, isSelected: node.id === selectedNoteId },
-      })),
-    );
-  }, [selectedNoteId, setNodes]);
+    prevNotesRef.current = notes;
+  }, [notes, selectedNoteId, setNodes]);
 
   // 列表选中变化时，飞入画布对应节点
   useEffect(() => {
@@ -175,31 +154,45 @@ const CanvasInner: React.FC = () => {
     [setSelectedNote],
   );
 
-  // 节点拖拽结束：保存位置和尺寸
+  // 节点拖拽/调整尺寸结束：批量保存位置和尺寸
   const handleNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onNodesChange(changes as any);
 
-      // 处理拖拽结束事件
+      // 收集需要保存的变更
+      const updates: Array<{
+        id: string;
+        patch: { canvasX?: number; canvasY?: number; canvasWidth?: number; canvasHeight?: number };
+      }> = [];
+
       changes.forEach((change) => {
         // 保存位置变化
         if (change.type === 'position' && change.dragging === false && change.position) {
-          const { id, position } = change;
-          window.storage.updateNote(id, {
-            canvasX: position.x,
-            canvasY: position.y,
+          updates.push({
+            id: change.id,
+            patch: {
+              canvasX: change.position.x,
+              canvasY: change.position.y,
+            },
           });
         }
 
         // 保存尺寸变化
         if (change.type === 'dimensions' && change.resizing === false && change.dimensions) {
-          const { id, dimensions } = change;
-          window.storage.updateNote(id, {
-            canvasWidth: dimensions.width,
-            canvasHeight: dimensions.height,
+          updates.push({
+            id: change.id,
+            patch: {
+              canvasWidth: change.dimensions.width,
+              canvasHeight: change.dimensions.height,
+            },
           });
         }
+      });
+
+      // 批量更新数据库（避免多次调用）
+      updates.forEach(({ id, patch }) => {
+        window.storage.updateNote(id, patch);
       });
     },
     [onNodesChange],

@@ -48,6 +48,25 @@
   background-color: var(--bg-hover-dark, #3a3a3a);
 }
 
+/* 批量操作工具栏滑入动画 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 框选区域样式 */
+.canvas-tab .react-flow__selection {
+  background: rgba(102, 126, 234, 0.08);
+  border: 2px solid rgba(102, 126, 234, 0.6);
+  border-radius: 4px;
+}
+
 /* 背景点阵颜色 */
 [data-theme='dark'] .canvas-tab .react-flow__background pattern circle {
   fill: #404040;

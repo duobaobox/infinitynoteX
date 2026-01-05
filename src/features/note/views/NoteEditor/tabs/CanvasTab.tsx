@@ -7,19 +7,31 @@
  * - 与左侧列表双向联动
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
+  Panel,
+  MiniMap,
   useNodesState,
   useReactFlow,
   ReactFlowProvider,
+  useOnViewportChange,
   type Node,
   type NodeChange,
+  type Viewport,
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Button, Tooltip, message } from 'antd';
+import {
+  PlusOutlined,
+  ZoomInOutlined,
+  LayoutOutlined,
+  UnorderedListOutlined,
+  EnvironmentOutlined,
+} from '@ant-design/icons';
 
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
@@ -56,12 +68,42 @@ const CanvasInner: React.FC = () => {
   const notes = useWorkspaceStore((state) => state.notes);
   const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
   const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
+  const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
+  const createNote = useWorkspaceStore((state) => state.createNote);
 
-  const { setCenter, getNode } = useReactFlow();
+  const { setCenter, getNode, fitView, setViewport } = useReactFlow();
   const isInitialMount = useRef(true);
   const prevNotesRef = useRef(notes);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
+  const [viewport, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
+  const [showMiniMap, setShowMiniMap] = useState(false);
+
+  // 监听视口变化并保存
+  useOnViewportChange({
+    onChange: (newViewport) => {
+      setViewportState(newViewport);
+      // 保存视口状态到 localStorage
+      if (selectedFolderId) {
+        localStorage.setItem(`canvas-viewport-${selectedFolderId}`, JSON.stringify(newViewport));
+      }
+    },
+  });
+
+  // 恢复视口状态
+  useEffect(() => {
+    if (selectedFolderId) {
+      const savedViewport = localStorage.getItem(`canvas-viewport-${selectedFolderId}`);
+      if (savedViewport) {
+        try {
+          const parsedViewport = JSON.parse(savedViewport);
+          setViewport(parsedViewport, { duration: 300 });
+        } catch (error) {
+          console.error('Failed to restore viewport:', error);
+        }
+      }
+    }
+  }, [selectedFolderId, setViewport]);
 
   // 统一处理节点更新：notes 变化或 selectedNoteId 变化
   useEffect(() => {
@@ -154,6 +196,63 @@ const CanvasInner: React.FC = () => {
     [setSelectedNote],
   );
 
+  // 新建便签（在画布中心创建）
+  const handleCreateNote = useCallback(async () => {
+    if (!selectedFolderId) {
+      message.error('请先选择一个文件夹');
+      return;
+    }
+
+    const centerX = -viewport.x / viewport.zoom + window.innerWidth / 2 / viewport.zoom;
+    const centerY = -viewport.y / viewport.zoom + window.innerHeight / 2 / viewport.zoom;
+
+    try {
+      const newNote = await createNote(selectedFolderId);
+
+      // 保存画布位置
+      await window.storage.updateNote(newNote.id, {
+        canvasX: centerX - NODE_WIDTH / 2,
+        canvasY: centerY - NODE_HEIGHT / 2,
+      });
+
+      setSelectedNote(newNote.id);
+      message.success('已创建新便签');
+    } catch (error) {
+      console.error('Failed to create note:', error);
+      message.error('创建便签失败');
+    }
+  }, [viewport, selectedFolderId, createNote, setSelectedNote]);
+
+  // 适应画布
+  const handleFitView = useCallback(() => {
+    fitView({
+      padding: 0.2,
+      duration: 500,
+      maxZoom: 1.5,
+      minZoom: 0.5,
+    });
+  }, [fitView]);
+
+  // 自动排列
+  const handleAutoLayout = useCallback(() => {
+    const layoutedNodes = nodes.map((node, index) => ({
+      ...node,
+      position: calculateInitialPosition(index),
+    }));
+
+    setNodes(layoutedNodes);
+
+    // 批量保存位置
+    layoutedNodes.forEach((node) => {
+      window.storage.updateNote(node.id, {
+        canvasX: node.position.x,
+        canvasY: node.position.y,
+      });
+    });
+
+    message.success('已重新排列所有便签');
+  }, [nodes, setNodes]);
+
   // 节点拖拽/调整尺寸结束：批量保存位置和尺寸
   const handleNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
@@ -220,7 +319,124 @@ const CanvasInner: React.FC = () => {
         noWheelClassName="nowheel"
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
-        <Controls />
+
+        {/* Controls 组件，内置小地图和自动排列按钮 */}
+        <Controls position="bottom-right" showInteractive={false}>
+          <Tooltip title="自动排列" placement="left">
+            <button className="react-flow__controls-button" onClick={handleAutoLayout}>
+              <LayoutOutlined />
+            </button>
+          </Tooltip>
+          <Tooltip title={showMiniMap ? '隐藏小地图' : '显示小地图'} placement="left">
+            <button
+              className="react-flow__controls-button"
+              onClick={() => setShowMiniMap(!showMiniMap)}
+              style={{
+                backgroundColor: showMiniMap ? '#1677ff' : 'white',
+                color: showMiniMap ? 'white' : '#666',
+              }}
+            >
+              <EnvironmentOutlined />
+            </button>
+          </Tooltip>
+        </Controls>
+
+        {/* 小地图 - 条件渲染 */}
+        {showMiniMap && (
+          <MiniMap
+            nodeColor={(node) => {
+              const colorMap: Record<string, string> = {
+                bae0ff: '#bae0ff',
+                d9f7be: '#d9f7be',
+                ffd6e7: '#ffd6e7',
+                d6e4ff: '#d6e4ff',
+                ffd666: '#ffd666',
+                ffffff: '#ffffff',
+              };
+              const bgColor = node.data.color as string;
+              return colorMap[bgColor] || '#ffffff';
+            }}
+            nodeStrokeColor={(node) => {
+              return node.data.isSelected ? '#1677ff' : '#e8e8e8';
+            }}
+            nodeStrokeWidth={3}
+            nodeBorderRadius={8}
+            zoomable
+            pannable
+            position="bottom-right"
+            style={{
+              backgroundColor: '#fafafa',
+              border: '1px solid #e8e8e8',
+              borderRadius: '8px',
+              marginBottom: '140px',
+              marginRight: '10px',
+            }}
+            maskColor="rgba(0, 0, 0, 0.05)"
+          />
+        )}
+
+        {/* 底部中央浮动工具栏 - 类似 Notion Canvas */}
+        <Panel position="bottom-center">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(8px)',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.8)',
+            }}
+          >
+            {/* 新建按钮 - 主要操作 */}
+            <Tooltip title="新建便签 (在画布中心)" placement="top">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateNote}
+                style={{
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              />
+            </Tooltip>
+
+            {/* 分隔线 */}
+            <div style={{ width: '1px', height: '20px', background: '#e8e8e8' }} />
+
+            {/* 视图工具 */}
+            <Tooltip title="适应画布" placement="top">
+              <Button
+                icon={<ZoomInOutlined />}
+                onClick={handleFitView}
+                type="text"
+                style={{ borderRadius: '8px' }}
+              />
+            </Tooltip>
+
+            {/* 分隔线 */}
+            <div style={{ width: '1px', height: '20px', background: '#e8e8e8' }} />
+
+            {/* 便签数量 - 信息展示 */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0 8px',
+                color: '#666',
+                fontSize: '13px',
+              }}
+            >
+              <UnorderedListOutlined style={{ fontSize: 14 }} />
+              <span>{nodes.length}</span>
+            </div>
+          </div>
+        </Panel>
       </ReactFlow>
     </div>
   );

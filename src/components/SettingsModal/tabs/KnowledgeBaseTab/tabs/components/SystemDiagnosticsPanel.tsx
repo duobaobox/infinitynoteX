@@ -90,7 +90,7 @@ const SystemDiagnosticsPanel: React.FC = () => {
       const result = await window.knowledge?.repairIndex();
       if (result?.success) {
         message.success(
-          `修复完成：清理了 ${result.orphanedCleaned} 个孤立向量，索引了 ${result.missingIndexed} 个缺失笔记`,
+          `修复完成：清理了 ${result.orphanedCleaned} 个孤立向量，索引了 ${result.missingIndexed} 个缺失便签`,
         );
         // 重新运行诊断
         await runDiagnostics();
@@ -216,7 +216,7 @@ const SystemDiagnosticsPanel: React.FC = () => {
                   </Col>
                   <Col span={8}>
                     <Statistic
-                      title="笔记数"
+                      title="便签数"
                       value={diagnostics.vectorStore.uniqueNotes}
                       valueStyle={{ fontSize: 18 }}
                     />

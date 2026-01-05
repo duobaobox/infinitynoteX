@@ -215,7 +215,7 @@ const AboutTab: React.FC = () => {
 
         {/* 标题和版本 */}
         <h2>InfinityNoteX</h2>
-        <p className="about-version">版本 {appVersion} · 一款无限可能的笔记应用</p>
+        <p className="about-version">版本 {appVersion} · 一款无限可能的便签应用</p>
 
         {/* 更新检查卡片 */}
         <div className="about-update-card">

@@ -134,7 +134,7 @@ const IndexingConfigPanel: React.FC = () => {
               <ThunderboltOutlined style={{ color: '#1890ff' }} />
               <Text strong>分块参数</Text>
             </Space>
-            <Tooltip title="分块策略决定如何将笔记内容切分为多个片段进行向量化。较小的块可提高搜索精度，但会增加向量数量。">
+            <Tooltip title="分块策略决定如何将便签内容切分为多个片段进行向量化。较小的块可提高搜索精度，但会增加向量数量。">
               <QuestionCircleOutlined style={{ color: '#bfbfbf' }} />
             </Tooltip>
           </div>

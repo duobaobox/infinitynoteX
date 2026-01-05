@@ -144,7 +144,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
     try {
       const result = await window.knowledge?.rebuildIndex();
       if (result?.success) {
-        message.success(`完成：${result.indexedNotes} 笔记，${result.totalVectors} 向量`);
+        message.success(`完成：${result.indexedNotes} 便签，${result.totalVectors} 向量`);
         onStatsChange?.({ indexedNotes: result.indexedNotes, totalVectors: result.totalVectors });
       } else {
         message.error(result?.error || '失败');
@@ -167,7 +167,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
           <Col>
             <div style={{ fontWeight: 500, marginBottom: 4 }}>索引维护</div>
             <Text type="secondary" style={{ fontSize: 13 }}>
-              手动触发笔记的向量化处理。
+              手动触发便签的向量化处理。
             </Text>
           </Col>
           <Col>

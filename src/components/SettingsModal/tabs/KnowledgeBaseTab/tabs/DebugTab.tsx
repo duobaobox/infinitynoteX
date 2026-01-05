@@ -173,7 +173,7 @@ const SearchTestPanel: React.FC = () => {
   // 数据块表格列
   const chunkColumns: ColumnsType<ChunkInfo> = [
     {
-      title: '笔记',
+      title: '便签',
       dataIndex: 'noteTitle',
       key: 'noteTitle',
       width: 120,
@@ -217,10 +217,10 @@ const SearchTestPanel: React.FC = () => {
     },
   ];
 
-  // 笔记索引表格列
+  // 便签索引表格列
   const noteColumns: ColumnsType<NoteIndexInfo> = [
     {
-      title: '笔记',
+      title: '便签',
       dataIndex: 'noteTitle',
       key: 'noteTitle',
       ellipsis: true,
@@ -301,7 +301,7 @@ const SearchTestPanel: React.FC = () => {
       label: (
         <Space>
           <FileTextOutlined />
-          笔记索引
+          便签索引
           <Tag>{noteIndexList.length}</Tag>
         </Space>
       ),
@@ -407,7 +407,7 @@ const SearchTestPanel: React.FC = () => {
               </Text>
             </div>
             <div>
-              <Text type="secondary">笔记</Text>
+              <Text type="secondary">便签</Text>
               <br />
               <Text strong>{selectedChunk.noteTitle || '无标题'}</Text>
             </div>

@@ -235,7 +235,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       {showTitleInput && (
         <div className="editor-title-input">
           <Input
-            placeholder="输入笔记标题..."
+            placeholder="输入便签标题..."
             value={title}
             onChange={(e) => onTitleChange?.(e.target.value)}
             size="large"

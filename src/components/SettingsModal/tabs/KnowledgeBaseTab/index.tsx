@@ -99,7 +99,7 @@ const KnowledgeBaseTab: React.FC = () => {
           </Text>
         </Card>
 
-        {/* 已索引笔记 */}
+        {/* 已索引便签 */}
         <Card className="kb-stats-card kb-card kb-card-glow" size="small" variant="outlined">
           <div className="kb-glow kb-glow--green" />
           <div className="kb-card-inner">
@@ -109,7 +109,7 @@ const KnowledgeBaseTab: React.FC = () => {
             <span className="kb-card-number">{stats.indexedNotes}</span>
           </div>
           <Text type="secondary" className="kb-card-label">
-            已索引笔记
+            已索引便签
           </Text>
         </Card>
 

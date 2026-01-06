@@ -27,10 +27,10 @@ import '@xyflow/react/dist/style.css';
 import { Button, Tooltip, message } from 'antd';
 import {
   PlusOutlined,
-  ZoomInOutlined,
   LayoutOutlined,
   UnorderedListOutlined,
   EnvironmentOutlined,
+  FullscreenOutlined,
 } from '@ant-design/icons';
 
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
@@ -234,23 +234,47 @@ const CanvasInner: React.FC = () => {
   }, [fitView]);
 
   // 自动排列
-  const handleAutoLayout = useCallback(() => {
-    const layoutedNodes = nodes.map((node, index) => ({
-      ...node,
-      position: calculateInitialPosition(index),
-    }));
+  const handleAutoLayout = useCallback(async () => {
+    // 获取默认尺寸
+    let defaultWidth = NODE_WIDTH;
+    let defaultHeight = NODE_HEIGHT;
 
-    setNodes(layoutedNodes);
+    try {
+      const config = await window.ipcRenderer?.invoke('config:getDefaultFloatingWindowSize');
+      if (config) {
+        defaultWidth = config.width || NODE_WIDTH;
+        defaultHeight = config.height || NODE_HEIGHT;
+      }
+    } catch (error) {
+      console.error('Failed to load default size:', error);
+    }
 
-    // 批量保存位置
-    layoutedNodes.forEach((node) => {
-      window.storage.updateNote(node.id, {
-        canvasX: node.position.x,
-        canvasY: node.position.y,
+    // 批量更新数据库中的位置和尺寸
+    const updatePromises = nodes.map((node, index) => {
+      const position = calculateInitialPosition(index);
+      return window.storage.updateNote(node.id, {
+        canvasX: position.x,
+        canvasY: position.y,
+        canvasWidth: defaultWidth,
+        canvasHeight: defaultHeight,
       });
     });
 
-    message.success('已重新排列所有便签');
+    await Promise.all(updatePromises);
+
+    // 更新节点（直接设置新的位置和尺寸）
+    const layoutedNodes = nodes.map((node, index) => ({
+      ...node,
+      position: calculateInitialPosition(index),
+      width: defaultWidth,
+      height: defaultHeight,
+      measured: {
+        width: defaultWidth,
+        height: defaultHeight,
+      },
+    }));
+
+    setNodes(layoutedNodes);
   }, [nodes, setNodes]);
 
   // 节点拖拽/调整尺寸结束：批量保存位置和尺寸
@@ -322,6 +346,11 @@ const CanvasInner: React.FC = () => {
 
         {/* Controls 组件，内置小地图和自动排列按钮 */}
         <Controls position="bottom-right" showInteractive={false}>
+          <Tooltip title="适应画布" placement="left">
+            <button className="react-flow__controls-button" onClick={handleFitView}>
+              <FullscreenOutlined />
+            </button>
+          </Tooltip>
           <Tooltip title="自动排列" placement="left">
             <button className="react-flow__controls-button" onClick={handleAutoLayout}>
               <LayoutOutlined />
@@ -404,22 +433,6 @@ const CanvasInner: React.FC = () => {
                 }}
               />
             </Tooltip>
-
-            {/* 分隔线 */}
-            <div style={{ width: '1px', height: '20px', background: '#e8e8e8' }} />
-
-            {/* 视图工具 */}
-            <Tooltip title="适应画布" placement="top">
-              <Button
-                icon={<ZoomInOutlined />}
-                onClick={handleFitView}
-                type="text"
-                style={{ borderRadius: '8px' }}
-              />
-            </Tooltip>
-
-            {/* 分隔线 */}
-            <div style={{ width: '1px', height: '20px', background: '#e8e8e8' }} />
 
             {/* 便签数量 - 信息展示 */}
             <div

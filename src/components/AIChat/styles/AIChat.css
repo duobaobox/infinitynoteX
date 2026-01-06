@@ -201,7 +201,44 @@
   padding-top: 2px !important;
   padding-bottom: 2px !important;
 }
+/* 画布模式下的AI回复区域 */
+.canvas-ai-response {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  /* Firefox 滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
 
+/* 自定义滚动条样式 - WebKit */
+.canvas-ai-response::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.canvas-ai-response::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.canvas-ai-response:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.canvas-ai-response::-webkit-scrollbar-corner {
+  background: transparent;
+}
 /* ==================== 自定义组件样式 ==================== */
 
 /**

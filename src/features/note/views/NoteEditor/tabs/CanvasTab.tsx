@@ -24,16 +24,29 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Tooltip, message } from 'antd';
+import { Tooltip, message, Button, Space } from 'antd';
 import type { MenuProps } from 'antd';
-import { LayoutOutlined, EnvironmentOutlined, FullscreenOutlined } from '@ant-design/icons';
+import {
+  LayoutOutlined,
+  EnvironmentOutlined,
+  FullscreenOutlined,
+  CloseOutlined,
+  SaveOutlined,
+  CopyOutlined,
+} from '@ant-design/icons';
 
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
 import { ChatInput } from '../../../../../components/AIChat/core/components/ChatInput';
+import { MarkdownRenderer } from '../../../../../components/AIChat/components/MarkdownRenderer';
 import { useAIConfig, useAIChat } from '../../../../../components/AIChat/hooks';
 import { noteService, folderService } from '../../../../../services';
-import { extractTipTapText } from '../../../../../components/AIChat/utils';
+import {
+  extractTipTapText,
+  convertMarkdownToTipTap,
+  copyToClipboard,
+  stripThinkBlocks,
+} from '../../../../../components/AIChat/utils';
 import './CanvasTab.css';
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
@@ -72,33 +85,60 @@ const CanvasInner: React.FC = () => {
   const { setCenter, getNode, fitView, setViewport } = useReactFlow();
   const isInitialMount = useRef(true);
   const prevNotesRef = useRef(notes);
+  const noteCacheRef = useRef<Map<string, { id: string; title: string; content: string }>>(
+    new Map(),
+  );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
   const [, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
   const [showMiniMap, setShowMiniMap] = useState(false);
 
   // AI Chat 相关状态
-  const { config, providerOptions, currentProviderId, switchProvider, isSwitching } = useAIConfig();
+  const { isConfigured, config, providerOptions, currentProviderId, switchProvider, isSwitching } =
+    useAIConfig();
 
   const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
   const [selectedNotes, setSelectedNotes] = useState<
     Array<{ id: string; title: string; content: string }>
   >([]);
 
-  const { isStreaming, sendMessage, abortStream } = useAIChat({
+  // AI回复相关状态
+  const [aiResponse, setAiResponse] = useState<string>('');
+  const [showAiResponse, setShowAiResponse] = useState(false);
+  const aiResponseRef = useRef<HTMLDivElement>(null);
+
+  const {
+    isLoading: isStreaming,
+    sendMessage,
+    abort,
+    chatItems,
+  } = useAIChat({
     conversationId: null,
-    onMessage: (content: string, isComplete: boolean) => {
-      // 画布模式下的 AI 回复处理
-      console.log('AI response:', content, 'complete:', isComplete);
-      if (isComplete) {
-        message.success('AI 回复完成');
-      }
-    },
-    onError: (error: Error) => {
-      message.error(`AI 错误: ${error.message}`);
-    },
-    source: 'canvas',
+    isConfigured,
+    source: 'workbench',
   });
+
+  // 监听 AI 回复更新
+  useEffect(() => {
+    if (chatItems.length > 0) {
+      const lastMessage = chatItems[chatItems.length - 1];
+      if (lastMessage.role === 'ai') {
+        setAiResponse(lastMessage.content);
+        setShowAiResponse(true);
+      }
+    }
+  }, [chatItems]);
+
+  // AI回复时自动滚动到底部
+  useEffect(() => {
+    if (aiResponse && aiResponseRef.current) {
+      // 使用 smooth 滚动
+      aiResponseRef.current.scrollTo({
+        top: aiResponseRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+  }, [aiResponse]);
 
   // 加载便签列表（用于引用）
   useEffect(() => {
@@ -153,11 +193,49 @@ const CanvasInner: React.FC = () => {
   // 发送 AI 消息
   const handleSendMessage = useCallback(
     async (value: string, attachments?: any[]) => {
-      await sendMessage(value, attachments);
-      setSelectedNotes([]); // 清空引用
+      if (!isConfigured) {
+        message.warning('请先配置 AI 提供商');
+        return;
+      }
+      setAiResponse(''); // 清空上次回复
+      setShowAiResponse(false);
+      try {
+        await sendMessage(value, attachments);
+        // 不清空引用，让用户可以基于同一组便签继续提问
+      } catch (error) {
+        message.error('发送失败，请重试');
+      }
     },
-    [sendMessage],
+    [sendMessage, isConfigured],
   );
+
+  // 保存AI回复为便签
+  const handleSaveAiResponse = useCallback(async () => {
+    try {
+      const exported = stripThinkBlocks(aiResponse);
+      const tipTapContent = convertMarkdownToTipTap(exported);
+      const firstLine = (exported.split('\n').find((l) => l.trim().length > 0) || '').trim();
+      const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
+
+      await noteService.createNote(selectedFolderId || 'default', {
+        title,
+        content: tipTapContent,
+      });
+
+      message.success('已保存到便签');
+    } catch (error) {
+      console.error('Failed to save AI response:', error);
+      message.error('保存失败');
+    }
+  }, [aiResponse, selectedFolderId]);
+
+  // 复制AI回复
+  const handleCopyAiResponse = useCallback(() => {
+    const textToCopy = stripThinkBlocks(aiResponse);
+    copyToClipboard(textToCopy, textToCopy)
+      .then(() => message.success('已复制'))
+      .catch(() => message.error('复制失败'));
+  }, [aiResponse]);
 
   // 监听视口变化并保存
   useOnViewportChange({
@@ -376,6 +454,52 @@ const CanvasInner: React.FC = () => {
     [onNodesChange],
   );
 
+  // 处理节点选中变化
+  const handleSelectionChange = useCallback(
+    async (selection: { nodes: Node[] }) => {
+      const selectedNodesList = selection.nodes;
+
+      // 使用 Promise.all 并发获取所有选中便签的完整内容
+      const notePromises = selectedNodesList.map(async (node) => {
+        const noteInStore = notes.find((n) => n.id === node.id);
+        if (noteInStore) {
+          // 优先使用缓存
+          if (noteCacheRef.current.has(node.id)) {
+            return noteCacheRef.current.get(node.id)!;
+          }
+
+          try {
+            // 重新获取完整的便签数据（包含 content）
+            const fullNote = await noteService.getNote(node.id);
+            const textContent = extractTipTapText(fullNote.content);
+            const noteData = {
+              id: fullNote.id,
+              title: fullNote.title || '无标题',
+              content: textContent,
+            };
+            // 缓存结果
+            noteCacheRef.current.set(node.id, noteData);
+            return noteData;
+          } catch (err) {
+            console.error('[Canvas] Failed to load note:', err);
+            message.error(`加载便签"${noteInStore.title}"失败`);
+            return null;
+          }
+        }
+        return null;
+      });
+
+      const newSelectedNotes = (await Promise.all(notePromises)).filter(Boolean) as Array<{
+        id: string;
+        title: string;
+        content: string;
+      }>;
+
+      setSelectedNotes(newSelectedNotes);
+    },
+    [notes],
+  );
+
   return (
     <div className="canvas-tab">
       <ReactFlow
@@ -383,26 +507,7 @@ const CanvasInner: React.FC = () => {
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
         onNodeClick={handleNodeClick}
-        onSelectionChange={(selection) => {
-          // 当节点选中状态改变时，更新 AI 上下文
-          const selectedNodesList = selection.nodes;
-          const newSelectedNotes = selectedNodesList
-            .map((node) => {
-              const note = notes.find((n) => n.id === node.id);
-              if (note) {
-                const textContent = extractTipTapText(note.content);
-                return {
-                  id: note.id,
-                  title: note.title || '无标题',
-                  content: textContent,
-                };
-              }
-              return null;
-            })
-            .filter(Boolean) as Array<{ id: string; title: string; content: string }>;
-
-          setSelectedNotes(newSelectedNotes);
-        }}
+        onSelectionChange={handleSelectionChange}
         fitView
         minZoom={0.1}
         maxZoom={2}
@@ -484,38 +589,98 @@ const CanvasInner: React.FC = () => {
           <div
             style={{
               width: '600px',
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: '12px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.8)',
-              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
             }}
           >
-            <ChatInput
-              isLoading={isStreaming}
-              onSend={handleSendMessage}
-              onAbort={abortStream}
-              selectedNotes={selectedNotes}
-              onRemoveNote={handleRemoveNote}
-              providerConfig={{
-                config,
-                options: providerOptions,
-                currentId: currentProviderId,
-                isSwitching,
-                onSwitch: switchProvider,
+            {/* AI回复显示区域 */}
+            {showAiResponse && (
+              <div ref={aiResponseRef} className="canvas-ai-response">
+                {/* 加载状态 */}
+                {isStreaming && !aiResponse && (
+                  <div style={{ color: '#999', fontSize: '14px' }}>
+                    <span>AI 思考中...</span>
+                  </div>
+                )}
+
+                {/* Markdown渲染 */}
+                {aiResponse && (
+                  <>
+                    <MarkdownRenderer
+                      content={aiResponse}
+                      streaming={
+                        isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
+                      }
+                    />
+
+                    {/* 操作按钮 */}
+                    <Space style={{ marginTop: '8px' }}>
+                      <Button
+                        size="small"
+                        icon={<SaveOutlined />}
+                        onClick={handleSaveAiResponse}
+                        disabled={isStreaming}
+                      >
+                        保存
+                      </Button>
+                      <Button
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={handleCopyAiResponse}
+                        disabled={isStreaming}
+                      >
+                        复制
+                      </Button>
+                      <Button
+                        size="small"
+                        icon={<CloseOutlined />}
+                        onClick={() => setShowAiResponse(false)}
+                      >
+                        关闭
+                      </Button>
+                    </Space>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 输入框容器 */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '12px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                overflow: 'hidden',
               }}
-              knowledgeBase={{
-                enabled: false,
-                inUse: false,
-                onToggle: () => {},
-              }}
-              noteReference={{
-                items: noteItems,
-                onSelect: handleNoteSelect,
-              }}
-              autoSize={{ minRows: 1, maxRows: 6 }}
-            />
+            >
+              <ChatInput
+                isLoading={isStreaming}
+                onSend={handleSendMessage}
+                onAbort={abort}
+                selectedNotes={selectedNotes}
+                onRemoveNote={handleRemoveNote}
+                providerConfig={{
+                  config,
+                  options: providerOptions,
+                  currentId: currentProviderId,
+                  isSwitching,
+                  onSwitch: switchProvider,
+                }}
+                knowledgeBase={{
+                  enabled: false,
+                  inUse: false,
+                  onToggle: () => {},
+                }}
+                noteReference={{
+                  items: noteItems,
+                  onSelect: handleNoteSelect,
+                }}
+                autoSize={{ minRows: 1, maxRows: 6 }}
+              />
+            </div>
           </div>
         </Panel>
       </ReactFlow>

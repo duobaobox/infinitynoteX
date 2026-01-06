@@ -24,17 +24,16 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Button, Tooltip, message } from 'antd';
-import {
-  PlusOutlined,
-  LayoutOutlined,
-  UnorderedListOutlined,
-  EnvironmentOutlined,
-  FullscreenOutlined,
-} from '@ant-design/icons';
+import { Tooltip, message } from 'antd';
+import type { MenuProps } from 'antd';
+import { LayoutOutlined, EnvironmentOutlined, FullscreenOutlined } from '@ant-design/icons';
 
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
+import { ChatInput } from '../../../../../components/AIChat/core/components/ChatInput';
+import { useAIConfig, useAIChat } from '../../../../../components/AIChat/hooks';
+import { noteService, folderService } from '../../../../../services';
+import { extractTipTapText } from '../../../../../components/AIChat/utils';
 import './CanvasTab.css';
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
@@ -69,15 +68,96 @@ const CanvasInner: React.FC = () => {
   const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
   const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
   const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
-  const createNote = useWorkspaceStore((state) => state.createNote);
 
   const { setCenter, getNode, fitView, setViewport } = useReactFlow();
   const isInitialMount = useRef(true);
   const prevNotesRef = useRef(notes);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
-  const [viewport, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
+  const [, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
   const [showMiniMap, setShowMiniMap] = useState(false);
+
+  // AI Chat 相关状态
+  const { config, providerOptions, currentProviderId, switchProvider, isSwitching } = useAIConfig();
+
+  const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
+  const [selectedNotes, setSelectedNotes] = useState<
+    Array<{ id: string; title: string; content: string }>
+  >([]);
+
+  const { isStreaming, sendMessage, abortStream } = useAIChat({
+    conversationId: null,
+    onMessage: (content: string, isComplete: boolean) => {
+      // 画布模式下的 AI 回复处理
+      console.log('AI response:', content, 'complete:', isComplete);
+      if (isComplete) {
+        message.success('AI 回复完成');
+      }
+    },
+    onError: (error: Error) => {
+      message.error(`AI 错误: ${error.message}`);
+    },
+    source: 'canvas',
+  });
+
+  // 加载便签列表（用于引用）
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const folders = await folderService.listFolders();
+        const items: MenuProps['items'] = [];
+        for (const folder of folders) {
+          const folderNotes = await noteService.listNotes(folder.id);
+          folderNotes.forEach((note) => {
+            items.push({
+              key: note.id,
+              label: note.title || '无标题',
+            });
+          });
+        }
+        setNoteItems(items);
+      } catch (err) {
+        console.error('Failed to load notes for reference:', err);
+      }
+    };
+    loadNotes();
+  }, []);
+
+  // 处理便签选择引用
+  const handleNoteSelect: MenuProps['onClick'] = useCallback(
+    async ({ key }: { key: string }) => {
+      if (selectedNotes.some((n) => n.id === key)) {
+        message.info('该便签已引用');
+        return;
+      }
+      try {
+        const note = await noteService.getNote(key);
+        const textContent = extractTipTapText(note.content);
+        setSelectedNotes((prev) => [
+          ...prev,
+          { id: key, title: note.title || '无标题', content: textContent },
+        ]);
+      } catch (err) {
+        console.error('Failed to load note:', err);
+        message.error('加载便签失败');
+      }
+    },
+    [selectedNotes],
+  );
+
+  // 移除已选便签
+  const handleRemoveNote = useCallback((id: string) => {
+    setSelectedNotes((prev) => prev.filter((n) => n.id !== id));
+  }, []);
+
+  // 发送 AI 消息
+  const handleSendMessage = useCallback(
+    async (value: string, attachments?: any[]) => {
+      await sendMessage(value, attachments);
+      setSelectedNotes([]); // 清空引用
+    },
+    [sendMessage],
+  );
 
   // 监听视口变化并保存
   useOnViewportChange({
@@ -197,31 +277,6 @@ const CanvasInner: React.FC = () => {
   );
 
   // 新建便签（在画布中心创建）
-  const handleCreateNote = useCallback(async () => {
-    if (!selectedFolderId) {
-      message.error('请先选择一个文件夹');
-      return;
-    }
-
-    const centerX = -viewport.x / viewport.zoom + window.innerWidth / 2 / viewport.zoom;
-    const centerY = -viewport.y / viewport.zoom + window.innerHeight / 2 / viewport.zoom;
-
-    try {
-      const newNote = await createNote(selectedFolderId);
-
-      // 保存画布位置
-      await window.storage.updateNote(newNote.id, {
-        canvasX: centerX - NODE_WIDTH / 2,
-        canvasY: centerY - NODE_HEIGHT / 2,
-      });
-
-      setSelectedNote(newNote.id);
-      message.success('已创建新便签');
-    } catch (error) {
-      console.error('Failed to create note:', error);
-      message.error('创建便签失败');
-    }
-  }, [viewport, selectedFolderId, createNote, setSelectedNote]);
 
   // 适应画布
   const handleFitView = useCallback(() => {
@@ -328,6 +383,26 @@ const CanvasInner: React.FC = () => {
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
         onNodeClick={handleNodeClick}
+        onSelectionChange={(selection) => {
+          // 当节点选中状态改变时，更新 AI 上下文
+          const selectedNodesList = selection.nodes;
+          const newSelectedNotes = selectedNodesList
+            .map((node) => {
+              const note = notes.find((n) => n.id === node.id);
+              if (note) {
+                const textContent = extractTipTapText(note.content);
+                return {
+                  id: note.id,
+                  title: note.title || '无标题',
+                  content: textContent,
+                };
+              }
+              return null;
+            })
+            .filter(Boolean) as Array<{ id: string; title: string; content: string }>;
+
+          setSelectedNotes(newSelectedNotes);
+        }}
         fitView
         minZoom={0.1}
         maxZoom={2}
@@ -404,50 +479,43 @@ const CanvasInner: React.FC = () => {
           />
         )}
 
-        {/* 底部中央浮动工具栏 - 类似 Notion Canvas */}
+        {/* 底部中央 AI 输入框 */}
         <Panel position="bottom-center">
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'rgba(255, 255, 255, 0.9)',
+              width: '600px',
+              background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(8px)',
-              padding: '8px 16px',
               borderRadius: '12px',
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
               border: '1px solid rgba(255, 255, 255, 0.8)',
+              overflow: 'hidden',
             }}
           >
-            {/* 新建按钮 - 主要操作 */}
-            <Tooltip title="新建便签 (在画布中心)" placement="top">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreateNote}
-                style={{
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              />
-            </Tooltip>
-
-            {/* 便签数量 - 信息展示 */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '0 8px',
-                color: '#666',
-                fontSize: '13px',
+            <ChatInput
+              isLoading={isStreaming}
+              onSend={handleSendMessage}
+              onAbort={abortStream}
+              selectedNotes={selectedNotes}
+              onRemoveNote={handleRemoveNote}
+              providerConfig={{
+                config,
+                options: providerOptions,
+                currentId: currentProviderId,
+                isSwitching,
+                onSwitch: switchProvider,
               }}
-            >
-              <UnorderedListOutlined style={{ fontSize: 14 }} />
-              <span>{nodes.length}</span>
-            </div>
+              knowledgeBase={{
+                enabled: false,
+                inUse: false,
+                onToggle: () => {},
+              }}
+              noteReference={{
+                items: noteItems,
+                onSelect: handleNoteSelect,
+              }}
+              autoSize={{ minRows: 1, maxRows: 6 }}
+            />
           </div>
         </Panel>
       </ReactFlow>

@@ -191,6 +191,17 @@
   flex-shrink: 0;
 }
 
+/* 画布模式下的输入框样式 */
+.canvas-tab .ai-chat-input {
+  padding: 0px !important;
+}
+
+/* 画布模式下的输入框内容区域 */
+.canvas-tab .ant-sender-content {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
 /* ==================== 自定义组件样式 ==================== */
 
 /**

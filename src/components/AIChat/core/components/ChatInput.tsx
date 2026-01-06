@@ -62,6 +62,7 @@ interface ChatInputProps {
     items: MenuProps['items'];
     onSelect: MenuProps['onClick'];
   };
+  autoSize?: { minRows: number; maxRows: number };
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -73,6 +74,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   providerConfig,
   knowledgeBase,
   noteReference,
+  autoSize = { minRows: 2, maxRows: 6 },
 }) => {
   const senderRef = useRef<GetRef<typeof Sender>>(null);
 
@@ -190,7 +192,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 );
               }}
               suffix={false}
-              autoSize={{ minRows: 2, maxRows: 6 }}
+              autoSize={autoSize}
             />
           )}
         </Suggestion>

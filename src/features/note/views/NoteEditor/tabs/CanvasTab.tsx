@@ -85,9 +85,9 @@ const CanvasInner: React.FC = () => {
   const { setCenter, getNode, fitView, setViewport } = useReactFlow();
   const isInitialMount = useRef(true);
   const prevNotesRef = useRef(notes);
-  const noteCacheRef = useRef<Map<string, { id: string; title: string; content: string }>>(
-    new Map(),
-  );
+  const noteCacheRef = useRef<
+    Map<string, { id: string; title: string; content: string; color?: string }>
+  >(new Map());
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
   const [, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
@@ -99,7 +99,7 @@ const CanvasInner: React.FC = () => {
 
   const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
   const [selectedNotes, setSelectedNotes] = useState<
-    Array<{ id: string; title: string; content: string }>
+    Array<{ id: string; title: string; content: string; color?: string }>
   >([]);
 
   // AI回复相关状态
@@ -175,7 +175,7 @@ const CanvasInner: React.FC = () => {
         const textContent = extractTipTapText(note.content);
         setSelectedNotes((prev) => [
           ...prev,
-          { id: key, title: note.title || '无标题', content: textContent },
+          { id: key, title: note.title || '无标题', content: textContent, color: note.color },
         ]);
       } catch (err) {
         console.error('Failed to load note:', err);
@@ -476,6 +476,7 @@ const CanvasInner: React.FC = () => {
               id: fullNote.id,
               title: fullNote.title || '无标题',
               content: textContent,
+              color: fullNote.color,
             };
             // 缓存结果
             noteCacheRef.current.set(node.id, noteData);
@@ -493,6 +494,7 @@ const CanvasInner: React.FC = () => {
         id: string;
         title: string;
         content: string;
+        color?: string;
       }>;
 
       setSelectedNotes(newSelectedNotes);

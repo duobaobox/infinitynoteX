@@ -49,7 +49,7 @@ export const AIChatPanel = ({
   const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
   // 已选中的便签引用
   const [selectedNotes, setSelectedNotes] = useState<
-    Array<{ id: string; title: string; content: string }>
+    Array<{ id: string; title: string; content: string; color?: string }>
   >([]);
 
   // 加载便签列表
@@ -89,7 +89,7 @@ export const AIChatPanel = ({
         const textContent = extractTipTapText(note.content);
         setSelectedNotes((prev) => [
           ...prev,
-          { id: key, title: note.title || '无标题', content: textContent },
+          { id: key, title: note.title || '无标题', content: textContent, color: note.color },
         ]);
       } catch (err) {
         console.error('[AIChatPanel] Failed to load note:', err);

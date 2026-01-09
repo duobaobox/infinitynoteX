@@ -44,7 +44,7 @@ interface ChatInputProps {
   isLoading: boolean;
   onSend: (value: string, attachments?: any[]) => void;
   onAbort: () => void;
-  selectedNotes: Array<{ id: string; title: string; content: string }>;
+  selectedNotes: Array<{ id: string; title: string; content: string; color?: string }>;
   onRemoveNote: (id: string) => void;
   providerConfig: {
     config: { model: string } | null;
@@ -83,16 +83,49 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* 已选便签展示 */}
       {selectedNotes.length > 0 && (
         <div className="ai-chat-selected-notes">
-          {selectedNotes.map((note) => (
-            <Tag
-              key={note.id}
-              closable
-              onClose={() => onRemoveNote(note.id)}
-              icon={<FileTextOutlined />}
-            >
-              {note.title}
-            </Tag>
-          ))}
+          {selectedNotes.map((note) => {
+            // 便签颜色映射表（与 NoteNode 保持一致）
+            const colorMap: Record<string, { bg: string; border: string }> = {
+              bae0ff: { bg: '#bae0ff', border: '#91caff' },
+              d9f7be: { bg: '#d9f7be', border: '#b7eb8f' },
+              ffd6e7: { bg: '#ffd6e7', border: '#ffadd2' },
+              d6e4ff: { bg: '#d6e4ff', border: '#adc6ff' },
+              ffd666: { bg: '#ffd666', border: '#ffc53d' },
+              ffffff: { bg: '#ffffff', border: '#d9d9d9' },
+            };
+            const colors = note.color ? colorMap[note.color] : undefined;
+
+            return (
+              <Tag
+                key={note.id}
+                closable
+                onClose={() => onRemoveNote(note.id)}
+                icon={<FileTextOutlined />}
+                style={
+                  colors
+                    ? {
+                        backgroundColor: colors.bg,
+                        borderColor: colors.border,
+                        color: '#262626',
+                      }
+                    : undefined
+                }
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    maxWidth: 80,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  {note.title}
+                </span>
+              </Tag>
+            );
+          })}
         </div>
       )}
 

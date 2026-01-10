@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { CloseOutlined } from '@ant-design/icons';
-import { AIChatPanel } from '../../components/AIChat/core/AIChatPanel';
+import { AIChatPanel } from '../../features/ai-chat/AIChatPanel';
 import { useSettingsStore } from '../../store/settingsStore';
 import { subscribeToConfigChanges, applyDataTheme, loadThemeFromConfig } from '../../theme/theme';
 import './styles.css';

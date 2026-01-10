@@ -3,9 +3,9 @@ import { Bubble, Actions, FileCard } from '@ant-design/x';
 import { Avatar } from 'antd';
 import { RobotOutlined, UserOutlined, CopyOutlined, SaveOutlined } from '@ant-design/icons';
 import type { GetProp } from 'antd';
-import { MarkdownRenderer } from '../../components/MarkdownRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { EmptyState } from './EmptyState';
-import type { ChatItem } from '../../types';
+import type { ChatItem, NoteReference } from '../types';
 
 // Bubble.List 类型
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
@@ -95,7 +95,7 @@ export const MessageList: React.FC<MessageListProps> = ({
                 className="ai-chat-reference-cards"
                 style={{ marginTop: 8, maxWidth: '100%', overflow: 'hidden' }}
               >
-                {m.references.map((ref) => (
+                {m.references.map((ref: NoteReference) => (
                   <FileCard
                     key={ref.id}
                     name={`${ref.title}.md`}

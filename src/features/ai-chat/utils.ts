@@ -4,7 +4,7 @@
 
 import { Editor } from '@tiptap/core';
 import type { TipTapJSONContent } from '../../services/types';
-import { getExtensions } from '../TipTapEditor/extensions';
+import { getExtensions } from '../../features/editor/extensions';
 
 /**
  * 创建临时编辑器用于 Markdown 转换

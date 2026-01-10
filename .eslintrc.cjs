@@ -13,7 +13,7 @@ module.exports = {
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     // 暂时放宽，避免阻塞开发；后续可提升为 'error'
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
     // 避免个别空块导致报错，catch 允许空
     'no-empty': ['warn', { allowEmptyCatch: true }],
   },

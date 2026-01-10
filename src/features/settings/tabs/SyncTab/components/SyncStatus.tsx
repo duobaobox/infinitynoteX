@@ -44,7 +44,9 @@ const SyncStatus: React.FC = () => {
   const currentConfig = activeProviderId ? syncConfigs[activeProviderId] : null;
 
   // 检查配置是否完整（针对webdav）
-  const isConfigComplete = (config: any): boolean => {
+  const isConfigComplete = (
+    config: { url?: string; username?: string; password?: string } | null,
+  ): boolean => {
     if (!config) return false;
     return !!(config.url && config.username && config.password);
   };

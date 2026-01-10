@@ -20,7 +20,7 @@ import { useWorkspaceStore } from '../../../store/workspaceStore';
 import './Sidebar.css';
 
 // 懒加载设置面板（优化：减少初始 bundle 体积）
-const SettingsModal = lazy(() => import('../../../components/SettingsModal/SettingsModal'));
+const SettingsModal = lazy(() => import('../../settings/SettingsModal'));
 
 // Sidebar 组件不再需要 props，直接使用 Store
 const Sidebar: React.FC = () => {

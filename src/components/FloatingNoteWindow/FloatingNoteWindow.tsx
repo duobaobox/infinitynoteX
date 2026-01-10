@@ -14,7 +14,7 @@ import './FloatingNoteWindow.css';
 
 // 懒加载编辑器
 const TipTapEditor = lazy(() =>
-  import('../TipTapEditor').then((module) => ({ default: module.TipTapEditor })),
+  import('../../features/editor').then((module) => ({ default: module.TipTapEditor })),
 );
 
 interface FloatingNoteWindowProps {

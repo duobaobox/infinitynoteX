@@ -13,6 +13,7 @@ import { BubbleMenus } from '../menus/BubbleMenu';
 import { CharacterCount } from '../menus/components/CharacterCount';
 import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
+import type { TipTapJSONContent } from '../../../services/types';
 import { getThemeColor } from '../../../theme/theme';
 import { scrollToTask } from '../utils/taskLocator';
 import '../styles/editor.css';
@@ -161,7 +162,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       // 只有在非聚焦状态下才进行内容修复式同步，避免干扰用户输入
       setTimeout(() => {
         if (!editor.isDestroyed && !editor.isFocused) {
-          editor.commands.setContent(initialContent as any, { emitUpdate: false });
+          editor.commands.setContent(initialContent as TipTapJSONContent, { emitUpdate: false });
           lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
           lastContentRef.current = initialContent;
         }

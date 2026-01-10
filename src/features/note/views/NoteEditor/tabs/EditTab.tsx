@@ -16,7 +16,7 @@ import './EmptyState.css';
 
 // ========== 自定义 TipTap 编辑器 ==========
 const TipTapEditor = lazy(() =>
-  import('../../../../../components/TipTapEditor').then((module) => ({
+  import('../../../../editor').then((module) => ({
     default: module.TipTapEditor,
   })),
 );

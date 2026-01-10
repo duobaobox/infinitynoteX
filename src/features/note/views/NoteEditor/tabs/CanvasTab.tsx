@@ -37,16 +37,17 @@ import {
 
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
-import { ChatInput } from '../../../../../components/AIChat/core/components/ChatInput';
-import { MarkdownRenderer } from '../../../../../components/AIChat/components/MarkdownRenderer';
-import { useAIConfig, useAIChat } from '../../../../../components/AIChat/hooks';
+import { ChatInput } from '../../../../ai-chat/components/ChatInput';
+import { MarkdownRenderer } from '../../../../ai-chat/components/MarkdownRenderer';
+import { useAIConfig, useAIChat } from '../../../../ai-chat/hooks';
+import type { NoteReference } from '../../../../ai-chat/types';
 import { noteService, folderService } from '../../../../../services';
 import {
   extractTipTapText,
   convertMarkdownToTipTap,
   copyToClipboard,
   stripThinkBlocks,
-} from '../../../../../components/AIChat/utils';
+} from '../../../../ai-chat/utils';
 import './CanvasTab.css';
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
@@ -192,7 +193,7 @@ const CanvasInner: React.FC = () => {
 
   // 发送 AI 消息
   const handleSendMessage = useCallback(
-    async (value: string, attachments?: any[]) => {
+    async (value: string, attachments?: NoteReference[]) => {
       if (!isConfigured) {
         message.warning('请先配置 AI 提供商');
         return;

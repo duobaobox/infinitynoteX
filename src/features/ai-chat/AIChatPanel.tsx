@@ -1,18 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { message, Segmented } from 'antd';
 import type { MenuProps } from 'antd';
-import { noteService, folderService, aiConversationService } from '../../../services';
-import { useSettingsStore } from '../../../store/settingsStore';
-import { useAIConfig, useAIChat } from '../hooks';
+import { noteService, folderService, aiConversationService } from '../../services';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useAIConfig, useAIChat } from './hooks';
 import {
   renderMarkdownToHtml,
   convertMarkdownToTipTap,
   copyToClipboard,
   stripThinkBlocks,
   extractTipTapText,
-} from '../utils';
-import type { ChatItem, AIChatPanelProps } from '../types';
-import '../styles/AIChat.css';
+} from './utils';
+import type { ChatItem, AIChatPanelProps, NoteReference } from './types';
+import './styles/AIChat.css';
 
 // 引入子组件
 import { ChatHeader } from './components/ChatHeader';
@@ -252,7 +252,7 @@ export const AIChatPanel = ({
 
   // 消息发送处理
   const handleSend = useCallback(
-    (value: string, attachments?: any[]) => {
+    (value: string, attachments?: NoteReference[]) => {
       sendMessage(value, attachments);
       // 清空已选便签
       setSelectedNotes([]);

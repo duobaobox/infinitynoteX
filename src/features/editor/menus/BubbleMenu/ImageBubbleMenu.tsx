@@ -21,9 +21,11 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
     return null;
   }
 
-  // 获取图片 src
   const getImageSrc = (): string | undefined => {
-    const { node } = editor.state.selection as any;
+    const { selection } = editor.state;
+    const { node } = selection as unknown as {
+      node?: { type?: { name?: string }; attrs?: { src?: string } };
+    };
     if (node?.type?.name === 'image') {
       return node.attrs?.src;
     }

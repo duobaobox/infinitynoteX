@@ -26,7 +26,9 @@ const getProviderBrandColor = (providerId: string): string => {
 };
 
 // 状态元数据
-const getStatusMeta = (config: any): { label: string; color: string } => {
+const getStatusMeta = (
+  config: { url?: string; username?: string; password?: string; enabled?: boolean } | null,
+): { label: string; color: string } => {
   if (!config) return { label: '待配置', color: '#8c8c8c' };
   if (!config.url || !config.username || !config.password) {
     return { label: '待配置', color: '#8c8c8c' };

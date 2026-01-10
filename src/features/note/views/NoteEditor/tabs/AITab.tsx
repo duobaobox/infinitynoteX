@@ -13,7 +13,7 @@
 
 import React, { useCallback } from 'react';
 import { RobotOutlined } from '@ant-design/icons';
-import { AIChatPanel } from '../../../../../components/AIChat';
+import { AIChatPanel } from '../../../../ai-chat';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import './EmptyState.css';
 

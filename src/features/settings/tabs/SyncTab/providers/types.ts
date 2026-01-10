@@ -21,7 +21,7 @@ export interface SyncProviderCapabilities {
 /**
  * Provider配置组件Props
  */
-export interface SyncProviderConfigProps<T = any> {
+export interface SyncProviderConfigProps<T = unknown> {
   /** Provider定义 */
   provider: SyncProvider<T>;
   /** 当前配置 */
@@ -31,13 +31,13 @@ export interface SyncProviderConfigProps<T = any> {
   /** 测试连接回调 */
   onTest: () => Promise<{ ok: boolean; message: string }>;
   /** 触发同步回调 */
-  onSync: () => Promise<any>;
+  onSync: () => Promise<unknown>;
 }
 
 /**
  * 同步Provider定义
  */
-export interface SyncProvider<T = any> {
+export interface SyncProvider<T = unknown> {
   /** Provider唯一标识 */
   id: string;
   /** 显示名称 */

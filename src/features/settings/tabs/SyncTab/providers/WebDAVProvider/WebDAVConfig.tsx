@@ -135,7 +135,8 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
     let cancelled = false;
     (async () => {
       try {
-        const getter = (window.sync as any)?.getLastResult;
+        const getter = (window.sync as { getLastResult?: () => Promise<SyncResult | null> })
+          ?.getLastResult;
         if (typeof getter !== 'function') return;
         const result = await getter();
         if (!cancelled && result) {
@@ -219,8 +220,8 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   const handleOpenSyncLogs = async () => {
     try {
       setOpeningLogs(true);
-      if (typeof (window.sync as any)?.openLogDir === 'function') {
-        await (window.sync as any).openLogDir();
+      if (typeof (window.sync as { openLogDir?: () => Promise<void> })?.openLogDir === 'function') {
+        await (window.sync as { openLogDir: () => Promise<void> }).openLogDir();
         return;
       }
       // 降级：打开数据目录（用户可手动进入 .sync-logs）

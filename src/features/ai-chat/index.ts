@@ -17,8 +17,8 @@
  */
 
 // 核心组件
-export { AIChatPanel } from './core/AIChatPanel';
-export { default } from './core/AIChatPanel';
+export { AIChatPanel } from './AIChatPanel';
+export { default } from './AIChatPanel';
 
 // Hooks
 export { useAIConfig, useAIChat } from './hooks';

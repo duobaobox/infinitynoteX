@@ -1,10 +1,16 @@
 import React, { useRef } from 'react';
 import { Sender, Suggestion } from '@ant-design/x';
 import { Tag, message, Flex, Tooltip, MenuProps } from 'antd';
-import { FileTextOutlined, BookOutlined } from '@ant-design/icons';
+import {
+  FileTextOutlined,
+  BookOutlined,
+  TranslationOutlined,
+  EditOutlined,
+} from '@ant-design/icons';
 import type { GetRef } from 'antd';
 import { ProviderSwitcher } from './ProviderSwitcher';
 import { NoteReference } from './NoteReference';
+import type { NoteReference as NoteReferenceType, ProviderOption } from '../types';
 
 // 快捷指令配置
 const QUICK_COMMANDS = [
@@ -16,7 +22,7 @@ const QUICK_COMMANDS = [
   {
     label: '翻译',
     value: 'translate',
-    icon: <div />, // TranslationOutlined 需要在主文件引入这里没有使用
+    icon: <TranslationOutlined />,
     children: [
       { label: '翻译成中文', value: 'translate_zh' },
       { label: '翻译成英文', value: 'translate_en' },
@@ -26,7 +32,7 @@ const QUICK_COMMANDS = [
   {
     label: '改写优化',
     value: 'rewrite',
-    icon: <div />, // EditOutlined
+    icon: <EditOutlined />,
     children: [
       { label: '语气更正式', value: 'rewrite_formal' },
       { label: '语气更口语化', value: 'rewrite_casual' },
@@ -40,15 +46,25 @@ const QUICK_COMMANDS = [
   },
 ];
 
+// 便签颜色映射表（与 NoteNode 保持一致）
+const NOTE_COLOR_MAP: Record<string, { bg: string; border: string }> = {
+  bae0ff: { bg: '#bae0ff', border: '#91caff' },
+  d9f7be: { bg: '#d9f7be', border: '#b7eb8f' },
+  ffd6e7: { bg: '#ffd6e7', border: '#ffadd2' },
+  d6e4ff: { bg: '#d6e4ff', border: '#adc6ff' },
+  ffd666: { bg: '#ffd666', border: '#ffc53d' },
+  ffffff: { bg: '#ffffff', border: '#d9d9d9' },
+};
+
 interface ChatInputProps {
   isLoading: boolean;
-  onSend: (value: string, attachments?: any[]) => void;
+  onSend: (value: string, attachments?: NoteReferenceType[]) => void;
   onAbort: () => void;
   selectedNotes: Array<{ id: string; title: string; content: string; color?: string }>;
   onRemoveNote: (id: string) => void;
   providerConfig: {
     config: { model: string } | null;
-    options: any[]; // ProviderOption
+    options: ProviderOption[];
     currentId: string;
     isSwitching: boolean;
     onSwitch: (key: string) => void;
@@ -84,16 +100,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {selectedNotes.length > 0 && (
         <div className="ai-chat-selected-notes">
           {selectedNotes.map((note) => {
-            // 便签颜色映射表（与 NoteNode 保持一致）
-            const colorMap: Record<string, { bg: string; border: string }> = {
-              bae0ff: { bg: '#bae0ff', border: '#91caff' },
-              d9f7be: { bg: '#d9f7be', border: '#b7eb8f' },
-              ffd6e7: { bg: '#ffd6e7', border: '#ffadd2' },
-              d6e4ff: { bg: '#d6e4ff', border: '#adc6ff' },
-              ffd666: { bg: '#ffd666', border: '#ffc53d' },
-              ffffff: { bg: '#ffffff', border: '#d9d9d9' },
-            };
-            const colors = note.color ? colorMap[note.color] : undefined;
+            const colors = note.color ? NOTE_COLOR_MAP[note.color] : undefined;
 
             return (
               <Tag
@@ -111,18 +118,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     : undefined
                 }
               >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    maxWidth: 80,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    verticalAlign: 'middle',
-                  }}
-                >
-                  {note.title}
-                </span>
+                <span className="ai-chat-note-tag-text">{note.title}</span>
               </Tag>
             );
           })}

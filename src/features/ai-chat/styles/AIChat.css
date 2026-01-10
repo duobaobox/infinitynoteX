@@ -146,14 +146,14 @@
 }
 
 /* 画布模式下的输入框样式 */
-.canvas-tab .ai-chat-input {
-  padding: 0px !important;
+#root .canvas-tab .ai-chat-input {
+  padding: 0px;
 }
 
 /* 画布模式下的输入框内容区域 */
-.canvas-tab .ant-sender-content {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
+#root .canvas-tab .ant-sender-content {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 /* 画布模式下的AI回复区域 - 滚动条使用 .custom-scrollbar 统一样式 */
 .canvas-ai-response {
@@ -486,6 +486,15 @@
   gap: 8px;
   padding: 8px 10px;
   background-color: var(--panel-bg, #fafafa);
+}
+
+.ai-chat-note-tag-text {
+  display: inline-block;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* 暗色模式 */

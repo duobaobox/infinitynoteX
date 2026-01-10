@@ -1,15 +1,8 @@
 import React from 'react';
 import { Button, Dropdown, MenuProps } from 'antd';
 import { DownOutlined } from '@ant-design/icons';
-import { getProviderBrandColor } from '../../../../services/aiProviders';
-
-interface ProviderOption {
-  providerId: string;
-  config: {
-    provider: string;
-    model: string;
-  };
-}
+import { getProviderBrandColor } from '../../../services/aiProviders';
+import type { ProviderOption } from '../types';
 
 interface ProviderSwitcherProps {
   config: { model: string } | null;

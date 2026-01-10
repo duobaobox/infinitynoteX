@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from 'react';
-import { AIChatPanel } from '../../../../../components/AIChat';
+import { AIChatPanel } from '../../../../ai-chat';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 
 interface AITabProps {

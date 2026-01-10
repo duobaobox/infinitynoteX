@@ -6,7 +6,7 @@ import React from 'react';
 import { Form, Space, ColorPicker, Input, Segmented, Divider, message } from 'antd';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { getThemeColor, ThemeMode } from '../../../../theme/theme';
-import BackgroundEditor from '../../../BackgroundEditor';
+import BackgroundEditor from '../../../../components/BackgroundEditor';
 import './AppearanceTab.css';
 
 const AppearanceTab: React.FC = () => {

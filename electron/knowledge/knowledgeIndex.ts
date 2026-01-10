@@ -506,7 +506,7 @@ export async function rebuildAllIndex(): Promise<{
     store.clear();
 
     // 获取所有笔记
-    const notes = await storageManager.listNotes();
+    const notes = await storageManager.notes.list();
     console.log(`[KnowledgeIndex] Starting index of ${notes.length} notes`);
 
     let indexedNotes = 0;
@@ -514,7 +514,7 @@ export async function rebuildAllIndex(): Promise<{
 
     for (const noteIndex of notes) {
       try {
-        const note = await storageManager.getNote(noteIndex.id);
+        const note = await storageManager.notes.get(noteIndex.id);
         const count = await indexNote(note.id, note.title, note.content, embeddingService);
         if (count > 0) {
           indexedNotes++;
@@ -623,7 +623,7 @@ export async function reindexNote(noteId: string): Promise<{
       return { success: false, vectorCount: 0, error: '知识库未启用或未配置' };
     }
 
-    const note = await storageManager.getNote(noteId);
+    const note = await storageManager.notes.get(noteId);
     if (!note) {
       return { success: false, vectorCount: 0, error: '笔记不存在' };
     }
@@ -814,7 +814,7 @@ export async function incrementalUpdate(): Promise<{
     const store = getVectorStore();
 
     // 获取当前所有笔记
-    const allNotes = await storageManager.listNotes();
+    const allNotes = await storageManager.notes.list();
     const noteMap = new Map(allNotes.map((n) => [n.id, n]));
 
     // 获取已索引的笔记列表
@@ -844,7 +844,7 @@ export async function incrementalUpdate(): Promise<{
 
       if (needsUpdate) {
         try {
-          const note = await storageManager.getNote(noteIndex.id);
+          const note = await storageManager.notes.get(noteIndex.id);
           const count = await indexNote(note.id, note.title, note.content, embeddingService);
           if (count > 0) {
             if (indexed) {
@@ -908,7 +908,7 @@ export async function runDiagnostics(): Promise<DiagnosticsResult> {
 
   try {
     // 获取所有笔记 ID
-    const allNotes = await storageManager.listNotes();
+    const allNotes = await storageManager.notes.list();
     const noteIds = allNotes.map((n) => n.id);
     const noteIdSet = new Set(noteIds);
 
@@ -923,7 +923,7 @@ export async function runDiagnostics(): Promise<DiagnosticsResult> {
       if (!indexedNoteIdSet.has(noteInfo.id)) {
         // 检查笔记内容是否足够长（与 indexNote 逻辑一致）
         try {
-          const note = await storageManager.getNote(noteInfo.id);
+          const note = await storageManager.notes.get(noteInfo.id);
           const text = extractNoteText(note.content);
           // 只有内容足够长的笔记才算"缺失索引"
           if (text && text.length >= 10) {
@@ -999,7 +999,7 @@ export async function repairIndex(): Promise<RepairResult> {
     const embeddingService = createEmbeddingService(config.embedding);
 
     // 获取所有笔记 ID
-    const allNotes = await storageManager.listNotes();
+    const allNotes = await storageManager.notes.list();
     const noteIds = allNotes.map((n) => n.id);
 
     // 1. 清理孤立向量
@@ -1013,7 +1013,7 @@ export async function repairIndex(): Promise<RepairResult> {
     for (const noteInfo of allNotes) {
       if (!indexedNoteIdSet.has(noteInfo.id)) {
         try {
-          const note = await storageManager.getNote(noteInfo.id);
+          const note = await storageManager.notes.get(noteInfo.id);
           const count = await indexNote(note.id, note.title, note.content, embeddingService);
           if (count > 0) {
             missingIndexed++;

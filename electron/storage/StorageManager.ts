@@ -20,13 +20,7 @@ import { TodoListStorage } from './TodoListStorage';
 import { ManualTaskStorage } from './ManualTaskStorage';
 import { DeviceManager } from './core/DeviceManager';
 import { IndexCache } from './core/IndexCache';
-import type {
-  StorageMeta,
-  HealthCheckResult,
-  StorageStats,
-  SetStoragePathOptions,
-  Note,
-} from './types';
+import type { StorageMeta, HealthCheckResult, StorageStats, SetStoragePathOptions } from './types';
 import { StorageError, StorageErrorCode } from './errors';
 import {
   generateId,
@@ -40,7 +34,6 @@ import {
   validateStorageIntegrity,
 } from './utils';
 import { CURRENT_SCHEMA_VERSION, needsMigration, getPendingMigrations } from './migrations';
-import { emitDeleted, emitCreated } from './storageEvents';
 import { readAppConfig, writeAppConfig } from '../config';
 
 /**
@@ -677,125 +670,6 @@ export class StorageManager {
     }
   }
 
-  // ============ 向后兼容的代理方法 ============
-  // 以下方法保持原有 API 的兼容性
-
-  async listFolders() {
-    return this.folders.getAll();
-  }
-
-  async createFolder(name: string) {
-    return this.folders.createFolder(name);
-  }
-
-  async renameFolder(id: string, name: string) {
-    return this.folders.rename(id, name);
-  }
-
-  async deleteFolder(id: string) {
-    await this.folders.deleteFolder(id, async (folderId) => {
-      const notes = await this.notes.list(folderId);
-      for (const note of notes) {
-        await this.notes.moveToFolder(note.id, 'default');
-      }
-    });
-    emitDeleted('folder', id);
-  }
-
-  async listNotes(folderId?: string) {
-    return this.notes.list(folderId);
-  }
-
-  async createNote(folderId: string, payload?: { title?: string; content?: Note['content'] }) {
-    const note = await this.notes.createNote(folderId, payload);
-    emitCreated('note', note.id);
-    return note;
-  }
-
-  async getNote(id: string) {
-    return this.notes.get(id);
-  }
-
-  async updateNote(id: string, patch: Partial<Note>) {
-    return this.notes.update(id, patch);
-  }
-
-  /**
-   * 删除便签（软删除，移入回收站）
-   */
-  async deleteNote(id: string) {
-    const note = await this.notes.get(id);
-    // 移入回收站
-    await this.trash.moveToTrash(note);
-    // 从便签列表中删除
-    await this.notes.delete(id);
-    // 发送删除事件
-    emitDeleted('note', id);
-  }
-
-  /**
-   * 永久删除便签（跳过回收站）
-   */
-  async deleteNotePermanently(id: string) {
-    return this.notes.delete(id);
-  }
-
-  // ============ 回收站操作 ============
-
-  async listTrash() {
-    return this.trash.list();
-  }
-
-  async getTrashItem(id: string) {
-    return this.trash.get(id);
-  }
-
-  /**
-   * 从回收站恢复便签
-   * @param trashItemId 回收站项目 ID
-   * @param targetFolderId 目标文件夹 ID（可选，默认恢复到原文件夹）
-   */
-  async restoreNote(trashItemId: string, targetFolderId?: string): Promise<Note> {
-    const restoredNote = await this.trash.restore(trashItemId);
-
-    // 检查原文件夹是否存在
-    const originalFolderExists = await this.folders.exists(restoredNote.folderId);
-
-    // 如果指定了目标文件夹或原文件夹不存在，使用目标文件夹或默认文件夹
-    if (targetFolderId) {
-      restoredNote.folderId = targetFolderId;
-    } else if (!originalFolderExists) {
-      restoredNote.folderId = 'default';
-    }
-
-    // 保存恢复的便签
-    await this.notes.createNote(restoredNote.folderId, {
-      title: restoredNote.title,
-      content: restoredNote.content,
-    });
-
-    // 获取刚创建的便签并更新其他属性
-    const notes = await this.notes.list(restoredNote.folderId);
-    const newNote = notes.find((n) => n.title === restoredNote.title);
-    if (newNote) {
-      await this.notes.update(newNote.id, {
-        tags: restoredNote.tags,
-        pinned: restoredNote.pinned,
-        color: restoredNote.color,
-      });
-    }
-
-    return restoredNote;
-  }
-
-  async deleteTrashItemPermanently(trashItemId: string) {
-    return this.trash.permanentDelete(trashItemId);
-  }
-
-  async emptyTrash() {
-    return this.trash.emptyTrash();
-  }
-
   // ============ 孤儿便签修复 ============
 
   /**
@@ -825,33 +699,6 @@ export class StorageManager {
     } catch (error) {
       console.error('[Storage] Failed to fix orphan notes:', error);
     }
-  }
-
-  async getAIConversations() {
-    return this.ai.getAll();
-  }
-
-  async createAIConversation(title?: string) {
-    const conversation = await this.ai.createConversation(title);
-    emitCreated('aiConversation', conversation.id);
-    return conversation;
-  }
-
-  async deleteAIConversation(id: string) {
-    await this.ai.delete(id);
-    emitDeleted('aiConversation', id);
-  }
-
-  async saveAIConversationMessages(
-    id: string,
-    messages: Parameters<typeof this.ai.saveMessages>[1],
-    options?: { source?: 'note' | 'workbench' | 'global' },
-  ) {
-    return this.ai.saveMessages(id, messages, options);
-  }
-
-  async updateAIConversationTitle(id: string, title: string) {
-    return this.ai.updateTitle(id, title);
   }
 
   //  ============ 数据一致性检查 ============

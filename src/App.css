@@ -293,37 +293,145 @@
   min-width: 0; /* 关键：让 flex 子元素正确收缩，使 text-overflow 生效 */
 }
 
-/* 自定义美观滚动条样式 */
+/* ==================== 统一滚动条样式工具类 ==================== */
+
+/**
+ * .custom-scrollbar - 纵向滚动条统一样式
+ * 使用方式：给需要自定义滚动条的元素添加此类，或将选择器添加到下方规则中
+ * 
+ * 特性：
+ * - 8px 宽度，圆角设计
+ * - 使用 CSS 变量自动适配主题（--scrollbar-thumb, --scrollbar-thumb-hover）
+ * - 悬停时滚动条加深
+ * 
+ * 已包含的组件：
+ * - .scrollable-list (侧边栏等列表)
+ * - .tiptap-editor-wrapper (编辑器内容区)
+ * - .ai-chat-messages, .ant-bubble-list, .canvas-ai-response (AI 聊天)
+ * - .slash-command-menu (斜杠命令菜单)
+ * - .floating-todo-list (悬浮 Todo 窗口)
+ * - .settings-content (设置弹窗内容区)
+ * - .trash-tab .trash-list (设置弹窗回收站列表)
+ */
+.custom-scrollbar,
+.scrollable-list,
+.tiptap-editor-wrapper,
+.ai-chat-messages,
+.ai-chat-messages .ant-bubble-list,
+.canvas-ai-response,
+.slash-command-menu,
+.floating-todo-list,
+.settings-content,
+.trash-tab .trash-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar,
 .scrollable-list::-webkit-scrollbar,
 .tiptap-editor-wrapper::-webkit-scrollbar,
-.tiptap-toolbar::-webkit-scrollbar {
+.ai-chat-messages::-webkit-scrollbar,
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar,
+.canvas-ai-response::-webkit-scrollbar,
+.slash-command-menu::-webkit-scrollbar,
+.floating-todo-list::-webkit-scrollbar,
+.settings-content::-webkit-scrollbar,
+.trash-tab .trash-list::-webkit-scrollbar {
   width: 8px;
   background: transparent;
 }
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
 .scrollable-list::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper::-webkit-scrollbar-thumb,
-.tiptap-toolbar::-webkit-scrollbar-thumb {
+.ai-chat-messages::-webkit-scrollbar-thumb,
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-thumb,
+.canvas-ai-response::-webkit-scrollbar-thumb,
+.slash-command-menu::-webkit-scrollbar-thumb,
+.floating-todo-list::-webkit-scrollbar-thumb,
+.settings-content::-webkit-scrollbar-thumb,
+.trash-tab .trash-list::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 6px;
   transition: background 0.2s;
 }
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb,
 .scrollable-list:hover::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper:hover::-webkit-scrollbar-thumb,
-.tiptap-toolbar:hover::-webkit-scrollbar-thumb {
+.ai-chat-messages:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages .ant-bubble-list:hover::-webkit-scrollbar-thumb,
+.canvas-ai-response:hover::-webkit-scrollbar-thumb,
+.slash-command-menu:hover::-webkit-scrollbar-thumb,
+.floating-todo-list:hover::-webkit-scrollbar-thumb,
+.settings-content:hover::-webkit-scrollbar-thumb,
+.trash-tab .trash-list:hover::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb-hover);
 }
+
+.custom-scrollbar::-webkit-scrollbar-corner,
 .scrollable-list::-webkit-scrollbar-corner,
 .tiptap-editor-wrapper::-webkit-scrollbar-corner,
-.tiptap-toolbar::-webkit-scrollbar-corner {
+.ai-chat-messages::-webkit-scrollbar-corner,
+.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-corner,
+.canvas-ai-response::-webkit-scrollbar-corner,
+.slash-command-menu::-webkit-scrollbar-corner,
+.floating-todo-list::-webkit-scrollbar-corner,
+.settings-content::-webkit-scrollbar-corner,
+.trash-tab .trash-list::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-/* Firefox */
-.scrollable-list,
-.tiptap-editor-wrapper,
-.tiptap-toolbar {
+/**
+ * .custom-scrollbar-x - 横向滚动条统一样式
+ * 用于表格、代码块、Mermaid 图表等需要横向滚动的容器
+ * 
+ * 已包含的组件：
+ * - .ai-chat-messages table, pre, .mermaid (AI 聊天中的表格、代码块、图表)
+ * - .tableWrapper (TipTap 表格容器)
+ */
+.custom-scrollbar-x,
+.ai-chat-messages table,
+.ai-chat-messages pre,
+.ai-chat-messages .mermaid,
+.ai-chat-messages [data-mermaid] {
   scrollbar-width: thin;
-  scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar,
+.ai-chat-messages table::-webkit-scrollbar,
+.ai-chat-messages pre::-webkit-scrollbar,
+.ai-chat-messages .mermaid::-webkit-scrollbar,
+.ai-chat-messages [data-mermaid]::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb,
+.ai-chat-messages table::-webkit-scrollbar-thumb,
+.ai-chat-messages pre::-webkit-scrollbar-thumb,
+.ai-chat-messages .mermaid::-webkit-scrollbar-thumb,
+.ai-chat-messages [data-mermaid]::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.custom-scrollbar-x:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages table:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages pre:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages .mermaid:hover::-webkit-scrollbar-thumb,
+.ai-chat-messages [data-mermaid]:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-corner,
+.ai-chat-messages table::-webkit-scrollbar-corner,
+.ai-chat-messages pre::-webkit-scrollbar-corner,
+.ai-chat-messages .mermaid::-webkit-scrollbar-corner,
+.ai-chat-messages [data-mermaid]::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* 列表容器面板 - 默认flex1，显示编辑器时固定250px */

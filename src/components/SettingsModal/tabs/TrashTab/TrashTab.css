@@ -93,19 +93,7 @@
   min-height: 0;
 }
 
-/* 滚动条美化 */
-.trash-tab .trash-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.trash-tab .trash-list::-webkit-scrollbar-thumb {
-  background: var(--ant-color-border);
-  border-radius: 2px;
-}
-
-.trash-tab .trash-list::-webkit-scrollbar-thumb:hover {
-  background: var(--ant-color-text-quaternary);
-}
+/* 滚动条样式：由 App.css 中的 .custom-scrollbar 统一管理 */
 
 /* ============ 单个条目 ============ */
 

@@ -196,22 +196,16 @@ th:hover::after {
   overflow-y: visible;
 }
 
-/* 隐藏不必要的滚动条轨道（仅在真正需要滚动时显示） */
-.tableWrapper::-webkit-scrollbar {
-  height: 6px;
+/* 隐藏表格滚动条但保留滚动功能 */
+.tableWrapper::-webkit-scrollbar,
+.tiptap-table-wrapper::-webkit-scrollbar {
+  display: none;
 }
 
-.tableWrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.tableWrapper::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
-}
-
-.tableWrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+.tableWrapper,
+.tiptap-table-wrapper {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 /* ============ 空单元格占位 ============ */

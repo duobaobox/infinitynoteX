@@ -60,60 +60,14 @@
  * .ai-chat-messages
  * 消息列表容器，包含 Bubble.List 组件
  * 使用位置：AIChatPanel.tsx L428
+ * 滚动条样式：使用 App.css 中的 .custom-scrollbar 统一样式
  */
-.ai-chat-messages {
+.ai-chat-messages,
+.ai-chat-messages .ant-bubble-list {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
-  /* Firefox 滚动条 */
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-/* 自定义滚动条样式 - WebKit (Chrome, Safari, Edge) */
-.ai-chat-messages::-webkit-scrollbar {
-  width: 8px;
-  background: transparent;
-}
-
-.ai-chat-messages::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.ai-chat-messages:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-
-.ai-chat-messages::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Ant Design X Bubble.List 内部滚动容器的自定义滚动条 */
-.ai-chat-messages .ant-bubble-list {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar {
-  width: 8px;
-  background: transparent;
-}
-
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.ai-chat-messages .ant-bubble-list:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-corner {
-  background: transparent;
 }
 
 /**
@@ -201,7 +155,7 @@
   padding-top: 2px !important;
   padding-bottom: 2px !important;
 }
-/* 画布模式下的AI回复区域 */
+/* 画布模式下的AI回复区域 - 滚动条使用 .custom-scrollbar 统一样式 */
 .canvas-ai-response {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
@@ -215,29 +169,6 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;
-  /* Firefox 滚动条 */
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-/* 自定义滚动条样式 - WebKit */
-.canvas-ai-response::-webkit-scrollbar {
-  width: 8px;
-  background: transparent;
-}
-
-.canvas-ai-response::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.canvas-ai-response:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-
-.canvas-ai-response::-webkit-scrollbar-corner {
-  background: transparent;
 }
 /* ==================== 自定义组件样式 ==================== */
 
@@ -682,79 +613,15 @@
   color: #1677ff;
 }
 
-/* ==================== AI 聊天内容滚动条统一样式 ==================== */
+/* ==================== AI 聊天内容横向滚动条 - 使用 .custom-scrollbar-x 统一样式 ==================== */
 
-/**
- * 表格滚动条
- */
-.ai-chat-messages table {
+/* 表格、Mermaid 图表、代码块的横向滚动 */
+.ai-chat-messages table,
+.ai-chat-messages .mermaid,
+.ai-chat-messages [data-mermaid],
+.ai-chat-messages pre {
   display: block;
   overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.ai-chat-messages table::-webkit-scrollbar {
-  height: 6px;
-  background: transparent;
-}
-
-.ai-chat-messages table::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-
-.ai-chat-messages table:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-
-/**
- * Mermaid 图表滚动条
- */
-.ai-chat-messages .mermaid,
-.ai-chat-messages [data-mermaid] {
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.ai-chat-messages .mermaid::-webkit-scrollbar,
-.ai-chat-messages [data-mermaid]::-webkit-scrollbar {
-  height: 6px;
-  background: transparent;
-}
-
-.ai-chat-messages .mermaid::-webkit-scrollbar-thumb,
-.ai-chat-messages [data-mermaid]::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-
-.ai-chat-messages .mermaid:hover::-webkit-scrollbar-thumb,
-.ai-chat-messages [data-mermaid]:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-
-/**
- * 代码块滚动条
- */
-.ai-chat-messages pre {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.ai-chat-messages pre::-webkit-scrollbar {
-  height: 6px;
-  background: transparent;
-}
-
-.ai-chat-messages pre::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 3px;
-}
-
-.ai-chat-messages pre:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
 }
 
 /* ==================== AI 模式分段控制器 ==================== */

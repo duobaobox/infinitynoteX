@@ -75,35 +75,14 @@
   background: transparent;
 }
 
-/* 设置弹窗右侧内容区 */
+/* 设置弹窗右侧内容区 - 滚动条样式使用 App.css 中的 .custom-scrollbar 统一样式 */
 .settings-content {
   flex: 1;
   padding: 24px 40px;
-  overflow-y: auto; /* 内容区独立滚动 */
+  overflow-y: auto;
   overflow-x: hidden;
   margin: 12px 0px 12px 0px;
-  min-height: 0; /* 允许 flex 子元素缩小 */
-}
-
-/* 右侧内容区滚动条，和全局 scrollable-list 保持一致 */
-.settings-content::-webkit-scrollbar {
-  width: 8px;
-  background: transparent;
-}
-.settings-content::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-.settings-content:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-hover);
-}
-.settings-content::-webkit-scrollbar-corner {
-  background: transparent;
-}
-.settings-content {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
+  min-height: 0;
 }
 
 /* 通用 settings-panel 样式 */

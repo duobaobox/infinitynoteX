@@ -14,76 +14,11 @@ import type {
   OpenDialogOptions,
 } from './services/types';
 
-// ============ 统一配置类型定义 ============
+import type { AppConfig, DeepPartial } from './shared/types/config';
+import type { SyncResult } from './shared/types/sync';
 
-interface WindowConfig {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-  isMaximized: boolean;
-}
-
-interface ThemeConfig {
-  colorPrimary: string;
-  mode: 'light' | 'dark' | 'auto';
-  bgLight: string;
-  bgDark: string;
-}
-
-interface AIProviderConfig {
-  provider: string;
-  baseURL: string;
-  apiKey: string;
-  model: string;
-  temperature?: number;
-  max_tokens?: number;
-  timeoutMs?: number;
-  systemPrompt?: string;
-}
-
-interface AIAppConfig {
-  activeProviderId: string;
-  providers: Record<string, AIProviderConfig>;
-  /** 前端使用的完整 provider 配置缓存 */
-  providerConfigs?: Record<string, any>;
-}
-
-interface WebDAVProviderConfig {
-  url: string;
-  username: string;
-  password: string;
-  remotePath: string;
-  conflictStrategy: 'newest' | 'local' | 'remote';
-}
-
-interface SyncAppConfig {
-  enabled: boolean;
-  activeProvider: string;
-  providers: {
-    webdav?: WebDAVProviderConfig;
-    [key: string]: any;
-  };
-}
-
-interface StorageAppConfig {
-  dataPath: string | null;
-}
-
-interface AppConfig {
-  schemaVersion: number;
-  storage: StorageAppConfig;
-  window: WindowConfig;
-  theme: ThemeConfig;
-  ai: AIAppConfig;
-  sync: SyncAppConfig;
-  features: Record<string, unknown>;
-  plugins: Record<string, unknown>;
-}
-
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
-};
+// 确保 AppConfig 在这里可用
+// 注意：其他引用了这些本地接口的地方可能需要修改，但 vite-env.d.ts 主要是给 window 扩展用的
 
 declare global {
   interface Window {
@@ -309,11 +244,14 @@ declare global {
       reorder(orderedIds: string[]): Promise<void>;
     };
     sync: {
-      testConnection(providerId: string, config: any): Promise<{ ok: boolean; message: string }>;
-      execute(providerId: string, config: any): Promise<any>;
+      testConnection(
+        providerId: string,
+        config: unknown,
+      ): Promise<{ ok: boolean; message: string }>;
+      execute(providerId: string, config: unknown): Promise<unknown>;
       preview(
         providerId: string,
-        config: any,
+        config: unknown,
       ): Promise<{
         toUpload: string[];
         toDownload: string[];
@@ -322,10 +260,10 @@ declare global {
         conflicts: string[];
         unchanged: number;
       }>;
-      getConfig(providerId: string): Promise<any>;
-      setConfig(providerId: string, config: any): Promise<void>;
+      getConfig(providerId: string): Promise<unknown>;
+      setConfig(providerId: string, config: unknown): Promise<void>;
       openLogDir(): Promise<void>;
-      getLastResult(): Promise<any>;
+      getLastResult(): Promise<unknown>;
       onProgress(
         callback: (progress: {
           stage: string;
@@ -336,7 +274,7 @@ declare global {
           message: string;
         }) => void,
       ): () => void;
-      onCompleted(callback: (result: any) => void): () => void;
+      onCompleted(callback: (result: SyncResult) => void): () => void;
       onDataChanged(callback: () => void): () => void;
     };
     // 统一配置 API

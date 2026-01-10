@@ -10,7 +10,6 @@ describe('useNoteCardTheme', () => {
   const OriginalMutationObserver = global.MutationObserver;
 
   class MockMutationObserver implements MutationObserver {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     constructor(private callback: MutationCallback) {}
     observe(): void {}
     disconnect(): void {}

@@ -27,41 +27,9 @@ import {
 } from '@ant-design/icons';
 import type { SyncProviderConfigProps } from '../types';
 import type { WebDAVConfig } from './schema';
+import type { SyncProgress, SyncResult, SyncPreview } from '../../../../../../shared/types/sync';
 
 const { Text } = Typography;
-
-// 同步进度类型
-interface SyncProgress {
-  stage: string;
-  percent: number;
-  currentFile?: string;
-  processed: number;
-  total: number;
-  message: string;
-}
-
-type SyncPreview = {
-  toUpload: string[];
-  toDownload: string[];
-  toDeleteRemote: string[];
-  toDeleteLocal: string[];
-  conflicts: string[];
-  unchanged: number;
-};
-
-type SyncResult = {
-  success: boolean;
-  message: string;
-  startTime: number;
-  endTime: number;
-  uploaded: number;
-  downloaded: number;
-  deleted: number;
-  skipped: number;
-  conflictsResolved: number;
-  conflictBackups?: string[];
-  errors: Array<{ path?: string; code: string; message: string; retryable?: boolean }>;
-};
 
 const formatDuration = (ms?: number) => {
   if (!ms || ms < 0) return '';

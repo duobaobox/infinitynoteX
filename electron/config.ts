@@ -7,80 +7,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
 
-// ============ 类型定义 ============
+// ============ 类型定义（已移至 shared） ============
+import type {
+  AppConfig,
+  DeepPartial,
+  WindowConfig,
+  ThemeConfig,
+  AIConfig,
+  SyncConfig,
+} from '../src/shared/types/config';
 
-export interface WindowConfig {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-  isMaximized: boolean;
-}
-
-export interface ThemeConfig {
-  colorPrimary: string;
-  mode: 'light' | 'dark' | 'auto';
-  bgLight: string;
-  bgDark: string;
-}
-
-export interface AIProviderConfig {
-  provider: string;
-  baseURL: string;
-  apiKey: string;
-  model: string;
-  temperature?: number;
-  max_tokens?: number;
-  timeoutMs?: number;
-  systemPrompt?: string;
-}
-
-export interface AIConfig {
-  activeProviderId: string;
-  providers: Record<string, AIProviderConfig>;
-  /** 前端使用的完整 provider 配置缓存 */
-  providerConfigs?: Record<string, any>;
-}
-
-export interface WebDAVProviderConfig {
-  url: string;
-  username: string;
-  password: string;
-  remotePath: string;
-  conflictStrategy: 'newest' | 'local' | 'remote';
-}
-
-export interface SyncConfig {
-  enabled: boolean;
-  activeProvider: string;
-  providers: {
-    webdav?: WebDAVProviderConfig;
-    [key: string]: any;
-  };
-}
-
-export interface StorageConfig {
-  dataPath: string | null;
-}
-
-export interface AppConfig {
-  schemaVersion: number;
-  storage: StorageConfig;
-  window: WindowConfig;
-  aiChatWindow?: { width: number; height: number; x: number; y: number };
-  shortcutKeys?: {
-    aiChatWindow: string;
-  };
-  theme: ThemeConfig;
-  ai: AIConfig;
-  sync: SyncConfig;
-  features: Record<string, unknown>;
-  plugins: Record<string, unknown>;
-}
-
-export type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
-};
+// 重新导出以便其他 electron 模块使用
+export type { AppConfig, DeepPartial, WindowConfig, ThemeConfig, AIConfig, SyncConfig };
 
 // ============ 常量 ============
 
@@ -145,41 +83,7 @@ const DEFAULT_CONFIG: AppConfig = {
   plugins: {},
 };
 
-// ============ 工具函数 ============
-
-/**
- * 深度合并对象
- */
-function deepMerge<T extends object>(target: T, source: DeepPartial<T>): T {
-  const result = { ...target };
-
-  for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) {
-      const sourceValue = source[key as keyof typeof source];
-      const targetValue = target[key as keyof T];
-
-      if (sourceValue === undefined) {
-        // 如果 source 值为 undefined，删除该键（用于插件卸载等场景）
-        delete (result as any)[key];
-      } else if (
-        sourceValue !== null &&
-        typeof sourceValue === 'object' &&
-        !Array.isArray(sourceValue) &&
-        targetValue !== null &&
-        typeof targetValue === 'object' &&
-        !Array.isArray(targetValue)
-      ) {
-        // 递归合并对象
-        (result as any)[key] = deepMerge(targetValue as object, sourceValue as object);
-      } else {
-        // 直接覆盖
-        (result as any)[key] = sourceValue;
-      }
-    }
-  }
-
-  return result;
-}
+import { deepMerge } from '../src/shared/utils/deepMerge';
 
 // ============ 核心 API ============
 

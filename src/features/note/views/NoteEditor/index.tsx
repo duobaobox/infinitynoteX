@@ -50,7 +50,7 @@ export const NoteEditor: React.FC = () => {
   const [isContentLoading, setIsContentLoading] = useState(false);
 
   // 使用保存 hook
-  const { pendingSaveRef, saveTimerRef, debouncedSave, flushPendingSave } = useNoteSave();
+  const { debouncedSave, flushPendingSave } = useNoteSave();
 
   // 当前便签 ID 引用
   const currentNoteIdRef = useRef<string | null>(null);
@@ -98,49 +98,6 @@ export const NoteEditor: React.FC = () => {
       window.ipcRenderer?.off('note:updated', handleFloatingNoteUpdate);
     };
   }, []);
-
-  // 页面关闭/刷新时保存
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (pendingSaveRef.current) {
-        if (saveTimerRef.current) {
-          clearTimeout(saveTimerRef.current);
-        }
-        const data = pendingSaveRef.current;
-        try {
-          window.storage.updateNote(data.noteId, {
-            title: data.title,
-            content: data.content,
-          });
-        } catch (e) {
-          console.error('Failed to save on unload:', e);
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [pendingSaveRef, saveTimerRef]);
-
-  // 组件卸载时保存并清理
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-      }
-      if (pendingSaveRef.current) {
-        const data = pendingSaveRef.current;
-        window.storage
-          .updateNote(data.noteId, {
-            title: data.title,
-            content: data.content,
-          })
-          .catch((e) => console.error('Failed to save on unmount:', e));
-      }
-    };
-  }, [pendingSaveRef, saveTimerRef]);
 
   const loadNote = async (id: string) => {
     setIsContentLoading(true);

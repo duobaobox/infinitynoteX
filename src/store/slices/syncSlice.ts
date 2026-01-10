@@ -3,6 +3,7 @@
  */
 
 import type { StateCreator } from 'zustand';
+import type { SyncResult } from '../../shared/types/sync';
 
 // ============ 类型定义 ============
 interface SyncStatus {
@@ -94,7 +95,7 @@ export const createSyncSlice: StateCreator<SyncSlice, [], [], SyncSlice> = (set,
     const { setSyncStatus } = get();
     try {
       setSyncStatus({ syncing: true, error: null });
-      const result = await window.sync.execute(providerId, config);
+      const result = (await window.sync.execute(providerId, config)) as SyncResult;
 
       const success = Boolean(result?.success);
       const endTime = typeof result?.endTime === 'number' ? result.endTime : Date.now();

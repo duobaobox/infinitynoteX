@@ -280,7 +280,7 @@ export const useAIChat = ({
         console.error('Failed to save conversation history:', err);
       }
     },
-    [conversationId],
+    [conversationId, source],
   );
 
   // 请求结束后保存一次

@@ -7,7 +7,6 @@ import type { IpcStreamInput } from './IpcChatProvider';
 function createAbortError(message = 'Request aborted'): Error {
   // DOMException is available in browser contexts; fall back to Error.
   try {
-    // eslint-disable-next-line no-undef
     return new DOMException(message, 'AbortError');
   } catch {
     const err = new Error(message) as Error & { name: string };

@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import path from 'node:path';
 import electron from 'vite-plugin-electron/simple';
@@ -66,6 +67,18 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       external: ['electron-updater', 'electron'],
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    deps: {
+      optimizer: {
+        web: {
+          include: ['@ant-design/x', '@ant-design/x-markdown'],
+        },
+      },
     },
   },
 });

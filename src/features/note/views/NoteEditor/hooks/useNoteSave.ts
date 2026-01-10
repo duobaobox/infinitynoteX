@@ -8,7 +8,7 @@
  * 4. 脏数据追踪，避免重复保存
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import type { PendingSave } from '../types';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
@@ -16,8 +16,7 @@ import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 interface UseNoteSaveReturn {
   /** 待保存数据引用 */
   pendingSaveRef: React.MutableRefObject<PendingSave | null>;
-  /** 保存定时器引用 */
-  saveTimerRef: React.MutableRefObject<NodeJS.Timeout | null>;
+
   /** 立即保存 */
   saveImmediately: (data?: PendingSave, silent?: boolean) => Promise<boolean>;
   /** 防抖保存 */
@@ -115,11 +114,53 @@ export const useNoteSave = (): UseNoteSaveReturn => {
     }
   }, [saveImmediately]);
 
+  /**
+   * 监听生命周期，确保数据不丢失
+   */
+  // 页面关闭/刷新时保存
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (pendingSaveRef.current) {
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        const data = pendingSaveRef.current;
+        // 尝试同步或尽力保存
+        window.storage
+          .updateNote(data.noteId, {
+            title: data.title,
+            content: data.content,
+          })
+          .catch((e) => console.error('Failed to save on unload:', e));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // 组件卸载时保存
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (pendingSaveRef.current) {
+        const data = pendingSaveRef.current;
+        // 这里的 ref.current 在 unmount cleanup 时依然有效
+        window.storage
+          .updateNote(data.noteId, {
+            title: data.title,
+            content: data.content,
+          })
+          .catch((e) => console.error('Failed to save on unmount:', e));
+      }
+    };
+  }, []);
+
   return {
-    pendingSaveRef,
-    saveTimerRef,
     saveImmediately,
     debouncedSave,
     flushPendingSave,
+    // 依然暴露 ref 以备不时之需，但建议尽量少用
+    pendingSaveRef,
   };
 };

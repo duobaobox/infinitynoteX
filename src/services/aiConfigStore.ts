@@ -8,6 +8,7 @@
  */
 
 import type { AIConfig } from './aiConfig';
+import type { AIProviderConfig } from '../shared/types/config';
 
 export const AI_CONFIG_CHANGED_EVENT = 'infinitynotex:ai-config-changed';
 
@@ -65,9 +66,12 @@ export const persistProviderConfigs = (configs: Record<string, AIConfig>): void 
   providerConfigsCache = { ...configs };
 
   // 异步写入主进程（非阻塞）
-  window.app.setConfig({ ai: { providerConfigs: configs } }).catch((error) => {
-    console.warn('[AI] Failed to persist provider configs:', error);
-  });
+  // 前端 AIConfig 包含 providerId 等额外字段，且 apiKey 类型宽松，此处使用 Partial 合并是安全的
+  window.app
+    .setConfig({ ai: { providerConfigs: configs as unknown as Record<string, AIProviderConfig> } })
+    .catch((error) => {
+      console.warn('[AI] Failed to persist provider configs:', error);
+    });
 };
 
 /**

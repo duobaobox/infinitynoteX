@@ -23,6 +23,23 @@ export type {
   RepairResult,
 } from './types';
 
+// ============ TipTap JSON 类型定义 ============
+
+interface TipTapMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface TipTapNode {
+  type: string;
+  text?: string;
+  content?: TipTapNode[];
+  marks?: TipTapMark[];
+  attrs?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 // ============ TipTap JSON 转文本 ============
 
 /**
@@ -36,7 +53,7 @@ export type {
  * - 表格: table, tableRow, tableCell, tableHeader
  * - 链接和图片: link, image
  */
-function extractTextFromTipTap(node: any): string {
+function extractTextFromTipTap(node: TipTapNode | null | undefined): string {
   if (!node) return '';
 
   // ============ 文本节点 ============
@@ -45,15 +62,15 @@ function extractTextFromTipTap(node: any): string {
 
     if (node.marks && Array.isArray(node.marks)) {
       // 粗体：重点内容
-      if (node.marks.some((m: any) => m.type === 'bold')) {
+      if (node.marks.some((m) => m.type === 'bold')) {
         text = `**${text}**`;
       }
       // 行内代码：技术术语
-      if (node.marks.some((m: any) => m.type === 'code')) {
+      if (node.marks.some((m) => m.type === 'code')) {
         text = `\`${text}\``;
       }
       // 删除线：保留（可能是重要的对比信息）
-      if (node.marks.some((m: any) => m.type === 'strike')) {
+      if (node.marks.some((m) => m.type === 'strike')) {
         text = `~~${text}~~`;
       }
       // 其他标记（斜体、下划线、高亮、上下标）对检索帮助不大，不保留
@@ -65,7 +82,7 @@ function extractTextFromTipTap(node: any): string {
 
   // 标题
   if (node.type === 'heading') {
-    const level = node.attrs?.level || 1;
+    const level = (node.attrs?.level as number) || 1;
     const headingText = Array.isArray(node.content)
       ? node.content.map(extractTextFromTipTap).join('')
       : '';
@@ -74,10 +91,8 @@ function extractTextFromTipTap(node: any): string {
 
   // 代码块
   if (node.type === 'codeBlock') {
-    const lang = node.attrs?.language || '';
-    const code = Array.isArray(node.content)
-      ? node.content.map((c: any) => c.text || '').join('')
-      : '';
+    const lang = (node.attrs?.language as string) || '';
+    const code = Array.isArray(node.content) ? node.content.map((c) => c.text || '').join('') : '';
     return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
   }
 
@@ -156,8 +171,8 @@ function extractTextFromTipTap(node: any): string {
 
   // 图片（提取 alt 文本和标题）
   if (node.type === 'image') {
-    const alt = node.attrs?.alt || '';
-    const title = node.attrs?.title || '';
+    const alt = (node.attrs?.alt as string) || '';
+    const title = (node.attrs?.title as string) || '';
     // 保留图片描述信息，帮助检索
     if (alt || title) {
       return `[图片: ${alt || title}] `;
@@ -189,12 +204,12 @@ function extractTextFromTipTap(node: any): string {
  * 注意：TipTap 的 Markdown 扩展需要 Editor 实例，无法在 Electron 后端直接使用。
  * 因此这里使用优化后的手动转换器，保留关键的 Markdown 标记，提升向量检索效果。
  */
-export function extractNoteText(content: any): string {
+export function extractNoteText(content: unknown): string {
   if (!content || typeof content !== 'object') {
     return '';
   }
 
-  const text = extractTextFromTipTap(content);
+  const text = extractTextFromTipTap(content as TipTapNode);
   // 清理多余空白
   return text.replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -358,7 +373,7 @@ export function getDefaultIndexingConfig(): IndexingConfig {
 export async function indexNote(
   noteId: string,
   title: string,
-  content: any,
+  content: unknown,
   embeddingService: EmbeddingService,
 ): Promise<number> {
   const store = getVectorStore();
@@ -634,7 +649,7 @@ export async function reindexNote(noteId: string): Promise<{
 export async function smartIndexNote(
   noteId: string,
   title: string,
-  content: any,
+  content: unknown,
   embeddingService: EmbeddingService,
 ): Promise<{
   embedded: number;

@@ -53,12 +53,14 @@ const Sidebar: React.FC = () => {
   // 加载文件夹列表（初始化时）
   useEffect(() => {
     loadFolders();
+  }, [loadFolders]);
 
-    // 如果没有选中文件夹，默认选中第一个
+  // 自动选中第一个（当有文件夹且未选中时）
+  useEffect(() => {
     if (!selectedFolderId && folders.length > 0) {
       setSelectedFolder(folders[0].id);
     }
-  }, [loadFolders]); // 移除 selectedFolderId 依赖，避免循环
+  }, [selectedFolderId, folders, setSelectedFolder]);
 
   const openCreateFolderModal = () => {
     setNewFolderName('');

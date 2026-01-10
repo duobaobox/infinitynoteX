@@ -48,6 +48,9 @@ const DEFAULT_COMPRESSION: CompressionConfig = {
  * 附件存储类
  */
 export class AttachmentStorage {
+  saveDataURL() {
+    throw new Error('Method not implemented.');
+  }
   private attachmentsDir: string;
   private compression: CompressionConfig;
 

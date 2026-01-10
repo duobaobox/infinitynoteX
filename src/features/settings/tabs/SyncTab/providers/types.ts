@@ -37,7 +37,8 @@ export interface SyncProviderConfigProps<T = unknown> {
 /**
  * 同步Provider定义
  */
-export interface SyncProvider<T = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface SyncProvider<T = any> {
   /** Provider唯一标识 */
   id: string;
   /** 显示名称 */

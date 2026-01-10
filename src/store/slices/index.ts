@@ -13,3 +13,17 @@ export {
   type WorkspaceViewSlice,
   type WorkspaceView,
 } from './workspaceViewSlice';
+
+// Settings 相关 slices
+export { createAppearanceSlice, type AppearanceSlice } from './appearanceSlice';
+export {
+  createAIConfigSlice,
+  type AIConfigSlice,
+  type ProviderStatus,
+  PROVIDER_STATUS_META,
+  getProviderStatus,
+  isConfigReady,
+} from './aiConfigSlice';
+export { createStorageSlice, type StorageSlice } from './storageSlice';
+export { createSyncSlice, type SyncSlice } from './syncSlice';
+export { createAppSlice, type AppSlice, DEFAULT_EXTERNAL_AI_URL } from './appSlice';

@@ -2,6 +2,131 @@ import { ipcRenderer, contextBridge } from 'electron';
 import type { OpenDialogOptions } from '../src/services/types';
 import { createProxy } from '../src/shared/utils/ipcProxy';
 
+// ============ 方法名列表定义 ============
+// 注意：这些列表必须与 electron/ipc/*Handlers.ts 中注册的 IPC 通道保持一致
+
+const STORAGE_METHODS = [
+  'getDefaultPath',
+  'getCurrentPath',
+  'isFirstLaunch',
+  'markInitialized',
+  'setStoragePath',
+  'healthCheck',
+  'openInFinder',
+  'getStats',
+  'createBackup',
+  'restoreBackup',
+  'exportData',
+  'resetAllData',
+  'listFolders',
+  'createFolder',
+  'renameFolder',
+  'deleteFolder',
+  'listNotes',
+  'createNote',
+  'getNote',
+  'updateNote',
+  'deleteNote',
+  'getAIConversations',
+  'createAIConversation',
+  'deleteAIConversation',
+  'saveAIConversationMessages',
+  'updateAIConversationTitle',
+  'listTrash',
+  'getTrashItem',
+  'restoreNote',
+  'deleteTrashItemPermanently',
+  'emptyTrash',
+  'listTodoLists',
+  'createTodoList',
+  'updateTodoList',
+  'deleteTodoList',
+  'listManualTasks',
+  'createManualTask',
+  'updateManualTask',
+  'deleteManualTask',
+  'toggleManualTask',
+];
+
+const BROWSER_CARDS_METHODS = ['list', 'create', 'update', 'delete', 'reorder'];
+
+const ATTACHMENTS_METHODS = ['save', 'list', 'cleanup'];
+
+const SYNC_METHODS = [
+  'testConnection',
+  'execute',
+  'getLastResult',
+  'preview',
+  'getConfig',
+  'setConfig',
+  'openLogDir',
+];
+
+const AI_METHODS = [
+  'getConfig',
+  'setConfig',
+  'testConnection',
+  'chat',
+  'chatStream',
+  'abortStream',
+];
+
+const KNOWLEDGE_METHODS = [
+  'getConfig',
+  'setConfig',
+  'testEmbedding',
+  'rebuildIndex',
+  'getStats',
+  'search',
+  'getChunks',
+  'getNoteIndexList',
+  'testSearch',
+  'incrementalUpdate',
+  'reindexNote',
+  'deleteNoteIndex',
+  'runDiagnostics',
+  'repairIndex',
+  'getIndexingConfig',
+  'setIndexingConfig',
+  'resetIndexingConfig',
+  'getDefaultIndexingConfig',
+];
+
+const CONFIG_METHODS = [
+  'getShortcutKeys',
+  'setShortcutKeys',
+  'getDefaultFloatingWindowSize',
+  'setDefaultFloatingWindowSize',
+];
+
+const LOG_METHODS = [
+  'openDir',
+  'getPath',
+  'readRecent',
+  'readByLevel',
+  'search',
+  'cleanOld',
+  'getStats',
+];
+
+const FLOATING_METHODS = [
+  'createWindow',
+  'minimizeWindow',
+  'restoreWindow',
+  'closeWindow',
+  'listWindows',
+];
+
+const FLOATING_TODO_METHODS = [
+  'createWindow',
+  'closeWindow',
+  'minimizeWindow',
+  'restoreWindow',
+  'listWindows',
+];
+
+const APP_METHODS = ['getConfig', 'setConfig', 'getConfigPath'];
+
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
@@ -45,8 +170,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 // --------- Expose storage API ---------
-// 使用 Proxy 自动转发所有 storage:xxx 调用
-contextBridge.exposeInMainWorld('storage', createProxy(ipcRenderer, 'storage'));
+contextBridge.exposeInMainWorld('storage', createProxy(ipcRenderer, 'storage', STORAGE_METHODS));
 
 // --------- Expose storage events API ---------
 contextBridge.exposeInMainWorld('storageEvents', {
@@ -79,10 +203,16 @@ contextBridge.exposeInMainWorld('storageEvents', {
 });
 
 // --------- Expose floating window API ---------
-contextBridge.exposeInMainWorld('floatingWindow', createProxy(ipcRenderer, 'floating'));
+contextBridge.exposeInMainWorld(
+  'floatingWindow',
+  createProxy(ipcRenderer, 'floating', FLOATING_METHODS),
+);
 
 // --------- Expose floating todo window API ---------
-contextBridge.exposeInMainWorld('floatingTodo', createProxy(ipcRenderer, 'floatingTodo'));
+contextBridge.exposeInMainWorld(
+  'floatingTodo',
+  createProxy(ipcRenderer, 'floatingTodo', FLOATING_TODO_METHODS),
+);
 
 // --------- Expose auto-updater API (Manual due to naming mismatch) ---------
 contextBridge.exposeInMainWorld('autoUpdater', {
@@ -104,15 +234,21 @@ contextBridge.exposeInMainWorld('appInfo', {
 });
 
 // --------- Expose Browser Cards API ---------
-contextBridge.exposeInMainWorld('browserCards', createProxy(ipcRenderer, 'browserCards'));
+contextBridge.exposeInMainWorld(
+  'browserCards',
+  createProxy(ipcRenderer, 'browserCards', BROWSER_CARDS_METHODS),
+);
 
 // --------- Expose Attachments API ---------
-contextBridge.exposeInMainWorld('attachments', createProxy(ipcRenderer, 'attachments'));
+contextBridge.exposeInMainWorld(
+  'attachments',
+  createProxy(ipcRenderer, 'attachments', ATTACHMENTS_METHODS),
+);
 
 // --------- Expose AI API ---------
 contextBridge.exposeInMainWorld(
   'ai',
-  createProxy(ipcRenderer, 'ai', {
+  createProxy(ipcRenderer, 'ai', AI_METHODS, {
     onStreamChunk: (callback: (data: unknown) => void) => {
       const listener = (_: unknown, data: unknown) => callback(data);
       ipcRenderer.on('ai:stream:chunk', listener);
@@ -134,7 +270,7 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Sync API ---------
 contextBridge.exposeInMainWorld(
   'sync',
-  createProxy(ipcRenderer, 'sync', {
+  createProxy(ipcRenderer, 'sync', SYNC_METHODS, {
     onProgress: (callback: (progress: unknown) => void) => {
       const listener = (_: unknown, progress: unknown) => callback(progress);
       ipcRenderer.on('sync:progress', listener);
@@ -156,7 +292,7 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Unified App Config API ---------
 contextBridge.exposeInMainWorld(
   'app',
-  createProxy(ipcRenderer, 'app', {
+  createProxy(ipcRenderer, 'app', APP_METHODS, {
     onConfigChanged: (callback: (config: unknown) => void) => {
       const listener = (_: unknown, config: unknown) => callback(config);
       ipcRenderer.on('app:configChanged', listener);
@@ -168,7 +304,7 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Log API ---------
 contextBridge.exposeInMainWorld(
   'log',
-  createProxy(ipcRenderer, 'log', {
+  createProxy(ipcRenderer, 'log', LOG_METHODS, {
     error: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'error', ...args),
     warn: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'warn', ...args),
     info: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'info', ...args),
@@ -177,7 +313,10 @@ contextBridge.exposeInMainWorld(
 );
 
 // --------- Expose Knowledge Base API ---------
-contextBridge.exposeInMainWorld('knowledge', createProxy(ipcRenderer, 'knowledge'));
+contextBridge.exposeInMainWorld(
+  'knowledge',
+  createProxy(ipcRenderer, 'knowledge', KNOWLEDGE_METHODS),
+);
 
 // --------- Expose Config API ---------
-contextBridge.exposeInMainWorld('config', createProxy(ipcRenderer, 'config'));
+contextBridge.exposeInMainWorld('config', createProxy(ipcRenderer, 'config', CONFIG_METHODS));

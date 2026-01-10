@@ -15,7 +15,7 @@ import type {
 } from './services/types';
 
 import type { AppConfig, DeepPartial } from './shared/types/config';
-import type { SyncResult } from './shared/types/sync';
+import type { SyncResult, SyncConfig, SyncProgress, SyncPreview } from './shared/types/sync';
 
 // 确保 AppConfig 在这里可用
 // 注意：其他引用了这些本地接口的地方可能需要修改，但 vite-env.d.ts 主要是给 window 扩展用的
@@ -246,34 +246,15 @@ declare global {
     sync: {
       testConnection(
         providerId: string,
-        config: unknown,
+        config: SyncConfig,
       ): Promise<{ ok: boolean; message: string }>;
-      execute(providerId: string, config: unknown): Promise<unknown>;
-      preview(
-        providerId: string,
-        config: unknown,
-      ): Promise<{
-        toUpload: string[];
-        toDownload: string[];
-        toDeleteRemote: string[];
-        toDeleteLocal: string[];
-        conflicts: string[];
-        unchanged: number;
-      }>;
-      getConfig(providerId: string): Promise<unknown>;
-      setConfig(providerId: string, config: unknown): Promise<void>;
+      execute(providerId: string, config: SyncConfig): Promise<SyncResult>;
+      preview(providerId: string, config: SyncConfig): Promise<SyncPreview>;
+      getConfig(providerId: string): Promise<SyncConfig | null>;
+      setConfig(providerId: string, config: SyncConfig): Promise<void>;
       openLogDir(): Promise<void>;
-      getLastResult(): Promise<unknown>;
-      onProgress(
-        callback: (progress: {
-          stage: string;
-          percent: number;
-          currentFile?: string;
-          processed: number;
-          total: number;
-          message: string;
-        }) => void,
-      ): () => void;
+      getLastResult(): Promise<SyncResult | null>;
+      onProgress(callback: (progress: SyncProgress) => void): () => void;
       onCompleted(callback: (result: SyncResult) => void): () => void;
       onDataChanged(callback: () => void): () => void;
     };

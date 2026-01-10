@@ -3,7 +3,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { SyncResult } from '../../shared/types/sync';
+import type { SyncConfig, SyncResult } from '../../shared/types/sync';
 
 // ============ 类型定义 ============
 interface SyncStatus {
@@ -19,22 +19,18 @@ const getErrMsg = (e: unknown) =>
 export interface SyncSlice {
   // 状态
   selectedSyncProvider: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  syncConfigs: Record<string, any>;
+  syncConfigs: Record<string, SyncConfig>;
   syncStatus: SyncStatus;
 
   // Actions
   setSelectedSyncProvider: (id: string | null) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setSyncConfig: (providerId: string, config: any) => void;
+  setSyncConfig: (providerId: string, config: SyncConfig) => void;
   setSyncStatus: (status: Partial<SyncStatus>) => void;
   testSyncConnection: (
     providerId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    config: any,
+    config: SyncConfig,
   ) => Promise<{ ok: boolean; message: string }>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  triggerSync: (providerId: string, config: any) => Promise<any>;
+  triggerSync: (providerId: string, config: SyncConfig) => Promise<SyncResult>;
   loadSyncConfigs: () => Promise<void>;
 }
 

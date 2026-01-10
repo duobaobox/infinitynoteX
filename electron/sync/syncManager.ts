@@ -149,14 +149,12 @@ export class SyncManager {
   /**
    * 通用同步接口（保持向后兼容）
    */
-  async execute(
-    providerId: string,
-    config: WebDAVConfig,
-    storagePath: string,
-  ): Promise<SyncResult> {
+  async execute(providerId: string, config: SyncConfig, storagePath: string): Promise<SyncResult> {
     switch (providerId) {
       case 'webdav':
-        return await this.sync(config, storagePath);
+        return await this.sync(config, storagePath, {
+          conflictStrategy: config.conflictStrategy,
+        });
       default:
         throw new Error(`Unknown provider: ${providerId}`);
     }

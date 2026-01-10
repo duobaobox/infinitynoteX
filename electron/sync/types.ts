@@ -7,22 +7,27 @@
  * 同步方式：手动触发
  */
 
-// ============ 同步配置 ============
+import type {
+  SyncStage,
+  SyncProgress,
+  SyncResult,
+  SyncError,
+  WebDAVConfig,
+  SyncConfig,
+  ConflictStrategy,
+} from '../../src/shared/types/sync';
 
-export interface WebDAVConfig {
-  url: string;
-  username: string;
-  password: string;
-  remotePath: string;
-}
-
-export interface SyncConfig extends WebDAVConfig {
-  enabled: boolean;
-  /** 冲突解决策略，默认 newest */
-  conflictStrategy: ConflictStrategy;
-}
-
-export type ConflictStrategy = 'local' | 'remote' | 'newest';
+// Re-export shared types
+// Note: We import from src/shared/types/sync.ts directly.
+export type {
+  SyncStage,
+  SyncProgress,
+  SyncResult,
+  SyncError,
+  WebDAVConfig,
+  SyncConfig,
+  ConflictStrategy,
+};
 
 // ============ 本地同步状态 ============
 
@@ -130,63 +135,7 @@ export interface ConflictInfo {
 
 // ============ 同步进度 ============
 
-export type SyncStage =
-  | 'idle' // 空闲
-  | 'connecting' // 连接中
-  | 'scanning' // 扫描本地文件
-  | 'comparing' // 比较差异
-  | 'uploading' // 上传中
-  | 'downloading' // 下载中
-  | 'finalizing' // 完成中
-  | 'done' // 完成
-  | 'error'; // 错误
-
-export interface SyncProgress {
-  stage: SyncStage;
-  /** 进度百分比 0-100 */
-  percent: number;
-  /** 当前正在处理的文件 */
-  currentFile?: string;
-  /** 已处理文件数 */
-  processed: number;
-  /** 总文件数 */
-  total: number;
-  /** 消息 */
-  message: string;
-}
-
 export type SyncProgressCallback = (progress: SyncProgress) => void;
-
-// ============ 同步结果 ============
-
-export interface SyncResult {
-  success: boolean;
-  message: string;
-  startTime: number;
-  endTime: number;
-  /** 上传的文件数 */
-  uploaded: number;
-  /** 下载的文件数 */
-  downloaded: number;
-  /** 删除的文件数 */
-  deleted: number;
-  /** 跳过的文件数（无变化） */
-  skipped: number;
-  /** 冲突并解决的文件数 */
-  conflictsResolved: number;
-  /** 冲突备份文件列表（保留的被覆盖版本） */
-  conflictBackups?: string[];
-  /** 错误列表 */
-  errors: SyncError[];
-}
-
-export interface SyncError {
-  path?: string;
-  code: string;
-  message: string;
-  /** 是否可重试 */
-  retryable?: boolean;
-}
 
 // ============ 同步日志 ============
 

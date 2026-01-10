@@ -144,7 +144,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
       message: '正在连接...',
     });
     try {
-      const result = (await onSync()) as SyncResult;
+      const result = await onSync();
       if (result) {
         setLastResult(result);
         if (result.success) {

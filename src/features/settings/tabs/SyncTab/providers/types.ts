@@ -5,6 +5,7 @@
 
 import React from 'react';
 import type { z } from 'zod';
+import type { SyncResult } from '../../../../../shared/types/sync';
 
 /**
  * Provider能力定义
@@ -31,7 +32,7 @@ export interface SyncProviderConfigProps<T = unknown> {
   /** 测试连接回调 */
   onTest: () => Promise<{ ok: boolean; message: string }>;
   /** 触发同步回调 */
-  onSync: () => Promise<unknown>;
+  onSync: () => Promise<SyncResult>;
 }
 
 /**

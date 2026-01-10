@@ -3,8 +3,19 @@
  * Shared between Frontend and Electron
  */
 
+export type SyncStage =
+  | 'idle'
+  | 'connecting'
+  | 'scanning'
+  | 'comparing'
+  | 'uploading'
+  | 'downloading'
+  | 'finalizing'
+  | 'done'
+  | 'error';
+
 export interface SyncProgress {
-  stage: string;
+  stage: SyncStage;
   percent: number;
   currentFile?: string;
   processed: number;
@@ -41,3 +52,17 @@ export type SyncResult = {
   conflictBackups?: string[];
   errors: SyncError[];
 };
+
+export type ConflictStrategy = 'local' | 'remote' | 'newest';
+
+export interface WebDAVConfig {
+  url: string;
+  username: string;
+  password: string;
+  remotePath: string;
+}
+
+export interface SyncConfig extends WebDAVConfig {
+  enabled: boolean;
+  conflictStrategy: ConflictStrategy;
+}

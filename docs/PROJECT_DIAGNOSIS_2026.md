@@ -1,7 +1,7 @@
 # 🔥 InfinityNoteX 项目辣评诊断报告 (2026版)
 
-> **诊断日期**：2026-01-10  
-> **诊断人**：Antigravity (Google Deepmind)  
+> **诊断日期**：2026-01-10\
+> **诊断人**：Antigravity (Google Deepmind)\
 > **诊断对象**：InfinityNoteX v1.0.7
 
 ## 📋 核心结论：基建不错，但正在走向"大杂烩"
@@ -28,8 +28,8 @@
 在 `src/store/slices/syncSlice.ts` 中，我看到了令人不安的代码：
 
 ```typescript
-syncConfigs: Record<string, any>; // 🔥 既然用了 TS，为什么要放弃治疗？
-triggerSync: (providerId: string, config: any) => Promise<any>; // 🔥
+syncConfigs: Record<string, any>; // ✅ 已修复: Record<string, SyncConfig>
+triggerSync: (providerId: string, config: any) => Promise<any>; // ✅ 已修复: Promise<SyncResult>
 ```
 
 - **症状**：关键的同步逻辑全是 `any`。
@@ -127,31 +127,31 @@ async listNotes(folderId: string) {
 
 ### 🛑 阶段一：止血与减肥（立即执行）
 
-1.  **砍掉伪需求**：
-    - 移除 `BrowserCard`（除非你有极强的理由保留）。
-    - 合并 `Todo` 到 `Note`（不要让用户困惑在哪里记待办）。
-2.  **补全核心体验**：
-    - **必须实现全文搜索**（SQLite FTS 或 FlexSearch）。
-    - **必须消除 `syncSlice` 里的 `any`**。
-3.  **增加安全护栏**：
-    - 为 `StorageManager` 和 `Sync` 核心逻辑编写单元测试（Jest/Vitest）。
+1. **砍掉伪需求**：
+   - 移除 `BrowserCard`（除非你有极强的理由保留）。
+   - 合并 `Todo` 到 `Note`（不要让用户困惑在哪里记待办）。
+2. **补全核心体验**：
+   - **必须实现全文搜索**（SQLite FTS 或 FlexSearch）。
+   - **必须消除** `syncSlice` 里的 `any`。
+3. **增加安全护栏**：
+   - 为 `StorageManager` 和 `Sync` 核心逻辑编写单元测试（Jest/Vitest）。
 
 ### 🛠️ 阶段二：固本培元（Q1 2026）
 
-1.  **重构 IPC**：
-    - 引入类型安全的通信机制，别再手动写字符串数组了。
-2.  **真实的 Service 层**：
-    - 把 `useNoteQuery` 这种 hooks 里的逻辑下沉到 Service 层。
-    - Service 层应该处理缓存、去重、简单的业务校验。
-3.  **同步机制升级**：
-    - 实现这一机制：检测到云端版本比本地新 -> 提示用户/自动创建副本（Conflicted Copy）。
+1. **重构 IPC**：
+   - 引入类型安全的通信机制，别再手动写字符串数组了。
+2. **真实的 Service 层**：
+   - 把 `useNoteQuery` 这种 hooks 里的逻辑下沉到 Service 层。
+   - Service 层应该处理缓存、去重、简单的业务校验。
+3. **同步机制升级**：
+   - 实现这一机制：检测到云端版本比本地新 -> 提示用户/自动创建副本（Conflicted Copy）。
 
 ### 🔭 阶段三：差异化竞争（Q2 2026+）
 
-1.  **AI 深度融合**：
-    - 别只做"对话框"。做"选中笔记 -> AI 润色/续写/提取待办"。这才是编辑器 AI 的正道。
-2.  **知识库落地**：
-    - 现在的 RAG 只是个架子。要让 AI 能真的"读懂"我的笔记库，并在写作时自动推荐相关笔记。
+1. **AI 深度融合**：
+   - 别只做"对话框"。做"选中笔记 -> AI 润色/续写/提取待办"。这才是编辑器 AI 的正道。
+2. **知识库落地**：
+   - 现在的 RAG 只是个架子。要让 AI 能真的"读懂"我的笔记库，并在写作时自动推荐相关笔记。
 
 ---
 

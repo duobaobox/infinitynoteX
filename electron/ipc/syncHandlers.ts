@@ -37,7 +37,7 @@ export function registerSyncHandlers(): void {
         event.sender.send('sync:progress', progress);
       };
       syncManager.setProgressCallback(progressCallback);
-      const result = await syncManager.execute(providerId, config as WebDAVConfig, storagePath);
+      const result = await syncManager.execute(providerId, config as SyncConfig, storagePath);
 
       // 持久化最近一次同步结果
       try {

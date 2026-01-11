@@ -50,7 +50,7 @@ const STORAGE_METHODS = [
 
 const BROWSER_CARDS_METHODS = ['list', 'create', 'update', 'delete', 'reorder'];
 
-const ATTACHMENTS_METHODS = ['save', 'list', 'cleanup'];
+const ATTACHMENTS_METHODS = ['save', 'getPath', 'delete', 'list', 'cleanup'];
 
 const SYNC_METHODS = [
   'testConnection',

@@ -91,6 +91,7 @@ export const LinkBubbleMenu: React.FC<LinkBubbleMenuProps> = ({ editor }) => {
     <BubbleMenu
       className="bubble-menu link-bubble-menu"
       editor={editor}
+      pluginKey="link-bubble-menu"
       options={{
         placement: 'bottom',
       }}

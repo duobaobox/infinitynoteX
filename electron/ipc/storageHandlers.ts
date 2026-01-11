@@ -318,17 +318,32 @@ export function registerStorageHandlers(): void {
 
   // ============ 附件 ============
 
-  ipcMain.handle('attachments:save', async (_, data: { dataUrl: string; ext: string }) => {
+  ipcMain.handle('attachments:save', async (_, dataUrl: string) => {
     try {
-      // 从 dataUrl 中提取 base64 数据
-      const base64Match = data.dataUrl.match(/^data:image\/\w+;base64,(.+)$/);
-      if (!base64Match) {
+      // 从 dataUrl 中提取文件类型和 base64 数据
+      const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!match) {
         throw new Error('Invalid data URL format');
       }
-      const base64Data = base64Match[1];
-      const id = await storageManager.attachments.save(base64Data, data.ext);
+      const ext = match[1];
+      const base64Data = match[2];
+      const id = await storageManager.attachments.save(base64Data, ext);
       const path = await storageManager.attachments.getPath(id);
       return { success: true, id, path };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { success: false, error: msg };
+    }
+  });
+
+  ipcMain.handle('attachments:getPath', async (_, id: string) => {
+    return await storageManager.attachments.getPath(id);
+  });
+
+  ipcMain.handle('attachments:delete', async (_, id: string) => {
+    try {
+      await storageManager.attachments.delete(id);
+      return { success: true };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       return { success: false, error: msg };

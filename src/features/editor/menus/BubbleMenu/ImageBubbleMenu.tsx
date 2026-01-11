@@ -49,6 +49,7 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
     <BubbleMenu
       className="bubble-menu image-bubble-menu"
       editor={editor}
+      pluginKey="image-bubble-menu"
       options={{
         placement: 'top',
       }}

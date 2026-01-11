@@ -36,12 +36,32 @@ export const TableBubbleMenu: React.FC<TableBubbleMenuProps> = ({ editor }) => {
     <BubbleMenu
       className="table-bubble-menu"
       editor={editor}
+      pluginKey="table-bubble-menu"
       options={{
         placement: 'top',
       }}
-      shouldShow={({ editor: e }) => {
-        // 只在表格内显示
-        return e.isActive('table');
+      shouldShow={({ editor: e, state }) => {
+        if (!e.isActive('table')) {
+          return false;
+        }
+
+        // 检查选区状态
+        const { selection } = state;
+        const isCellSelection = selection.constructor.name === 'CellSelection'; // 虽然依赖内部类名，但这是区分 CellSelection 最直接的方法
+        const isEmpty = selection.empty;
+
+        // 如果是 CellSelection (选中多个单元格) -> 显示表格菜单
+        if (isCellSelection) {
+          return true;
+        }
+
+        // 如果光标在单元格内且没有选中文本 (空选区) -> 显示表格菜单
+        if (isEmpty) {
+          return true;
+        }
+
+        // 如果在单元格内选中文本 -> 隐藏表格菜单 (让 TextMenu 显示)
+        return false;
       }}
     >
       {/* 行操作 */}

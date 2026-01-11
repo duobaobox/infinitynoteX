@@ -155,6 +155,23 @@ export const NoteEditor: React.FC = () => {
     [triggerListRefresh],
   );
 
+  // 处理 Tab 切换
+  const handleTabChange = async (key: string | number) => {
+    const newTab = key as TabKeyType;
+
+    // 1. 切换前先确保当前编辑器的变更已保存 (防止 Canvas 修改被覆盖，或丢失 EditTab 修改)
+    await flushPendingSave();
+
+    // 2. 切换 Tab
+    setActiveTab(newTab);
+
+    // 3. 如果切回编辑模式，且当前有选中的便签，重新加载数据
+    // 必须重新加载，因为在 Canvas 模式下可能修改了内容 (通过 updateNote 更新了 DB)
+    if (newTab === 'edit' && currentNoteIdRef.current) {
+      await loadNote(currentNoteIdRef.current);
+    }
+  };
+
   // 使用配置生成 Segmented 选项
   const segmentOptions = useMemo(
     () =>
@@ -230,7 +247,7 @@ export const NoteEditor: React.FC = () => {
         <div className="flex-vertical-equal">
           {/* Tab 栏 */}
           <div style={{ display: 'inline-block' }}>
-            <Segmented options={segmentOptions} value={activeTab} onChange={setActiveTab} />
+            <Segmented options={segmentOptions} value={activeTab} onChange={handleTabChange} />
           </div>
           {/* 内容区：编辑器 + AI 对话 左右分栏（可拖拽调整宽度） */}
           <Splitter className="ai-split-splitter">
@@ -254,7 +271,7 @@ export const NoteEditor: React.FC = () => {
       <div className="flex-vertical-equal">
         {/* 标签栏 */}
         <div style={{ display: 'inline-block' }}>
-          <Segmented options={segmentOptions} value={activeTab} onChange={setActiveTab} />
+          <Segmented options={segmentOptions} value={activeTab} onChange={handleTabChange} />
         </div>
 
         {/* Tab 内容区 */}

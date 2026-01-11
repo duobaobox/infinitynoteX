@@ -112,7 +112,13 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
         setList(currentList);
       }
       const taskList = await window.storage.listManualTasks(listId);
-      setTasks(taskList.sort((a, b) => a.order - b.order));
+      // 排序：未完成的在前，完成的在后；同类状态下按 order 排序
+      setTasks(
+        taskList.sort((a, b) => {
+          if (a.checked !== b.checked) return a.checked ? 1 : -1;
+          return a.order - b.order;
+        }),
+      );
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load todo data:', error);
@@ -264,8 +270,6 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
     return null;
   }
 
-  const headerBgColor = list?.color || '#52c41a';
-
   const footer = (
     <div className="floating-todo-footer">
       <span>待办 {pendingCount}</span>
@@ -277,7 +281,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
   return (
     <BaseFloatingWindow
       title={list?.name || '任务清单'}
-      headerColor={headerBgColor}
+      headerColor={list?.color} // 如果有自定义颜色则使用，否则由 CSS 控制默认渐变
       titleColor="#ffffff"
       onClose={handleClose}
       onMinimize={handleMinimize}
@@ -409,7 +413,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
       </div>
 
       {/* 任务列表 */}
-      <div className="floating-todo-list">
+      <div className="floating-todo-list custom-scrollbar">
         {tasks.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}

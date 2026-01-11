@@ -41,6 +41,17 @@ export async function loadThemeFromConfig(): Promise<void> {
       localStorage.setItem(THEME_MODE_KEY, cachedTheme.mode);
       localStorage.setItem(THEME_BG_LIGHT_KEY, cachedTheme.bgLight);
       localStorage.setItem(THEME_BG_DARK_KEY, cachedTheme.bgDark);
+
+      // 广播加载的主题配置
+      window.dispatchEvent(
+        new CustomEvent('theme-color-change', { detail: cachedTheme.colorPrimary }),
+      );
+      window.dispatchEvent(new CustomEvent('theme-mode-change', { detail: cachedTheme.mode }));
+      window.dispatchEvent(
+        new CustomEvent('theme-bg-change', {
+          detail: { light: cachedTheme.bgLight, dark: cachedTheme.bgDark },
+        }),
+      );
     }
   } catch (e) {
     console.warn('[Theme] Failed to load from config:', e);

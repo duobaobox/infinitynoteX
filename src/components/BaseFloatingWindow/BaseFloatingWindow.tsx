@@ -29,7 +29,7 @@ export interface BaseFloatingWindowProps {
 
 const BaseFloatingWindow: React.FC<BaseFloatingWindowProps> = ({
   title,
-  headerColor = '#8f8f8fff',
+  headerColor, // 移除默认值，允许 CSS 控制
   titleColor = '#ffffff',
   onClose,
   onMinimize,
@@ -40,7 +40,7 @@ const BaseFloatingWindow: React.FC<BaseFloatingWindowProps> = ({
   return (
     <div className={`base-floating-window ${className}`}>
       {/* 标题栏 */}
-      <div className="base-floating-titlebar" style={{ backgroundColor: headerColor }}>
+      <div className="base-floating-titlebar" style={{ background: headerColor }}>
         <span className="base-floating-title" style={{ color: titleColor }}>
           {title}
         </span>

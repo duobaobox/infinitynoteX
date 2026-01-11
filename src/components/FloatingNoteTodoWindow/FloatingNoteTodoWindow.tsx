@@ -11,7 +11,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { message, Checkbox, Empty, Tooltip } from 'antd';
 import dayjs from 'dayjs';
-import { ClockCircleOutlined, FileTextOutlined, LinkOutlined } from '@ant-design/icons';
+import {
+  ClockCircleOutlined,
+  FileTextOutlined,
+  LinkOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import type { Note } from '../../services/types';
 import type { ParsedTask } from '../../features/todo/types';
@@ -61,9 +66,9 @@ const FloatingNoteTodoWindow: React.FC = () => {
   };
 
   // 加载便签任务
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       // 获取所有文件夹
       const folders = await window.storage.listFolders();
       const allNotes: Note[] = [];
@@ -84,9 +89,9 @@ const FloatingNoteTodoWindow: React.FC = () => {
       setTasks(parsedTasks);
     } catch (error) {
       console.error('Failed to load note tasks:', error);
-      message.error('加载失败');
+      if (!silent) message.error('加载失败');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
@@ -97,7 +102,8 @@ const FloatingNoteTodoWindow: React.FC = () => {
   // 监听便签变化，同步刷新
   useEffect(() => {
     const handleNoteUpdate = async () => {
-      await loadData();
+      // 收到更新事件时，使用静默刷新，避免闪烁
+      await loadData(true);
     };
 
     window.ipcRenderer?.on('note:updated', handleNoteUpdate);
@@ -112,24 +118,31 @@ const FloatingNoteTodoWindow: React.FC = () => {
   // 切换任务勾选状态
   const handleToggleTask = async (task: ParsedTask) => {
     try {
-      // 获取便签
+      // 1. 乐观更新：立即更新本地状态，提供即时反馈
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => (t.id === task.id ? { ...t, checked: !t.checked } : t)),
+      );
+
+      // 2. 获取便签
       const note = await window.storage.getNote(task.noteId);
       if (!note) return;
 
-      // 更新任务状态
+      // 3. 更新任务状态
       const newContent = updateTaskCheckedStatus(note.content, task.path, !task.checked);
 
-      // 保存便签
+      // 4. 保存便签
       await window.storage.updateNote(task.noteId, { content: newContent });
 
-      // 通知其他窗口
+      // 5. 通知其他窗口 (这会触发 handleNoteUpdate -> loadData(true))
       window.ipcRenderer?.send('note:changed', task.noteId);
 
-      // 重新加载任务列表
-      await loadData();
+      // 注意：这里不需要手动调用 loadData()，因为 note:changed 会触发上方监听的 reload
+      // 即使不触发，本地状态已经更新了，用户体验是流畅的
     } catch (error) {
       console.error('Failed to toggle task:', error);
       message.error('操作失败');
+      // 失败回滚：重新加载真实数据
+      await loadData(true);
     }
   };
 
@@ -184,7 +197,7 @@ const FloatingNoteTodoWindow: React.FC = () => {
   return (
     <BaseFloatingWindow
       title="便签任务"
-      headerColor="#52c41a"
+      // headerColor="linear-gradient..." // 使用 CSS 控制
       titleColor="#ffffff"
       onClose={handleClose}
       onMinimize={handleMinimize}
@@ -192,10 +205,13 @@ const FloatingNoteTodoWindow: React.FC = () => {
       className="floating-note-todo-window"
     >
       {/* 提示信息 */}
-      <div className="floating-note-todo-hint">任务来自便签，在便签中使用「任务列表」添加</div>
+      <div className="floating-note-todo-hint">
+        <InfoCircleOutlined style={{ fontSize: 13 }} />
+        任务来自便签，在便签中使用「任务列表」添加
+      </div>
 
       {/* 任务列表 */}
-      <div className="floating-note-todo-list">
+      <div className="floating-note-todo-list custom-scrollbar">
         {sortedTasks.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}

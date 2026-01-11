@@ -5,10 +5,21 @@
  * 设计方案：内嵌日期时间选择器（方案二）
  */
 
-/* ==================== 添加任务区域 ==================== */
+/* ==================== 添加任务区域 ====================*/
+/* 标题栏背景 - 默认清单风格（青色渐变） */
+.floating-todo-window .base-floating-titlebar {
+  background: linear-gradient(135deg, #b5f5ec 30%, #87e8de 100%);
+}
+
+[data-theme='dark'] .floating-todo-window .base-floating-titlebar {
+  background: linear-gradient(135deg, #1d3932 30%, #134e4a 100%);
+}
+
+/* 头部内容区域 */
 .floating-todo-add {
   padding: 12px;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 

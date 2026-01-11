@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Palette, Eraser } from 'lucide-react';
+import { Palette } from 'lucide-react';
+import { ColorPalette } from '../../../components/ColorPalette/ColorPalette';
 import './ColorPicker.css';
 
 interface ColorPickerProps {
@@ -17,22 +18,6 @@ interface ColorPickerProps {
   /** 按钮标题 */
   title?: string;
 }
-
-// 预设颜色面板
-const PRESET_COLORS = [
-  // 第一行 - 基础色
-  { value: '#262626', label: '黑色' },
-  { value: '#595959', label: '深灰' },
-  { value: '#8c8c8c', label: '灰色' },
-  { value: '#bfbfbf', label: '浅灰' },
-  // 第二行 - 彩色
-  { value: '#f5222d', label: '红色' },
-  { value: '#fa8c16', label: '橙色' },
-  { value: '#fadb14', label: '黄色' },
-  { value: '#52c41a', label: '绿色' },
-  { value: '#1890ff', label: '蓝色' },
-  { value: '#722ed1', label: '紫色' },
-];
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({
   currentColor,
@@ -86,22 +71,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 
       {isOpen && (
         <div className="color-picker-dropdown">
-          <div className="color-grid">
-            {PRESET_COLORS.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                className={`color-swatch ${currentColor === color.value ? 'is-active' : ''}`}
-                style={{ backgroundColor: color.value }}
-                onClick={() => handleColorSelect(color.value)}
-                title={color.label}
-              />
-            ))}
-          </div>
-          <button type="button" className="clear-color-btn" onClick={() => handleColorSelect(null)}>
-            <Eraser size={14} />
-            <span>清除颜色</span>
-          </button>
+          <ColorPalette
+            activeColor={currentColor}
+            onSelect={handleColorSelect}
+            columns={3}
+            showClearText={false}
+          />
         </div>
       )}
     </div>

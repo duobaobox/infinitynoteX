@@ -1,0 +1,78 @@
+/**
+ * ColorPalette 颜色选择面板样式
+ */
+
+.color-palette-container {
+  padding: 8px;
+  background: var(--panel-bg, #fff);
+  border-radius: 8px;
+  min-width: auto;
+}
+
+/* 颜色网格 */
+.color-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 5), 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.color-palette-swatch {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+}
+
+.color-palette-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.color-palette-swatch.is-active {
+  border-color: var(--theme-color, #1890ff);
+  box-shadow: 0 0 0 2px rgba(var(--theme-color-rgb, 24, 144, 255), 0.3);
+}
+
+/* 清除颜色按钮 */
+.color-palette-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  background: transparent;
+  border-radius: 0 0 4px 4px;
+  margin-top: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  transition: all 0.1s ease;
+}
+
+.color-palette-clear-btn:hover {
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.04));
+  color: var(--text-primary, #333);
+}
+
+/* 暗色主题适配 */
+[data-theme='dark'] .color-palette-container {
+  background: var(--panel-bg, #1a1a1a);
+}
+
+[data-theme='dark'] .color-palette-clear-btn {
+  color: var(--text-secondary, #aaa);
+  border-top-color: var(--border-color, #333);
+}
+
+[data-theme='dark'] .color-palette-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #fff);
+}

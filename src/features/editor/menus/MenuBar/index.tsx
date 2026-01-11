@@ -17,10 +17,10 @@ import {
   getListMenuItems,
   getAlignMenuItems,
   getTableMenuItems,
-  getHighlightMenuItems,
-  getTextColorMenuItems,
   getMoreFormattingMenuItems,
 } from '../components';
+import { ToolbarColorPicker } from './ToolbarColorPicker';
+import { ToolbarHighlightPicker } from './ToolbarHighlightPicker';
 
 export interface MenuBarProps {
   editor: Editor | null;
@@ -104,19 +104,9 @@ const MenuBarComponent: React.FC<MenuBarProps> = ({ editor }) => {
       />
 
       {/* 高亮下拉菜单 */}
-      <GroupDropdown
-        label="高亮"
-        icon="ri-mark-pen-line"
-        active={menuBarState.isHighlight}
-        items={getHighlightMenuItems(editor)}
-      />
+      <ToolbarHighlightPicker editor={editor} />
       {/* 文字颜色下拉菜单 */}
-      <GroupDropdown
-        label="颜色"
-        icon="ri-font-color"
-        active={menuBarState.hasTextColor}
-        items={getTextColorMenuItems(editor)}
-      />
+      <ToolbarColorPicker editor={editor} />
 
       <ToolbarDivider />
 

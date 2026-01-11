@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Highlighter, Eraser } from 'lucide-react';
+import { Highlighter } from 'lucide-react';
+import { ColorPalette, HIGHLIGHT_COLORS } from '../../../components/ColorPalette/ColorPalette';
 import './HighlightPicker.css';
 
 interface HighlightPickerProps {
@@ -17,16 +18,6 @@ interface HighlightPickerProps {
   /** 取消高亮 */
   onUnsetHighlight: () => void;
 }
-
-// 预设高亮颜色 - 半透明背景色
-const HIGHLIGHT_COLORS = [
-  { value: '#fef08a', label: '黄色', bg: 'rgba(254, 240, 138, 0.5)' },
-  { value: '#bbf7d0', label: '绿色', bg: 'rgba(187, 247, 208, 0.5)' },
-  { value: '#bfdbfe', label: '蓝色', bg: 'rgba(191, 219, 254, 0.5)' },
-  { value: '#fecaca', label: '红色', bg: 'rgba(254, 202, 202, 0.5)' },
-  { value: '#e9d5ff', label: '紫色', bg: 'rgba(233, 213, 255, 0.5)' },
-  { value: '#fed7aa', label: '橙色', bg: 'rgba(254, 215, 170, 0.5)' },
-];
 
 export const HighlightPicker: React.FC<HighlightPickerProps> = ({
   currentColor,
@@ -50,13 +41,12 @@ export const HighlightPicker: React.FC<HighlightPickerProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const handleColorSelect = (color: string) => {
-    onSetHighlight(color);
-    setIsOpen(false);
-  };
-
-  const handleClear = () => {
-    onUnsetHighlight();
+  const handleColorSelect = (color: string | null) => {
+    if (color) {
+      onSetHighlight(color);
+    } else {
+      onUnsetHighlight();
+    }
     setIsOpen(false);
   };
 
@@ -77,29 +67,13 @@ export const HighlightPicker: React.FC<HighlightPickerProps> = ({
 
       {isOpen && (
         <div className="highlight-picker-dropdown">
-          <div className="highlight-color-grid">
-            {HIGHLIGHT_COLORS.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                className={`highlight-color-swatch ${currentColor === color.value ? 'is-active' : ''}`}
-                style={{ backgroundColor: color.bg }}
-                onClick={() => handleColorSelect(color.value)}
-                title={color.label}
-              />
-            ))}
-            {/* 清除高亮 - 只显示删除图标 */}
-            {isActive && (
-              <button
-                type="button"
-                className="highlight-color-swatch clear-swatch"
-                onClick={handleClear}
-                title="清除高亮"
-              >
-                <Eraser size={14} />
-              </button>
-            )}
-          </div>
+          <ColorPalette
+            activeColor={currentColor}
+            onSelect={handleColorSelect}
+            colors={HIGHLIGHT_COLORS}
+            columns={3}
+            showClearText={false}
+          />
         </div>
       )}
     </div>

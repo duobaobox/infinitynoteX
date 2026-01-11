@@ -270,3 +270,74 @@ npx tsc --noEmit     # TypeScript 类型检查
 2. **配置持久化**：使用 `electron/config.ts` 的 `readAppConfig`/`writeAppConfig`
 3. **存储路径**：用户数据在 `~/Library/Application Support/infinitynotex/`
 4. **热重载**：修改 `electron/` 下文件会触发 Main Process 重建
+
+## 7. 暗色模式开发规范
+
+### 7.1 主题变量优先原则
+
+所有颜色值**优先使用** `src/theme/modes.css` 中定义的 CSS 变量：
+
+```css
+/* ✅ 正确 - 使用主题变量 */
+color: var(--text-primary);
+background: var(--panel-bg);
+border-color: var(--border-color);
+
+/* ❌ 避免 - 硬编码颜色 */
+color: #262626;
+background: white;
+```
+
+### 7.2 可用的主题变量
+
+| 变量名               | 用途                                            |
+| -------------------- | ----------------------------------------------- |
+| `--panel-bg`         | 面板背景色                                      |
+| `--text-primary`     | 主文字颜色                                      |
+| `--text-secondary`   | 次要文字颜色                                    |
+| `--border-color`     | 边框颜色                                        |
+| `--control-hover-bg` | 控件悬停背景                                    |
+| `--note-color-xxx`   | 便签颜色（blue/green/pink/purple/yellow/white） |
+
+### 7.3 第三方组件暗色主题
+
+| 组件                     | 暗色处理方式                                                                |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `@ant-design/x-markdown` | 导入 `dark.css`，根据主题动态切换 `x-markdown-dark`/`x-markdown-light` 类名 |
+| Ant Design 组件          | 使用 `ConfigProvider` + 主题算法（已在 `main.tsx` 配置）                    |
+| ReactFlow                | 在组件 CSS 中添加 `[data-theme='dark']` 规则                                |
+
+### 7.4 自定义组件暗色适配
+
+```css
+/* 样式写在组件对应的 CSS 文件中 */
+.my-component {
+  background: var(--panel-bg);
+  color: var(--text-primary);
+}
+
+/* 仅在变量不够用时添加暗色覆盖 */
+[data-theme='dark'] .my-component {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+```
+
+### 7.5 检测主题变化（React 组件中）
+
+```typescript
+// 使用 MutationObserver 监听 data-theme 属性变化
+const [isDark, setIsDark] = useState(
+  () => document.documentElement.getAttribute('data-theme') === 'dark',
+);
+
+useEffect(() => {
+  const observer = new MutationObserver(() => {
+    setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+  });
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+  return () => observer.disconnect();
+}, []);
+```

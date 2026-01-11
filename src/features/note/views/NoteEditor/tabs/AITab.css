@@ -44,3 +44,12 @@
 .ai-split-splitter .ant-splitter-bar-dragger::after {
   background: transparent !important;
 }
+
+/* 暗色模式 - 阴影适配（加强分隔效果） */
+[data-theme='dark'] .ai-split-splitter .editor-content-side {
+  box-shadow: 1px 0 4px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .ai-split-splitter .ai-side {
+  box-shadow: -1px 0 4px rgba(255, 255, 255, 0.1);
+}

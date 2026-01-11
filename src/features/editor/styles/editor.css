@@ -420,7 +420,7 @@
 /* 任务列表容器 */
 ul[data-type='taskList'] {
   list-style: none;
-  margin: 1.25rem 0;
+  margin: 0.5em 0;
   padding: 0;
 }
 

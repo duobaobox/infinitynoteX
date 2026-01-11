@@ -77,16 +77,39 @@
   fill: #404040;
 }
 
-/* 画布面板卡片通用样式（毛玻璃效果） */
+/* 画布面板卡片通用样式（参考知识库功能卡片设计） */
 .canvas-panel-card {
-  background: linear-gradient(135deg, rgba(198, 255, 230, 0.15), rgba(239, 210, 49, 0.08));
-  backdrop-filter: blur(12px);
+  position: relative;
+  background: var(--component-background, #ffffff);
   border-radius: 12px;
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+    0 1px 2px 0 rgba(0, 0, 0, 0.03),
+    0 1px 6px -1px rgba(0, 0, 0, 0.02),
+    0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
+}
+
+/* 蓝色弥散光效果 */
+.canvas-panel-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: #91caff;
+  filter: blur(50px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 确保内容在光效上方 */
+.canvas-panel-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* AI 回复区域样式 */
@@ -96,7 +119,7 @@
   max-height: 350px;
 }
 
-/* AI 回复内容区域 - 可滚动（滚动条样式由 App.css 统一定义） */
+/* AI 回复内容区域 - 可滚动 */
 .canvas-ai-response-content {
   flex: 1;
   min-height: 0;
@@ -104,7 +127,7 @@
   padding: 12px;
 }
 
-/* AI 回复操作按钮区域 - 固定在底部 */
+/* AI 回复操作按钮区域 */
 .canvas-ai-response-actions {
   flex-shrink: 0;
   padding: 8px 16px 12px;
@@ -112,13 +135,15 @@
 
 /* 暗色模式 - 画布面板卡片 */
 [data-theme='dark'] .canvas-panel-card {
-  /* 暗色渐变：深蓝绿到深金色，保持与亮色一致的渐变方向 */
-  background: linear-gradient(135deg, rgba(30, 60, 50, 0.6), rgba(50, 45, 20, 0.4));
-  backdrop-filter: blur(12px);
+  background: #141414;
+  border-color: #303030;
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .canvas-panel-card::before {
+  opacity: 0.15;
 }
 
 /* AI 回复区域文字暗色适配 - Markdown 样式由 App.css 统一管理 */

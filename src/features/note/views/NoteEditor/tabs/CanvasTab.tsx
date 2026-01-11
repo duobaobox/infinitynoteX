@@ -46,6 +46,7 @@ import {
   convertMarkdownToTipTap,
   copyToClipboard,
   stripThinkBlocks,
+  renderMarkdownToHtml,
 } from '../../../../ai-chat/utils';
 import './CanvasTab.css';
 
@@ -112,6 +113,7 @@ const CanvasInner: React.FC = () => {
     sendMessage,
     abort,
     chatItems,
+    clearChat,
   } = useAIChat({
     conversationId: null,
     isConfigured,
@@ -232,7 +234,8 @@ const CanvasInner: React.FC = () => {
   // 复制AI回复
   const handleCopyAiResponse = useCallback(() => {
     const textToCopy = stripThinkBlocks(aiResponse);
-    copyToClipboard(textToCopy, textToCopy)
+    const htmlToCopy = renderMarkdownToHtml(textToCopy);
+    copyToClipboard(textToCopy, htmlToCopy)
       .then(() => message.success('已复制'))
       .catch(() => message.error('复制失败'));
   }, [aiResponse]);
@@ -638,7 +641,10 @@ const CanvasInner: React.FC = () => {
                       <Button
                         size="small"
                         icon={<CloseOutlined />}
-                        onClick={() => setShowAiResponse(false)}
+                        onClick={() => {
+                          setShowAiResponse(false);
+                          clearChat();
+                        }}
                       >
                         关闭
                       </Button>

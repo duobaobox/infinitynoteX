@@ -12,7 +12,6 @@ import {
 } from '../../features/todo/services/taskParser';
 import type { UISlice } from './uiSlice';
 import type { Note } from '../../services/types';
-import { folderService, noteService } from '../../services';
 
 // 定义依赖的其他 slice 类型
 type TodoSliceDeps = UISlice;
@@ -152,15 +151,15 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
   loadParsedTasks: async () => {
     try {
       // 获取所有文件夹
-      const folders = await folderService.listFolders();
+      const folders = await window.storage.listFolders();
       const allNotes: Note[] = [];
 
       // 获取每个文件夹的便签
       for (const folder of folders) {
-        const noteIndices = await noteService.listNotes(folder.id);
+        const noteIndices = await window.storage.listNotes(folder.id);
         // 获取完整便签内容
         for (const noteIndex of noteIndices) {
-          const note = await noteService.getNote(noteIndex.id);
+          const note = await window.storage.getNote(noteIndex.id);
           if (note) {
             allNotes.push(note);
           }
@@ -182,14 +181,14 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       if (!task) return;
 
       // 获取便签
-      const note = await noteService.getNote(task.noteId);
+      const note = await window.storage.getNote(task.noteId);
       if (!note) return;
 
       // 更新任务状态
       const newContent = updateTaskCheckedStatus(note.content, task.path, !task.checked);
 
       // 保存便签
-      await noteService.updateNote(task.noteId, { content: newContent });
+      await window.storage.updateNote(task.noteId, { content: newContent });
 
       // 重新加载任务列表
       await get().loadParsedTasks();

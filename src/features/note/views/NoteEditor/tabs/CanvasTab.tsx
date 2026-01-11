@@ -41,7 +41,6 @@ import { ChatInput } from '../../../../ai-chat/components/ChatInput';
 import { MarkdownRenderer } from '../../../../ai-chat/components/MarkdownRenderer';
 import { useAIConfig, useAIChat } from '../../../../ai-chat/hooks';
 import type { NoteReference } from '../../../../ai-chat/types';
-import { noteService, folderService } from '../../../../../services';
 import {
   extractTipTapText,
   convertMarkdownToTipTap,
@@ -145,10 +144,10 @@ const CanvasInner: React.FC = () => {
   useEffect(() => {
     const loadNotes = async () => {
       try {
-        const folders = await folderService.listFolders();
+        const folders = await window.storage.listFolders();
         const items: MenuProps['items'] = [];
         for (const folder of folders) {
-          const folderNotes = await noteService.listNotes(folder.id);
+          const folderNotes = await window.storage.listNotes(folder.id);
           folderNotes.forEach((note) => {
             items.push({
               key: note.id,
@@ -172,7 +171,7 @@ const CanvasInner: React.FC = () => {
         return;
       }
       try {
-        const note = await noteService.getNote(key);
+        const note = await window.storage.getNote(key);
         const textContent = extractTipTapText(note.content);
         setSelectedNotes((prev) => [
           ...prev,
@@ -218,7 +217,7 @@ const CanvasInner: React.FC = () => {
       const firstLine = (exported.split('\n').find((l) => l.trim().length > 0) || '').trim();
       const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
 
-      await noteService.createNote(selectedFolderId || 'default', {
+      await window.storage.createNote(selectedFolderId || 'default', {
         title,
         content: tipTapContent,
       });
@@ -471,7 +470,7 @@ const CanvasInner: React.FC = () => {
 
           try {
             // 重新获取完整的便签数据（包含 content）
-            const fullNote = await noteService.getNote(node.id);
+            const fullNote = await window.storage.getNote(node.id);
             const textContent = extractTipTapText(fullNote.content);
             const noteData = {
               id: fullNote.id,

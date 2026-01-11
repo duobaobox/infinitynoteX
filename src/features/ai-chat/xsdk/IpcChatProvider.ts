@@ -2,7 +2,7 @@ import { AbstractChatProvider } from '@ant-design/x-sdk';
 import type { XRequestOptions } from '@ant-design/x-sdk';
 
 import { IpcStreamXRequest } from './IpcStreamXRequest';
-import type { ChatPayload, AIMessage } from '../../../services/aiConfig';
+import type { ChatPayload, ChatMessage } from '../../../services/aiConfig';
 import type { NoteReference, StreamChunkData } from '../types';
 
 export type XChatMessage = {
@@ -30,7 +30,7 @@ export type IpcStreamInput = ChatPayload & {
   /** Optional note references to show as FileCard for the user message. */
   references?: NoteReference[];
   /** Alias for legacy naming, if provided. */
-  historyMessages?: AIMessage[];
+  historyMessages?: ChatMessage[];
 };
 
 function sanitizeReasoningDelta(delta: string): string {

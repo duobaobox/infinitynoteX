@@ -4,12 +4,22 @@
  */
 
 import type { StateCreator } from 'zustand';
-import type { BrowserCard } from '../../services/browserCardService';
-import { browserCardService } from '../../services';
 import type { UISlice } from './uiSlice';
 
 // 定义依赖的其他 slice 类型
 type BrowserCardsSliceDeps = UISlice;
+
+// 浏览器卡片类型（与 window.browserCards 返回类型一致）
+export interface BrowserCard {
+  id: string;
+  name: string;
+  url: string;
+  icon?: string;
+  isBuiltIn?: boolean;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface BrowserCardsSlice {
   // ============ 状态 ============
@@ -53,7 +63,7 @@ export const createBrowserCardsSlice: StateCreator<
 
   loadBrowserCards: async () => {
     try {
-      const cards = await browserCardService.getCards();
+      const cards = await window.browserCards.list();
       set({ browserCards: cards });
     } catch (error) {
       console.error('[BrowserCardsSlice] Failed to load browser cards:', error);
@@ -62,7 +72,7 @@ export const createBrowserCardsSlice: StateCreator<
 
   createBrowserCard: async (card) => {
     try {
-      await browserCardService.createCard(card);
+      await window.browserCards.create(card);
       await get().loadBrowserCards();
     } catch (error) {
       console.error('[BrowserCardsSlice] Failed to create browser card:', error);
@@ -72,7 +82,7 @@ export const createBrowserCardsSlice: StateCreator<
 
   deleteBrowserCard: async (id) => {
     try {
-      await browserCardService.deleteCard(id);
+      await window.browserCards.delete(id);
       await get().loadBrowserCards();
       // 如果删除的是当前选中的卡片，清空选中状态
       if (get().selectedBrowserCardId === id) {
@@ -86,7 +96,7 @@ export const createBrowserCardsSlice: StateCreator<
 
   updateBrowserCard: async (id, patch) => {
     try {
-      await browserCardService.updateCard(id, patch);
+      await window.browserCards.update(id, patch);
       await get().loadBrowserCards();
     } catch (error) {
       console.error('[BrowserCardsSlice] Failed to update browser card:', error);

@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { message, Segmented } from 'antd';
 import type { MenuProps } from 'antd';
-import { noteService, folderService, aiConversationService } from '../../services';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAIConfig, useAIChat } from './hooks';
 import {
@@ -56,10 +55,10 @@ export const AIChatPanel = ({
   useEffect(() => {
     const loadNotes = async () => {
       try {
-        const folders = await folderService.listFolders();
+        const folders = await window.storage.listFolders();
         const items: MenuProps['items'] = [];
         for (const folder of folders) {
-          const notes = await noteService.listNotes(folder.id);
+          const notes = await window.storage.listNotes(folder.id);
           notes.forEach((note) => {
             items.push({
               key: note.id,
@@ -85,7 +84,7 @@ export const AIChatPanel = ({
         return;
       }
       try {
-        const note = await noteService.getNote(key);
+        const note = await window.storage.getNote(key);
         const textContent = extractTipTapText(note.content);
         setSelectedNotes((prev) => [
           ...prev,
@@ -172,7 +171,7 @@ export const AIChatPanel = ({
       const firstLine = (titleSource.split('\n').find((l) => l.trim().length > 0) || '').trim();
       const title = (firstLine.substring(0, 30) || 'AI 回答').replace(/[#*`]/g, '').trim();
 
-      await noteService.createNote('default', {
+      await window.storage.createNote('default', {
         title,
         content: tipTapContent,
       });
@@ -225,7 +224,7 @@ export const AIChatPanel = ({
     }
 
     try {
-      await aiConversationService.updateTitle(conversationId, tempTitle.trim());
+      await window.storage.updateAIConversationTitle(conversationId, tempTitle.trim());
       setConversationTitle(tempTitle.trim());
       setIsEditingTitle(false);
       onTitleChange?.(tempTitle.trim());

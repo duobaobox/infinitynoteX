@@ -38,60 +38,143 @@ infinitynotex/
 │   ├── shared/              # 共享代码
 │   │   ├── utils/          # 工具函数
 │   │   └── types/          # 共享类型
-│   └── services/            # 服务层
+│   └── services/            # 服务层（仅保留有实际业务逻辑的服务）
+│                            # ⚠️ 已删除传声筒 Service（2026-01）
 │
 └── tests/                   # 测试文件
 ```
 
+> **架构决策（2026-01）**：已删除 `noteService.ts`、`folderService.ts`、`storageService.ts`、
+> `aiConversationService.ts`、`browserCardService.ts` 等传声筒 Service。
+> 这些 Service 只是简单转发 IPC 调用，没有业务逻辑，属于过度设计。
+> 现在组件和 Store 直接调用 `window.storage` / `window.ai` 等 IPC API。
+
 ## 2. IPC 通信规范（重要！）
 
-### 2.1 核心约束
+### 2.1 架构现状与设计决策
 
-**contextBridge 不支持 Proxy 对象**，必须使用显式方法列表。
+**当前统计（2026-01）：**
 
-### 2.2 添加新 IPC 通道的步骤
+- IPC 方法总数：约 93 个
+- preload.ts 行数：322 行
+- sandbox 模式：默认启用 ✅（安全）
 
-#### 步骤 1：在 `electron/ipc/xxxHandlers.ts` 注册处理器
+**为什么不使用 tRPC/interprocess 等方案？**
 
-```typescript
-// 示例：electron/ipc/storageHandlers.ts
-ipcMain.handle('storage:newMethod', async (_, arg1: string) => {
-  return await storageManager.newMethod(arg1);
-});
+| 方案            | 评估结果                                   |
+| :-------------- | :----------------------------------------- |
+| `electron-trpc` | ❌ 有性能开销，对简单 getter/setter 不划算 |
+| `interprocess`  | ❌ 需要 `sandbox: false`，降低安全性       |
+| 自定义代码生成  | ⏸️ 开发成本高，当前规模暂不需要            |
+
+**结论**：当前方案（手动维护方法白名单）已足够，迁移成本大于收益。
+
+### 2.2 核心约束
+
+**Electron contextBridge 不支持 Proxy 对象**，必须使用显式方法列表。
+
+这意味着无法通过 `new Proxy()` 动态生成 IPC 方法，必须在 `preload.ts` 中显式列出所有方法名。
+
+### 2.3 添加新 IPC API 的完整步骤
+
+添加一个新的 IPC API 需要修改 **3 个文件**：
+
+```
+1. electron/ipc/xxxHandlers.ts    → 注册 IPC 处理器
+2. electron/preload.ts            → 添加到方法白名单
+3. src/vite-env.d.ts              → 添加 TypeScript 类型声明
 ```
 
-#### 步骤 2：在 `electron/preload.ts` 添加方法名
+#### 完整示例：添加 `storage:getNoteTags` 方法
+
+**步骤 1：在 `electron/ipc/storageHandlers.ts` 注册处理器**
 
 ```typescript
+// electron/ipc/storageHandlers.ts
+export function registerStorageHandlers(): void {
+  // ... 其他处理器
+
+  // ============ 新增：获取便签标签 ============
+  ipcMain.handle('storage:getNoteTags', async (_, noteId: string) => {
+    const note = await storageManager.notes.get(noteId);
+    return note?.tags ?? [];
+  });
+}
+```
+
+**步骤 2：在 `electron/preload.ts` 添加方法名**
+
+```typescript
+// electron/preload.ts
 const STORAGE_METHODS = [
-  // ... 现有方法
-  'newMethod', // 添加新方法名
+  'getDefaultPath',
+  'getCurrentPath',
+  // ... 其他已有方法
+  'getNoteTags', // ← 新增
 ];
 ```
 
-#### 步骤 3：在 `src/vite-env.d.ts` 添加类型声明
+**步骤 3：在 `src/vite-env.d.ts` 添加类型声明**
 
 ```typescript
+// src/vite-env.d.ts
 interface Window {
   storage: {
-    // ... 现有方法
-    newMethod(arg1: string): Promise<ReturnType>;
+    // ... 其他方法
+    getNoteTags(noteId: string): Promise<string[]>; // ← 新增
   };
 }
 ```
 
-### 2.3 关键文件对照表
+**步骤 4：在渲染进程中调用**
 
-| 模块     | IPC 前缀    | Handler 文件           | preload 常量        |
-| -------- | ----------- | ---------------------- | ------------------- |
-| 存储     | `storage`   | `storageHandlers.ts`   | `STORAGE_METHODS`   |
-| 同步     | `sync`      | `syncHandlers.ts`      | `SYNC_METHODS`      |
-| AI       | `ai`        | `aiHandlers.ts`        | `AI_METHODS`        |
-| 配置     | `config`    | `configHandlers.ts`    | `CONFIG_METHODS`    |
-| 知识库   | `knowledge` | `knowledgeHandlers.ts` | `KNOWLEDGE_METHODS` |
-| 日志     | `log`       | `logHandlers.ts`       | `LOG_METHODS`       |
-| 悬浮窗   | `floating`  | `floatingWindow.ts`    | `FLOATING_METHODS`  |
-| 统一配置 | `app`       | `configHandlers.ts`    | `APP_METHODS`       |
+```typescript
+// src/features/note/hooks/useNoteTags.ts
+const tags = await window.storage.getNoteTags(noteId);
+```
+
+### 2.4 关键文件对照表
+
+| 模块       | IPC 前缀       | Handler 文件                | preload 常量            | 类型声明位置    |
+| :--------- | :------------- | :-------------------------- | :---------------------- | :-------------- |
+| 存储       | `storage`      | `storageHandlers.ts`        | `STORAGE_METHODS`       | `vite-env.d.ts` |
+| 同步       | `sync`         | `syncHandlers.ts`           | `SYNC_METHODS`          | `vite-env.d.ts` |
+| AI         | `ai`           | `aiHandlers.ts`             | `AI_METHODS`            | `electron.d.ts` |
+| 配置       | `config`       | `configHandlers.ts`         | `CONFIG_METHODS`        | `vite-env.d.ts` |
+| 知识库     | `knowledge`    | `knowledgeHandlers.ts`      | `KNOWLEDGE_METHODS`     | `electron.d.ts` |
+| 日志       | `log`          | `logHandlers.ts`            | `LOG_METHODS`           | `vite-env.d.ts` |
+| 悬浮窗     | `floating`     | `windows/floatingWindow.ts` | `FLOATING_METHODS`      | `vite-env.d.ts` |
+| 统一配置   | `app`          | `configHandlers.ts`         | `APP_METHODS`           | `vite-env.d.ts` |
+| 浏览器卡片 | `browserCards` | `storageHandlers.ts`        | `BROWSER_CARDS_METHODS` | `vite-env.d.ts` |
+| 附件       | `attachments`  | `storageHandlers.ts`        | `ATTACHMENTS_METHODS`   | `electron.d.ts` |
+
+### 2.5 带事件监听的 IPC（进阶）
+
+如果需要从 Main 向 Renderer 推送事件，需要额外处理：
+
+```typescript
+// electron/preload.ts - 带事件监听的 API
+contextBridge.exposeInMainWorld(
+  'sync',
+  createProxy(ipcRenderer, 'sync', SYNC_METHODS, {
+    // 额外的事件监听方法（不在 SYNC_METHODS 中）
+    onProgress: (callback: (progress: unknown) => void) => {
+      const listener = (_: unknown, progress: unknown) => callback(progress);
+      ipcRenderer.on('sync:progress', listener);
+      return () => ipcRenderer.removeListener('sync:progress', listener);
+    },
+  }),
+);
+```
+
+### 2.6 常见错误排查
+
+| 错误现象                                           | 可能原因                      | 解决方案                                    |
+| :------------------------------------------------- | :---------------------------- | :------------------------------------------ |
+| `window.xxx.method is not a function`              | 方法名未添加到 preload 白名单 | 检查 `preload.ts` 是否包含该方法            |
+| TypeScript 报错 `Property 'method' does not exist` | 类型声明未更新                | 更新 `vite-env.d.ts` 或 `electron.d.ts`     |
+| IPC 调用无响应                                     | Handler 未注册                | 检查 `ipcMain.handle` 是否正确调用          |
+| IPC 调用返回 `undefined`                           | 方法名拼写不一致              | 确保 handler/preload/调用处的方法名完全一致 |
 
 ## 3. 功能开发指南
 

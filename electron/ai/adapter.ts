@@ -5,7 +5,7 @@
 
 import type {
   AIConfig,
-  AIMessage,
+  ChatMessage,
   ChatPayload,
   ChatResponse,
   StreamChunk,
@@ -104,7 +104,7 @@ ${formattedResults}`;
    * 发送聊天请求（非流式）
    */
   async chat(payload: ChatPayload): Promise<ChatResponse> {
-    const messages: AIMessage[] = [
+    const messages: ChatMessage[] = [
       // 1. 用户配置的系统提示词
       ...(this.config.systemPrompt
         ? [{ role: 'system' as const, content: this.config.systemPrompt }]
@@ -174,7 +174,7 @@ ${formattedResults}`;
       signal?: AbortSignal;
     },
   ): AsyncGenerator<StreamChunk, void> {
-    const messages: AIMessage[] = [
+    const messages: ChatMessage[] = [
       // 1. 用户配置的系统提示词
       ...(this.config.systemPrompt
         ? [{ role: 'system' as const, content: this.config.systemPrompt }]

@@ -25,9 +25,10 @@ export interface AIConfig extends Omit<AIProviderConfig, 'apiKey'> {
 export const API_KEY_PLACEHOLDER = '********';
 
 /**
- * AI 消息（OpenAI 兼容格式）
+ * 聊天消息（OpenAI 兼容格式，用于 API 请求）
+ * 注意：与 types.ts 中的 AIMessage 不同，这是简化的 API 格式
  */
-export interface AIMessage {
+export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
@@ -36,7 +37,7 @@ export interface AIMessage {
  * 聊天请求
  */
 export interface ChatPayload {
-  messages: AIMessage[];
+  messages: ChatMessage[];
   message: string; // 当前用户消息
   stream?: boolean;
   /** RAG 检索上下文（可选） */

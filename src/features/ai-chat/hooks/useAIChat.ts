@@ -6,10 +6,9 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useXChat } from '@ant-design/x-sdk';
-import { aiConversationService } from '../../../services';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import type { ChatItem, NoteReference, UseAIChatReturn, StreamChunkData } from '../types';
-import type { AIMessage } from '../../../services/aiConfig';
+import type { ChatMessage } from '../../../services/aiConfig';
 import { IpcChatProvider, type IpcStreamInput, type XChatMessage } from '../xsdk/IpcChatProvider';
 
 // AI 对话完整类型（包含 messages）
@@ -147,8 +146,7 @@ export const useAIChat = ({
 
       try {
         // getConversations 返回完整的 AIConversation 对象（包含 messages）
-        const conversations =
-          (await aiConversationService.getConversations()) as AIConversationFull[];
+        const conversations = (await window.storage.getAIConversations()) as AIConversationFull[];
         const conversation = conversations.find((c) => c.id === conversationId);
 
         if (conversation) {
@@ -213,8 +211,7 @@ export const useAIChat = ({
       // 延迟加载，避免与当前实例的保存冲突
       const timer = setTimeout(async () => {
         try {
-          const conversations =
-            (await aiConversationService.getConversations()) as AIConversationFull[];
+          const conversations = (await window.storage.getAIConversations()) as AIConversationFull[];
           const conversation = conversations.find((c) => c.id === conversationId);
           if (conversation?.messages && conversation.messages.length > 0) {
             const infos = conversation.messages.map((msg, index) => {
@@ -273,7 +270,7 @@ export const useAIChat = ({
           };
         });
 
-        await aiConversationService.saveMessages(conversationId, messages, { source });
+        await window.storage.saveAIConversationMessages(conversationId, messages, { source });
         // 触发刷新，通知其他使用同一 conversationId 的实例
         useWorkspaceStore.getState().triggerMessageRefresh(conversationId);
       } catch (err) {
@@ -368,7 +365,7 @@ export const useAIChat = ({
           return { content: cleaned, reasoning };
         };
 
-        const historyMessages: AIMessage[] = chatItems
+        const historyMessages: ChatMessage[] = chatItems
           .filter((m) => !m.isStreaming)
           .map((m) => {
             const parsed = stripThink(m.content);

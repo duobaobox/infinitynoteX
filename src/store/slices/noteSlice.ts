@@ -4,7 +4,6 @@
 
 import type { StateCreator } from 'zustand';
 import type { NoteIndex, Note } from '../../services/types';
-import { noteService } from '../../services';
 import type { FolderSlice } from './folderSlice';
 import type { UISlice } from './uiSlice';
 
@@ -55,7 +54,7 @@ export const createNoteSlice: StateCreator<NoteSlice & NoteSliceDeps, [], [], No
 
   loadNotes: async (folderId) => {
     try {
-      const notes = await noteService.listNotes(folderId);
+      const notes = await window.storage.listNotes(folderId);
       // 获取文件夹名称
       const folder = get().folders.find((f) => f.id === folderId);
       set({
@@ -69,7 +68,7 @@ export const createNoteSlice: StateCreator<NoteSlice & NoteSliceDeps, [], [], No
 
   createNote: async (folderId) => {
     try {
-      const note = await noteService.createNote(folderId, {});
+      const note = await window.storage.createNote(folderId, {});
       await get().loadNotes(folderId);
       return note;
     } catch (error) {
@@ -80,7 +79,7 @@ export const createNoteSlice: StateCreator<NoteSlice & NoteSliceDeps, [], [], No
 
   deleteNote: async (id) => {
     try {
-      await noteService.deleteNote(id);
+      await window.storage.deleteNote(id);
       const { selectedFolderId } = get();
       if (selectedFolderId) {
         await get().loadNotes(selectedFolderId);

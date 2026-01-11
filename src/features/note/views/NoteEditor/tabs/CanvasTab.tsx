@@ -540,12 +540,8 @@ const CanvasInner: React.FC = () => {
           </Tooltip>
           <Tooltip title={showMiniMap ? '隐藏小地图' : '显示小地图'} placement="left">
             <button
-              className="react-flow__controls-button"
+              className={`react-flow__controls-button ${showMiniMap ? 'react-flow__controls-button--active' : ''}`}
               onClick={() => setShowMiniMap(!showMiniMap)}
-              style={{
-                backgroundColor: showMiniMap ? '#1677ff' : 'white',
-                color: showMiniMap ? 'white' : '#666',
-              }}
             >
               <EnvironmentOutlined />
             </button>
@@ -598,26 +594,31 @@ const CanvasInner: React.FC = () => {
           >
             {/* AI回复显示区域 */}
             {showAiResponse && (
-              <div ref={aiResponseRef} className="canvas-ai-response">
-                {/* 加载状态 */}
-                {isStreaming && !aiResponse && (
-                  <div style={{ color: '#999', fontSize: '14px' }}>
-                    <span>AI 思考中...</span>
-                  </div>
-                )}
+              <div className="canvas-panel-card canvas-ai-response">
+                {/* 内容区域 - 可滚动 */}
+                <div ref={aiResponseRef} className="canvas-ai-response-content">
+                  {/* 加载状态 */}
+                  {isStreaming && !aiResponse && (
+                    <div style={{ color: '#999', fontSize: '14px' }}>
+                      <span>AI 思考中...</span>
+                    </div>
+                  )}
 
-                {/* Markdown渲染 */}
-                {aiResponse && (
-                  <>
+                  {/* Markdown渲染 */}
+                  {aiResponse && (
                     <MarkdownRenderer
                       content={aiResponse}
                       streaming={
                         isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
                       }
                     />
+                  )}
+                </div>
 
-                    {/* 操作按钮 */}
-                    <Space style={{ marginTop: '8px' }}>
+                {/* 操作按钮区域 - 固定在底部 */}
+                {aiResponse && (
+                  <div className="canvas-ai-response-actions">
+                    <Space>
                       <Button
                         size="small"
                         icon={<SaveOutlined />}
@@ -642,22 +643,13 @@ const CanvasInner: React.FC = () => {
                         关闭
                       </Button>
                     </Space>
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
             {/* 输入框容器 */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: '12px',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.8)',
-                overflow: 'hidden',
-              }}
-            >
+            <div className="canvas-panel-card">
               <ChatInput
                 isLoading={isStreaming}
                 onSend={handleSendMessage}

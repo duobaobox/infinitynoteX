@@ -155,21 +155,7 @@
   padding-top: 2px;
   padding-bottom: 2px;
 }
-/* 画布模式下的AI回复区域 - 滚动条使用 .custom-scrollbar 统一样式 */
-.canvas-ai-response {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  min-height: 80px;
-  max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px;
-}
+/* 画布模式下的AI回复区域样式已移至 CanvasTab.css */
 /* ==================== 自定义组件样式 ==================== */
 
 /**
@@ -308,74 +294,7 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-/* Markdown 渲染器暗色模式 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-/* 标题 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h1,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h2,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h3,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h4,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h5,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light h6 {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-/* 段落和列表 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light p,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light div,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light li,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ul,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ol {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-/* 列表标记颜色 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ul li::marker,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light ol li::marker {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-/* 链接 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light a {
-  color: #4096ff;
-}
-
-/* 行内代码 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light code:not([class*='language-']) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ff7a45;
-}
-
-/* 引用块 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light blockquote {
-  border-left-color: #4096ff;
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-/* 表格 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table th,
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table td {
-  border-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.92);
-}
-
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light table th {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-/* 分割线 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light hr {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* 强调文本 */
-:root[data-theme='dark'] .ai-chat-messages .x-markdown-light strong {
-  color: rgba(255, 255, 255, 0.95);
-}
+/* Markdown 暗色样式已移至 App.css 统一管理（.x-markdown-light） */
 
 /* ==================== 知识库来源引用卡片 ==================== */
 

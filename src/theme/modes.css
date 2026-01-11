@@ -24,6 +24,21 @@
   --titlebar-icon: rgba(0, 0, 0, 0.65);
   --titlebar-icon-hover: rgba(0, 0, 0, 0.85);
   --white: #fff;
+
+  /* 便签颜色 - 亮色模式 */
+  --note-color-blue: #bae0ff;
+  --note-color-blue-border: #91caff;
+  --note-color-green: #d9f7be;
+  --note-color-green-border: #b7eb8f;
+  --note-color-pink: #ffd6e7;
+  --note-color-pink-border: #ffadd2;
+  --note-color-purple: #d6e4ff;
+  --note-color-purple-border: #adc6ff;
+  --note-color-yellow: #ffd666;
+  --note-color-yellow-border: #ffc53d;
+  --note-color-white: #ffffff;
+  --note-color-white-border: #d9d9d9;
+  --note-color-text: #262626;
 }
 
 [data-theme='dark'] {
@@ -46,4 +61,19 @@
   --blockquote-text: rgba(255, 255, 255, 0.75);
   --titlebar-icon: rgba(255, 255, 255, 0.85);
   --titlebar-icon-hover: rgba(255, 255, 255, 1);
+
+  /* 便签颜色 - 暗色变体（降低亮度和饱和度） */
+  --note-color-blue: #1a3a4d;
+  --note-color-blue-border: #2a5a6d;
+  --note-color-green: #1a3d1a;
+  --note-color-green-border: #2a5d2a;
+  --note-color-pink: #3d2030;
+  --note-color-pink-border: #5d3050;
+  --note-color-purple: #2a2a4d;
+  --note-color-purple-border: #3a3a6d;
+  --note-color-yellow: #3d3520;
+  --note-color-yellow-border: #5d5530;
+  --note-color-white: #2a2a2a;
+  --note-color-white-border: #424242;
+  --note-color-text: #e8e8e8;
 }

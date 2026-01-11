@@ -11,7 +11,9 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { XMarkdown, type ComponentProps } from '@ant-design/x-markdown';
 import type { XMarkdownProps } from '@ant-design/x-markdown';
 import { CodeHighlighter, Mermaid, Think, Sources } from '@ant-design/x';
+// 同时导入 light 和 dark 主题，根据 data-theme 属性选择
 import '@ant-design/x-markdown/themes/light.css';
+import '@ant-design/x-markdown/themes/dark.css';
 
 /**
  * 引用来源项
@@ -136,11 +138,29 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   streaming,
   sources = [],
 }) => {
+  // 监听主题变化
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') === 'dark',
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // 根据主题动态选择 x-markdown-light 或 x-markdown-dark 类名
   const classNames = useMemo(() => {
-    const classes = ['x-markdown-light'];
+    const themeClass = isDark ? 'x-markdown-dark' : 'x-markdown-light';
+    const classes = [themeClass];
     if (className) classes.push(className);
     return classes.join(' ');
-  }, [className]);
+  }, [isDark, className]);
 
   // 动态创建 Sup 组件（依赖 sources）
   const SupComponent = useMemo(() => createSupComponent(sources), [sources]);

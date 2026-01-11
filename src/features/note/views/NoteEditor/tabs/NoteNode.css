@@ -142,23 +142,23 @@
 /* ============ 暗色模式适配 ============ */
 
 [data-theme='dark'] .note-node {
-  border-color: var(--border-color-dark, #424242);
-  background-color: #2a2a2a !important;
+  border-color: var(--border-color);
+  /* 背景色由 CSS 变量 (--note-color-xxx) 自动切换 */
 }
 
 [data-theme='dark'] .note-node__header {
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom-color: var(--border-color-dark, #424242);
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .note-node__title {
-  color: var(--text-primary-dark, #e8e8e8);
+  color: var(--note-color-text);
 }
 
 [data-theme='dark'] .note-node__drag-icon {
-  color: var(--text-tertiary-dark, #595959);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme='dark'] .note-node__excerpt {
-  color: var(--text-secondary-dark, #a0a0a0);
+  color: var(--text-secondary);
 }

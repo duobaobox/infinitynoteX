@@ -46,14 +46,14 @@ const QUICK_COMMANDS = [
   },
 ];
 
-// 便签颜色映射表（与 NoteNode 保持一致）
+// 便签颜色映射表 - 使用 CSS 变量以支持暗色模式
 const NOTE_COLOR_MAP: Record<string, { bg: string; border: string }> = {
-  bae0ff: { bg: '#bae0ff', border: '#91caff' },
-  d9f7be: { bg: '#d9f7be', border: '#b7eb8f' },
-  ffd6e7: { bg: '#ffd6e7', border: '#ffadd2' },
-  d6e4ff: { bg: '#d6e4ff', border: '#adc6ff' },
-  ffd666: { bg: '#ffd666', border: '#ffc53d' },
-  ffffff: { bg: '#ffffff', border: '#d9d9d9' },
+  bae0ff: { bg: 'var(--note-color-blue)', border: 'var(--note-color-blue-border)' },
+  d9f7be: { bg: 'var(--note-color-green)', border: 'var(--note-color-green-border)' },
+  ffd6e7: { bg: 'var(--note-color-pink)', border: 'var(--note-color-pink-border)' },
+  d6e4ff: { bg: 'var(--note-color-purple)', border: 'var(--note-color-purple-border)' },
+  ffd666: { bg: 'var(--note-color-yellow)', border: 'var(--note-color-yellow-border)' },
+  ffffff: { bg: 'var(--note-color-white)', border: 'var(--note-color-white-border)' },
 };
 
 interface ChatInputProps {
@@ -113,7 +113,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     ? {
                         backgroundColor: colors.bg,
                         borderColor: colors.border,
-                        color: '#262626',
+                        color: 'var(--note-color-text)',
                       }
                     : undefined
                 }

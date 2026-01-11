@@ -21,14 +21,14 @@ const TipTapEditor = lazy(() =>
   })),
 );
 
-// 颜色映射表
+// 颜色映射表 - 使用 CSS 变量以支持暗色模式
 const colorMap: Record<string, string> = {
-  bae0ff: '#bae0ff',
-  d9f7be: '#d9f7be',
-  ffd6e7: '#ffd6e7',
-  d6e4ff: '#d6e4ff',
-  ffd666: '#ffd666',
-  ffffff: '#ffffff',
+  bae0ff: 'var(--note-color-blue)',
+  d9f7be: 'var(--note-color-green)',
+  ffd6e7: 'var(--note-color-pink)',
+  d6e4ff: 'var(--note-color-purple)',
+  ffd666: 'var(--note-color-yellow)',
+  ffffff: 'var(--note-color-white)',
 };
 
 export interface NoteNodeData {

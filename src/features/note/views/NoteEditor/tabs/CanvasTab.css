@@ -34,18 +34,23 @@
   background-color: var(--bg-hover, #f0f0f0);
 }
 
-/* 暗色模式 */
+/* 暗色模式 - ReactFlow 控制按钮 */
 [data-theme='dark'] .canvas-tab .react-flow {
-  background-color: var(--bg-secondary-dark, #1a1a1a);
+  background-color: transparent;
+}
+
+[data-theme='dark'] .canvas-tab .react-flow__controls {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='dark'] .canvas-tab .react-flow__controls-button {
-  background-color: var(--bg-primary-dark, #2a2a2a);
-  color: var(--text-secondary-dark, #a0a0a0);
+  background-color: var(--panel-bg);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
 }
 
 [data-theme='dark'] .canvas-tab .react-flow__controls-button:hover {
-  background-color: var(--bg-hover-dark, #3a3a3a);
+  background-color: var(--control-hover-bg);
 }
 
 /* 批量操作工具栏滑入动画 */
@@ -70,4 +75,59 @@
 /* 背景点阵颜色 */
 [data-theme='dark'] .canvas-tab .react-flow__background pattern circle {
   fill: #404040;
+}
+
+/* 画布面板卡片通用样式（毛玻璃效果） */
+.canvas-panel-card {
+  background: linear-gradient(135deg, rgba(198, 255, 230, 0.15), rgba(239, 210, 49, 0.08));
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+
+/* AI 回复区域样式 */
+.canvas-ai-response {
+  display: flex;
+  flex-direction: column;
+  max-height: 350px;
+}
+
+/* AI 回复内容区域 - 可滚动（滚动条样式由 App.css 统一定义） */
+.canvas-ai-response-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* AI 回复操作按钮区域 - 固定在底部 */
+.canvas-ai-response-actions {
+  flex-shrink: 0;
+  padding: 8px 16px 12px;
+}
+
+/* 暗色模式 - 画布面板卡片 */
+[data-theme='dark'] .canvas-panel-card {
+  /* 暗色渐变：深蓝绿到深金色，保持与亮色一致的渐变方向 */
+  background: linear-gradient(135deg, rgba(30, 60, 50, 0.6), rgba(50, 45, 20, 0.4));
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* AI 回复区域文字暗色适配 - Markdown 样式由 App.css 统一管理 */
+[data-theme='dark'] .canvas-ai-response-content {
+  color: var(--text-primary);
+}
+
+/* 控制按钮激活状态 */
+.react-flow__controls-button--active {
+  background-color: #1677ff !important;
+  color: white !important;
 }

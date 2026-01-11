@@ -51,6 +51,8 @@ interface UseAIChatOptions {
   onTitleChange?: (title: string) => void;
   /** 对话来源：note=便签, workbench=AI工坊, global=全局 */
   source?: 'note' | 'workbench' | 'global';
+  /** 是否自动保存对话历史（默认 true）*/
+  autoSave?: boolean;
 }
 
 /**
@@ -62,6 +64,7 @@ export const useAIChat = ({
   useKnowledgeBase = false,
   onTitleChange,
   source = 'workbench',
+  autoSave = true,
 }: UseAIChatOptions): UseAIChatReturn => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +248,8 @@ export const useAIChat = ({
   // 保存对话历史
   const saveConversationHistory = useCallback(
     async (items: ChatItem[]) => {
+      // 如果未启用自动保存，直接返回
+      if (!autoSave) return;
       if (!conversationId) return;
 
       try {
@@ -274,7 +279,7 @@ export const useAIChat = ({
         // 触发刷新，通知其他使用同一 conversationId 的实例
         useWorkspaceStore.getState().triggerMessageRefresh(conversationId);
       } catch (err) {
-        console.error('Failed to save conversation history:', err);
+        console.error('Fail, autoSaveed to save conversation history:', err);
       }
     },
     [conversationId, source],

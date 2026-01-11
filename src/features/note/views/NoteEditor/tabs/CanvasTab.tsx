@@ -118,7 +118,16 @@ const CanvasInner: React.FC = () => {
     conversationId: null,
     isConfigured,
     source: 'workbench',
+    autoSave: false, // 画布模式不自动保存对话
   });
+
+  // 组件卸载时清空对话（画布模式不做持久化）
+  useEffect(() => {
+    return () => {
+      // 清空对话数据，不保存
+      clearChat();
+    };
+  }, [clearChat]);
 
   // 监听 AI 回复更新
   useEffect(() => {

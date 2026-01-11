@@ -92,6 +92,14 @@ export class StorageContext {
     return path.join(this._appDir, 'local-state.json');
   }
 
+  /**
+   * 获取应用运行标记文件路径（在应用目录）
+   * 用于检测非正常退出
+   */
+  get appRunningPath(): string {
+    return path.join(this._appDir, 'app.running');
+  }
+
   // ============ 数据目录路径（可自定义） ============
 
   /**

@@ -42,6 +42,7 @@ import { readAppConfig, writeAppConfig } from '../config';
  */
 export class StorageManager {
   private context: StorageContext;
+  private wasCleanExit = false;
 
   // 核心组件
   readonly device: DeviceManager;
@@ -132,9 +133,15 @@ export class StorageManager {
       await this.device.initialize();
       await this.indexCache.initialize();
 
+      // 检查上次是否正常退出
+      await this.checkLastExitStatus();
+
       // 初始化存储
       await this.ensureStorageInitialized();
       await this.recoverFromCrash();
+
+      // 标记当前为运行状态
+      await this.markAsRunning();
 
       console.log(`[Storage] Initialized at: ${this.context.dataDir}`);
       console.log(`[Storage] Device ID: ${this.device.getDeviceId()}`);
@@ -711,6 +718,15 @@ export class StorageManager {
     try {
       console.log('[Storage] Performing startup integrity checks...');
 
+      if (this.wasCleanExit) {
+        console.log('[Storage] Clean exit detected, skipping extensive integrity checks.');
+        return;
+      }
+
+      console.warn(
+        '[Storage] Unclean exit detected or first run, performing full integrity checks...',
+      );
+
       // 校验便签索引一致性
       const noteIssues = await this.validateNotesIntegrity();
       if (noteIssues.length > 0) {
@@ -904,6 +920,52 @@ export class StorageManager {
     };
 
     traverse(content);
+  }
+
+  // ============ 运行状态管理 ============
+
+  /**
+   * 检查上次是否正常退出
+   */
+  private async checkLastExitStatus(): Promise<void> {
+    try {
+      const runningPath = this.context.appRunningPath;
+      const exists = await fileExists(runningPath);
+      this.wasCleanExit = !exists;
+    } catch (error) {
+      console.warn('[Storage] Failed to check last exit status:', error);
+      // 如果检查失败，假设为非正常退出，以策安全
+      this.wasCleanExit = false;
+    }
+  }
+
+  /**
+   * 标记为运行状态（创建锁文件）
+   */
+  private async markAsRunning(): Promise<void> {
+    try {
+      const runningPath = this.context.appRunningPath;
+      // 写入当前 PID，方便后续调试
+      await fs.writeFile(runningPath, process.pid.toString(), 'utf-8');
+    } catch (error) {
+      console.error('[Storage] Failed to mark as running:', error);
+    }
+  }
+
+  /**
+   * 处理正常关闭（删除锁文件）
+   */
+  async handleShutdown(): Promise<void> {
+    try {
+      const runningPath = this.context.appRunningPath;
+      const exists = await fileExists(runningPath);
+      if (exists) {
+        await fs.unlink(runningPath);
+        console.log('[Storage] Shutdown handled, running flag cleared');
+      }
+    } catch (error) {
+      console.error('[Storage] Failed to handle shutdown:', error);
+    }
   }
 }
 

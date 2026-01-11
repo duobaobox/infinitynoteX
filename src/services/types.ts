@@ -367,6 +367,7 @@ declare global {
       createNote(folderId: string, payload?: CreateNotePayload): Promise<Note>;
       getNote(id: string): Promise<Note>;
       updateNote(id: string, patch: UpdateNotePayload): Promise<Note>;
+      updateNoteSync(id: string, patch: UpdateNotePayload): boolean;
       deleteNote(id: string): Promise<void>;
 
       // AI 对话操作

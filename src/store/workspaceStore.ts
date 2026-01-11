@@ -41,22 +41,22 @@ export type WorkspaceState = UISlice &
 export type { WorkspaceView } from './slices/workspaceViewSlice';
 
 // ============ 创建组合 Store ============
+import { StateCreator } from 'zustand';
+
+const createStoreSlice: StateCreator<WorkspaceState> = (...a) => ({
+  ...createUISlice(...a),
+  ...createFolderSlice(...a),
+  ...createNoteSlice(...a),
+  ...createAIConversationSlice(...a),
+  ...createBrowserCardsSlice(...a),
+  ...createTodoSlice(...a),
+  ...createWorkspaceViewSlice(...a),
+});
+
 export const useWorkspaceStore = create<WorkspaceState>()(
-  devtools(
-    (...a) => ({
-      ...createUISlice(...a),
-      ...createFolderSlice(...a),
-      ...createNoteSlice(...a),
-      ...createAIConversationSlice(...a),
-      ...createBrowserCardsSlice(...a),
-      ...createTodoSlice(...a),
-      ...createWorkspaceViewSlice(...a),
-    }),
-    {
-      name: 'WorkspaceStore',
-      enabled: process.env.NODE_ENV === 'development',
-    },
-  ),
+  (process.env.NODE_ENV === 'development'
+    ? devtools(createStoreSlice, { name: 'WorkspaceStore' })
+    : createStoreSlice) as StateCreator<WorkspaceState>,
 );
 
 // ============ 数据同步副作用 ============

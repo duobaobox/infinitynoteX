@@ -120,6 +120,19 @@ export function registerStorageHandlers(): void {
     return await storageManager.notes.update(id, patch);
   });
 
+  // 同步更新便签（用于 beforeunload 等关键场景）
+  ipcMain.on('storage:updateNoteSync', (event, id: string, patch: UpdateNotePayload) => {
+    storageManager.notes
+      .update(id, patch)
+      .then(() => {
+        event.returnValue = true;
+      })
+      .catch((err) => {
+        console.error('Failed to sync update note:', err);
+        event.returnValue = false;
+      });
+  });
+
   ipcMain.handle('storage:deleteNote', async (_, id: string) => {
     const note = await storageManager.notes.get(id);
     // 移入回收站

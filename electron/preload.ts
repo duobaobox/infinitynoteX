@@ -170,7 +170,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 // --------- Expose storage API ---------
-contextBridge.exposeInMainWorld('storage', createProxy(ipcRenderer, 'storage', STORAGE_METHODS));
+contextBridge.exposeInMainWorld('storage', {
+  ...createProxy(ipcRenderer, 'storage', STORAGE_METHODS),
+  // 手动暴露同步方法（绕过 createProxy 的 invoke 机制）
+  updateNoteSync: (id: string, patch: unknown) => {
+    return ipcRenderer.sendSync('storage:updateNoteSync', id, patch);
+  },
+});
 
 // --------- Expose storage events API ---------
 contextBridge.exposeInMainWorld('storageEvents', {

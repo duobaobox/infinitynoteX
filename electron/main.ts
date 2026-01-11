@@ -77,10 +77,15 @@ if (!gotLock) {
   });
 }
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
+  // 阻止退出，直到我们完成清理（虽然 before-quit 不支持 async wait, 但我们可以尽量同步或只触发）
+  // 实际上 Electron 这里的行为有点复杂，为了简化，我们尽量快速执行
   setQuitting(true);
   saveWindowState();
   globalShortcut.unregisterAll();
+
+  // 清理运行标记
+  await storageManager.handleShutdown();
 });
 
 // ============ 注册自定义协议 attachment:// ============

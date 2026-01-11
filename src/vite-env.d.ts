@@ -65,6 +65,8 @@ declare global {
       createNote(folderId: string, payload?: CreateNotePayload): Promise<Note>;
       getNote(id: string): Promise<Note>;
       updateNote(id: string, patch: Partial<Note>): Promise<Note>;
+      // 同步更新便签（用于 beforeunload 场景）
+      updateNoteSync(id: string, patch: Partial<Note>): boolean;
       deleteNote(id: string): Promise<void>;
 
       // 回收站操作

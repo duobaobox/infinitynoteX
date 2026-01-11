@@ -38,16 +38,44 @@ infinitynotex/
 │   ├── shared/              # 共享代码
 │   │   ├── utils/          # 工具函数
 │   │   └── types/          # 共享类型
-│   └── services/            # 服务层（仅保留有实际业务逻辑的服务）
-│                            # ⚠️ 已删除传声筒 Service（2026-01）
+│   └── services/            # 服务层（类型定义 + AI 配置）
 │
 └── tests/                   # 测试文件
 ```
 
-> **架构决策（2026-01）**：已删除 `noteService.ts`、`folderService.ts`、`storageService.ts`、
-> `aiConversationService.ts`、`browserCardService.ts` 等传声筒 Service。
-> 这些 Service 只是简单转发 IPC 调用，没有业务逻辑，属于过度设计。
-> 现在组件和 Store 直接调用 `window.storage` / `window.ai` 等 IPC API。
+### 1.1 `src/services/` 目录说明（重要！）
+
+> **架构决策（2026-01）**：已删除传声筒 Service（`noteService.ts`、`folderService.ts` 等）。
+> 组件和 Store 直接调用 `window.storage` / `window.ai` 等 IPC API。
+
+**当前保留的文件及用途：**
+
+| 文件                    | 用途           | 说明                                              |
+| :---------------------- | :------------- | :------------------------------------------------ |
+| `types.ts`              | 业务类型定义   | Note, Folder, AIConversation, TodoList 等核心类型 |
+| `aiConfig.ts`           | AI 配置类型    | ChatMessage, ChatPayload, ConnectionTestResult 等 |
+| `aiProviders.ts`        | AI 提供商预设  | DeepSeek, 阿里云, OpenAI 等提供商配置常量         |
+| `aiConfigStore.ts`      | AI 配置管理    | 配置读取/保存逻辑（有实际业务逻辑）               |
+| `embeddingProviders.ts` | 向量嵌入提供商 | 各 embedding 服务的配置                           |
+| `knowledgeTypes.ts`     | 知识库类型     | 知识库搜索结果等类型定义                          |
+| `index.ts`              | 统一导出       | 重新导出上述模块                                  |
+
+**使用规范：**
+
+```typescript
+// ✅ 正确：从 services 导入类型
+import type { Note, Folder, AIConversation } from '@/services/types';
+import type { ChatMessage, ChatPayload } from '@/services/aiConfig';
+import { AI_PROVIDERS } from '@/services/aiProviders';
+
+// ✅ 正确：直接调用 IPC API（不经过 Service 层）
+const notes = await window.storage.listNotes(folderId);
+const folders = await window.storage.listFolders();
+await window.ai.chat(payload);
+
+// ❌ 错误：不要再创建传声筒 Service
+// class NoteService { listNotes() { return window.storage.listNotes(); } }
+```
 
 ## 2. IPC 通信规范（重要！）
 
@@ -135,18 +163,22 @@ const tags = await window.storage.getNoteTags(noteId);
 
 ### 2.4 关键文件对照表
 
-| 模块       | IPC 前缀       | Handler 文件                | preload 常量            | 类型声明位置    |
-| :--------- | :------------- | :-------------------------- | :---------------------- | :-------------- |
-| 存储       | `storage`      | `storageHandlers.ts`        | `STORAGE_METHODS`       | `vite-env.d.ts` |
-| 同步       | `sync`         | `syncHandlers.ts`           | `SYNC_METHODS`          | `vite-env.d.ts` |
-| AI         | `ai`           | `aiHandlers.ts`             | `AI_METHODS`            | `electron.d.ts` |
-| 配置       | `config`       | `configHandlers.ts`         | `CONFIG_METHODS`        | `vite-env.d.ts` |
-| 知识库     | `knowledge`    | `knowledgeHandlers.ts`      | `KNOWLEDGE_METHODS`     | `electron.d.ts` |
-| 日志       | `log`          | `logHandlers.ts`            | `LOG_METHODS`           | `vite-env.d.ts` |
-| 悬浮窗     | `floating`     | `windows/floatingWindow.ts` | `FLOATING_METHODS`      | `vite-env.d.ts` |
-| 统一配置   | `app`          | `configHandlers.ts`         | `APP_METHODS`           | `vite-env.d.ts` |
-| 浏览器卡片 | `browserCards` | `storageHandlers.ts`        | `BROWSER_CARDS_METHODS` | `vite-env.d.ts` |
-| 附件       | `attachments`  | `storageHandlers.ts`        | `ATTACHMENTS_METHODS`   | `electron.d.ts` |
+| 模块       | IPC 前缀        | Handler 文件                | preload 常量            | 类型声明位置    |
+| :--------- | :-------------- | :-------------------------- | :---------------------- | :-------------- |
+| 存储       | `storage`       | `storageHandlers.ts`        | `STORAGE_METHODS`       | `vite-env.d.ts` |
+| 存储事件   | `storageEvents` | `storageHandlers.ts`        | N/A (Manual)            | `vite-env.d.ts` |
+| 同步       | `sync`          | `syncHandlers.ts`           | `SYNC_METHODS`          | `vite-env.d.ts` |
+| AI         | `ai`            | `aiHandlers.ts`             | `AI_METHODS`            | `electron.d.ts` |
+| 配置       | `config`        | `configHandlers.ts`         | `CONFIG_METHODS`        | `vite-env.d.ts` |
+| 知识库     | `knowledge`     | `knowledgeHandlers.ts`      | `KNOWLEDGE_METHODS`     | `electron.d.ts` |
+| 日志       | `log`           | `logHandlers.ts`            | `LOG_METHODS`           | `vite-env.d.ts` |
+| 悬浮窗     | `floating`      | `windows/floatingWindow.ts` | `FLOATING_METHODS`      | `vite-env.d.ts` |
+| Todo悬浮窗 | `floatingTodo`  | `windows/floatingWindow.ts` | `FLOATING_TODO_METHODS` | `vite-env.d.ts` |
+| 统一配置   | `app`           | `configHandlers.ts`         | `APP_METHODS`           | `vite-env.d.ts` |
+| 浏览器卡片 | `browserCards`  | `storageHandlers.ts`        | `BROWSER_CARDS_METHODS` | `vite-env.d.ts` |
+| 附件       | `attachments`   | `storageHandlers.ts`        | `ATTACHMENTS_METHODS`   | `electron.d.ts` |
+| 应用信息   | `appInfo`       | `main.ts`                   | N/A (Manual)            | `vite-env.d.ts` |
+| 自动更新   | `autoUpdater`   | `main.ts`                   | N/A (Manual)            | `vite-env.d.ts` |
 
 ### 2.5 带事件监听的 IPC（进阶）
 
@@ -212,7 +244,7 @@ contextBridge.exposeInMainWorld(
 
 ### 4.2 类型规范
 
-- 共享类型放在 `src/shared/types/`
+- 共享类型放在 `src/shared/types/` (如 `config.ts`, `sync.ts`)
 - 窗口 API 类型声明在 `src/vite-env.d.ts`
 - 避免使用 `any`，使用 `unknown` + 类型守卫
 

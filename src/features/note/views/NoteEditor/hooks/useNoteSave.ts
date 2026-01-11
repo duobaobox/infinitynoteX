@@ -123,13 +123,20 @@ export const useNoteSave = (): UseNoteSaveReturn => {
       if (pendingSaveRef.current) {
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         const data = pendingSaveRef.current;
-        // 尝试同步或尽力保存
-        window.storage
-          .updateNote(data.noteId, {
+
+        // 使用同步 IPC 确保数据在进程终止前发送到主进程
+        try {
+          const success = window.storage.updateNoteSync(data.noteId, {
             title: data.title,
             content: data.content,
-          })
-          .catch((e) => console.error('Failed to save on unload:', e));
+          });
+
+          if (!success) {
+            console.error('Failed to sync save on unload');
+          }
+        } catch (e) {
+          console.error('Error during sync save on unload:', e);
+        }
       }
     };
 

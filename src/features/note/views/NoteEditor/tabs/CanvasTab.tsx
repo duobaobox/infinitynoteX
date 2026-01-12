@@ -108,6 +108,7 @@ const CanvasInner: React.FC = () => {
   const [showAiResponse, setShowAiResponse] = useState(false);
   const aiResponseRef = useRef<HTMLDivElement>(null);
 
+  // 画布临时对话：不加载历史，不保存
   const {
     isLoading: isStreaming,
     sendMessage,
@@ -118,26 +119,29 @@ const CanvasInner: React.FC = () => {
     conversationId: null,
     isConfigured,
     source: 'workbench',
-    autoSave: false, // 画布模式不自动保存对话
+    autoSave: false,
   });
 
-  // 组件卸载时清空对话（画布模式不做持久化）
+  // 组件卸载时清理对话
   useEffect(() => {
-    return () => {
-      // 清空对话数据，不保存
-      clearChat();
-    };
+    return () => clearChat();
   }, [clearChat]);
 
-  // 监听 AI 回复更新
+  // 监听 AI 消息变化，仅在有新 AI 回复时更新显示
+  const prevChatItemsRef = useRef<typeof chatItems>([]);
   useEffect(() => {
-    if (chatItems.length > 0) {
+    const hasNewAiMessage =
+      chatItems.length > prevChatItemsRef.current.length &&
+      chatItems.length > 0 &&
+      chatItems[chatItems.length - 1].role === 'ai';
+
+    if (hasNewAiMessage) {
       const lastMessage = chatItems[chatItems.length - 1];
-      if (lastMessage.role === 'ai') {
-        setAiResponse(lastMessage.content);
-        setShowAiResponse(true);
-      }
+      setAiResponse(lastMessage.content);
+      setShowAiResponse(true);
     }
+
+    prevChatItemsRef.current = chatItems;
   }, [chatItems]);
 
   // AI回复时自动滚动到底部

@@ -1,7 +1,11 @@
 /**
  * useAIChat Hook - AI 对话管理
  *
- * 封装消息管理、流式处理、历史记录加载/保存等逻辑
+ * 核心功能：消息管理、流式处理、历史记录加载/保存
+ *
+ * conversationId 行为：
+ * - null: 临时对话，不加载历史，不保存
+ * - string: 持久对话，自动加载和保存历史
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -74,6 +78,10 @@ export const useAIChat = ({
   const prevIsRequestingRef = useRef(false);
   // 保存当前请求的 RAG sources，用于附加到 AI 回复消息
   const currentRagSourcesRef = useRef<ChatItem['ragSources']>(undefined);
+  // 标记是否已完成初始化（避免首次渲染时误触发历史加载）
+  const isInitializedRef = useRef(false);
+  // 记录上一次的 conversationId
+  const prevConversationIdRef = useRef<string | null>(conversationId);
 
   const [provider] = useState(() => new IpcChatProvider());
 
@@ -139,12 +147,22 @@ export const useAIChat = ({
 
   // 加载对话历史
   useEffect(() => {
+    // conversationId 变化时立即清空旧消息
+    if (prevConversationIdRef.current !== conversationId) {
+      setMessages([]);
+      setError(null);
+      prevConversationIdRef.current = conversationId;
+    }
+
     const loadConversationHistory = async () => {
+      // conversationId 为 null 时，不加载历史
       if (!conversationId) {
         setMessages([]);
         setIsLoadingHistory(false);
+        isInitializedRef.current = true;
         return;
       }
+
       setIsLoadingHistory(true);
 
       try {
@@ -191,6 +209,7 @@ export const useAIChat = ({
         setMessages([]);
       } finally {
         setIsLoadingHistory(false);
+        isInitializedRef.current = true;
       }
     };
 
@@ -282,7 +301,7 @@ export const useAIChat = ({
         console.error('Fail, autoSaveed to save conversation history:', err);
       }
     },
-    [conversationId, source],
+    [conversationId, source, autoSave],
   );
 
   // 请求结束后保存一次

@@ -91,7 +91,7 @@ const CanvasInner: React.FC = () => {
   >(new Map());
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
-  const [, setViewportState] = useState<Viewport>({ x: 0, y: 0, zoom: 0.8 });
+  const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 0.8 });
   const [showMiniMap, setShowMiniMap] = useState(false);
 
   // AI Chat 相关状态
@@ -130,15 +130,18 @@ const CanvasInner: React.FC = () => {
   // 监听 AI 消息变化，仅在有新 AI 回复时更新显示
   const prevChatItemsRef = useRef<typeof chatItems>([]);
   useEffect(() => {
+    const lastItem = chatItems.length > 0 ? chatItems[chatItems.length - 1] : null;
     const hasNewAiMessage =
       chatItems.length > prevChatItemsRef.current.length &&
       chatItems.length > 0 &&
-      chatItems[chatItems.length - 1].role === 'ai';
+      lastItem?.role === 'ai';
 
-    if (hasNewAiMessage) {
-      const lastMessage = chatItems[chatItems.length - 1];
-      setAiResponse(lastMessage.content);
-      setShowAiResponse(true);
+    // 如果有新的 AI 消息，或者最后的消息是 AI 的且内容有更新，则更新显示
+    if (lastItem?.role === 'ai') {
+      setAiResponse(lastItem.content);
+      if (hasNewAiMessage) {
+        setShowAiResponse(true);
+      }
     }
 
     prevChatItemsRef.current = chatItems;
@@ -256,7 +259,7 @@ const CanvasInner: React.FC = () => {
   // 监听视口变化并保存
   useOnViewportChange({
     onChange: (newViewport) => {
-      setViewportState(newViewport);
+      viewportRef.current = newViewport;
       // 保存视口状态到 localStorage
       if (selectedFolderId) {
         localStorage.setItem(`canvas-viewport-${selectedFolderId}`, JSON.stringify(newViewport));

@@ -125,7 +125,7 @@ export const useAIChat = ({
   });
 
   const chatItems: ChatItem[] = useMemo(() => {
-    return messages.map((m) => {
+    const items = messages.map((m) => {
       const isAiMessage = m.message.role === 'ai';
       const isStreaming = m.status === 'loading' || m.status === 'updating';
 
@@ -142,6 +142,8 @@ export const useAIChat = ({
           : undefined,
       };
     });
+
+    return items;
   }, [messages]);
 
   const isLoading = isRequesting;
@@ -341,11 +343,10 @@ export const useAIChat = ({
         | undefined;
 
       if (useKnowledgeBase) {
-        console.log('[RAG] Knowledge base enabled, searching for:', text);
         try {
           const searchResults = await window.knowledge?.search(text, 3);
-          console.log('[RAG] Search results:', searchResults);
           if (searchResults && searchResults.length > 0) {
+            console.log('[RAG] Found', searchResults.length, 'results for:', text);
             ragContext = {
               results: searchResults.map((r) => ({
                 noteId: r.noteId,
@@ -361,14 +362,8 @@ export const useAIChat = ({
               description: r.excerpt.slice(0, 100) + (r.excerpt.length > 100 ? '...' : ''),
               noteId: r.noteId,
             }));
-            console.log(
-              '[RAG] Found',
-              searchResults.length,
-              'relevant notes, ragContext:',
-              ragContext,
-            );
           } else {
-            console.log('[RAG] No search results found');
+            console.log('[RAG] No results found for:', text);
             currentRagSourcesRef.current = undefined;
           }
         } catch (err) {
@@ -376,7 +371,6 @@ export const useAIChat = ({
           currentRagSourcesRef.current = undefined;
         }
       } else {
-        console.log('[RAG] Knowledge base NOT enabled');
         currentRagSourcesRef.current = undefined;
       }
 

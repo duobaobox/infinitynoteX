@@ -3,7 +3,7 @@
  * 实现 Notion/GitHub 风格的代码块，工具栏固定在右上角
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
 import { Copy, Check, Trash2, ChevronDown } from 'lucide-react';
@@ -37,16 +37,27 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownTimeoutRef = useRef<NodeJS.Timeout>();
 
   const language = node.attrs.language || '';
   const currentLangLabel = LANGUAGES.find((l) => l.value === language)?.label || '纯文本';
+
+  // 清理 timeout
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 复制代码
   const handleCopy = useCallback(async () => {
     const code = node.textContent;
     await navigator.clipboard.writeText(code);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const timeoutId = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeoutId);
   }, [node.textContent]);
 
   // 删除代码块
@@ -63,6 +74,13 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
     [updateAttributes],
   );
 
+  // 处理下拉菜单失焦
+  const handleBlur = useCallback(() => {
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setShowDropdown(false);
+    }, 100);
+  }, []);
+
   return (
     <NodeViewWrapper className="code-block-wrapper">
       {/* 右上角工具栏 */}
@@ -73,7 +91,7 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
             type="button"
             className="language-trigger"
             onClick={() => setShowDropdown(!showDropdown)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            onBlur={handleBlur}
           >
             <span>{currentLangLabel}</span>
             <ChevronDown size={12} />
@@ -102,7 +120,7 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
           onClick={handleCopy}
           title={copied ? '已复制' : '复制代码'}
         >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? <Check size={12} /> : <Copy size={12} />}
         </button>
 
         {/* 删除按钮 */}
@@ -112,7 +130,7 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
           onClick={handleDelete}
           title="删除代码块"
         >
-          <Trash2 size={14} />
+          <Trash2 size={12} />
         </button>
       </div>
 

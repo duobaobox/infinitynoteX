@@ -7,19 +7,13 @@
  * - TipTap 编辑器区域（可编辑内容）
  */
 
-import React, { memo, lazy, Suspense, useCallback, useState, useEffect, useRef } from 'react';
+import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { HolderOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../../services/types';
+import { TipTapEditor } from '../../../../editor';
 import './NoteNode.css';
-
-// 懒加载 TipTap 编辑器
-const TipTapEditor = lazy(() =>
-  import('../../../../editor').then((module) => ({
-    default: module.TipTapEditor,
-  })),
-);
 
 // 颜色映射表 - 使用 CSS 变量以支持暗色模式
 const colorMap: Record<string, string> = {
@@ -152,23 +146,15 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
             <Spin size="small" />
           </div>
         ) : content ? (
-          <Suspense
-            fallback={
-              <div className="note-node__loading">
-                <Spin size="small" />
-              </div>
-            }
-          >
-            <TipTapEditor
-              initialContent={content}
-              onContentChange={handleContentChange}
-              onTitleChange={handleTitleChange}
-              showMenuBar={false}
-              showTitleInput={false}
-              contentId={data.noteId}
-              editable={true}
-            />
-          </Suspense>
+          <TipTapEditor
+            initialContent={content}
+            onContentChange={handleContentChange}
+            onTitleChange={handleTitleChange}
+            showMenuBar={false}
+            showTitleInput={false}
+            contentId={data.noteId}
+            editable={true}
+          />
         ) : (
           <div className="note-node__excerpt">{data.excerpt || '点击编辑...'}</div>
         )}

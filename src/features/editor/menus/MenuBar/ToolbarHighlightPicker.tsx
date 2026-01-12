@@ -19,7 +19,7 @@ export const ToolbarHighlightPicker: React.FC<ToolbarHighlightPickerProps> = ({ 
       open={open}
       onOpenChange={setOpen}
       trigger={['click']}
-      dropdownRender={() => (
+      popupRender={() => (
         <div
           style={{
             background: 'var(--panel-bg, #fff)',

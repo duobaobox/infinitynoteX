@@ -16,7 +16,7 @@ export const ToolbarColorPicker: React.FC<ToolbarColorPickerProps> = ({ editor }
       open={open}
       onOpenChange={setOpen}
       trigger={['click']}
-      dropdownRender={() => (
+      popupRender={() => (
         <div
           style={{
             background: 'var(--panel-bg, #fff)',

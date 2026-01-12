@@ -118,7 +118,7 @@ const CanvasInner: React.FC = () => {
   } = useAIChat({
     conversationId: null,
     isConfigured,
-    source: 'workbench',
+    source: 'canvas',
     autoSave: false,
   });
 

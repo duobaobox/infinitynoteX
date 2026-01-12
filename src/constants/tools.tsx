@@ -17,8 +17,8 @@ export interface AIConversationPreview {
   createdAt: number;
   updatedAt: number;
   color?: NoteColor;
-  /** 对话来源：note=便签, workbench=AI工坊, global=全局悬浮窗 */
-  source?: 'note' | 'workbench' | 'global';
+  /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局悬浮窗 */
+  source?: 'note' | 'workbench' | 'canvas' | 'global';
 }
 
 export const DEFAULT_AI_CONVERSATIONS: AIConversationPreview[] = [

@@ -383,7 +383,7 @@ declare global {
           reasoning?: string;
           references?: NoteReference[];
         }>,
-        options?: { source?: 'note' | 'workbench' | 'global' },
+        options?: { source?: 'note' | 'workbench' | 'canvas' | 'global' },
       ): Promise<AIConversation>;
       updateAIConversationTitle(id: string, title: string): Promise<AIConversation>;
 

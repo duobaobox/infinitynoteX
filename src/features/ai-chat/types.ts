@@ -81,8 +81,8 @@ export interface AIChatPanelProps {
   showTitleEditor?: boolean;
   /** 自定义 className */
   className?: string;
-  /** 对话来源：note=便签, workbench=AI工坊, global=全局悬浮窗 */
-  source?: 'note' | 'workbench' | 'global';
+  /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局悬浮窗 */
+  source?: 'note' | 'workbench' | 'canvas' | 'global';
 }
 
 /**

@@ -53,8 +53,8 @@ interface UseAIChatOptions {
   useKnowledgeBase?: boolean;
   /** 标题变更回调 */
   onTitleChange?: (title: string) => void;
-  /** 对话来源：note=便签, workbench=AI工坊, global=全局 */
-  source?: 'note' | 'workbench' | 'global';
+  /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局 */
+  source?: 'note' | 'workbench' | 'canvas' | 'global';
   /** 是否自动保存对话历史（默认 true）*/
   autoSave?: boolean;
 }

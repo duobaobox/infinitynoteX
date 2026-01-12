@@ -97,7 +97,7 @@ declare global {
           }>;
           createdAt: number;
           updatedAt: number;
-          source?: 'note' | 'workbench' | 'global';
+          source?: 'note' | 'workbench' | 'canvas' | 'global';
         }>
       >;
       createAIConversation(title?: string): Promise<{
@@ -135,7 +135,7 @@ declare global {
             content: string;
           }>;
         }>,
-        options?: { source?: 'note' | 'workbench' | 'global' },
+        options?: { source?: 'note' | 'workbench' | 'canvas' | 'global' },
       ): Promise<{
         id: string;
         title: string;
@@ -155,7 +155,7 @@ declare global {
         }>;
         createdAt: number;
         updatedAt: number;
-        source?: 'note' | 'workbench' | 'global';
+        source?: 'note' | 'workbench' | 'canvas' | 'global';
       }>;
       updateAIConversationTitle(
         id: string,

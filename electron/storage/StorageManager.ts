@@ -143,6 +143,17 @@ export class StorageManager {
       // 标记当前为运行状态
       await this.markAsRunning();
 
+      // 验证 AI 对话数据完整性
+      try {
+        const result = await this.ai.validateIntegrity();
+        if (!result.valid) {
+          console.warn('[Storage] AI conversations integrity check found issues:', result.issues);
+          console.log('[Storage] Auto-fixed AI conversation source fields');
+        }
+      } catch (error) {
+        console.error('[Storage] AI conversations integrity check failed:', error);
+      }
+
       console.log(`[Storage] Initialized at: ${this.context.dataDir}`);
       console.log(`[Storage] Device ID: ${this.device.getDeviceId()}`);
     } catch (error) {

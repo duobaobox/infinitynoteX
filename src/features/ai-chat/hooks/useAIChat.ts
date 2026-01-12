@@ -92,7 +92,8 @@ export const useAIChat = ({
     StreamChunkData
   >({
     provider,
-    conversationKey: conversationId || 'default',
+    // 为不同来源生成唯一的 key，避免状态污染
+    conversationKey: conversationId || `temp-${source}`,
     requestPlaceholder: () => ({
       role: 'ai',
       content: '',

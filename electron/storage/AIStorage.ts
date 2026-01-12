@@ -129,6 +129,11 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
     }));
     conversation.updatedAt = Date.now();
 
+    // 保留或更新 source 字段（如果传入了新的 source，则更新；否则保留原有值）
+    if (options?.source) {
+      conversation.source = options.source;
+    }
+
     // 更新摘要（使用最后一条用户消息）
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUserMessage) {
@@ -188,6 +193,43 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       messages: payload.messages || [],
       createdAt: now,
       updatedAt: now,
+      source: payload.source, // 保留 source
+    };
+  }
+
+  /**
+   * 验证对话的 source 字段完整性
+   * 用于检查和修复数据一致性
+   */
+  async validateIntegrity(): Promise<{ valid: boolean; issues: string[] }> {
+    const issues: string[] = [];
+    const conversations = await this.getAll();
+
+    for (const conversation of conversations) {
+      // 检查 source 字段是否存在且有效
+      const validSources = ['note', 'workbench', 'canvas', 'global'];
+      if (!conversation.source || !validSources.includes(conversation.source)) {
+        issues.push(
+          `Conversation ${conversation.id} has invalid or missing source: ${conversation.source}`,
+        );
+
+        // 自动修复：根据 conversationId 推断 source
+        if (conversation.id === 'global-ai-chat') {
+          conversation.source = 'global';
+        } else {
+          // 无法确定来源，设置为 workbench（默认）
+          conversation.source = 'workbench';
+        }
+
+        await this.update(conversation.id, {
+          source: conversation.source,
+        } as Partial<AIConversation>);
+      }
+    }
+
+    return {
+      valid: issues.length === 0,
+      issues,
     };
   }
 }

@@ -294,7 +294,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
         </Form>
 
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Space>
+          <Space wrap>
             <Button onClick={handleTest} loading={testing}>
               测试连接
             </Button>

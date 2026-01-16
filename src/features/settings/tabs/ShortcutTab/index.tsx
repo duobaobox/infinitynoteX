@@ -1,6 +1,6 @@
 /**
- * ShortcutTab - 快捷键设置 Tab 组件
- * 参考截图布局：分组标题 + 左右对齐的快捷键行
+ * ShortcutTab - 高级设置 Tab 组件
+ * 包含快捷键设置及其他高级功能
  */
 
 import React, { useState, useEffect, useRef } from 'react';

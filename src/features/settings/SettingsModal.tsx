@@ -28,7 +28,7 @@ const menuItems = [
   { key: 'data', label: '数据管理' },
   { key: 'sync', label: '数据同步' },
   { key: 'trash', label: '回收站' },
-  { key: 'shortcut', label: '快捷键' },
+  { key: 'shortcut', label: '高级设置' },
   { key: 'about', label: '关于' },
 ];
 

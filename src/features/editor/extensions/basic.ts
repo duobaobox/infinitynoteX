@@ -16,6 +16,7 @@ const lowlight = createLowlight(common);
 
 export interface EditorConfig {
   placeholder?: string;
+  disableSlashCommand?: boolean;
 }
 
 /**

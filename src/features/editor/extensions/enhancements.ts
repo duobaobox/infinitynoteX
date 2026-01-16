@@ -5,6 +5,8 @@
 
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
+import { AnyExtension } from '@tiptap/core';
+import { type EditorConfig } from './basic';
 import { SlashCommands, getFlatCommands, type CommandItem } from './SlashCommands';
 import { createSuggestionRenderer } from '../menus/SlashCommandMenu/suggestion';
 
@@ -14,8 +16,8 @@ import { createSuggestionRenderer } from '../menus/SlashCommandMenu/suggestion';
  * - Typography: 自动排版优化（智能引号、破折号等）
  * - SlashCommands: 斜杠命令菜单（类似 Notion）
  */
-export const getEnhancementExtensions = () => {
-  return [
+export const getEnhancementExtensions = (config?: EditorConfig) => {
+  const extensions: AnyExtension[] = [
     // 字符计数扩展
     CharacterCount.configure({
       limit: null, // 不限制字符数，如需限制可设置数字如 10000
@@ -51,24 +53,30 @@ export const getEnhancementExtensions = () => {
       // 乘号 x → × (默认关闭，避免影响正常输入)
       multiplication: false,
     }),
-
-    // 斜杠命令扩展（类似 Notion 的 "/" 命令菜单）
-    SlashCommands.configure({
-      suggestion: {
-        char: '/',
-        startOfLine: false,
-        items: ({ query }: { query: string }): CommandItem[] => {
-          const commands = getFlatCommands();
-          if (!query) return commands;
-          const lowerQuery = query.toLowerCase();
-          return commands.filter(
-            (cmd) =>
-              cmd.title.toLowerCase().includes(lowerQuery) ||
-              cmd.description.toLowerCase().includes(lowerQuery),
-          );
-        },
-        render: createSuggestionRenderer,
-      },
-    }),
   ];
+
+  // 如果没有禁用斜杠命令，则添加该扩展
+  if (!config?.disableSlashCommand) {
+    extensions.push(
+      SlashCommands.configure({
+        suggestion: {
+          char: '/',
+          startOfLine: false,
+          items: ({ query }: { query: string }): CommandItem[] => {
+            const commands = getFlatCommands();
+            if (!query) return commands;
+            const lowerQuery = query.toLowerCase();
+            return commands.filter(
+              (cmd) =>
+                cmd.title.toLowerCase().includes(lowerQuery) ||
+                cmd.description.toLowerCase().includes(lowerQuery),
+            );
+          },
+          render: createSuggestionRenderer,
+        },
+      }),
+    );
+  }
+
+  return extensions;
 };

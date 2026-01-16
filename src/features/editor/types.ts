@@ -33,6 +33,8 @@ export interface TipTapEditorProps {
   taskPath?: number[] | null;
   /** 任务路径定位完成后的回调 */
   onTaskLocated?: () => void;
+  /** 是否禁用斜杠命令 */
+  disableSlashCommand?: boolean;
 }
 
 export interface MenuBarProps {

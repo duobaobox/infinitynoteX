@@ -20,7 +20,7 @@ export const getExtensions = (config?: EditorConfig) => {
     ...getFormattingExtensions(),
     ...getContentExtensions(config),
     ...getTaskExtensions(),
-    ...getEnhancementExtensions(),
+    ...getEnhancementExtensions(config),
     // Markdown 扩展 - 支持粘贴 Markdown 自动转换为富文本
     ...getMarkdownExtensions(),
   ];

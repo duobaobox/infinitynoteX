@@ -47,6 +47,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   taskPath = null,
   onTaskLocated,
   contentId,
+  disableSlashCommand = false,
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
 
@@ -77,7 +78,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   }
   // 使用 useEditor Hook 创建编辑器实例
   const editor = useEditor({
-    extensions: getExtensions({ placeholder }),
+    extensions: getExtensions({ placeholder, disableSlashCommand }),
     content: initialContent,
     editable,
     autofocus,

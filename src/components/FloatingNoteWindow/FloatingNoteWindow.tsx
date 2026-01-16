@@ -145,11 +145,13 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
         >
           <TipTapEditor
             initialContent={editorContent || { type: 'doc', content: [] }}
+            contentId={noteId}
             onContentChange={handleContentChange}
             placeholder="开始输入..."
             editable={true}
             showMenuBar={true}
             showTitleInput={false}
+            disableSlashCommand={true}
           />
         </Suspense>
       </div>

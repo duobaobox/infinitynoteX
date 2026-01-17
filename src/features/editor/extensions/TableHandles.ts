@@ -280,6 +280,10 @@ export const TableHandles = Extension.create({
 
         const wrapperRect = wrapper.getBoundingClientRect();
         const tableRect = table.getBoundingClientRect();
+
+        // 计算缩放比例 (画布模式下 wrapper 可能被缩放)
+        const scale = wrapperRect.width / wrapper.offsetWidth || 1;
+
         const rows = table.rows;
 
         const rowHandles = handlesContainer.querySelectorAll('.table-handle-row');
@@ -289,9 +293,12 @@ export const TableHandles = Extension.create({
             const rowRect = row.getBoundingClientRect();
             const element = handle as HTMLElement;
             // 贴在表格左边线上，居中定位到行的中间
-            const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - 5;
+            // 注意：translate 使用的是本地坐标系，需要将屏幕像素差除以缩放比例
+            const left = (tableRect.left - wrapperRect.left) / scale + wrapper.scrollLeft - 5;
             const top =
-              rowRect.top - wrapperRect.top + wrapper.scrollTop + (rowRect.height - 22) / 2;
+              (rowRect.top - wrapperRect.top) / scale +
+              wrapper.scrollTop +
+              (rowRect.height / scale - 22) / 2;
             element.style.transform = `translate(${left}px, ${top}px)`;
           }
         });
@@ -306,8 +313,10 @@ export const TableHandles = Extension.create({
               const element = handle as HTMLElement;
               // 贴在每列顶部边线上，居中定位到列的中间
               const left =
-                cellRect.left - wrapperRect.left + wrapper.scrollLeft + (cellRect.width - 22) / 2;
-              const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - 5;
+                (cellRect.left - wrapperRect.left) / scale +
+                wrapper.scrollLeft +
+                (cellRect.width / scale - 22) / 2;
+              const top = (tableRect.top - wrapperRect.top) / scale + wrapper.scrollTop - 5;
               element.style.transform = `translate(${left}px, ${top}px)`;
             }
           });
@@ -335,6 +344,10 @@ export const TableHandles = Extension.create({
 
       const tableRect = table.getBoundingClientRect();
       const wrapperRect = wrapper.getBoundingClientRect();
+
+      // 计算缩放比例
+      const scale = wrapperRect.width / wrapper.offsetWidth || 1;
+
       const rows = table.rows;
 
       handlesContainer = document.createElement('div');
@@ -363,8 +376,11 @@ export const TableHandles = Extension.create({
         handle.style.position = 'absolute';
         handle.style.pointerEvents = 'auto';
         // 贴在表格左边线上，居中定位到行的中间
-        const left = tableRect.left - wrapperRect.left + wrapper.scrollLeft - 5;
-        const top = rowRect.top - wrapperRect.top + wrapper.scrollTop + (rowRect.height - 22) / 2;
+        const left = (tableRect.left - wrapperRect.left) / scale + wrapper.scrollLeft - 5;
+        const top =
+          (rowRect.top - wrapperRect.top) / scale +
+          wrapper.scrollTop +
+          (rowRect.height / scale - 22) / 2;
         handle.style.transform = `translate(${left}px, ${top}px)`;
 
         handle.addEventListener('click', (e) => {
@@ -388,8 +404,10 @@ export const TableHandles = Extension.create({
           handle.style.pointerEvents = 'auto';
           // 贴在每列顶部边线上，居中定位到列的中间
           const left =
-            cellRect.left - wrapperRect.left + wrapper.scrollLeft + (cellRect.width - 22) / 2;
-          const top = tableRect.top - wrapperRect.top + wrapper.scrollTop - 5;
+            (cellRect.left - wrapperRect.left) / scale +
+            wrapper.scrollLeft +
+            (cellRect.width / scale - 22) / 2;
+          const top = (tableRect.top - wrapperRect.top) / scale + wrapper.scrollTop - 5;
           handle.style.transform = `translate(${left}px, ${top}px)`;
 
           handle.addEventListener('click', (e) => {

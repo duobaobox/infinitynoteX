@@ -3,6 +3,7 @@
  * 从便签内容中解析 TaskList/TaskItem 节点
  */
 
+import dayjs from 'dayjs';
 import type { Note, TipTapJSONContent } from '../../../services/types';
 import type { ParsedTask } from '../types';
 import { extractTextFromNode } from '../types';
@@ -19,17 +20,21 @@ export function parseTasksFromNote(note: Note): ParsedTask[] {
       let dueDate: number | undefined;
 
       // 解析截止日期：支持多种格式
-      // - YYYY-MM-DD HH:mm:ss
-      // - YYYY-MM-DD HH:mm
-      // - YYYY-MM-DD
-      const dateTimeMatch = text.match(/(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)$/);
-      if (dateTimeMatch) {
-        const dateStr = dateTimeMatch[1].trim();
-        const dateObj = new Date(dateStr.replace(' ', 'T'));
-        if (!isNaN(dateObj.getTime())) {
-          dueDate = dateObj.getTime();
-          // 清理文本中的日期标记
-          text = text.replace(/\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?$/, '').trim();
+      // - YYYY-MM-DD HH:mm:ss 或 YYYY/MM/DD HH:mm:ss
+      // - YYYY-MM-DD HH:mm 或 YYYY/MM/DD HH:mm
+      // - YYYY-MM-DD 或 YYYY/MM/DD
+      // 正则说明：匹配末尾的日期时间或日期格式（支持 - 或 / 分隔符）
+      const dateTimeRegex = /(\d{4}[-/]\d{2}[-/]\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)$/;
+      const match = text.match(dateTimeRegex);
+
+      if (match) {
+        const dateStr = match[1].trim();
+        // 使用 dayjs 统一解析（dayjs 自动处理横杠、斜杠等标准格式）
+        const d = dayjs(dateStr);
+        if (d.isValid()) {
+          dueDate = d.valueOf();
+          // 清理文本中的日期标记：移除匹配到的日期字符串及其前面的空格
+          text = text.replace(dateTimeRegex, '').trim();
         }
       }
 

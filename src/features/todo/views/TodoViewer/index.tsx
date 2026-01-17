@@ -148,10 +148,13 @@ export const TodoViewer: React.FC = () => {
     }
 
     return result.sort((a: ParsedTask, b: ParsedTask) => {
-      // 优先按截止日期排序，再按更新时间
+      // 1. 未完成优先（仅在“全部”视图下有意义，但在这里统一处理更简单）
+      if (a.checked !== b.checked) return a.checked ? 1 : -1;
+      // 2. 截止日期排序（越早越靠前）
       if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
       if (a.dueDate) return -1;
       if (b.dueDate) return 1;
+      // 3. 最后按更新时间倒序
       return b.updatedAt - a.updatedAt;
     });
   }, [parsedTasks, filter]);
@@ -167,10 +170,13 @@ export const TodoViewer: React.FC = () => {
     }
 
     return result.sort((a, b) => {
-      // 如果有截止日期，按截止日期排序，否则按 order
+      // 1. 未完成优先
+      if (a.checked !== b.checked) return a.checked ? 1 : -1;
+      // 2. 如果有截止日期，按截止日期排序
       if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
       if (a.dueDate) return -1;
       if (b.dueDate) return 1;
+      // 3. 最后按 order 排序
       return a.order - b.order;
     });
   }, [currentManualTasks, filter]);
@@ -227,16 +233,20 @@ export const TodoViewer: React.FC = () => {
   const formatDueDate = (dueDate: number, status: DueDateStatus): string => {
     const due = dayjs(dueDate);
     const hasTime = due.hour() !== 0 || due.minute() !== 0;
+    const isThisYear = due.isSame(dayjs(), 'year');
+    const dateFormat = isThisYear ? 'MM/DD' : 'YYYY/MM/DD';
 
     switch (status) {
       case 'overdue':
-        return hasTime ? `逾期 ${due.format('MM/DD HH:mm')}` : `逾期 ${due.format('MM/DD')}`;
+        return hasTime
+          ? `逾期 ${due.format(`${dateFormat} HH:mm`)}`
+          : `逾期 ${due.format(dateFormat)}`;
       case 'today':
         return hasTime ? `今天 ${due.format('HH:mm')}` : '今天';
       case 'tomorrow':
         return hasTime ? `明天 ${due.format('HH:mm')}` : '明天';
       default:
-        return hasTime ? due.format('MM/DD HH:mm') : due.format('MM/DD');
+        return hasTime ? due.format(`${dateFormat} HH:mm`) : due.format(dateFormat);
     }
   };
 
@@ -299,6 +309,7 @@ export const TodoViewer: React.FC = () => {
               placeholder="添加新任务"
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
+              onPressEnter={handleAddTask}
               prefix={<PlusOutlined style={{ color: '#bfbfbf' }} />}
               style={{ flex: 1 }}
             />

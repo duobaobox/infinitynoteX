@@ -18,7 +18,8 @@ import {
   ArrowRightOutlined,
   ReloadOutlined,
   HomeOutlined,
-  RocketOutlined,
+  PushpinOutlined,
+  PushpinFilled,
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
@@ -164,15 +165,13 @@ export const BrowserViewer: React.FC = () => {
           <span className="browser-url-text">{currentUrl}</span>
         </div>
         <div className="browser-toolbar-actions">
-          <Tooltip title={isCurrentAiEntry ? '当前是外部 AI 入口' : '设为外部 AI 入口'}>
-            <Button
-              type="text"
-              icon={<RocketOutlined />}
-              onClick={handleSetAsExternalAI}
-              disabled={!currentUrl}
-              className={isCurrentAiEntry ? 'browser-ai-btn--active' : ''}
-            />
-          </Tooltip>
+          <Button
+            type="text"
+            icon={isCurrentAiEntry ? <PushpinFilled /> : <PushpinOutlined />}
+            onClick={handleSetAsExternalAI}
+            disabled={!currentUrl}
+            className={isCurrentAiEntry ? 'browser-ai-btn--active' : ''}
+          />
         </div>
       </div>
 

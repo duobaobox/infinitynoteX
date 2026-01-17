@@ -199,6 +199,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       <NoteReference
                         noteItems={noteReference.items}
                         onSelect={noteReference.onSelect}
+                        selectedKeys={selectedNotes.map((n) => n.id)}
                       />
 
                       {/* 知识库开关 */}

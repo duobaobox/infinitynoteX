@@ -76,14 +76,17 @@ export const AIChatPanel = ({
     loadNotes();
   }, []);
 
-  // 处理便签选择 - 添加到已选列表
+  // 处理便签选择 - 切换选中状态
   const handleNoteSelect: MenuProps['onClick'] = useCallback(
     async ({ key }: { key: string }) => {
       // 检查是否已选择
-      if (selectedNotes.some((n) => n.id === key)) {
-        message.info('该便签已引用');
+      const isSelected = selectedNotes.some((n) => n.id === key);
+      if (isSelected) {
+        // 如果已选择，则移除
+        setSelectedNotes((prev) => prev.filter((n) => n.id !== key));
         return;
       }
+
       try {
         const note = await window.storage.getNote(key);
         const textContent = extractTipTapText(note.content);

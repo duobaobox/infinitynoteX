@@ -588,6 +588,15 @@ export class SyncEngine {
    */
   private async backupConflictVersion(diff: FileDiff): Promise<string | null> {
     try {
+      // 如果是保留远程版本，检查本地是否为出厂状态
+      // 出厂状态的文件不需要备份（没有用户数据价值）
+      if (diff.conflict?.resolution === 'keep-remote' && diff.local?.content) {
+        if (this.isFactoryDefaultFolder(diff.local.content)) {
+          this.logger.info('backup', '跳过出厂状态文件的备份', diff.path);
+          return null;
+        }
+      }
+
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const ext = path.extname(diff.path);
       const base = path.basename(diff.path, ext);
@@ -744,13 +753,49 @@ export class SyncEngine {
   }
 
   /**
+   * 检查文件夹是否为"出厂初始状态"
+   * 用于智能解决全新安装时的默认文件夹冲突
+   */
+  private isFactoryDefaultFolder(content: string): boolean {
+    try {
+      const data = JSON.parse(content);
+      // 检查是否符合出厂默认文件夹的所有特征
+      return (
+        data.id === 'default' &&
+        data.name === '默认文件夹' &&
+        data.system === true &&
+        data.order === 0 &&
+        // 确保只有标准的 6 个字段，没有用户自定义的额外字段
+        Object.keys(data).length === 6
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * 解决冲突
+   * 智能策略：
+   * 1. 对于出厂初始状态的文件夹，优先保留云端版本（避免全新安装产生无意义冲突）
+   * 2. 对于用户修改过的文件，按策略处理
    */
   private resolveConflict(
     local: LocalFileInfo,
     remote: RemoteFileMeta,
     strategy: ConflictStrategy,
   ): 'keep-local' | 'keep-remote' {
+    // 智能检测：对于 folders/default.json，检查本地是否为出厂初始状态
+    if (local.path === 'folders/default.json' && local.content) {
+      if (this.isFactoryDefaultFolder(local.content)) {
+        this.logger.info(
+          'conflict',
+          '检测到本地为出厂初始状态的默认文件夹，优先使用云端版本',
+          local.path,
+        );
+        return 'keep-remote';
+      }
+    }
+
     switch (strategy) {
       case 'local':
         return 'keep-local';

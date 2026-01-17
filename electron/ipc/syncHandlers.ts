@@ -54,7 +54,7 @@ export function registerSyncHandlers(): void {
       console.log('[Sync] Rebuilding all indexes after sync...');
       const rebuildResult = await storageManager.rebuildAllIndexes();
       console.log(
-        `[Sync] Indexes rebuilt: ${rebuildResult.notes.rebuilt} notes, ${rebuildResult.conversations.rebuilt} conversations`,
+        `[Sync] Indexes rebuilt: ${rebuildResult.folders.rebuilt} folders, ${rebuildResult.notes.rebuilt} notes, ${rebuildResult.conversations.rebuilt} conversations`,
       );
       await storageManager.reloadAllCaches();
 

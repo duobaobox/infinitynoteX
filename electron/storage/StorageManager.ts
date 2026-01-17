@@ -514,17 +514,40 @@ export class StorageManager {
    * 用于同步后确保数据一致性
    */
   async rebuildAllIndexes(): Promise<{
+    folders: { rebuilt: number; errors: string[] };
     notes: { rebuilt: number; errors: string[] };
     conversations: { rebuilt: number; errors: string[] };
+    trash: { rebuilt: number; errors: string[] };
+    browserCards: { rebuilt: number; errors: string[] };
+    todoLists: { rebuilt: number; errors: string[] };
+    manualTasks: { rebuilt: number; errors: string[] };
   }> {
-    const [notesResult, conversationsResult] = await Promise.all([
+    const [
+      foldersResult,
+      notesResult,
+      conversationsResult,
+      trashResult,
+      browserCardsResult,
+      todoListsResult,
+      manualTasksResult,
+    ] = await Promise.all([
+      this.folders.rebuildIndex(),
       this.notes.rebuildIndex(),
       this.ai.rebuildIndex(),
+      this.trash.rebuildIndex(),
+      this.browserCards.rebuildIndex(),
+      this.todoLists.rebuildIndex(),
+      this.manualTasks.rebuildIndex(),
     ]);
 
     return {
+      folders: foldersResult,
       notes: notesResult,
       conversations: conversationsResult,
+      trash: trashResult,
+      browserCards: browserCardsResult,
+      todoLists: todoListsResult,
+      manualTasks: manualTasksResult,
     };
   }
 

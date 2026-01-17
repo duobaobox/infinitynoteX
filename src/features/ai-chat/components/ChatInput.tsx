@@ -11,6 +11,7 @@ import type { GetRef } from 'antd';
 import { ProviderSwitcher } from './ProviderSwitcher';
 import { NoteReference } from './NoteReference';
 import type { NoteReference as NoteReferenceType, ProviderOption } from '../types';
+import { truncateTitle } from '../utils';
 
 // 快捷指令配置
 const QUICK_COMMANDS = [
@@ -118,7 +119,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     : undefined
                 }
               >
-                <span className="ai-chat-note-tag-text">{note.title}</span>
+                <span className="ai-chat-note-tag-text">{truncateTitle(note.title)}</span>
               </Tag>
             );
           })}

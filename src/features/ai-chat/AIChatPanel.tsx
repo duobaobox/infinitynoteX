@@ -9,6 +9,7 @@ import {
   copyToClipboard,
   stripThinkBlocks,
   extractTipTapText,
+  truncateTitle,
 } from './utils';
 import type { ChatItem, AIChatPanelProps, NoteReference } from './types';
 import './styles/AIChat.css';
@@ -63,7 +64,7 @@ export const AIChatPanel = ({
             items.push({
               key: note.id,
               // icon: <FileTextOutlined />, // 移到子组件处理或传递 ReactNode
-              label: note.title || '无标题',
+              label: truncateTitle(note.title) || '无标题',
             });
           });
         }

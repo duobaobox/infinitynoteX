@@ -2,6 +2,9 @@
  * AIChat Utils - AI 对话工具函数
  */
 
+/** 便签引用标题在 UI 中显示的最大长度 */
+export const MAX_NOTE_TITLE_DISPLAY_LENGTH = 15;
+
 import { Editor } from '@tiptap/core';
 import type { TipTapJSONContent } from '../../services/types';
 import { getExtensions } from '../../features/editor/extensions';
@@ -209,4 +212,13 @@ export const copyToClipboard = async (text: string, html?: string): Promise<bool
   if (await copyWithClipboardItem()) return true;
   if (await copyWithClipboardText()) return true;
   return copyWithDomFallback();
+};
+
+/**
+ * 截断标题，赋予其最大长度限制并添加省略号
+ */
+export const truncateTitle = (title: string, maxLength = MAX_NOTE_TITLE_DISPLAY_LENGTH): string => {
+  if (!title) return '';
+  if (title.length <= maxLength) return title;
+  return title.slice(0, maxLength) + '...';
 };

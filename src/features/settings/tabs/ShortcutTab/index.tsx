@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { message } from 'antd';
+import { message, Switch, Tooltip } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import './styles.css';
 
@@ -165,7 +166,13 @@ const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange }) 
 };
 
 const ShortcutTab: React.FC = () => {
-  const { shortcutKeys, setShortcutKeys, loadShortcutKeys } = useSettingsStore();
+  const {
+    shortcutKeys,
+    setShortcutKeys,
+    loadShortcutKeys,
+    enableInfiniteCanvas,
+    setEnableInfiniteCanvas,
+  } = useSettingsStore();
 
   useEffect(() => {
     loadShortcutKeys();
@@ -181,18 +188,54 @@ const ShortcutTab: React.FC = () => {
     }
   };
 
+  const handleCanvasToggle = (checked: boolean) => {
+    setEnableInfiniteCanvas(checked);
+    message.success(checked ? '无限画布已开启' : '无限画布已关闭');
+  };
+
   return (
     <div className="settings-panel shortcut-tab">
-      {/* 分组标题 */}
-      <h4 className="shortcut-group-title">全局</h4>
+      <h3>高级设置</h3>
 
-      {/* 快捷键行 */}
-      <div className="shortcut-row">
-        <span className="shortcut-label">唤起 AI 助手侧边栏</span>
-        <ShortcutRecorder
-          value={shortcutKeys.aiChatWindow || DEFAULT_SHORTCUT}
-          onChange={handleShortcutChange}
-        />
+      {/* 全局快捷键 - 去除小标题 */}
+      <div className="settings-section">
+        <div className="shortcut-row">
+          <span className="shortcut-label">唤起 AI 助手侧边栏</span>
+          <ShortcutRecorder
+            value={shortcutKeys.aiChatWindow || DEFAULT_SHORTCUT}
+            onChange={handleShortcutChange}
+          />
+        </div>
+      </div>
+
+      <div className="settings-divider" />
+
+      {/* 实验性功能 - 去除小标题，去除详细描述，改用 Tooltip */}
+      <div className="settings-section">
+        <div className="shortcut-row">
+          <div
+            className="setting-label-group"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span className="shortcut-label">启用无限画布</span>
+            <Tooltip
+              title={
+                <div>
+                  开启后将在编辑器中增加"无限画布"标签页。
+                  <br />
+                  注意：这是一个资源密集型功能，在包含大量便签时可能会引起性能下降。
+                </div>
+              }
+            >
+              <QuestionCircleOutlined
+                style={{ color: 'var(--text-secondary-color)', cursor: 'help' }}
+              />
+            </Tooltip>
+          </div>
+          <div className="setting-control">
+            <Switch checked={enableInfiniteCanvas} onChange={handleCanvasToggle} />
+          </div>
+        </div>
       </div>
     </div>
   );

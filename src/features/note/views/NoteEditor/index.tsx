@@ -24,6 +24,7 @@ import { Segmented, Splitter, message } from 'antd';
 import type { TipTapJSONContent } from '../../../../services/types';
 import type { NoteColor as NoteColorType } from '../../../../services/types';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
+import { useSettingsStore } from '../../../../store/settingsStore';
 
 // 从模块导入
 import type { TabKeyType } from './types';
@@ -42,12 +43,22 @@ export const NoteEditor: React.FC = () => {
   const noteTaskPath = useWorkspaceStore((state) => state.noteTaskPath);
   const clearNoteTaskPath = useWorkspaceStore((state) => state.clearNoteTaskPath);
 
+  // 从 Settings Store 获取无限画布开启状态
+  const enableInfiniteCanvas = useSettingsStore((state) => state.enableInfiniteCanvas);
+
   // 本地状态
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [editorContent, setEditorContent] = useState<TipTapJSONContent | string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKeyType>('edit');
   const [noteColor, setNoteColor] = useState<NoteColorType>('ffffff');
   const [isContentLoading, setIsContentLoading] = useState(false);
+
+  // 监听无限画布开启状态，如果关闭且当前在画布 Tab，则切回编辑 Tab
+  useEffect(() => {
+    if (!enableInfiniteCanvas && activeTab === 'other') {
+      setActiveTab('edit');
+    }
+  }, [enableInfiniteCanvas, activeTab]);
 
   // 使用保存 hook
   const { debouncedSave, flushPendingSave } = useNoteSave();
@@ -175,16 +186,24 @@ export const NoteEditor: React.FC = () => {
   // 使用配置生成 Segmented 选项
   const segmentOptions = useMemo(
     () =>
-      TAB_CONFIG.map(({ key, icon: Icon, label }) => ({
-        label: (
-          <span>
-            <Icon style={{ marginRight: 4 }} />
-            {label}
-          </span>
-        ),
-        value: key,
-      })),
-    [],
+      TAB_CONFIG
+        // 根据功能开关过滤 Tab
+        .filter((tab) => {
+          if (tab.key === 'other' && !enableInfiniteCanvas) {
+            return false;
+          }
+          return true;
+        })
+        .map(({ key, icon: Icon, label }) => ({
+          label: (
+            <span>
+              <Icon style={{ marginRight: 4 }} />
+              {label}
+            </span>
+          ),
+          value: key,
+        })),
+    [enableInfiniteCanvas],
   );
 
   // 渲染当前 Tab 内容

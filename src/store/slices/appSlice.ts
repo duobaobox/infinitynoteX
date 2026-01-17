@@ -8,6 +8,8 @@ import type { StateCreator } from 'zustand';
 // ============ 常量定义 ============
 /** 外部AI页面URL的localStorage键 */
 const EXTERNAL_AI_URL_KEY = 'note_external_ai_url';
+/** 无限画布开启状态的localStorage键 */
+const INFINITE_CANVAS_ENABLED_KEY = 'note_infinite_canvas_enabled';
 
 /** 默认外部AI页面URL（豆包） */
 export const DEFAULT_EXTERNAL_AI_URL = 'https://www.doubao.com/chat/';
@@ -18,6 +20,7 @@ export interface AppSlice {
   appVersion: string;
   knowledgeBaseEnabled: boolean;
   externalAiUrl: string;
+  enableInfiniteCanvas: boolean; // 新增：是否启用无限画布
   shortcutKeys: {
     aiChatWindow: string;
   };
@@ -35,6 +38,9 @@ export interface AppSlice {
   setExternalAiUrl: (url: string) => void;
   loadExternalAiUrl: () => void;
 
+  // Actions - 无限画布
+  setEnableInfiniteCanvas: (enabled: boolean) => void;
+
   // Actions - 快捷键
   setShortcutKeys: (keys: { aiChatWindow: string }) => Promise<void>;
   loadShortcutKeys: () => void;
@@ -49,6 +55,7 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
   appVersion: '0.0.0',
   knowledgeBaseEnabled: false,
   externalAiUrl: localStorage.getItem(EXTERNAL_AI_URL_KEY) || DEFAULT_EXTERNAL_AI_URL,
+  enableInfiniteCanvas: localStorage.getItem(INFINITE_CANVAS_ENABLED_KEY) === 'true', // 默认为 false
   shortcutKeys: {
     aiChatWindow: 'CommandOrControl+Shift+Q', // 默认值
   },
@@ -89,6 +96,12 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
   loadExternalAiUrl: () => {
     const saved = localStorage.getItem(EXTERNAL_AI_URL_KEY);
     set({ externalAiUrl: saved || DEFAULT_EXTERNAL_AI_URL });
+  },
+
+  // Actions - 无限画布
+  setEnableInfiniteCanvas: (enabled) => {
+    localStorage.setItem(INFINITE_CANVAS_ENABLED_KEY, String(enabled));
+    set({ enableInfiniteCanvas: enabled });
   },
 
   // Actions - 快捷键

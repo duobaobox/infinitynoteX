@@ -60,13 +60,17 @@ export const AIChatPanel = ({
         const items: MenuProps['items'] = [];
         for (const folder of folders) {
           const notes = await window.storage.listNotes(folder.id);
-          notes.forEach((note) => {
+          if (notes.length > 0) {
             items.push({
-              key: note.id,
-              // icon: <FileTextOutlined />, // 移到子组件处理或传递 ReactNode
-              label: truncateTitle(note.title) || '无标题',
+              key: `folder-${folder.id}`,
+              type: 'group',
+              label: folder.name || '未命名文件夹',
+              children: notes.map((note) => ({
+                key: note.id,
+                label: truncateTitle(note.title) || '无标题',
+              })),
             });
-          });
+          }
         }
         setNoteItems(items);
       } catch (err) {

@@ -247,41 +247,41 @@
 
 /**
  * 暗色模式适配
- * 仅覆盖自定义样式的颜色，不影响 Ant Design X 组件
+ * 统一使用 modes.css 定义的变量，减少硬编码
  */
 
 :root[data-theme='dark'] .ai-chat-container {
-  background-color: #141414;
+  background-color: var(--panel-bg, #141414);
 }
 
 :root[data-theme='dark'] .ai-chat-header {
-  background-color: #1f1f1f;
-  border-bottom-color: #434343;
+  background-color: var(--bg, #1f1f1f);
+  border-bottom-color: var(--border-color, #434343);
 }
 
 :root[data-theme='dark'] .ai-chat-header-title {
-  color: #e6e6e6;
+  color: var(--text-primary, #e6e6e6);
 }
 
 :root[data-theme='dark'] .ai-chat-messages {
-  background-color: #1f1f1f;
+  background-color: var(--panel-bg, #1f1f1f);
 }
 
 :root[data-theme='dark'] .ai-chat-messages-empty {
-  color: #595959;
+  color: var(--text-secondary, #595959);
 }
 
 :root[data-theme='dark'] .ai-chat-input {
-  background-color: #1f1f1f;
+  background-color: var(--bg, #1f1f1f);
 }
 
 /* Provider 下拉菜单暗色模式 */
 :root[data-theme='dark'] .ai-meta-option__provider {
-  color: #e6e6e6;
+  color: var(--text-primary, #e6e6e6);
 }
 
 :root[data-theme='dark'] .ai-meta-option__model {
-  color: #a6a6a6;
+  color: var(--text-secondary, #a6a6a6);
 }
 
 /* ==================== Ant Design X 气泡和 Markdown 暗色模式适配 ==================== */

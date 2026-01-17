@@ -20,8 +20,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--color-bg-container, #fff);
-  border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.06));
+  background: var(--panel-bg, #fff);
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
 }
 
 .browser-toolbar-nav {
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   padding: 6px 12px;
-  background: var(--color-bg-layout, rgba(0, 0, 0, 0.02));
+  background: var(--control-hover-bg, rgba(0, 0, 0, 0.02));
   border-radius: 6px;
   overflow: hidden;
 }
@@ -42,7 +42,7 @@
 .browser-url-text {
   flex: 1;
   font-size: 13px;
-  color: var(--color-text-secondary, rgba(0, 0, 0, 0.45));
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -52,7 +52,7 @@
   flex: 1;
   position: relative;
   min-height: 0;
-  background: #fff;
+  background: var(--panel-bg, #fff);
   /* 渲染优化：允许浏览器跳过离屏内容渲染 */
   content-visibility: auto;
   contain-intrinsic-size: 0 500px;

@@ -14,6 +14,10 @@ import { initAutoUpdater } from './updater';
 import { readAppConfig, migrateFromLegacyConfigs } from './config';
 import log from './logger';
 
+// 启用 Chromium 内核的自动暗黑模式生成（针对不支持 dark mode 的网页）
+// 配合 nativeTheme.themeSource 使用
+app.commandLine.appendSwitch('enable-features', 'WebContentsForceDark');
+
 // ============ 导入窗口模块 ============
 import {
   createMainWindow,
@@ -36,6 +40,7 @@ import {
   registerConfigHandlers,
   registerKnowledgeHandlers,
 } from './ipc';
+import { syncNativeTheme } from './nativeTheme';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -141,6 +146,9 @@ app.whenReady().then(async () => {
   // 创建主窗口
   createMainWindow();
   initAutoUpdater(() => getMainWindow());
+
+  // 初始化 Native Theme
+  syncNativeTheme();
 
   // 注册全局快捷键
   const config = readAppConfig();

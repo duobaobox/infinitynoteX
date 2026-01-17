@@ -12,6 +12,7 @@ import {
   type AppConfig,
   type DeepPartial,
 } from '../config';
+import { syncNativeTheme } from '../nativeTheme';
 
 // 配置保存防抖机制
 let configSaveTimer: NodeJS.Timeout | null = null;
@@ -34,6 +35,10 @@ function debouncedSaveConfig(partial: DeepPartial<AppConfig>): void {
   configSaveTimer = setTimeout(() => {
     try {
       writeAppConfig(pendingConfigUpdates);
+
+      // 同步 Native Theme
+      syncNativeTheme();
+
       const newConfig = readAppConfig();
 
       // 广播配置变化

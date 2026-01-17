@@ -79,6 +79,8 @@ export const getBasicExtensions = () => {
     // 代码块语法高亮扩展（带自定义 NodeView）
     CustomCodeBlock.configure({
       lowlight,
+      enableTabIndentation: true, // 启用 Tab 缩进
+      tabSize: 2, // Tab 空格数
       HTMLAttributes: {
         class: 'code-block-lowlight',
       },

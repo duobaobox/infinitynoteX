@@ -32,6 +32,8 @@ const LANGUAGES = [
  */
 export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
   node,
+  editor,
+  getPos,
   updateAttributes,
   deleteNode,
 }) => {
@@ -68,10 +70,23 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
   // 设置语言
   const handleLanguageChange = useCallback(
     (lang: string) => {
-      updateAttributes({ language: lang || null });
+      // 获取代码块的位置
+      const pos = typeof getPos === 'function' ? getPos() : undefined;
+      if (typeof pos === 'number' && editor) {
+        // 使用 chain 确保所有操作在同一事务中执行
+        editor
+          .chain()
+          .focus()
+          .setTextSelection(pos + 1)
+          .updateAttributes('codeBlock', { language: lang || null })
+          .run();
+      } else {
+        // 如果无法获取位置，回退到 updateAttributes
+        updateAttributes({ language: lang || null });
+      }
       setShowDropdown(false);
     },
-    [updateAttributes],
+    [editor, getPos, updateAttributes],
   );
 
   // 处理下拉菜单失焦
@@ -104,7 +119,10 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
                   key={lang.value || 'plain'}
                   type="button"
                   className={`language-option ${language === lang.value ? 'active' : ''}`}
-                  onClick={() => handleLanguageChange(lang.value)}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // 阻止失焦
+                    handleLanguageChange(lang.value);
+                  }}
                 >
                   {lang.label}
                 </button>
@@ -136,7 +154,7 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
 
       {/* 代码内容区域 */}
       <pre className="code-block-lowlight">
-        <NodeViewContent className="code-content" />
+        <NodeViewContent<'code'> as="code" className="code-content" />
       </pre>
     </NodeViewWrapper>
   );

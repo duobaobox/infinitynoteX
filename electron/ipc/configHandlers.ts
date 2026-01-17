@@ -53,10 +53,12 @@ function debouncedSaveConfig(partial: DeepPartial<AppConfig>): void {
 /**
  * 简单的深度合并 Partial 对象
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function deepMergePartial(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   target: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   source: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, any> {
   if (!source || typeof source !== 'object') return target;
   if (!target || typeof target !== 'object') return source;

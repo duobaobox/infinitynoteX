@@ -10,8 +10,8 @@ import type { BaseCardProps } from '../../index';
 import './ConversationCard.css';
 
 interface RobotIconProps {
-  /** 对话来源：note=便签(橙色), workbench=AI工坊(黑白) */
-  source?: 'note' | 'workbench' | 'global';
+  /** 对话来源：note=便签(橙色), workbench=AI工坊(黑白), canvas=画布 */
+  source?: 'note' | 'workbench' | 'canvas' | 'global';
 }
 
 // 机器人图标组件 - 根据来源显示不同颜色
@@ -34,8 +34,8 @@ export interface ConversationCardProps extends Omit<
   BaseCardProps,
   'renderIcon' | 'colorable' | 'pinnable' | 'color'
 > {
-  /** 对话来源：note=便签, workbench=AI工坊, global=全局 */
-  source?: 'note' | 'workbench' | 'global';
+  /* 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局 */
+  source?: 'note' | 'workbench' | 'canvas' | 'global';
 }
 
 const ConversationCard: React.FC<ConversationCardProps> = ({ source, ...props }) => (

@@ -93,7 +93,10 @@ export const TodoViewer: React.FC = () => {
   // ============ 派生数据 ============
   const isDefaultList = selectedTodoListId === DEFAULT_TODO_LIST_ID;
   const currentList = todoLists.find((l) => l.id === selectedTodoListId);
-  const currentManualTasks = manualTasks[selectedTodoListId || ''] || [];
+  const currentManualTasks = useMemo(
+    () => manualTasks[selectedTodoListId || ''] || [],
+    [manualTasks, selectedTodoListId],
+  );
 
   // ============ 副作用 ============
 

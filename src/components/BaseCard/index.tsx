@@ -5,12 +5,13 @@
  * 子卡片通过 renderIcon 自定义图标装饰
  */
 
-import React, { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { Button } from 'antd';
 import { PushpinOutlined } from '@ant-design/icons';
 import { getThemeColor } from '../../theme/theme';
 import { useNoteCardTheme, type NoteCardColor } from '../../hooks/useNoteCardTheme';
 import './BaseCard.css';
+import { CardListContext } from './CardListContext';
 
 // ============================================================
 // 类型
@@ -34,15 +35,7 @@ export interface BaseCardProps {
   className?: string;
 }
 
-// ============================================================
-// Context（列表场景批量传递 selectedId）
-// ============================================================
-
-export interface CardListContextValue {
-  selectedId?: string;
-}
-
-export const CardListContext = createContext<CardListContextValue | undefined>(undefined);
+// Context definitions moved to CardListContext.ts
 
 // ============================================================
 // 主题 Hook
@@ -153,3 +146,4 @@ const BaseCard: React.FC<BaseCardProps> = ({
 
 // 使用 React.memo 优化性能，避免不必要的重渲染
 export default React.memo(BaseCard);
+export { CardListContext };

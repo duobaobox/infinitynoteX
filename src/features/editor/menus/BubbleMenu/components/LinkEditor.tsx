@@ -56,10 +56,10 @@ export const LinkEditor: React.FC<LinkEditorProps> = ({
   };
 
   // 取消编辑
-  const handleCancel = () => {
+  const handleCancel = React.useCallback(() => {
     setIsEditing(false);
     setInputValue(currentUrl || '');
-  };
+  }, [currentUrl]);
 
   // 打开链接
   const handleOpenLink = () => {
@@ -87,7 +87,7 @@ export const LinkEditor: React.FC<LinkEditorProps> = ({
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isEditing]);
+  }, [isEditing, handleCancel]);
 
   // 回车确认
   const handleKeyDown = (e: React.KeyboardEvent) => {

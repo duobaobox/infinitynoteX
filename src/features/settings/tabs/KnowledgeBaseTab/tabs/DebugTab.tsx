@@ -21,13 +21,14 @@ import {
 } from 'antd';
 import {
   SearchOutlined,
-  DatabaseOutlined,
   FileTextOutlined,
   SyncOutlined,
   DeleteOutlined,
   ReloadOutlined,
   ToolOutlined,
   SettingOutlined,
+  EyeOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import SystemDiagnosticsPanel from './components/SystemDiagnosticsPanel';
@@ -69,33 +70,15 @@ const SearchTestPanel: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
-  // 数据块列表状态
-  const [chunks, setChunks] = useState<ChunkInfo[]>([]);
-  const [totalChunks, setTotalChunks] = useState(0);
-  const [loadingChunks, setLoadingChunks] = useState(false);
-  const [page, setPage] = useState(1);
-  const [selectedChunk, setSelectedChunk] = useState<ChunkInfo | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   // 笔记索引列表状态
   const [noteIndexList, setNoteIndexList] = useState<NoteIndexInfo[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
 
-  // 加载数据块
-  const loadChunks = useCallback(async () => {
-    setLoadingChunks(true);
-    try {
-      const result = await window.knowledge?.getChunks({ offset: (page - 1) * 10, limit: 10 });
-      if (result) {
-        setChunks(result.chunks);
-        setTotalChunks(result.total);
-      }
-    } catch (error) {
-      console.error('Failed to load chunks:', error);
-    } finally {
-      setLoadingChunks(false);
-    }
-  }, [page]);
+  // 便签 Chunks 查看抽屉状态
+  const [noteChunksDrawerOpen, setNoteChunksDrawerOpen] = useState(false);
+  const [selectedNoteForChunks, setSelectedNoteForChunks] = useState<NoteIndexInfo | null>(null);
+  const [noteChunks, setNoteChunks] = useState<ChunkInfo[]>([]);
+  const [loadingNoteChunks, setLoadingNoteChunks] = useState(false);
 
   // 加载笔记索引列表
   const loadNoteIndexList = useCallback(async () => {
@@ -110,10 +93,34 @@ const SearchTestPanel: React.FC = () => {
     }
   }, []);
 
+  // 加载某便签的所有 Chunks
+  const loadNoteChunks = useCallback(async (noteId: string) => {
+    setLoadingNoteChunks(true);
+    try {
+      const result = await window.knowledge?.getChunks({ noteId });
+      if (result) {
+        setNoteChunks(result.chunks);
+      }
+    } catch (error) {
+      console.error('Failed to load note chunks:', error);
+    } finally {
+      setLoadingNoteChunks(false);
+    }
+  }, []);
+
+  // 打开便签 Chunks 抽屉
+  const handleViewNoteChunks = useCallback(
+    (note: NoteIndexInfo) => {
+      setSelectedNoteForChunks(note);
+      setNoteChunksDrawerOpen(true);
+      loadNoteChunks(note.noteId);
+    },
+    [loadNoteChunks],
+  );
+
   useEffect(() => {
-    loadChunks();
     loadNoteIndexList();
-  }, [loadChunks, loadNoteIndexList]);
+  }, [loadNoteIndexList]);
 
   // 语义搜索
   const handleSearch = useCallback(async () => {
@@ -144,7 +151,6 @@ const SearchTestPanel: React.FC = () => {
         if (result?.success) {
           message.success('重建完成');
           loadNoteIndexList();
-          loadChunks();
         } else {
           message.error(result?.error || '失败');
         }
@@ -152,7 +158,7 @@ const SearchTestPanel: React.FC = () => {
         message.error('重建失败');
       }
     },
-    [loadNoteIndexList, loadChunks],
+    [loadNoteIndexList],
   );
 
   // 删除笔记索引
@@ -162,60 +168,12 @@ const SearchTestPanel: React.FC = () => {
         await window.knowledge?.deleteNoteIndex(noteId);
         message.success('已删除');
         loadNoteIndexList();
-        loadChunks();
       } catch {
         message.error('删除失败');
       }
     },
-    [loadNoteIndexList, loadChunks],
+    [loadNoteIndexList],
   );
-
-  // 数据块表格列
-  const chunkColumns: ColumnsType<ChunkInfo> = [
-    {
-      title: '便签',
-      dataIndex: 'noteTitle',
-      key: 'noteTitle',
-      width: 120,
-      ellipsis: true,
-      render: (title: string) => <Text ellipsis={{ tooltip: title }}>{title || '无标题'}</Text>,
-    },
-    {
-      title: '#',
-      dataIndex: 'chunkIndex',
-      key: 'chunkIndex',
-      width: 45,
-      align: 'center',
-    },
-    {
-      title: '内容预览',
-      dataIndex: 'content',
-      key: 'content',
-      ellipsis: true,
-      render: (content: string) => (
-        <Tooltip title={content.slice(0, 200)} placement="topLeft">
-          <Text ellipsis>{content}</Text>
-        </Tooltip>
-      ),
-    },
-    {
-      title: '',
-      key: 'action',
-      width: 50,
-      render: (_, record) => (
-        <Button
-          type="link"
-          size="small"
-          onClick={() => {
-            setSelectedChunk(record);
-            setDrawerOpen(true);
-          }}
-        >
-          详情
-        </Button>
-      ),
-    },
-  ];
 
   // 便签索引表格列
   const noteColumns: ColumnsType<NoteIndexInfo> = [
@@ -237,92 +195,35 @@ const SearchTestPanel: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 120,
       render: (_, record) => (
         <Space size={0}>
-          <Button
-            type="link"
-            size="small"
-            icon={<SyncOutlined />}
-            onClick={() => handleReindexNote(record.noteId)}
-          />
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteNoteIndex(record.noteId)}
-          />
-        </Space>
-      ),
-    },
-  ];
-
-  // 内部Tab项（数据浏览）
-  const dataTabItems = [
-    {
-      key: 'chunks',
-      label: (
-        <Space>
-          <DatabaseOutlined />
-          数据块
-          <Tag>{totalChunks}</Tag>
-        </Space>
-      ),
-      children: (
-        <div>
-          {loadingChunks ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <Spin />
-            </div>
-          ) : chunks.length === 0 ? (
-            <Empty description="暂无数据" />
-          ) : (
-            <Table
-              columns={chunkColumns}
-              dataSource={chunks}
-              rowKey="id"
+          <Tooltip title="查看 Chunks">
+            <Button
+              type="link"
               size="small"
-              pagination={{
-                current: page,
-                pageSize: 10,
-                total: totalChunks,
-                onChange: setPage,
-                size: 'small',
-                showSizeChanger: false,
-              }}
+              icon={<EyeOutlined />}
+              onClick={() => handleViewNoteChunks(record)}
             />
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'notes',
-      label: (
-        <Space>
-          <FileTextOutlined />
-          便签索引
-          <Tag>{noteIndexList.length}</Tag>
-        </Space>
-      ),
-      children: (
-        <div>
-          {loadingNotes ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <Spin />
-            </div>
-          ) : noteIndexList.length === 0 ? (
-            <Empty description="暂无索引" />
-          ) : (
-            <Table
-              columns={noteColumns}
-              dataSource={noteIndexList}
-              rowKey="noteId"
+          </Tooltip>
+          <Tooltip title="重建索引">
+            <Button
+              type="link"
               size="small"
-              pagination={{ pageSize: 10, size: 'small', showSizeChanger: false }}
+              icon={<SyncOutlined />}
+              onClick={() => handleReindexNote(record.noteId)}
             />
-          )}
-        </div>
+          </Tooltip>
+          <Tooltip title="删除索引">
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteNoteIndex(record.noteId)}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
@@ -375,63 +276,129 @@ const SearchTestPanel: React.FC = () => {
         )}
       </Card>
 
-      {/* 数据浏览 */}
+      {/* 便签索引浏览 */}
       <Card
         size="small"
-        title="数据浏览"
+        title={
+          <Space>
+            <FileTextOutlined />
+            便签索引
+            <Tag>{noteIndexList.length}</Tag>
+          </Space>
+        }
         extra={
-          <Button
-            size="small"
-            icon={<ReloadOutlined />}
-            onClick={() => {
-              loadChunks();
-              loadNoteIndexList();
-            }}
-          >
+          <Button size="small" icon={<ReloadOutlined />} onClick={() => loadNoteIndexList()}>
             刷新
           </Button>
         }
       >
-        <Tabs items={dataTabItems} size="small" />
+        {loadingNotes ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <Spin />
+          </div>
+        ) : noteIndexList.length === 0 ? (
+          <Empty description="暂无索引" />
+        ) : (
+          <Table
+            columns={noteColumns}
+            dataSource={noteIndexList}
+            rowKey="noteId"
+            size="small"
+            pagination={{ pageSize: 10, size: 'small', showSizeChanger: false }}
+          />
+        )}
       </Card>
 
-      {/* 数据块详情抽屉 */}
-      <Drawer title="数据块详情" open={drawerOpen} onClose={() => setDrawerOpen(false)} width={420}>
-        {selectedChunk && (
+      {/* 便签 Chunks 查看抽屉 */}
+      <Drawer
+        title={`${selectedNoteForChunks?.noteTitle || '便签'} - Chunks 详情`}
+        open={noteChunksDrawerOpen}
+        onClose={() => {
+          setNoteChunksDrawerOpen(false);
+          setSelectedNoteForChunks(null);
+          setNoteChunks([]);
+        }}
+        width={560}
+        extra={
+          <Button
+            type="primary"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => {
+              if (noteChunks.length === 0) return;
+              const allContent = noteChunks
+                .map((c) => `--- Chunk ${c.chunkIndex} ---\n${c.content}`)
+                .join('\n\n');
+              navigator.clipboard.writeText(allContent);
+              message.success('已复制所有 Chunks');
+            }}
+          >
+            复制全部
+          </Button>
+        }
+      >
+        {loadingNoteChunks ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <Spin />
+          </div>
+        ) : noteChunks.length === 0 ? (
+          <Empty description="暂无 Chunks" />
+        ) : (
           <Space direction="vertical" style={{ width: '100%' }}>
-            <div>
-              <Text type="secondary">ID</Text>
-              <br />
-              <Text code copyable style={{ fontSize: 12 }}>
-                {selectedChunk.id}
-              </Text>
-            </div>
-            <div>
-              <Text type="secondary">便签</Text>
-              <br />
-              <Text strong>{selectedChunk.noteTitle || '无标题'}</Text>
-            </div>
-            <div>
-              <Space>
-                <Tag color="blue">第 {selectedChunk.chunkIndex} 块</Tag>
-                <Tag>{selectedChunk.dimension} 维</Tag>
-              </Space>
-            </div>
-            <div>
-              <Text type="secondary">内容</Text>
-              <Paragraph
-                style={{
-                  background: '#f5f5f5',
-                  padding: 12,
-                  borderRadius: 6,
-                  marginTop: 8,
-                  whiteSpace: 'pre-wrap',
-                  fontSize: 13,
-                }}
-              >
-                {selectedChunk.content}
-              </Paragraph>
-            </div>
+            <Text type="secondary">共 {noteChunks.length} 个 Chunks</Text>
+            {noteChunks.map((chunk, idx) => {
+              // 检测是否包含注入的表头
+              const hasInjectedHeader =
+                idx > 0 &&
+                chunk.content.trim().startsWith('|') &&
+                chunk.content.includes('| --- |');
+              return (
+                <div
+                  key={chunk.id}
+                  style={{
+                    background: '#fafafa',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: hasInjectedHeader ? '1px solid #52c41a' : '1px solid #f0f0f0',
+                  }}
+                >
+                  <Space
+                    style={{ marginBottom: 8, width: '100%', justifyContent: 'space-between' }}
+                  >
+                    <Space>
+                      <Tag color="blue">#{chunk.chunkIndex}</Tag>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {chunk.content.length} 字符
+                      </Text>
+                      {hasInjectedHeader && <Tag color="green">注入表头</Tag>}
+                    </Space>
+                    <Tooltip title="复制内容">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={() => {
+                          navigator.clipboard.writeText(chunk.content);
+                          message.success('已复制');
+                        }}
+                      />
+                    </Tooltip>
+                  </Space>
+                  <Paragraph
+                    style={{
+                      marginBottom: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontSize: 12,
+                      maxHeight: 200,
+                      overflow: 'auto',
+                    }}
+                    ellipsis={{ rows: 6, expandable: true, symbol: '展开' }}
+                  >
+                    {chunk.content}
+                  </Paragraph>
+                </div>
+              );
+            })}
           </Space>
         )}
       </Drawer>

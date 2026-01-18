@@ -137,16 +137,31 @@ function extractTextFromTipTap(node: TipTapNode | null | undefined): string {
 
   // 表格
   if (node.type === 'table') {
-    const rows = Array.isArray(node.content)
-      ? node.content.map(extractTextFromTipTap).join('')
-      : '';
-    return `\n${rows}\n`;
+    if (!Array.isArray(node.content) || node.content.length === 0) return '';
+
+    const rows = node.content.map((row) => extractTextFromTipTap(row)).filter(Boolean);
+
+    // 如果有行，且第一行生成了通过 | 分割的列，我们尝试生成分隔符行
+    if (rows.length > 0) {
+      const firstRow = rows[0].trim();
+      const colCount = firstRow.split('|').length - 2; // -2 是因为首尾的空字符串
+
+      if (colCount > 0) {
+        const separator = `|${' --- |'.repeat(colCount)}\n`;
+        // 插在第一行后面
+        return `\n${rows[0]}${separator}${rows.slice(1).join('')}\n`;
+      }
+    }
+
+    return `\n${rows.join('')}\n`;
   }
 
   // 表格行
   if (node.type === 'tableRow') {
     const cells = Array.isArray(node.content) ? node.content.map(extractTextFromTipTap) : [];
-    return `| ${cells.join(' | ')} |\n`;
+    // 确保每个单元格内容移除换行，保持单行
+    const cleanCells = cells.map((c) => c.trim().replace(/\n/g, ' '));
+    return `| ${cleanCells.join(' | ')} |\n`;
   }
 
   // 表格单元格
@@ -222,13 +237,17 @@ interface TextChunk {
 }
 
 /**
- * 将文本分割成固定大小的块（带重叠）
- * 优化：智能边界检测，避免截断重要结构
+ * 智能文本分块（Line-Based State Machine）
+ *
+ * 核心改进：
+ * 1. 基于行而非字符进行切分，保护表格行和代码块的原子性
+ * 2. 表头注入（Header Injection）：跨 chunk 的表格自动补充表头
+ * 3. 代码块保护：尽量避免在代码块中间切分
  */
 export function chunkText(
   text: string,
-  chunkSize: number = 500,
-  chunkOverlap: number = 50,
+  chunkSize: number = 800, // 提升默认 chunk 大小
+  chunkOverlap: number = 100,
 ): TextChunk[] {
   if (!text || text.length === 0) {
     return [];
@@ -239,62 +258,180 @@ export function chunkText(
     return [{ text, index: 0 }];
   }
 
+  const lines = text.split('\n');
   const chunks: TextChunk[] = [];
-  let start = 0;
-  let index = 0;
 
-  while (start < text.length) {
-    let end = start + chunkSize;
+  // ============ 配置常量 ============
+  const MAX_ATOMIC_SIZE = 3000; // 原子块（代码/表格）允许的最大字符数
+  const MIN_CHUNK_SIZE = 200; // 避免切出太碎的标题块
 
-    // 尝试在更智能的边界切分
-    if (end < text.length) {
-      const searchRange = Math.min(100, chunkSize * 0.3); // 在 30% 范围内寻找边界
-      const slice = text.slice(start, end + searchRange);
+  // 状态机变量
+  let currentChunkLines: string[] = [];
+  let currentChunkLength = 0;
+  let chunkIndex = 0;
 
-      // 优先级1: 双换行（段落边界）
-      const paragraphEnd = slice.lastIndexOf('\n\n');
-      if (paragraphEnd > chunkSize * 0.5) {
-        end = start + paragraphEnd + 2;
-      } else {
-        // 优先级2: 句子边界（更完善的标点检测）
-        const sentenceRegex = /[。！？.!?]["']?\s+/g;
-        let lastSentenceEnd = -1;
-        let match;
+  // 表格状态
+  let tableHeader: string[] = []; // 缓存表头（第一行 + 分隔行）
+  let inTable = false;
+  let tableHeaderCollected = false;
 
-        while ((match = sentenceRegex.exec(slice)) !== null) {
-          if (match.index > chunkSize * 0.5 && match.index <= chunkSize) {
-            lastSentenceEnd = match.index + match[0].length;
-          }
-        }
+  // 代码块状态
+  let inCodeBlock = false;
+  let codeBlockLang: string | undefined = undefined;
 
-        if (lastSentenceEnd > 0) {
-          end = start + lastSentenceEnd;
-        } else {
-          // 优先级3: 单换行或逗号
-          const lineEnd = slice.lastIndexOf('\n', chunkSize);
-          const commaEnd = slice.lastIndexOf('，', chunkSize);
-          const fallbackEnd = Math.max(lineEnd, commaEnd);
+  // 正则表达式
+  const tableRowRegex = /^\s*\|.*\|\s*$/;
+  const tableSeparatorRegex = /^\s*\|[\s\-:|]+\|\s*$/;
+  const codeBlockStartRegex = /^\s*```(\w*)/;
+  const codeBlockEndRegex = /^\s*```\s*$/;
+  const headerRegex = /^#{1,3}\s/; // 匹配 H1-H3
 
-          if (fallbackEnd > chunkSize * 0.5) {
-            end = start + fallbackEnd + 1;
-          }
-        }
+  /**
+   * 提交当前 chunk
+   */
+  const commitChunk = () => {
+    if (currentChunkLines.length > 0) {
+      const chunkText = currentChunkLines.join('\n').trim();
+      if (chunkText.length > 0) {
+        chunks.push({ text: chunkText, index: chunkIndex });
+        chunkIndex++;
+      }
+    }
+    currentChunkLines = [];
+    currentChunkLength = 0;
+  };
+
+  /**
+   * 计算重叠行数（基于字符数回溯）
+   */
+  const getOverlapLines = (): string[] => {
+    if (chunkOverlap <= 0 || currentChunkLines.length === 0) return [];
+
+    const overlapLines: string[] = [];
+    let overlapLength = 0;
+
+    for (let i = currentChunkLines.length - 1; i >= 0; i--) {
+      const line = currentChunkLines[i];
+      if (overlapLength + line.length + 1 > chunkOverlap) break;
+      overlapLines.unshift(line);
+      overlapLength += line.length + 1;
+    }
+
+    return overlapLines;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineLength = line.length + 1; // +1 for newline
+
+    // Snapshot state BEFORE processing line (to detect context transitions)
+    const wasInCodeBlock = inCodeBlock;
+
+    // ============ 状态更新 ============
+
+    // 1. 代码块检测
+    if (!inCodeBlock) {
+      const codeStart = line.match(codeBlockStartRegex);
+      if (codeStart) {
+        inCodeBlock = true;
+        codeBlockLang = codeStart[1] || '';
+      }
+    } else {
+      if (codeBlockEndRegex.test(line)) {
+        inCodeBlock = false;
+        // codeBlockLang reset happens later to allow injection logic to see it
       }
     }
 
-    const chunkText = text.slice(start, Math.min(end, text.length)).trim();
-    if (chunkText.length > 0) {
-      chunks.push({ text: chunkText, index });
-      index++;
+    // 2. 表格检测
+    const isTableRow = tableRowRegex.test(line);
+    const isTableSeparator = tableSeparatorRegex.test(line);
+
+    if (isTableRow) {
+      if (!inTable) {
+        inTable = true;
+        tableHeader = [line];
+        tableHeaderCollected = false;
+      } else if (!tableHeaderCollected && isTableSeparator) {
+        tableHeader.push(line);
+        tableHeaderCollected = true;
+      }
+    } else {
+      if (inTable) {
+        inTable = false;
+        tableHeader = [];
+        tableHeaderCollected = false;
+      }
     }
 
-    start = end - chunkOverlap;
+    // ============ 切分决策 ============
 
-    // 防止死循环：如果没有前进，强制前进
-    if (start <= chunks[chunks.length - 1]?.text.length || start >= text.length) {
-      start = end;
+    const projectedLength = currentChunkLength + lineLength;
+    const isHeader = headerRegex.test(line) && !inCodeBlock;
+
+    // 决策 A: 标题切分 (Semantic Split)
+    // 如果遇到标题，且当前 chunk 已经有一定内容，则主动切分
+    if (isHeader && currentChunkLength > MIN_CHUNK_SIZE && !inCodeBlock && !inTable) {
+      // 标题行作为新 chunk 的开始
+      commitChunk();
+    }
+
+    // 决策 B: 长度强制切分
+    // 如果加上当前行会超过 limit
+    let limit = chunkSize;
+
+    // 原子性保护：如果在代码块或表格中，允许扩展 limit 到 MAX_ATOMIC_SIZE
+    if (inCodeBlock || inTable) {
+      limit = MAX_ATOMIC_SIZE;
+    }
+
+    if (projectedLength > limit && currentChunkLines.length > 0) {
+      // 必须切分了
+      const overlapLines = getOverlapLines();
+      commitChunk();
+
+      // ============ Context Injection (注入修复) ============
+
+      // 1. 表格注入
+      if (inTable && tableHeaderCollected && tableHeader.length > 0) {
+        // 确保不重复注入
+        const hasHeader = overlapLines.some((l) => tableHeader.includes(l));
+        if (!hasHeader) {
+          currentChunkLines.push(...tableHeader);
+          currentChunkLength += tableHeader.reduce((sum, h) => sum + h.length + 1, 0);
+        }
+      }
+
+      // 2. 代码块注入
+      if (inCodeBlock && codeBlockLang !== undefined) {
+        // 只有当重叠区没有包含代码开始标记时才注入
+        const hasCodeStart = overlapLines.some((l) => codeBlockStartRegex.test(l));
+        if (!hasCodeStart) {
+          const codeStart = '```' + codeBlockLang;
+          currentChunkLines.push(codeStart);
+          currentChunkLength += codeStart.length + 1;
+        }
+      }
+
+      // 添加重叠内容
+      for (const ol of overlapLines) {
+        currentChunkLines.push(ol);
+        currentChunkLength += ol.length + 1;
+      }
+    }
+
+    // 追加当前行
+    currentChunkLines.push(line);
+    currentChunkLength += lineLength;
+
+    // Post-loop state cleanup
+    if (!inCodeBlock && wasInCodeBlock) {
+      codeBlockLang = '';
     }
   }
+
+  // 提交最后一个 chunk
+  commitChunk();
 
   return chunks;
 }
@@ -423,7 +560,7 @@ export async function indexNote(
             noteId,
             noteTitle: title,
             chunkIndex: chunk.index,
-            content: chunk.text.slice(0, 200), // 保存前 200 字符用于展示
+            content: chunk.text, // 保存完整内容
           };
 
           batchItems.push({ id: vectorId, embedding: vector, metadata });
@@ -465,7 +602,7 @@ export async function indexNote(
                 noteId,
                 noteTitle: title,
                 chunkIndex: chunk.index,
-                content: chunk.text.slice(0, 200),
+                content: chunk.text,
               };
               store.upsert(vectorId, vector, metadata);
               indexedCount++;

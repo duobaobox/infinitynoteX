@@ -81,7 +81,7 @@ const AITab: React.FC = () => {
       {
         id: CUSTOM_PROVIDER_ID,
         name: '自定义 / 其他服务',
-        website: 'https://infinitynotex.com',
+        website: 'https://www.kdocs.cn/l/co3mE4HmvfgO',
         baseURL: '',
         description: '连接任意符合 OpenAI 兼容协议的自建或第三方服务。',
         models: [],

@@ -299,7 +299,7 @@ const AboutTab: React.FC = () => {
             className="about-link-item"
             onClick={() => {
               if (typeof window !== 'undefined') {
-                window.open('https://infinitynotex.com', '_blank');
+                window.open('https://www.kdocs.cn/l/co3mE4HmvfgO', '_blank');
               }
             }}
             role="button"
@@ -320,13 +320,13 @@ const AboutTab: React.FC = () => {
             className="about-link-item"
             onClick={() => {
               if (typeof window !== 'undefined') {
-                window.open('https://infinitynotex.com/support', '_blank');
+                window.open('https://f.kdocs.cn/g/Fif2v3te/', '_blank');
               }
             }}
             role="button"
             tabIndex={0}
           >
-            <span>帮助与支持</span>
+            <span>提交需求和反馈</span>
             <svg
               className="anticon"
               viewBox="64 64 896 896"
@@ -341,13 +341,13 @@ const AboutTab: React.FC = () => {
             className="about-link-item"
             onClick={() => {
               if (typeof window !== 'undefined') {
-                window.open('https://infinitynotex.com/privacy', '_blank');
+                window.open('https://www.kdocs.cn/l/ciyIxzZq9t8n', '_blank');
               }
             }}
             role="button"
             tabIndex={0}
           >
-            <span>隐私政策</span>
+            <span>联系作者</span>
             <svg
               className="anticon"
               viewBox="64 64 896 896"

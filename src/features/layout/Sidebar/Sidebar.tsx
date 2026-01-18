@@ -17,6 +17,7 @@ import '../../note';
 import '../../ai-workbench';
 import type { Folder } from '../../../services/types';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
+import { useSettingsStore } from '../../../store/settingsStore';
 import './Sidebar.css';
 
 // 懒加载设置面板（优化：减少初始 bundle 体积）
@@ -37,11 +38,14 @@ const Sidebar: React.FC = () => {
   const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
   const setWorkspaceView = useWorkspaceStore((state) => state.setWorkspaceView);
 
+  // 从 Settings Store 获取状态
+  const isSettingsModalOpen = useSettingsStore((state) => state.isSettingsModalOpen);
+  const setSettingsModalOpen = useSettingsStore((state) => state.setSettingsModalOpen);
+
   // 本地状态（仅 UI 状态）
   const scrollableListRef = useRef<HTMLDivElement>(null);
   const flexVerticalEqualRef = useRef<HTMLDivElement>(null);
   const [isOverflow, setIsOverflow] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -350,7 +354,7 @@ const Sidebar: React.FC = () => {
           type="text"
           block
           icon={<SettingOutlined />}
-          onClick={() => setIsSettingsOpen(true)}
+          onClick={() => setSettingsModalOpen(true)}
           style={{ justifyContent: 'flex-start' }}
         >
           设置
@@ -358,7 +362,7 @@ const Sidebar: React.FC = () => {
       </div>
       {/* 懒加载的设置面板 */}
       <Suspense fallback={null}>
-        <SettingsModal open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+        <SettingsModal open={isSettingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
       </Suspense>
       {/* 新建文件夹对话框 */}
       <Modal

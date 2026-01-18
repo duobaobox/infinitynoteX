@@ -3,7 +3,7 @@
  * 只负责菜单切换和 Tab 渲染，各 Tab 的状态和逻辑由各自组件管理
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Modal, Menu } from 'antd';
 import { useSettingsStore } from '../../store/settingsStore';
 import AppearanceTab from './tabs/AppearanceTab';
@@ -33,8 +33,8 @@ const menuItems = [
 ];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
-  const [selectedMenu, setSelectedMenu] = useState('appearance');
-  const { initAppearance, triggerSettingsModalRefresh } = useSettingsStore();
+  const { initAppearance, triggerSettingsModalRefresh, activeSettingsTab, setActiveSettingsTab } =
+    useSettingsStore();
 
   // Modal 打开时初始化外观状态并触发 Tab 数据刷新
   useEffect(() => {
@@ -45,7 +45,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
   }, [open, initAppearance, triggerSettingsModalRefresh]);
 
   const renderTabContent = () => {
-    switch (selectedMenu) {
+    switch (activeSettingsTab) {
       case 'appearance':
         return <AppearanceTab />;
       case 'ai':
@@ -87,8 +87,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ open, onClose }) => {
               <Menu
                 mode="inline"
                 items={menuItems}
-                selectedKeys={[selectedMenu]}
-                onClick={(e) => setSelectedMenu(e.key)}
+                selectedKeys={[activeSettingsTab]}
+                onClick={(e) => setActiveSettingsTab(e.key)}
                 className="settings-menu"
               />
             </div>

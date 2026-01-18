@@ -25,6 +25,8 @@ export interface AppSlice {
     aiChatWindow: string;
   };
   settingsModalOpenTrigger: number;
+  isSettingsModalOpen: boolean;
+  activeSettingsTab: string; // 新增：当前选中的设置 Tab
 
   // Actions - 应用信息
   setAppVersion: (version: string) => void;
@@ -46,6 +48,8 @@ export interface AppSlice {
   loadShortcutKeys: () => void;
 
   // Actions - 设置弹窗
+  setSettingsModalOpen: (open: boolean) => void;
+  setActiveSettingsTab: (tab: string) => void; // 新增：切换设置 Tab
   triggerSettingsModalRefresh: () => void;
 }
 
@@ -60,6 +64,8 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
     aiChatWindow: 'CommandOrControl+Shift+Q', // 默认值
   },
   settingsModalOpenTrigger: 0,
+  isSettingsModalOpen: false,
+  activeSettingsTab: 'appearance',
 
   // Actions - 应用信息
   setAppVersion: (version) => set({ appVersion: version }),
@@ -131,6 +137,8 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
   },
 
   // Actions - 设置弹窗
+  setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
+  setActiveSettingsTab: (tab) => set({ activeSettingsTab: tab }),
   triggerSettingsModalRefresh: () => {
     set((state) => ({ settingsModalOpenTrigger: state.settingsModalOpenTrigger + 1 }));
   },

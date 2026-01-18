@@ -67,6 +67,7 @@
   overflow: auto;
   min-height: 0;
   cursor: text;
+  user-select: text;
 }
 
 /* 编辑器内部样式覆盖 */
@@ -119,6 +120,7 @@
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-secondary, #8c8c8c);
+  user-select: text;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

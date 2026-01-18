@@ -6,6 +6,7 @@
   width: 100%;
   height: 100%;
   position: relative;
+  user-select: none;
 }
 
 /* 覆盖 ReactFlow 默认样式 */
@@ -125,6 +126,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 12px;
+  user-select: text;
 }
 
 /* AI 回复操作按钮区域 */

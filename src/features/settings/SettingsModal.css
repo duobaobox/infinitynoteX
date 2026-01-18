@@ -83,6 +83,7 @@
   overflow-x: hidden;
   margin: 12px 0px 12px 0px;
   min-height: 0;
+  user-select: text;
 }
 
 /* 通用 settings-panel 样式 */

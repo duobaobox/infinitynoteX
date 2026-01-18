@@ -214,8 +214,23 @@ const AboutTab: React.FC = () => {
         </div>
 
         {/* 标题和版本 */}
-        <h2>InfinityNoteX</h2>
-        <p className="about-version">版本 {appVersion} · 一款无限可能的便签应用</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h2>InfinityNoteX</h2>
+          <div
+            style={{
+              fontSize: '16px',
+              color: 'var(--text-secondary)',
+              marginTop: '4px',
+              marginBottom: '8px',
+              fontWeight: 500,
+            }}
+          >
+            无限便签X
+          </div>
+          <p className="about-version" style={{ margin: '0 !important' }}>
+            版本 {appVersion} · 一款无限可能的便签应用
+          </p>
+        </div>
 
         {/* 更新检查卡片 */}
         <div className="about-update-card">

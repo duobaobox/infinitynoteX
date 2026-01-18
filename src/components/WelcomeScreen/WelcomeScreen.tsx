@@ -90,7 +90,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onInitializationComplete 
     <div className="welcome-container">
       <div className="welcome-card">
         <div className="welcome-header">
-          <h1>欢迎使用 InfinityNoteX</h1>
+          <h1>欢迎使用 InfinityNoteX (无限便签X)</h1>
           <div
             style={{
               fontSize: 18,

@@ -29,6 +29,7 @@ import {
 } from '@ant-design/icons';
 
 const { Text } = Typography;
+import { useSettingsStore } from '../../../../../store/settingsStore';
 
 interface EmbeddingConfig {
   baseURL: string;
@@ -50,8 +51,10 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
   // UI 状态
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [indexing, setIndexing] = useState(false);
-  const [incrementalUpdating, setIncrementalUpdating] = useState(false);
+
+  // 全局索引状态
+  const { isIndexing, isIncrementalUpdating, setIndexing, setIncrementalUpdating } =
+    useSettingsStore();
 
   // 加载配置
   useEffect(() => {
@@ -136,7 +139,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
     } finally {
       setIncrementalUpdating(false);
     }
-  }, [onStatsChange]);
+  }, [onStatsChange, setIncrementalUpdating]);
 
   // 全量重建
   const handleRebuildIndex = useCallback(async () => {
@@ -154,7 +157,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
     } finally {
       setIndexing(false);
     }
-  }, [onStatsChange]);
+  }, [onStatsChange, setIndexing]);
 
   return (
     <div className="kb-tab-content">
@@ -175,14 +178,14 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
               <Button
                 icon={<ThunderboltOutlined />}
                 onClick={handleIncrementalUpdate}
-                loading={incrementalUpdating}
+                loading={isIncrementalUpdating}
               >
                 增量更新
               </Button>
               <Button
-                icon={<SyncOutlined spin={indexing} />}
+                icon={<SyncOutlined spin={isIndexing} />}
                 onClick={handleRebuildIndex}
-                loading={indexing}
+                loading={isIndexing}
               >
                 全量重建
               </Button>

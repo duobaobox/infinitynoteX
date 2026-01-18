@@ -288,10 +288,17 @@ export function chunkText(
 
   /**
    * 提交当前 chunk
+   * @param autoCloseCodeBlock 是否自动闭合代码块（用于切分时）
    */
-  const commitChunk = () => {
+  const commitChunk = (autoCloseCodeBlock: boolean = false) => {
     if (currentChunkLines.length > 0) {
-      const chunkText = currentChunkLines.join('\n').trim();
+      // 自动闭合代码块保护
+      const finalLines = [...currentChunkLines];
+      if (autoCloseCodeBlock && codeBlockLang !== undefined) {
+        finalLines.push('```');
+      }
+
+      const chunkText = finalLines.join('\n').trim();
       if (chunkText.length > 0) {
         chunks.push({ text: chunkText, index: chunkIndex });
         chunkIndex++;
@@ -312,7 +319,19 @@ export function chunkText(
 
     for (let i = currentChunkLines.length - 1; i >= 0; i--) {
       const line = currentChunkLines[i];
-      if (overlapLength + line.length + 1 > chunkOverlap) break;
+      // FIX: 允许单行超长的重叠（至少保留一行，确保上下文连续）
+      const isFirstLine = overlapLines.length === 0;
+
+      if (!isFirstLine && overlapLength + line.length + 1 > chunkOverlap) break;
+
+      // 如果这一行本身就超长
+      if (line.length + 1 > chunkOverlap) {
+        if (isFirstLine) {
+          overlapLines.unshift(line);
+        }
+        break;
+      }
+
       overlapLines.unshift(line);
       overlapLength += line.length + 1;
     }
@@ -324,22 +343,23 @@ export function chunkText(
     const line = lines[i];
     const lineLength = line.length + 1; // +1 for newline
 
-    // Snapshot state BEFORE processing line (to detect context transitions)
+    // Snapshot state BEFORE processing line
     const wasInCodeBlock = inCodeBlock;
 
     // ============ 状态更新 ============
 
     // 1. 代码块检测
-    if (!inCodeBlock) {
+    // 注意：优先检测 ending，以便正确重置 limit
+    if (inCodeBlock) {
+      if (codeBlockEndRegex.test(line)) {
+        inCodeBlock = false;
+        // codeBlockLang reset happens later
+      }
+    } else {
       const codeStart = line.match(codeBlockStartRegex);
       if (codeStart) {
         inCodeBlock = true;
         codeBlockLang = codeStart[1] || '';
-      }
-    } else {
-      if (codeBlockEndRegex.test(line)) {
-        inCodeBlock = false;
-        // codeBlockLang reset happens later to allow injection logic to see it
       }
     }
 
@@ -370,14 +390,12 @@ export function chunkText(
     const isHeader = headerRegex.test(line) && !inCodeBlock;
 
     // 决策 A: 标题切分 (Semantic Split)
-    // 如果遇到标题，且当前 chunk 已经有一定内容，则主动切分
     if (isHeader && currentChunkLength > MIN_CHUNK_SIZE && !inCodeBlock && !inTable) {
-      // 标题行作为新 chunk 的开始
-      commitChunk();
+      // 标题行作为新 chunk 的开始，之前的内容提交（不需要 autoClose，因为不在代码块）
+      commitChunk(false);
     }
 
     // 决策 B: 长度强制切分
-    // 如果加上当前行会超过 limit
     let limit = chunkSize;
 
     // 原子性保护：如果在代码块或表格中，允许扩展 limit 到 MAX_ATOMIC_SIZE
@@ -388,7 +406,14 @@ export function chunkText(
     if (projectedLength > limit && currentChunkLines.length > 0) {
       // 必须切分了
       const overlapLines = getOverlapLines();
-      commitChunk();
+
+      // 如果切分时处于代码块中（且不是刚刚结束），则需要自动闭合
+      // 注意：如果是刚刚结束（foundEnd），inCodeBlock已经是false，limit回落。
+      // 如果 limit 回落导致切分，通常说明之前累积的内容（代码块内容）已经太多了，或者 limit 太小。
+      // 在这种情况下，上一行还是代码块内容，所以我们也应该闭合它。
+      const needClose = inCodeBlock || wasInCodeBlock;
+
+      commitChunk(needClose);
 
       // ============ Context Injection (注入修复) ============
 
@@ -402,8 +427,8 @@ export function chunkText(
         }
       }
 
-      // 2. 代码块注入
-      if (inCodeBlock && codeBlockLang !== undefined) {
+      // 2. 代码块注入 (Auto-Open)
+      if ((inCodeBlock || wasInCodeBlock) && codeBlockLang !== undefined) {
         // 只有当重叠区没有包含代码开始标记时才注入
         const hasCodeStart = overlapLines.some((l) => codeBlockStartRegex.test(l));
         if (!hasCodeStart) {
@@ -426,12 +451,12 @@ export function chunkText(
 
     // Post-loop state cleanup
     if (!inCodeBlock && wasInCodeBlock) {
-      codeBlockLang = '';
+      codeBlockLang = undefined;
     }
   }
 
   // 提交最后一个 chunk
-  commitChunk();
+  commitChunk(false);
 
   return chunks;
 }
@@ -458,8 +483,8 @@ function delay(ms: number): Promise<void> {
 
 /** 默认索引配置 */
 const DEFAULT_INDEXING_CONFIG: IndexingConfig = {
-  chunkSize: 500,
-  chunkOverlap: 50,
+  chunkSize: 800, // 提升默认值，减少语义割裂
+  chunkOverlap: 100, // 增加重叠，确保上下文连续性
   batchSize: 5,
   batchDelayMs: 1000,
   rateLimitRetryMs: 5000,

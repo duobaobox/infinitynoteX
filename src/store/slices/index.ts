@@ -27,3 +27,4 @@ export {
 export { createStorageSlice, type StorageSlice } from './storageSlice';
 export { createSyncSlice, type SyncSlice } from './syncSlice';
 export { createAppSlice, type AppSlice, DEFAULT_EXTERNAL_AI_URL } from './appSlice';
+export { createKnowledgeSlice, type KnowledgeSlice } from './knowledgeSlice';

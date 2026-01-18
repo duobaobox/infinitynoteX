@@ -21,6 +21,8 @@ import {
   createSyncSlice,
   AppSlice,
   createAppSlice,
+  KnowledgeSlice,
+  createKnowledgeSlice,
 } from './slices';
 
 // 从 slices 重导出常用类型和工具函数
@@ -34,7 +36,12 @@ export {
 export { DEFAULT_EXTERNAL_AI_URL } from './slices/appSlice';
 
 // ============ 组合所有 Slices 的完整状态类型 ============
-export type SettingsState = AppearanceSlice & AIConfigSlice & StorageSlice & SyncSlice & AppSlice;
+export type SettingsState = AppearanceSlice &
+  AIConfigSlice &
+  StorageSlice &
+  SyncSlice &
+  AppSlice &
+  KnowledgeSlice;
 
 // ============ 创建组合 Store ============
 export const useSettingsStore = create<SettingsState>()(
@@ -45,6 +52,7 @@ export const useSettingsStore = create<SettingsState>()(
       ...createStorageSlice(...a),
       ...createSyncSlice(...a),
       ...createAppSlice(...a),
+      ...createKnowledgeSlice(...a),
     }),
     {
       name: 'SettingsStore',

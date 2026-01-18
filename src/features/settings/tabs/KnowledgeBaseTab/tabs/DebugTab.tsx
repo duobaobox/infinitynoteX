@@ -35,6 +35,7 @@ import SystemDiagnosticsPanel from './components/SystemDiagnosticsPanel';
 import IndexingConfigPanel from './components/IndexingConfigPanel';
 
 const { Text, Paragraph } = Typography;
+import { useSettingsStore } from '../../../../../store/settingsStore';
 
 interface ChunkInfo {
   id: string;
@@ -79,6 +80,7 @@ const SearchTestPanel: React.FC = () => {
   const [selectedNoteForChunks, setSelectedNoteForChunks] = useState<NoteIndexInfo | null>(null);
   const [noteChunks, setNoteChunks] = useState<ChunkInfo[]>([]);
   const [loadingNoteChunks, setLoadingNoteChunks] = useState(false);
+  const { reindexingNoteId, setReindexingNoteId } = useSettingsStore();
 
   // 加载笔记索引列表
   const loadNoteIndexList = useCallback(async () => {
@@ -146,6 +148,7 @@ const SearchTestPanel: React.FC = () => {
   // 重建单笔记索引
   const handleReindexNote = useCallback(
     async (noteId: string) => {
+      setReindexingNoteId(noteId);
       try {
         const result = await window.knowledge?.reindexNote(noteId);
         if (result?.success) {
@@ -156,9 +159,11 @@ const SearchTestPanel: React.FC = () => {
         }
       } catch {
         message.error('重建失败');
+      } finally {
+        setReindexingNoteId(null);
       }
     },
-    [loadNoteIndexList],
+    [loadNoteIndexList, setReindexingNoteId],
   );
 
   // 删除笔记索引
@@ -210,7 +215,7 @@ const SearchTestPanel: React.FC = () => {
             <Button
               type="link"
               size="small"
-              icon={<SyncOutlined />}
+              icon={<SyncOutlined spin={reindexingNoteId === record.noteId} />}
               onClick={() => handleReindexNote(record.noteId)}
             />
           </Tooltip>

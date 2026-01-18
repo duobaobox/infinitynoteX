@@ -59,7 +59,7 @@ export const ProviderSwitcher: React.FC<ProviderSwitcherProps> = ({
     >
       <Button size="small" loading={isSwitching} className="ai-model-switcher">
         <span className="ai-chat-meta-dot" style={{ backgroundColor: providerColor }} />
-        <span style={{ marginLeft: 6 }}>{config.model}</span>
+        <span className="ai-model-switcher__text">{config.model}</span>
         <DownOutlined style={{ fontSize: 10, marginLeft: 4, color: '#8c8c8c' }} />
       </Button>
     </Dropdown>

@@ -36,8 +36,8 @@ body {
   /* 背景跟随主题变量 */
   background: var(--app-bg);
   color: var(--text-primary);
-  /* 屏蔽 UI 文本选择 */
-  user-select: none;
+  /* 恢复默认文本选择行为 */
+  /* user-select: none; */
 }
 
 input,

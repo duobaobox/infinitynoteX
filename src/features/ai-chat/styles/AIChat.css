@@ -84,6 +84,7 @@
 .ai-chat-messages .ant-bubble-content {
   overflow-wrap: anywhere;
   word-break: break-word;
+  user-select: text; /* 允许文本选择复制 */
 }
 
 /**

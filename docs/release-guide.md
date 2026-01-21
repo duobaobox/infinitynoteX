@@ -120,7 +120,7 @@ git push origin vX.X.X
      ```bash
      sudo xattr -cr /Applications/InfinityNoteX.app
      ```
-   - 或者使用安装包内置的 `Fix-Permission.command` 文件。
+   - 或者使用安装包内置的 `修复“应用已损坏”请双击我.command` 文件。
 
 ### Windows 安装警告（SmartScreen）
 

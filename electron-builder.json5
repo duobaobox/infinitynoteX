@@ -52,26 +52,25 @@
     identity: null, // 禁用代码签名
   },
   dmg: {
-    background: 'resources/dmg-background.png',
     iconSize: 120,
     window: {
-      width: 600,
-      height: 400,
+      width: 540,
+      height: 380,
     },
     contents: [
       {
         x: 150,
-        y: 180,
+        y: 150,
       },
       {
-        x: 450,
-        y: 180,
+        x: 390,
+        y: 150,
         type: 'link',
         path: '/Applications',
       },
       {
-        x: 120,
-        y: 335,
+        x: 270,
+        y: 300,
         type: 'file',
         path: 'resources/修复“应用已损坏”请双击我.command',
       },

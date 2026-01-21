@@ -105,19 +105,28 @@ git push origin vX.X.X
 
 ---
 
-## ❓ 常见问题
+---
 
-### Q: 构建失败怎么办？
+## 🛡️ 安全提示与安装说明
 
-点击失败的任务查看错误日志，修复后重新打 Tag。
+由于目前应用尚未进行开发者签名（Apple Developer / Microsoft Certified），安装时系统可能会弹出安全警告。
 
-### Q: 如何删除错误的 Tag？
+### macOS 下载后无法打开（Gatekeeper）
 
-```bash
-git tag -d v1.0.4
-git push origin :refs/tags/v1.0.4
-```
+1. **现象**：提示“应用已损坏”、“无法验证开发者”或“在移动到废纸篓”。
+2. **解决方法**：
+   - 打开 **终端 (Terminal)**。
+   - 输入以下命令并回车（可能需要输入开机密码）：
+     ```bash
+     sudo xattr -cr /Applications/InfinityNoteX.app
+     ```
+   - 或者使用安装包内置的 `Fix-Permission.command` 文件。
 
-### Q: 如何跳过某个版本？
+### Windows 安装警告（SmartScreen）
 
-直接发布更高版本号即可，如从 1.0.3 直接到 1.0.5。
+1. **现象**：提示“Windows 已保护您的电脑”。
+2. **解决方法**：
+   - 点击 **“更多信息” (More info)**。
+   - 点击 **“仍要运行” (Run anyway)**。
+
+---

@@ -49,7 +49,33 @@
       { target: 'zip', arch: ['x64', 'arm64'] },
     ],
     artifactName: '${productName}-Mac-${version}-${arch}.${ext}',
-    identity: null, // 禁用代码签名（没有 Apple Developer 证书时必须）
+    identity: null, // 禁用代码签名
+  },
+  dmg: {
+    background: 'resources/dmg-background.png',
+    iconSize: 120,
+    window: {
+      width: 600,
+      height: 400,
+    },
+    contents: [
+      {
+        x: 180,
+        y: 200,
+      },
+      {
+        x: 420,
+        y: 200,
+        type: 'link',
+        path: '/Applications',
+      },
+      {
+        x: 300,
+        y: 340,
+        type: 'file',
+        path: 'resources/Fix-Permission.command',
+      },
+    ],
   },
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],

@@ -45,65 +45,81 @@ export class SqliteVectorStore implements IVectorStore {
   initialize(): void {
     if (this.initialized) return;
 
-    // 加载 sqlite-vec 扩展
-    sqliteVec.load(this.db);
-
-    // 启用 WAL 模式提升并发性能
-    this.db.pragma('journal_mode = WAL');
-
-    // 创建元数据表
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS chunk_metadata (
-        id TEXT PRIMARY KEY,
-        note_id TEXT NOT NULL,
-        note_title TEXT,
-        chunk_index INTEGER NOT NULL,
-        content TEXT NOT NULL,
-        content_hash TEXT,
-        created_at INTEGER NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_chunk_note_id ON chunk_metadata(note_id);
-      CREATE INDEX IF NOT EXISTS idx_chunk_hash ON chunk_metadata(content_hash);
-    `);
-
-    // 迁移：如果 content_hash 列不存在，添加它
     try {
-      this.db.exec('ALTER TABLE chunk_metadata ADD COLUMN content_hash TEXT');
-      console.log('[VectorStore] Added content_hash column');
-    } catch {
-      // 列已存在，忽略
+      // 加载 sqlite-vec 扩展
+      sqliteVec.load(this.db);
+
+      // 启用 WAL 模式提升并发性能
+      this.db.pragma('journal_mode = WAL');
+
+      // 使用事务确保初始化过程的原子性
+      const initializeDb = this.db.transaction(() => {
+        // 1. 先创建配置表，以便后续读取维度
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS store_config (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          );
+        `);
+
+        // 2. 创建元数据表
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS chunk_metadata (
+            id TEXT PRIMARY KEY,
+            note_id TEXT NOT NULL,
+            note_title TEXT,
+            chunk_index INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            content_hash TEXT,
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX IF NOT EXISTS idx_chunk_note_id ON chunk_metadata(note_id);
+          CREATE INDEX IF NOT EXISTS idx_chunk_hash ON chunk_metadata(content_hash);
+        `);
+
+        // 迁移：如果 content_hash 列不存在，添加它
+        try {
+          // 检查列是否存在
+          const columns = this.db.pragma('table_info(chunk_metadata)') as Array<{
+            name: string;
+            [key: string]: unknown;
+          }>;
+          const hasHash = columns.some((c) => c.name === 'content_hash');
+          if (!hasHash) {
+            this.db.exec('ALTER TABLE chunk_metadata ADD COLUMN content_hash TEXT');
+            console.log('[VectorStore] Migrated: Added content_hash column');
+          }
+        } catch (e) {
+          console.error('[VectorStore] Migration failed:', e);
+        }
+
+        // 3. 尝试从配置表中读取已保存的维度
+        const savedDimension = this.db
+          .prepare('SELECT value FROM store_config WHERE key = ?')
+          .get('dimension') as { value: string } | undefined;
+
+        if (savedDimension) {
+          this.dimension = parseInt(savedDimension.value, 10);
+          this.autoDetectDimension = false;
+          console.log('[VectorStore] Loaded saved dimension:', this.dimension);
+        }
+      });
+
+      initializeDb();
+
+      // 4. 如果有维度，创建向量表
+      if (this.dimension > 0) {
+        this.createVectorTable();
+      }
+
+      // 5. 创建 FTS5 全文索引表（用于混合搜索的关键词检索）
+      this.createFtsTable();
+
+      this.initialized = true;
+    } catch (error) {
+      console.error('[VectorStore] Critical error during initialization:', error);
+      // 不要设置 initialized = true，以便下次重试
     }
-
-    // 创建配置表用于存储维度信息
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS store_config (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
-    `);
-
-    // 尝试读取已保存的维度
-    const savedDimension = this.db
-      .prepare('SELECT value FROM store_config WHERE key = ?')
-      .get('dimension') as { value: string } | undefined;
-
-    if (savedDimension) {
-      this.dimension = parseInt(savedDimension.value, 10);
-      this.autoDetectDimension = false;
-      console.log('[VectorStore] Loaded saved dimension:', this.dimension);
-    }
-
-    // 如果有维度，创建向量表
-    if (this.dimension > 0) {
-      this.createVectorTable();
-    } else {
-      console.log('[VectorStore] Waiting for dimension auto-detection on first insert');
-    }
-
-    // 创建 FTS5 全文索引表（用于混合搜索的关键词检索）
-    this.createFtsTable();
-
-    this.initialized = true;
   }
 
   /**
@@ -633,7 +649,11 @@ export class SqliteVectorStore implements IVectorStore {
     this.db.exec('DROP TRIGGER IF EXISTS chunk_fts_update');
 
     // 重置维度配置，以便下次自动检测
-    this.db.exec("DELETE FROM store_config WHERE key = 'dimension'");
+    try {
+      this.db.exec("DELETE FROM store_config WHERE key = 'dimension'");
+    } catch {
+      // 如果表不存在，忽略
+    }
 
     // 重置内部状态
     this.dimension = 0;

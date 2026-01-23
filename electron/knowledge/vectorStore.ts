@@ -8,6 +8,7 @@ import * as sqliteVec from 'sqlite-vec';
 import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
+import { platform } from 'node:process';
 import type {
   IVectorStore,
   VectorMetadata,
@@ -47,7 +48,7 @@ export class SqliteVectorStore implements IVectorStore {
 
     try {
       // 加载 sqlite-vec 扩展
-      sqliteVec.load(this.db);
+      this.loadVectorExtension();
 
       // 启用 WAL 模式提升并发性能
       this.db.pragma('journal_mode = WAL');
@@ -531,6 +532,45 @@ export class SqliteVectorStore implements IVectorStore {
         ...item.result,
         score: item.score, // 用 RRF 分数替换原分数
       }));
+  }
+
+  /**
+   * 加载向量扩展插件，处理 ASAR 环境下的路径重定向
+   */
+  private loadVectorExtension(): void {
+    try {
+      // 1. 获取原始路径
+      let loadablePath = sqliteVec.getLoadablePath();
+
+      // 2. 如果在生产环境（ASAR）运行，需要重定向到 unpacked 目录
+      if (app.isPackaged) {
+        // 将 .../app.asar/... 替换为 .../app.asar.unpacked/...
+        loadablePath = loadablePath.replace('app.asar', 'app.asar.unpacked');
+      }
+
+      // 3. 检查文件是否存在
+      if (!fs.existsSync(loadablePath)) {
+        // 尝试自动补全后缀名（有些系统驱动会自动加，有些不会，这里手动检查）
+        const suffix = platform === 'win32' ? '.dll' : platform === 'darwin' ? '.dylib' : '.so';
+        if (!loadablePath.endsWith(suffix) && fs.existsSync(loadablePath + suffix)) {
+          loadablePath += suffix;
+        }
+      }
+
+      console.log('[VectorStore] Loading extension from:', loadablePath);
+
+      // 4. 执行加载
+      // 注意：better-sqlite3 的 loadExtension 在某些版本下如果带了后缀名
+      // 且驱动又自动加了一次，会导致 .dylib.dylib 错误。
+      // 我们移除显式的后缀名，让系统驱动根据平台自动处理，
+      // 但前提是文件必须已经存在于那个位置。
+      const extensionPathWithoutSuffix = loadablePath.replace(/\.(dylib|dll|so)$/, '');
+
+      this.db.loadExtension(extensionPathWithoutSuffix);
+    } catch (error) {
+      console.error('[VectorStore] Failed to load sqlite-vec extension:', error);
+      throw error;
+    }
   }
 
   /**

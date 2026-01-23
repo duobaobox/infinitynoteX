@@ -3,7 +3,7 @@
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
   appId: 'com.duobaobox.infinitynotex',
   asar: true,
-  asarUnpack: ['node_modules/better-sqlite3/**', 'node_modules/sqlite-vec/**'],
+  asarUnpack: ['node_modules/better-sqlite3/**', 'node_modules/sqlite-vec*/**'],
   // 原生模块构建配置
   npmRebuild: true,
   nodeGypRebuild: false,
@@ -24,7 +24,7 @@
     'dist-electron/**/*',
     // Native modules
     'node_modules/better-sqlite3/**/*',
-    'node_modules/sqlite-vec/**/*',
+    'node_modules/sqlite-vec*/**/*',
     'node_modules/bindings/**/*',
     'node_modules/file-uri-to-path/**/*',
     // Production dependencies used in main process

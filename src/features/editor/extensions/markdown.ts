@@ -38,6 +38,34 @@ const isLikelyMarkdown = (text: string): boolean => {
 };
 
 /**
+ * 检测 HTML 是否包含实际的富文本格式标签
+ * 用于区分"真正的富文本"和"代码编辑器的简单包装"
+ */
+const isRichTextHtml = (html: string): boolean => {
+  if (!html || html.trim().length === 0) return false;
+
+  // 富文本标签 - 表示内容有实际格式
+  const richTextTags = [
+    /<(strong|b|em|i|u|s|strike|del|ins|mark|sub|sup|h[1-6]|blockquote|ul|ol|li|table|thead|tbody|tr|td|th|a|img|hr|br)\b/i,
+  ];
+
+  // 检查是否包含富文本标签
+  const hasRichTags = richTextTags.some((pattern) => pattern.test(html));
+
+  // 如果只有 pre/code/span/div/p 包装，不算富文本
+  // 常见于代码编辑器复制的内容
+  if (!hasRichTags) {
+    // 移除所有标签后检查是否只剩纯文本
+    const stripped = html.replace(/<[^>]*>/g, '').trim();
+    const originalText = html.replace(/<[^>]*>/g, '').trim();
+    // 如果去除标签后内容相同，说明标签没有实际格式意义
+    return stripped !== originalText;
+  }
+
+  return hasRichTags;
+};
+
+/**
  * Markdown 粘贴处理扩展
  *
  * 功能：
@@ -71,47 +99,48 @@ export const MarkdownPasteHandler = Extension.create({
             // 获取 HTML 内容（如果有）
             const html = clipboardData.getData('text/html');
 
-            // 如果有 HTML 内容，清除内联颜色样式后插入
-            // 这解决了暗色模式下复制的深色文本不可见的问题
-            if (html && html.trim().length > 0) {
+            // 检测纯文本是否为 Markdown 格式
+            const textIsMarkdown = text && isLikelyMarkdown(text);
+            // 检测 HTML 是否包含实际的富文本格式
+            const htmlIsRichText = html && isRichTextHtml(html);
+
+            // 策略：
+            // 1. 如果纯文本是 Markdown，且 HTML 没有实际富文本格式 → 按 Markdown 解析
+            // 2. 如果 HTML 有实际富文本格式 → 使用 HTML 保持格式
+            // 3. 其他情况 → 默认处理
+
+            if (textIsMarkdown && !htmlIsRichText) {
+              // 纯文本是 Markdown，且 HTML 只是简单包装 → 按 Markdown 解析
               event.preventDefault();
 
-              // 清除 HTML 中的内联 color 样式
-              // 保留其他样式（如 background-color 用于高亮）
+              try {
+                editor.commands.insertContent(text, {
+                  contentType: 'markdown',
+                });
+                return true;
+              } catch (error) {
+                console.error('[MarkdownPasteHandler] Failed to parse markdown:', error);
+                editor.commands.insertContent(text);
+                return true;
+              }
+            }
+
+            if (html && html.trim().length > 0) {
+              // 有 HTML 内容（且不是纯 Markdown 场景） → 清除颜色后使用 HTML
+              event.preventDefault();
+
               const cleanedHtml = html
-                // 移除 style 属性中的 color: xxx;
                 .replace(/\bcolor\s*:\s*[^;"}]+;?/gi, '')
-                // 清理可能残留的空 style 属性
                 .replace(/\bstyle\s*=\s*["']\s*["']/gi, '');
 
-              // 使用清理后的 HTML 插入
               editor.commands.insertContent(cleanedHtml, {
                 contentType: 'html',
               });
               return true;
             }
 
-            // 检测是否为 Markdown 格式
-            if (!text || !isLikelyMarkdown(text)) {
-              return false; // 不是 Markdown，让默认处理器处理
-            }
-
-            // 阻止默认粘贴行为
-            event.preventDefault();
-
-            // 使用 Markdown 扩展解析并插入内容
-            try {
-              // 关键：使用 contentType: 'markdown' 告诉 TipTap 按 Markdown 格式解析
-              editor.commands.insertContent(text, {
-                contentType: 'markdown',
-              });
-              return true;
-            } catch (error) {
-              console.error('[MarkdownPasteHandler] Failed to parse markdown:', error);
-              // 解析失败，回退到普通文本插入
-              editor.commands.insertContent(text);
-              return true;
-            }
+            // 其他情况，让默认处理器处理
+            return false;
           },
         },
       }),

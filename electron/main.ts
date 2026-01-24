@@ -41,6 +41,7 @@ import {
   registerKnowledgeHandlers,
 } from './ipc';
 import { syncNativeTheme } from './nativeTheme';
+import { setupApplicationMenu } from './menu';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -146,6 +147,9 @@ app.whenReady().then(async () => {
   // 创建主窗口
   createMainWindow();
   initAutoUpdater(() => getMainWindow());
+
+  // 设置应用菜单（macOS 最小化菜单，Windows/Linux 隐藏）
+  setupApplicationMenu();
 
   // 初始化 Native Theme
   syncNativeTheme();

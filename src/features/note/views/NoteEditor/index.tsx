@@ -84,9 +84,14 @@ export const NoteEditor: React.FC = () => {
     switchNote();
   }, [selectedNoteId, flushPendingSave]);
 
-  // 监听 tab 重置信号
+  // 监听 tab 重置信号（如从画布双击跳转）
   useEffect(() => {
     setActiveTab('edit');
+    // 重新加载当前便签的最新数据（画布中可能已修改）
+    if (currentNoteIdRef.current) {
+      loadNote(currentNoteIdRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetEditorTabTrigger]);
 
   // 监听来自悬浮窗口的更新通知

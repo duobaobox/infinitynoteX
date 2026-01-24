@@ -95,6 +95,8 @@ export function createMainWindow(): BrowserWindow {
     frame: false,
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: 12, y: 10 },
+    // Windows/Linux: 隐藏菜单栏（macOS 不受影响）
+    autoHideMenuBar: true,
     show: false,
     backgroundColor: '#FFFFFF',
     webPreferences: {

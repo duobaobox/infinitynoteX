@@ -36,14 +36,21 @@ body {
   /* 背景跟随主题变量 */
   background: var(--app-bg);
   color: var(--text-primary);
-  /* 恢复默认文本选择行为 */
-  /* user-select: none; */
+  /* 禁止 UI 文本选择（桌面应用规范） */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
+/* 输入框、文本域、可编辑区域允许文本选择 */
 input,
 textarea,
-[contenteditable='true'] {
+[contenteditable='true'],
+.ProseMirror,
+.settings-content,
+.ai-message-content,
+.note-node__editor {
   user-select: text;
+  -webkit-user-select: text;
 }
 
 /* 注意：不要在此处覆写 button 的通用样式，以免干扰 Ant Design 组件。

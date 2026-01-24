@@ -14,6 +14,7 @@ import { Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../../services/types';
 import { TipTapEditor } from '../../../../editor';
 import { NOTE_COLOR_CSS_VAR_MAP } from '../../../../../constants/noteColors';
+import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import './NoteNode.css';
 
 export interface NoteNodeData {
@@ -35,6 +36,11 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
     ? NOTE_COLOR_CSS_VAR_MAP[data.color as keyof typeof NOTE_COLOR_CSS_VAR_MAP] || '#ffffff'
     : '#ffffff';
   const isSelected = selected || data.isSelected;
+
+  // 从 store 获取 actions
+  const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
+  const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
+  const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
 
   // 便签完整内容状态
   const [content, setContent] = useState<TipTapJSONContent | null>(null);
@@ -70,11 +76,15 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      timeoutRef.current = setTimeout(() => {
-        window.storage.updateNote(noteId, patch);
+      timeoutRef.current = setTimeout(async () => {
+        await window.storage.updateNote(noteId, patch);
+        // 发送 IPC 通知，让 NoteEditor 同步更新
+        window.ipcRenderer?.send('note:updated', noteId);
+        // 刷新左侧便签列表
+        triggerListRefresh();
       }, 500);
     },
-    [],
+    [triggerListRefresh],
   );
 
   // 组件卸载时清理 timeout
@@ -115,6 +125,14 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
     }, 0);
   }, []);
 
+  // 双击头部跳转到编辑 Tab
+  const handleHeaderDoubleClick = useCallback(() => {
+    // 1. 选中当前便签
+    setSelectedNote(data.noteId);
+    // 2. 切换到编辑 Tab
+    resetEditorTab();
+  }, [data.noteId, setSelectedNote, resetEditorTab]);
+
   return (
     <div
       className={`note-node ${isSelected ? 'note-node--selected' : ''}`}
@@ -126,8 +144,8 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       {/* 连接点（V2 可用于连线） */}
       <Handle type="target" position={Position.Top} className="note-node__handle" />
 
-      {/* Header 区域 - 拖拽手柄 */}
-      <div className="note-node__header drag-handle">
+      {/* Header 区域 - 拖拽手柄，双击跳转编辑 */}
+      <div className="note-node__header drag-handle" onDoubleClick={handleHeaderDoubleClick}>
         <HolderOutlined className="note-node__drag-icon" />
         <span className="note-node__title">{data.title || '无标题'}</span>
       </div>

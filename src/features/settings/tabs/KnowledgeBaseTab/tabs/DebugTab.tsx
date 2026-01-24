@@ -15,7 +15,7 @@ import {
   message,
   Spin,
   Empty,
-  Drawer,
+  Modal,
   Tabs,
   Tooltip,
 } from 'antd';
@@ -314,32 +314,49 @@ const SearchTestPanel: React.FC = () => {
         )}
       </Card>
 
-      {/* 便签 Chunks 查看抽屉 */}
-      <Drawer
-        title={`${selectedNoteForChunks?.noteTitle || '便签'} - Chunks 详情`}
+      {/* 便签 Chunks 查看弹窗 */}
+      <Modal
+        title={
+          <Space>
+            <FileTextOutlined style={{ color: '#1677ff' }} />
+            <span>{selectedNoteForChunks?.noteTitle || '便签'}</span>
+            <Tag color="blue">{noteChunks.length} Chunks</Tag>
+          </Space>
+        }
         open={noteChunksDrawerOpen}
-        onClose={() => {
+        centered
+        width={680}
+        onCancel={() => {
           setNoteChunksDrawerOpen(false);
           setSelectedNoteForChunks(null);
           setNoteChunks([]);
         }}
-        width={560}
-        extra={
-          <Button
-            type="primary"
-            size="small"
-            icon={<CopyOutlined />}
-            onClick={() => {
-              if (noteChunks.length === 0) return;
-              const allContent = noteChunks
-                .map((c) => `--- Chunk ${c.chunkIndex} ---\n${c.content}`)
-                .join('\n\n');
-              navigator.clipboard.writeText(allContent);
-              message.success('已复制所有 Chunks');
-            }}
-          >
-            复制全部
-          </Button>
+        footer={
+          <Space>
+            <Button
+              icon={<CopyOutlined />}
+              onClick={() => {
+                if (noteChunks.length === 0) return;
+                const allContent = noteChunks
+                  .map((c) => `--- Chunk ${c.chunkIndex} ---\n${c.content}`)
+                  .join('\n\n');
+                navigator.clipboard.writeText(allContent);
+                message.success('已复制所有 Chunks');
+              }}
+            >
+              复制全部
+            </Button>
+            <Button
+              type="primary"
+              onClick={() => {
+                setNoteChunksDrawerOpen(false);
+                setSelectedNoteForChunks(null);
+                setNoteChunks([]);
+              }}
+            >
+              关闭
+            </Button>
+          </Space>
         }
       >
         {loadingNoteChunks ? (
@@ -349,8 +366,16 @@ const SearchTestPanel: React.FC = () => {
         ) : noteChunks.length === 0 ? (
           <Empty description="暂无 Chunks" />
         ) : (
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Text type="secondary">共 {noteChunks.length} 个 Chunks</Text>
+          <div
+            className="custom-scrollbar"
+            style={{
+              maxHeight: '60vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
             {noteChunks.map((chunk, idx) => {
               // 检测是否包含注入的表头
               const hasInjectedHeader =
@@ -404,9 +429,9 @@ const SearchTestPanel: React.FC = () => {
                 </div>
               );
             })}
-          </Space>
+          </div>
         )}
-      </Drawer>
+      </Modal>
     </>
   );
 };

@@ -13,17 +13,8 @@ import { HolderOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../../services/types';
 import { TipTapEditor } from '../../../../editor';
+import { NOTE_COLOR_CSS_VAR_MAP } from '../../../../../constants/noteColors';
 import './NoteNode.css';
-
-// 颜色映射表 - 使用 CSS 变量以支持暗色模式
-const colorMap: Record<string, string> = {
-  bae0ff: 'var(--note-color-blue)',
-  d9f7be: 'var(--note-color-green)',
-  ffd6e7: 'var(--note-color-pink)',
-  d6e4ff: 'var(--note-color-purple)',
-  ffd666: 'var(--note-color-yellow)',
-  ffffff: 'var(--note-color-white)',
-};
 
 export interface NoteNodeData {
   noteId: string;
@@ -40,7 +31,9 @@ interface NoteNodeProps {
 }
 
 const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
-  const bgColor = data.color ? colorMap[data.color] || '#ffffff' : '#ffffff';
+  const bgColor = data.color
+    ? NOTE_COLOR_CSS_VAR_MAP[data.color as keyof typeof NOTE_COLOR_CSS_VAR_MAP] || '#ffffff'
+    : '#ffffff';
   const isSelected = selected || data.isSelected;
 
   // 便签完整内容状态

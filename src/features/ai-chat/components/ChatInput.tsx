@@ -12,6 +12,7 @@ import { ProviderSwitcher } from './ProviderSwitcher';
 import { NoteReference } from './NoteReference';
 import type { NoteReference as NoteReferenceType, ProviderOption } from '../types';
 import { truncateTitle } from '../utils';
+import { NOTE_COLOR_WITH_BORDER_MAP } from '../../../constants/noteColors';
 
 // 快捷指令配置
 const QUICK_COMMANDS = [
@@ -46,16 +47,6 @@ const QUICK_COMMANDS = [
     icon: <BookOutlined />,
   },
 ];
-
-// 便签颜色映射表 - 使用 CSS 变量以支持暗色模式
-const NOTE_COLOR_MAP: Record<string, { bg: string; border: string }> = {
-  bae0ff: { bg: 'var(--note-color-blue)', border: 'var(--note-color-blue-border)' },
-  d9f7be: { bg: 'var(--note-color-green)', border: 'var(--note-color-green-border)' },
-  ffd6e7: { bg: 'var(--note-color-pink)', border: 'var(--note-color-pink-border)' },
-  d6e4ff: { bg: 'var(--note-color-purple)', border: 'var(--note-color-purple-border)' },
-  ffd666: { bg: 'var(--note-color-yellow)', border: 'var(--note-color-yellow-border)' },
-  ffffff: { bg: 'var(--note-color-white)', border: 'var(--note-color-white-border)' },
-};
 
 interface ChatInputProps {
   isLoading: boolean;
@@ -101,7 +92,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {selectedNotes.length > 0 && (
         <div className="ai-chat-selected-notes">
           {selectedNotes.map((note) => {
-            const colors = note.color ? NOTE_COLOR_MAP[note.color] : undefined;
+            const colors = note.color
+              ? NOTE_COLOR_WITH_BORDER_MAP[note.color as keyof typeof NOTE_COLOR_WITH_BORDER_MAP]
+              : undefined;
 
             return (
               <Tag

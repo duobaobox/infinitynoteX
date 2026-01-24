@@ -48,6 +48,7 @@ import {
   stripThinkBlocks,
   renderMarkdownToHtml,
 } from '../../../../ai-chat/utils';
+import { NOTE_COLOR_HEX_MAP, type NoteColorId } from '../../../../../constants/noteColors';
 import './CanvasTab.css';
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
@@ -283,12 +284,13 @@ const CanvasInner: React.FC = () => {
   }, [selectedFolderId, setViewport]);
 
   // 统一处理节点更新：notes 变化或 selectedNoteId 变化
+  // 优化策略：使用 ID 比对区分增删变化和属性更新
   useEffect(() => {
     const prevNotes = prevNotesRef.current;
     const notesChanged = notes !== prevNotes;
 
     setNodes((currentNodes) => {
-      // 如果只是选中状态变化，快速更新 isSelected
+      // 快速路径 1：仅选中状态变化
       if (!notesChanged && currentNodes.length === notes.length) {
         return currentNodes.map((node) => ({
           ...node,
@@ -296,7 +298,36 @@ const CanvasInner: React.FC = () => {
         }));
       }
 
-      // notes 发生变化，需要完整更新
+      // 构建 ID 集合用于比对
+      const currentNodeIds = new Set(currentNodes.map((n) => n.id));
+      const newNoteIds = new Set(notes.map((n) => n.id));
+
+      // 检测是否有实际的增删操作
+      const hasAdditions = notes.some((n) => !currentNodeIds.has(n.id));
+      const hasDeletions = currentNodes.some((n) => !newNoteIds.has(n.id));
+
+      // 快速路径 2：无增删，仅属性更新（标题、摘要、颜色等）
+      if (!hasAdditions && !hasDeletions && currentNodes.length === notes.length) {
+        const notesMap = new Map(notes.map((n) => [n.id, n]));
+        return currentNodes.map((node) => {
+          const note = notesMap.get(node.id);
+          if (!note) return node;
+
+          // 仅更新 data，保留 position 和 measured 尺寸
+          return {
+            ...node,
+            data: {
+              noteId: note.id,
+              title: note.title,
+              excerpt: note.excerpt,
+              color: note.color,
+              isSelected: note.id === selectedNoteId,
+            },
+          };
+        });
+      }
+
+      // 完整重建路径：有增删操作
       const currentNodesMap = new Map(currentNodes.map((n) => [n.id, n]));
 
       return notes.map((note, index) => {
@@ -571,16 +602,8 @@ const CanvasInner: React.FC = () => {
         {showMiniMap && (
           <MiniMap
             nodeColor={(node) => {
-              const colorMap: Record<string, string> = {
-                bae0ff: '#bae0ff',
-                d9f7be: '#d9f7be',
-                ffd6e7: '#ffd6e7',
-                d6e4ff: '#d6e4ff',
-                ffd666: '#ffd666',
-                ffffff: '#ffffff',
-              };
-              const bgColor = node.data.color as string;
-              return colorMap[bgColor] || '#ffffff';
+              const bgColor = node.data.color as NoteColorId;
+              return NOTE_COLOR_HEX_MAP[bgColor] || '#ffffff';
             }}
             nodeStrokeColor={(node) => {
               return node.data.isSelected ? '#1677ff' : '#e8e8e8';

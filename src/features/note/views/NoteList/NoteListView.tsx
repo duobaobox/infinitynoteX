@@ -131,15 +131,20 @@ export const NoteListView: React.FC<NoteListViewProps> = ({ flex }) => {
 
   // ============ 派生数据 ============
 
+  // ============ 派生数据 ============
+
   // 根据搜索关键词过滤便签列表
-  const filteredNotes = notes.filter((note) =>
-    note.title.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredNotes = React.useMemo(() => {
+    if (!searchQuery) return notes;
+    return notes.filter((note) => note.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [notes, searchQuery]);
 
   // 排序：按 createdAt 排序
-  const sortedNotes = [...filteredNotes].sort((a, b) =>
-    sortOrder === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt,
-  );
+  const sortedNotes = React.useMemo(() => {
+    return [...filteredNotes].sort((a, b) =>
+      sortOrder === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt,
+    );
+  }, [filteredNotes, sortOrder]);
 
   // ============ 主渲染 ============
 

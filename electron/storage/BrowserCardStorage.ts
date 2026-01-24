@@ -15,12 +15,15 @@ const browserCardsConfig = getModuleConfig('browser-cards')!;
 const PRESET_BROWSER_CARDS: Omit<BrowserCard, 'id' | 'createdAt' | 'updatedAt'>[] = [
   { name: '通义千问', url: 'https://www.qianwen.com', isBuiltIn: true, order: 0 },
   { name: 'DeepSeek', url: 'https://chat.deepseek.com', isBuiltIn: true, order: 1 },
-  { name: '豆包', url: 'https://www.doubao.com', isBuiltIn: true, order: 2 },
-  { name: '智谱清言', url: 'https://chatglm.cn', isBuiltIn: true, order: 3 },
+  { name: '智谱清言', url: 'https://chatglm.cn', isBuiltIn: true, order: 2 },
+  { name: '豆包', url: 'https://www.doubao.com', isBuiltIn: true, order: 3 },
   { name: 'Kimi', url: 'https://kimi.moonshot.cn', isBuiltIn: true, order: 4 },
-  { name: 'Gemini', url: 'https://gemini.google.com', isBuiltIn: true, order: 5 },
-  { name: 'Copilot', url: 'https://copilot.microsoft.com', isBuiltIn: true, order: 6 },
-  { name: 'ChatGPT', url: 'https://chat.openai.com', isBuiltIn: true, order: 7 },
+  { name: '腾讯元宝', url: 'https://yuanbao.tencent.com', isBuiltIn: true, order: 5 },
+  { name: '秘塔搜索', url: 'https://metaso.cn', isBuiltIn: true, order: 6 },
+  { name: '讯飞星火', url: 'https://xinghuo.xfyun.cn', isBuiltIn: true, order: 7 },
+  { name: '文心一言', url: 'https://yiyan.baidu.com', isBuiltIn: true, order: 8 },
+  { name: '海螺 AI', url: 'https://hailuoai.com', isBuiltIn: true, order: 9 },
+  { name: '万知', url: 'https://www.wanzhi.com', isBuiltIn: true, order: 10 },
 ];
 
 export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, BrowserCardIndex> {
@@ -52,18 +55,41 @@ export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, Browse
   }
 
   /**
-   * 初始化预设卡片（首次使用时调用）
+   * 初始化预设卡片（同步预设列表）
+   * 开发阶段支持自动更新/同步内置卡片
    */
   async initializePresets(): Promise<void> {
-    const existingCards = await this.list();
-    if (existingCards.length > 0) {
-      return; // 已有卡片，不再初始化
+    const existingCards = await this.getAll();
+    const existingBuiltInIds = existingCards.filter((c) => c.isBuiltIn).map((c) => c.id);
+
+    // 1. 同步 PRESET 列表（创建或更新）
+    for (const preset of PRESET_BROWSER_CARDS) {
+      // 通过 URL 或名称查找是否已存在（内置卡片通常没有固定 ID）
+      const existing = existingCards.find(
+        (c) => c.isBuiltIn && (c.url === preset.url || c.name === preset.name),
+      );
+
+      if (existing) {
+        // 更新现有内置卡片（确保名称和 URL 最新）
+        await this.update(existing.id, {
+          ...preset,
+        });
+        // 从待清理列表中移除
+        const index = existingBuiltInIds.indexOf(existing.id);
+        if (index > -1) existingBuiltInIds.splice(index, 1);
+      } else {
+        // 创建新预设
+        await this.create(preset);
+      }
     }
 
-    for (const preset of PRESET_BROWSER_CARDS) {
-      await this.create(preset);
+    // 2. 清理已经不在预设列表中的内置卡片
+    for (const id of existingBuiltInIds) {
+      console.log(`[BrowserCardStorage] Removing deprecated preset: ${id}`);
+      await this.delete(id);
     }
-    console.log('[BrowserCardStorage] Initialized preset browser cards');
+
+    console.log('[BrowserCardStorage] Synchronized preset browser cards');
   }
 
   /**

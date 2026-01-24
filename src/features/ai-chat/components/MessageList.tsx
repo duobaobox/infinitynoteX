@@ -30,6 +30,111 @@ export const MessageList: React.FC<MessageListProps> = ({
   onCopyAnswer,
   onSaveToNote,
 }) => {
+  // 转换为 Bubble.List items - 必须在所有条件返回之前调用
+  const bubbleItems = React.useMemo(() => {
+    return items.map((m) => {
+      const isCopied = copiedBubbleKey === m.key;
+
+      // AI 消息的操作按钮
+      const actionItems =
+        m.role === 'ai'
+          ? [
+              {
+                key: 'copy',
+                icon: <CopyOutlined />,
+                label: isCopied ? '已复制' : '复制',
+              },
+              {
+                key: 'save',
+                icon: <SaveOutlined />,
+                label: '保存到便签',
+              },
+            ]
+          : [];
+
+      const item: BubbleListItem = {
+        key: m.key,
+        role: m.role,
+        content: m.content,
+        placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
+        contentRender: (content) => {
+          // 用户消息：过滤掉便签上下文，只显示用户输入
+          const displayContent =
+            m.role === 'user'
+              ? (content as string)
+                  .replace(/\n\n以下是用户引用的便签内容，请结合这些内容回答：[\s\S]*/g, '')
+                  .trim()
+              : content;
+
+          // AI 消息：传递 ragSources 用于引用展示
+          const sources = m.role === 'ai' && m.ragSources ? m.ragSources : undefined;
+
+          return (
+            <>
+              <MarkdownRenderer
+                content={displayContent as string}
+                streaming={
+                  m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
+                }
+                sources={sources}
+              />
+              {/* 用户消息显示引用的便签 FileCard */}
+              {m.role === 'user' && m.references && m.references.length > 0 && (
+                <div
+                  className="ai-chat-reference-cards"
+                  style={{ marginTop: 8, maxWidth: '100%', overflow: 'hidden' }}
+                >
+                  {m.references.map((ref: NoteReference) => (
+                    <FileCard
+                      key={ref.id}
+                      name={`${ref.title}.md`}
+                      byte={ref.byteLength}
+                      icon="markdown"
+                      size="small"
+                      style={{ width: '100%' }}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        },
+        avatar:
+          m.role === 'ai' ? (
+            <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1890ff' }} />
+          ) : (
+            <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
+          ),
+      };
+
+      if (m.role === 'ai') {
+        item.footer = (content) => (
+          <Actions
+            items={actionItems}
+            onClick={({ key }) => {
+              if (key === 'copy') {
+                onCopyAnswer(m);
+              } else if (key === 'save') {
+                onSaveToNote(content as string);
+              }
+            }}
+          />
+        );
+
+        // Actions 按钮位置配置
+        item.footerPlacement = 'outer-end';
+
+        if (!m.content.trim() && m.isStreaming) {
+          item.loading = true;
+        } else if (m.isStreaming && m.content.trim()) {
+          item.typing = { effect: 'typing', step: 5, interval: 50 };
+        }
+      }
+
+      return item;
+    });
+  }, [items, copiedBubbleKey, onCopyAnswer, onSaveToNote]);
+
   // 初始化中
   if (isInitializing) {
     return (
@@ -43,107 +148,6 @@ export const MessageList: React.FC<MessageListProps> = ({
   if (!conversationId) {
     return <EmptyState />;
   }
-
-  // 转换为 Bubble.List items
-  const bubbleItems = items.map((m) => {
-    const isCopied = copiedBubbleKey === m.key;
-
-    // AI 消息的操作按钮
-    const actionItems =
-      m.role === 'ai'
-        ? [
-            {
-              key: 'copy',
-              icon: <CopyOutlined />,
-              label: isCopied ? '已复制' : '复制',
-            },
-            {
-              key: 'save',
-              icon: <SaveOutlined />,
-              label: '保存到便签',
-            },
-          ]
-        : [];
-
-    const item: BubbleListItem = {
-      key: m.key,
-      role: m.role,
-      content: m.content,
-      placement: m.role === 'ai' ? 'start' : 'end', // AI在左，用户在右
-      contentRender: (content) => {
-        // 用户消息：过滤掉便签上下文，只显示用户输入
-        const displayContent =
-          m.role === 'user'
-            ? (content as string)
-                .replace(/\n\n以下是用户引用的便签内容，请结合这些内容回答：[\s\S]*/g, '')
-                .trim()
-            : content;
-
-        // AI 消息：传递 ragSources 用于引用展示
-        const sources = m.role === 'ai' && m.ragSources ? m.ragSources : undefined;
-
-        return (
-          <>
-            <MarkdownRenderer
-              content={displayContent as string}
-              streaming={m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
-              sources={sources}
-            />
-            {/* 用户消息显示引用的便签 FileCard */}
-            {m.role === 'user' && m.references && m.references.length > 0 && (
-              <div
-                className="ai-chat-reference-cards"
-                style={{ marginTop: 8, maxWidth: '100%', overflow: 'hidden' }}
-              >
-                {m.references.map((ref: NoteReference) => (
-                  <FileCard
-                    key={ref.id}
-                    name={`${ref.title}.md`}
-                    byte={ref.byteLength}
-                    icon="markdown"
-                    size="small"
-                    style={{ width: '100%' }}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        );
-      },
-      avatar:
-        m.role === 'ai' ? (
-          <Avatar icon={<RobotOutlined />} style={{ backgroundColor: '#1890ff' }} />
-        ) : (
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#52c41a' }} />
-        ),
-    };
-
-    if (m.role === 'ai') {
-      item.footer = (content) => (
-        <Actions
-          items={actionItems}
-          onClick={({ key }) => {
-            if (key === 'copy') {
-              onCopyAnswer(m);
-            } else if (key === 'save') {
-              onSaveToNote(content as string);
-            }
-          }}
-        />
-      );
-
-      // Actions 按钮位置配置
-      item.footerPlacement = 'outer-end';
-
-      if (!m.content.trim() && m.isStreaming) {
-        item.loading = true;
-      } else if (m.isStreaming && m.content.trim()) {
-        item.typing = { effect: 'typing', step: 5, interval: 50 };
-      }
-    }
-
-    return item;
-  });
 
   return (
     <div className="ai-chat-messages">

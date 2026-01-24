@@ -32,7 +32,8 @@ const ListPanel: React.FC<ListPanelProps> = ({ flex }) => {
   }
 
   const ListComponent = feature.ListView;
-  return <ListComponent flex={flex} />;
+  // 使用 key 确保切换 Feature 时组件完全卸载并重新挂载
+  return <ListComponent key={feature.id} flex={flex} />;
 };
 
 export default ListPanel;

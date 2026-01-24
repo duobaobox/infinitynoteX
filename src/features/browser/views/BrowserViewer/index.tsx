@@ -89,11 +89,20 @@ export const BrowserViewer: React.FC = () => {
     webview.addEventListener('did-navigate', handleNavigate);
     webview.addEventListener('did-navigate-in-page', handleNavigate);
 
+    // 清理函数：移除事件监听并释放 webview 内存
     return () => {
       webview.removeEventListener('did-start-loading', handleStartLoading);
       webview.removeEventListener('did-stop-loading', handleStopLoading);
       webview.removeEventListener('did-navigate', handleNavigate);
       webview.removeEventListener('did-navigate-in-page', handleNavigate);
+
+      // 释放 webview 内存：加载空白页以释放网页资源
+      // 这是 Electron 官方推荐的内存优化实践
+      try {
+        webview.src = 'about:blank';
+      } catch (e) {
+        // 忽略销毁时的错误
+      }
     };
   }, []);
 

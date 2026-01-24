@@ -49,9 +49,11 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
 
   // ============ 派生数据 ============
 
-  const filteredLists = searchQuery
-    ? todoLists.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : todoLists;
+  const filteredLists = React.useMemo(() => {
+    return searchQuery
+      ? todoLists.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      : todoLists;
+  }, [todoLists, searchQuery]);
 
   // ============ 事件处理 ============
 

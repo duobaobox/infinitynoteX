@@ -83,11 +83,15 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
   // ============ 派生数据 ============
 
   // 根据搜索关键词过滤卡片列表
-  const filteredCards = browserCards.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.url.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // 根据搜索关键词过滤卡片列表
+  const filteredCards = React.useMemo(() => {
+    if (!searchQuery) return browserCards;
+    return browserCards.filter(
+      (item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.url.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [browserCards, searchQuery]);
 
   // ============ 主渲染 ============
 

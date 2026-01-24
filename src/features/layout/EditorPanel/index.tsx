@@ -27,7 +27,9 @@ const EditorPanel: React.FC = () => {
   }
 
   const EditorComponent = feature.EditorView;
-  return <EditorComponent />;
+  // 使用 key 确保切换 Feature 时组件完全卸载并重新挂载
+  // 这对于触发 BrowserViewer 的清理函数（释放 webview 内存）至关重要
+  return <EditorComponent key={feature.id} />;
 };
 
 export default EditorPanel;

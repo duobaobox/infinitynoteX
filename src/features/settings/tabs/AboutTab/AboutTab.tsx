@@ -295,74 +295,49 @@ const AboutTab: React.FC = () => {
 
         {/* 链接列表 */}
         <div className="about-link-list">
-          <div
-            className="about-link-item"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.open('https://www.kdocs.cn/l/co3mE4HmvfgO', '_blank');
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <span>官方网站</span>
-            <svg
-              className="anticon"
-              viewBox="64 64 896 896"
-              width="1em"
-              height="1em"
-              fill="currentColor"
+          {[
+            {
+              label: '官网',
+              url: 'https://static-mp-4094b1b4-6fff-464e-9fda-00833a0fe87d.next.bspapp.com/?spm=5176.12768285.0.0.156c9482KtPvn0',
+            },
+            { label: '用户手册', url: 'https://www.kdocs.cn/l/co3mE4HmvfgO' },
+            { label: '提交需求和反馈', url: 'https://f.kdocs.cn/g/Fif2v3te/' },
+            { label: '联系作者', url: 'https://www.kdocs.cn/l/ciyIxzZq9t8n' },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="about-link-item"
+              onClick={async () => {
+                if (typeof window !== 'undefined') {
+                  window.open(item.url, '_blank');
+                  try {
+                    await navigator.clipboard.writeText(item.url);
+                    message.success('链接已复制，可直接在浏览器粘贴');
+                  } catch {
+                    // 忽略复制失败
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
-              <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
-            </svg>
-          </div>
-          <div
-            className="about-link-item"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.open('https://f.kdocs.cn/g/Fif2v3te/', '_blank');
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <span>提交需求和反馈</span>
-            <svg
-              className="anticon"
-              viewBox="64 64 896 896"
-              width="1em"
-              height="1em"
-              fill="currentColor"
-            >
-              <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
-            </svg>
-          </div>
-          <div
-            className="about-link-item"
-            onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.open('https://www.kdocs.cn/l/ciyIxzZq9t8n', '_blank');
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <span>联系作者</span>
-            <svg
-              className="anticon"
-              viewBox="64 64 896 896"
-              width="1em"
-              height="1em"
-              fill="currentColor"
-            >
-              <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
-            </svg>
-          </div>
+              <span>{item.label}</span>
+              <svg
+                className="anticon"
+                viewBox="64 64 896 896"
+                width="1em"
+                height="1em"
+                fill="currentColor"
+              >
+                <path d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.8 12.3 6.4l450.8-352.1a31.96 31.96 0 000-50.4z" />
+              </svg>
+            </div>
+          ))}
         </div>
 
         {/* 底部版权 */}
         <div className="about-footer">
-          <p>© 2025 InfinityNoteX. 保留所有权利。</p>
+          <p>© 2026 InfinityNoteX. 保留所有权利。</p>
         </div>
       </div>
 

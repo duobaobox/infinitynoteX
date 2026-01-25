@@ -5,7 +5,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
-import type { TodoList, ManualTaskIndex } from '../../services/types';
+import type { TodoList, ManualTaskIndex, Note } from '../../services/types';
+import { DEFAULT_TODO_LIST_ID } from '../../features/todo/types';
+import { parseTasksFromNotes } from '../../features/todo/services/taskParser';
 import './TodoPillWindow.css';
 
 // Todo 装饰图标
@@ -27,36 +29,75 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    try {
-      const lists = await window.storage.listTodoLists();
-      const currentList = lists.find((l) => l.id === listId);
-      if (currentList) {
-        setList(currentList);
+  const loadData = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setIsLoading(true);
+
+        // 1. 获取列表信息
+        const lists = await window.storage.listTodoLists();
+        const currentList = lists.find((l) => l.id === listId);
+        if (currentList) {
+          setList(currentList);
+        }
+
+        // 2. 获取任务数量
+        let pending = 0;
+        if (listId === DEFAULT_TODO_LIST_ID) {
+          // 便签任务：需要解析所有便签
+          const folders = await window.storage.listFolders();
+          const allNotes: Note[] = [];
+          for (const folder of folders) {
+            const noteIndices = await window.storage.listNotes(folder.id);
+            for (const noteIndex of noteIndices) {
+              const note = await window.storage.getNote(noteIndex.id);
+              if (note) allNotes.push(note);
+            }
+          }
+          const parsedTasks = parseTasksFromNotes(allNotes);
+          pending = parsedTasks.filter((t) => !t.checked).length;
+        } else {
+          // 自定义清单：直接读取存储
+          const tasks = await window.storage.listManualTasks(listId);
+          pending = tasks.filter((t: ManualTaskIndex) => !t.checked).length;
+        }
+
+        setPendingCount(pending);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Failed to load todo info:', error);
+        setIsLoading(false);
       }
-      const tasks = await window.storage.listManualTasks(listId);
-      const pending = tasks.filter((t: ManualTaskIndex) => !t.checked).length;
-      setPendingCount(pending);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Failed to load todo info:', error);
-      setIsLoading(false);
-    }
-  }, [listId]);
+    },
+    [listId],
+  );
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   useEffect(() => {
-    const handleTodoUpdate = async (_event: unknown, updatedListId: string) => {
-      if (updatedListId === listId) {
-        await loadData();
+    const handleUpdate = async (_event: unknown, updatedId?: string) => {
+      // 如果是便签任务相关，无论 ID 是什么都静默刷新 (便签更新事件不带清单 ID)
+      if (listId === DEFAULT_TODO_LIST_ID) {
+        await loadData(true);
+      } else if (updatedId === listId) {
+        await loadData(true);
       }
     };
-    window.ipcRenderer?.on('todo:updated', handleTodoUpdate);
+
+    window.ipcRenderer?.on('todo:updated', handleUpdate);
+
+    // 如果是便签任务，还需要监听便签更新
+    if (listId === DEFAULT_TODO_LIST_ID) {
+      window.ipcRenderer?.on('note:updated', handleUpdate);
+    }
+
     return () => {
-      window.ipcRenderer?.off('todo:updated', handleTodoUpdate);
+      window.ipcRenderer?.off('todo:updated', handleUpdate);
+      if (listId === DEFAULT_TODO_LIST_ID) {
+        window.ipcRenderer?.off('note:updated', handleUpdate);
+      }
     };
   }, [listId, loadData]);
 
@@ -64,7 +105,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
     await window.floatingTodo?.restoreWindow(listId);
   };
 
-  const bgColor = list?.color || '#52c41a';
+  const bgColor = list?.color || (listId === DEFAULT_TODO_LIST_ID ? '#ffe7ba' : '#b5f5ec');
 
   if (isLoading) {
     return (

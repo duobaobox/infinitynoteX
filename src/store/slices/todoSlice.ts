@@ -192,6 +192,8 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
 
       // 重新加载任务列表
       await get().loadParsedTasks();
+      // 通知其他窗口同步（药丸、悬浮窗等）
+      window.ipcRenderer?.send('todo:changed', DEFAULT_TODO_LIST_ID);
     } catch (error) {
       console.error('[TodoSlice] Failed to toggle parsed task checked:', error);
       throw error;

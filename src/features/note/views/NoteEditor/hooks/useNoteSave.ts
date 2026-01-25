@@ -64,8 +64,10 @@ export const useNoteSave = (): UseNoteSaveReturn => {
           pendingSaveRef.current = null;
         }
 
-        // 通知其他窗口
-        window.ipcRenderer?.send('note:updated', saveData.noteId);
+        // 通知其他窗口（便签窗口）
+        window.ipcRenderer?.send('note:changed', saveData.noteId);
+        // 同时通知 Todo 窗口（确保任务勾选能同步更新）
+        window.ipcRenderer?.send('todo:changed', 'default-note-tasks');
         triggerListRefresh();
 
         return true;

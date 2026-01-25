@@ -417,6 +417,17 @@ export function registerFloatingWindowHandlers(): void {
     if (win && !win.isDestroyed()) {
       win.webContents.send('note:updated', noteId);
     }
+
+    // 便签任务同步：也向 Todo 药丸/悬浮窗口发送更新事件
+    const DEFAULT_TODO_LIST_ID = 'default-note-tasks';
+    const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
+    if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
+      todoFloatingWindow.webContents.send('todo:updated', DEFAULT_TODO_LIST_ID);
+    }
+    const todoPill = todoPillWindows.get(DEFAULT_TODO_LIST_ID);
+    if (todoPill && !todoPill.isDestroyed()) {
+      todoPill.webContents.send('todo:updated', DEFAULT_TODO_LIST_ID);
+    }
   });
 
   ipcMain.on('floating-note:changed', (_event, noteId: string) => {

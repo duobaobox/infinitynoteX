@@ -108,10 +108,13 @@ const FloatingNoteTodoWindow: React.FC = () => {
 
     window.ipcRenderer?.on('note:updated', handleNoteUpdate);
     window.ipcRenderer?.on('floating-note:updated', handleNoteUpdate);
+    // 监听主页面的便签任务勾选操作
+    window.ipcRenderer?.on('todo:updated', handleNoteUpdate);
 
     return () => {
       window.ipcRenderer?.off('note:updated', handleNoteUpdate);
       window.ipcRenderer?.off('floating-note:updated', handleNoteUpdate);
+      window.ipcRenderer?.off('todo:updated', handleNoteUpdate);
     };
   }, [loadData]);
 
@@ -133,10 +136,12 @@ const FloatingNoteTodoWindow: React.FC = () => {
       // 4. 保存便签
       await window.storage.updateNote(task.noteId, { content: newContent });
 
-      // 5. 通知其他窗口 (这会触发 handleNoteUpdate -> loadData(true))
+      // 5. 通知其他窗口（便签窗口 + Todo 窗口）
       window.ipcRenderer?.send('note:changed', task.noteId);
+      // 同时通知 Todo 窗口（确保药丸和主页面也能同步）
+      window.ipcRenderer?.send('todo:changed', 'default-note-tasks');
 
-      // 注意：这里不需要手动调用 loadData()，因为 note:changed 会触发上方监听的 reload
+      // 注意：这里不需要手动调用 loadData()，因为事件会触发上方监听的 reload
       // 即使不触发，本地状态已经更新了，用户体验是流畅的
     } catch (error) {
       console.error('Failed to toggle task:', error);

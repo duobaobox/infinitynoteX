@@ -20,10 +20,6 @@ const PRESET_BROWSER_CARDS: Omit<BrowserCard, 'id' | 'createdAt' | 'updatedAt'>[
   { name: 'Kimi', url: 'https://kimi.moonshot.cn', isBuiltIn: true, order: 4 },
   { name: '腾讯元宝', url: 'https://yuanbao.tencent.com', isBuiltIn: true, order: 5 },
   { name: '秘塔搜索', url: 'https://metaso.cn', isBuiltIn: true, order: 6 },
-  { name: '讯飞星火', url: 'https://xinghuo.xfyun.cn', isBuiltIn: true, order: 7 },
-  { name: '文心一言', url: 'https://yiyan.baidu.com', isBuiltIn: true, order: 8 },
-  { name: '海螺 AI', url: 'https://hailuoai.com', isBuiltIn: true, order: 9 },
-  { name: '万知', url: 'https://www.wanzhi.com', isBuiltIn: true, order: 10 },
 ];
 
 export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, BrowserCardIndex> {

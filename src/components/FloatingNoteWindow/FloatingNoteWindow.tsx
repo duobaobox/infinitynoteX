@@ -87,7 +87,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
       saveTimerRef.current = setTimeout(async () => {
         try {
           await window.storage.updateNote(noteId, { title, content });
-          console.log('Floating note auto-saved');
+
           window.ipcRenderer?.send('note:updated', noteId);
         } catch (error) {
           console.error('Failed to save note:', error);

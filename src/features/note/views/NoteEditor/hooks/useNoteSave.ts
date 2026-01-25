@@ -57,8 +57,6 @@ export const useNoteSave = (): UseNoteSaveReturn => {
           content: saveData.content,
         });
 
-        console.log('Note saved:', saveData.noteId);
-
         // 清除待保存数据
         if (pendingSaveRef.current?.noteId === saveData.noteId) {
           pendingSaveRef.current = null;

@@ -29,8 +29,6 @@ export function useStorageEvents(): void {
     }
 
     const handleEvent = (event: StorageEvent) => {
-      console.log(`[useStorageEvents] Received: ${event.type} ${event.entity}:${event.id}`);
-
       // 直接从 store 获取最新状态和 actions，避免闭包陷阱
       const store = useWorkspaceStore.getState();
 
@@ -55,7 +53,6 @@ export function useStorageEvents(): void {
         case 'note':
           // 如果删除的是当前选中的便签，清空选中状态
           if (store.selectedNoteId === event.id) {
-            console.log('[useStorageEvents] Clearing selected note (deleted externally)');
             store.setSelectedNote(null);
           }
           // 触发列表刷新
@@ -65,7 +62,6 @@ export function useStorageEvents(): void {
         case 'aiConversation':
           // 如果删除的是当前选中的对话，清空选中状态
           if (store.selectedToolItemId === event.id) {
-            console.log('[useStorageEvents] Clearing selected conversation (deleted externally)');
             store.setSelectedToolItem(null);
           }
           // 刷新对话列表
@@ -75,7 +71,6 @@ export function useStorageEvents(): void {
         case 'folder':
           // 如果删除的是当前选中的文件夹，清空选中状态
           if (store.selectedFolderId === event.id) {
-            console.log('[useStorageEvents] Clearing selected folder (deleted externally)');
             store.setSelectedFolder(null);
           }
           // 刷新文件夹列表

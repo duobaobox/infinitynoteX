@@ -91,7 +91,6 @@ export const NoteEditor: React.FC = () => {
     if (currentNoteIdRef.current) {
       loadNote(currentNoteIdRef.current);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetEditorTabTrigger]);
 
   // 监听来自悬浮窗口的更新通知

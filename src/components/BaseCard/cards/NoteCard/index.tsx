@@ -20,8 +20,10 @@ const NoteIcon: React.FC = React.memo(() => (
 
 NoteIcon.displayName = 'NoteIcon';
 
-export interface NoteCardProps
-  extends Omit<BaseCardProps, 'renderIcon' | 'colorable' | 'pinnable'> {}
+export interface NoteCardProps extends Omit<
+  BaseCardProps,
+  'renderIcon' | 'colorable' | 'pinnable'
+> {}
 
 const NoteCard: React.FC<NoteCardProps> = (props) => (
   <BaseCard {...props} colorable pinnable renderIcon={() => <NoteIcon />} className="note-card" />

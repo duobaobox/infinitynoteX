@@ -1,4 +1,5 @@
 import 'antd/dist/reset.css'; // 全局引入 antd 样式
+import 'remixicon/fonts/remixicon.css'; // 引入本地图标库
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';

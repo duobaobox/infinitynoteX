@@ -1,7 +1,7 @@
 {
   "name": "infinitynotex",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -34,6 +34,7 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.6.2",
     "file-uri-to-path": "^2.0.0",
+    "remixicon": "^4.8.0",
     "sqlite-vec": "^0.1.7-alpha.2",
     "uuid": "^13.0.0",
     "webdav": "^5.8.0",

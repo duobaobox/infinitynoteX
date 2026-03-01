@@ -3,7 +3,7 @@
  * 为 window.ai 暴露的接口定义类型
  */
 
-import type { AIConfig, ChatPayload } from './services/aiConfig';
+import type { AIConfig, ChatPayload } from '../services/aiConfig';
 
 declare global {
   interface Window {

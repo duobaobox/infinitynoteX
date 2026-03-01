@@ -161,6 +161,10 @@ export function registerMainWindowHandlers(): void {
     }
   });
 
+  ipcMain.on(IPC_CHANNELS.windowUnmaximize, () => {
+    win?.unmaximize();
+  });
+
   ipcMain.on(IPC_CHANNELS.windowClose, () => {
     if (!win) return;
     if (process.platform === 'darwin') {

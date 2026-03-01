@@ -14,6 +14,8 @@ import { getAllDirectories, getModuleConfig } from './core/moduleRegistry';
 
 export interface StorageContextConfig {
   dataPath?: string;
+  /** 覆盖应用目录（用于测试，避免调用 Electron app.getPath） */
+  appPath?: string;
 }
 
 /**
@@ -34,7 +36,8 @@ export class StorageContext {
   private readonly _defaultDataDir: string;
 
   constructor(config?: StorageContextConfig) {
-    this._appDir = app.getPath('userData');
+    // appPath 优先，避免测试环境中 Electron app 未初始化时崩溃
+    this._appDir = config?.appPath ?? app.getPath('userData');
     this._defaultDataDir = path.join(this._appDir, StorageContext.DATA_VERSION);
     this._dataDir = config?.dataPath || this._defaultDataDir;
   }

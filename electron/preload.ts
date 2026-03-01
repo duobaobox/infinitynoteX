@@ -6,8 +6,9 @@ import { createProxy } from '../src/shared/utils/ipcProxy';
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
+    // 直接传递原始 listener，不包装，确保 off 时能用相同引用解绑
     const [channel, listener] = args;
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args));
+    return ipcRenderer.on(channel, listener);
   },
   off(...args: Parameters<typeof ipcRenderer.off>) {
     const [channel, ...omit] = args;

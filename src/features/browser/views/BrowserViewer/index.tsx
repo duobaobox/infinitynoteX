@@ -67,6 +67,7 @@ export const BrowserViewer: React.FC = () => {
   }, [selectedCard]);
 
   // 监听 webview 事件
+  // 依赖 selectedCard：初始无卡片时 webview 不渲染，需在卡片首次出现后重新绑定
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
@@ -104,7 +105,8 @@ export const BrowserViewer: React.FC = () => {
         // 忽略销毁时的错误
       }
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCard]);
 
   // ============ 事件处理 ============
 

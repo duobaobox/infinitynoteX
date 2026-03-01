@@ -14,6 +14,7 @@ import type { PendingSave } from '../types';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import { IPC_CHANNELS } from '../../../../../shared/types/ipc';
 import { sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
+import { DEFAULT_TODO_LIST_ID } from '../../../../../shared/constants/todoConstants';
 
 interface UseNoteSaveReturn {
   /** 待保存数据引用 */
@@ -67,7 +68,7 @@ export const useNoteSave = (): UseNoteSaveReturn => {
         // 通知其他窗口（便签窗口）
         sendRendererIpc(IPC_CHANNELS.noteChanged, saveData.noteId);
         // 同时通知 Todo 窗口（确保任务勾选能同步更新）
-        sendRendererIpc(IPC_CHANNELS.todoChanged, 'default-note-tasks');
+        sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
         triggerListRefresh();
 
         return true;

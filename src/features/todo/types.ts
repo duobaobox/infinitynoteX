@@ -4,8 +4,8 @@
 
 import type { TipTapJSONContent } from '../../services/types';
 
-// 默认清单 ID（便签任务）- 统一定义，其他地方引用此常量
-export const DEFAULT_TODO_LIST_ID = 'default-note-tasks';
+// 默认清单 ID（便签任务）- 单一来源在 src/shared/constants/todoConstants.ts
+export { DEFAULT_TODO_LIST_ID } from '../../shared/constants/todoConstants';
 
 /**
  * 从便签解析出的任务项

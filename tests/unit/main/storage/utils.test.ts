@@ -127,14 +127,15 @@ describe('directory utils', () => {
   it('validateStorageIntegrity checks required files', async () => {
     const root = await createTempDir();
     await fs.writeFile(path.join(root, 'meta.json'), '{}');
-    await fs.writeFile(path.join(root, 'folders.json'), '[]');
-    await fs.writeFile(path.join(root, 'notes.index.json'), '[]');
-    await fs.writeFile(path.join(root, 'ai-conversations.index.json'), '[]');
+    // 现在检查目录（不再是 .index.json 文件）
+    await fs.mkdir(path.join(root, 'folders'));
+    await fs.mkdir(path.join(root, 'notes'));
 
     await expect(validateStorageIntegrity(root)).resolves.toBeUndefined();
 
-    await fs.rm(path.join(root, 'folders.json'));
-    await expect(validateStorageIntegrity(root)).rejects.toThrow(/Missing required file/);
+    // 移除必要目录后应报错
+    await fs.rm(path.join(root, 'notes'), { recursive: true });
+    await expect(validateStorageIntegrity(root)).rejects.toThrow(/Missing required/);
 
     await deleteDirectory(root);
   });

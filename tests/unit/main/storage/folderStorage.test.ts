@@ -2,9 +2,48 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
+// ---- IndexCache mock（绕过 better-sqlite3 原生模块版本冲突）----
+vi.mock('../../../../electron/storage/core/IndexCache', () => {
+  class MockIndexCache {
+    private items: Map<string, Record<string, unknown>> = new Map();
+    async initialize() {
+      /* no-op */
+    }
+    upsertItem(item: Record<string, unknown>) {
+      this.items.set(`${item.module}:${item.id}`, item);
+    }
+    deleteItem(module: string, id: string) {
+      this.items.delete(`${module}:${id}`);
+    }
+    listItems(module: string): Record<string, unknown>[] {
+      return Array.from(this.items.values()).filter((i) => i.module === module);
+    }
+    getItem(module: string, id: string): Record<string, unknown> | null {
+      return this.items.get(`${module}:${id}`) ?? null;
+    }
+    countItems(module: string): number {
+      return Array.from(this.items.values()).filter((i) => i.module === module).length;
+    }
+    clearModule(module: string) {
+      for (const key of Array.from(this.items.keys())) {
+        if (key.startsWith(`${module}:`)) this.items.delete(key);
+      }
+    }
+    async rebuildFromFiles(): Promise<{ rebuilt: number; errors: string[] }> {
+      return { rebuilt: 0, errors: [] };
+    }
+    close() {
+      /* no-op */
+    }
+  }
+  return { IndexCache: MockIndexCache };
+});
+
 import { StorageContext } from '../../../../electron/storage/StorageContext';
 import { FolderStorage } from '../../../../electron/storage/FolderStorage';
 import { StorageErrorCode } from '../../../../electron/storage/errors';
+import { IndexCache } from '../../../../electron/storage/core/IndexCache';
 
 const createTempPath = () => fs.mkdtemp(path.join(os.tmpdir(), 'folder-storage-'));
 
@@ -15,9 +54,12 @@ describe('FolderStorage', () => {
 
   beforeEach(async () => {
     tempPath = await createTempPath();
-    context = new StorageContext({ defaultPath: tempPath });
+    context = new StorageContext({ dataPath: tempPath, appPath: tempPath });
     await context.ensureBaseDirectories();
+    const cache = new IndexCache(path.join(tempPath, 'app.sqlite'));
+    await cache.initialize();
     folderStorage = new FolderStorage(context);
+    folderStorage.setIndexCache(cache);
     await folderStorage.createDefaultFolder();
   });
 
@@ -26,27 +68,27 @@ describe('FolderStorage', () => {
   });
 
   it('creates folder and persists to disk', async () => {
-    const folder = await folderStorage.create('Work');
+    const folder = await folderStorage.createFolder('Work');
 
     const list = await folderStorage.list();
     expect(list.map((f) => f.name)).toContain('Work');
 
-    const saved = JSON.parse(await fs.readFile(context.foldersPath, 'utf-8')) as Array<{
-      id: string;
-    }>;
-    expect(saved.some((f) => f.id === folder.id)).toBe(true);
+    // 验证文件夹 JSON 文件已写入磁盘
+    const folderFile = path.join(tempPath, 'folders', `${folder.id}.json`);
+    const saved = JSON.parse(await fs.readFile(folderFile, 'utf-8')) as { id: string };
+    expect(saved.id).toBe(folder.id);
   });
 
   it('prevents duplicate folder names', async () => {
-    await folderStorage.create('Work');
+    await folderStorage.createFolder('Work');
 
-    await expect(folderStorage.create('Work')).rejects.toMatchObject({
+    await expect(folderStorage.createFolder('Work')).rejects.toMatchObject({
       code: StorageErrorCode.E_ALREADY_EXISTS,
     });
   });
 
   it('renames folder and updates timestamp', async () => {
-    const folder = await folderStorage.create('Work');
+    const folder = await folderStorage.createFolder('Work');
     const renamed = await folderStorage.rename(folder.id, 'Renamed Work');
 
     expect(renamed.name).toBe('Renamed Work');
@@ -63,10 +105,10 @@ describe('FolderStorage', () => {
   });
 
   it('deletes folder and invokes hook', async () => {
-    const folder = await folderStorage.create('Projects');
+    const folder = await folderStorage.createFolder('Projects');
     const onBeforeDelete = vi.fn();
 
-    await folderStorage.delete(folder.id, onBeforeDelete);
+    await folderStorage.deleteFolder(folder.id, onBeforeDelete);
 
     expect(onBeforeDelete).toHaveBeenCalledWith(folder.id);
     const list = await folderStorage.list();
@@ -74,7 +116,7 @@ describe('FolderStorage', () => {
   });
 
   it('rejects deleting system folder', async () => {
-    await expect(folderStorage.delete('default')).rejects.toMatchObject({
+    await expect(folderStorage.deleteFolder('default')).rejects.toMatchObject({
       code: StorageErrorCode.E_FOLDER_SYSTEM,
     });
   });

@@ -7,12 +7,12 @@ import type { StorageContext } from './StorageContext';
 import type { TodoList, TodoListIndex } from './schemas';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
+import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
 
 // 获取 todo-lists 模块配置
 const todoListsConfig = getModuleConfig('todo-lists')!;
 
-// 默认清单 ID（便签任务）
-export const DEFAULT_TODO_LIST_ID = 'default-note-tasks';
+export { DEFAULT_TODO_LIST_ID };
 
 export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListIndex> {
   constructor(context: StorageContext) {

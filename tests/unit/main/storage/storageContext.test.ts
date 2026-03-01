@@ -17,7 +17,7 @@ describe('StorageContext', () => {
 
   beforeEach(async () => {
     tempPath = await createTempPath();
-    context = new StorageContext({ dataPath: tempPath });
+    context = new StorageContext({ dataPath: tempPath, appPath: tempPath });
   });
 
   afterEach(async () => {

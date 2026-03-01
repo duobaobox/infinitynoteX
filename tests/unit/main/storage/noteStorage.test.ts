@@ -2,6 +2,45 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
+// ---- IndexCache mock（绕过 better-sqlite3 原生模块版本冲突）----
+import { vi } from 'vitest';
+vi.mock('../../../../electron/storage/core/IndexCache', () => {
+  class MockIndexCache {
+    private items: Map<string, Record<string, unknown>> = new Map();
+    async initialize() {
+      /* no-op */
+    }
+    upsertItem(item: Record<string, unknown>) {
+      this.items.set(`${item.module}:${item.id}`, item);
+    }
+    deleteItem(module: string, id: string) {
+      this.items.delete(`${module}:${id}`);
+    }
+    listItems(module: string): Record<string, unknown>[] {
+      return Array.from(this.items.values()).filter((i) => i.module === module);
+    }
+    getItem(module: string, id: string): Record<string, unknown> | null {
+      return this.items.get(`${module}:${id}`) ?? null;
+    }
+    countItems(module: string): number {
+      return Array.from(this.items.values()).filter((i) => i.module === module).length;
+    }
+    clearModule(module: string) {
+      for (const key of Array.from(this.items.keys())) {
+        if (key.startsWith(`${module}:`)) this.items.delete(key);
+      }
+    }
+    async rebuildFromFiles(): Promise<{ rebuilt: number; errors: string[] }> {
+      return { rebuilt: 0, errors: [] };
+    }
+    close() {
+      /* no-op */
+    }
+  }
+  return { IndexCache: MockIndexCache };
+});
+
 import { StorageContext } from '../../../../electron/storage/StorageContext';
 import { FolderStorage } from '../../../../electron/storage/FolderStorage';
 import { NoteStorage } from '../../../../electron/storage/NoteStorage';
@@ -31,11 +70,11 @@ describe('NoteStorage', () => {
 
   beforeEach(async () => {
     tempPath = await createTempPath();
-    context = new StorageContext({ dataPath: tempPath });
+    context = new StorageContext({ dataPath: tempPath, appPath: tempPath });
     await context.ensureBaseDirectories();
 
-    // Initialize IndexCache
-    const indexCache = new IndexCache(context.cachePath);
+    // Initialize MockIndexCache
+    const indexCache = new IndexCache(context.appDatabasePath);
     await indexCache.initialize();
 
     folderStorage = new FolderStorage(context);
@@ -62,12 +101,11 @@ describe('NoteStorage', () => {
       .catch(() => false);
     expect(fileExists).toBe(true);
 
-    const index = JSON.parse(
-      await fs.readFile(path.join(tempPath, 'notes.index.json'), 'utf-8'),
-    ) as Array<{ id: string; excerpt: string }>;
-    const entry = index.find((i) => i.id === note.id);
+    // 通过 noteStorage.list() 验证索引已更新（SQLite 平台，不再使用 notes.index.json）
+    const notes = await noteStorage.list();
+    const entry = notes.find((n) => n.id === note.id);
     expect(entry).toBeDefined();
-    expect(entry?.excerpt).toBe('Hello World');
+    expect(entry?.title).toBe('Test Note');
   });
 
   it('filters notes by folder when listing', async () => {

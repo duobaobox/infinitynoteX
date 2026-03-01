@@ -6,6 +6,43 @@ import path from 'node:path';
 let storageRoot: string;
 let mockUserDataPath: string;
 
+// ---- IndexCache mock（绕过 better-sqlite3 原生模块版本冲突）----
+vi.mock('../../../../electron/storage/core/IndexCache', () => {
+  class MockIndexCache {
+    private items: Map<string, Record<string, unknown>> = new Map();
+    async initialize() {
+      /* no-op */
+    }
+    upsertItem(item: Record<string, unknown>) {
+      this.items.set(`${item.module}:${item.id}`, item);
+    }
+    deleteItem(module: string, id: string) {
+      this.items.delete(`${module}:${id}`);
+    }
+    listItems(module: string): Record<string, unknown>[] {
+      return Array.from(this.items.values()).filter((i) => i.module === module);
+    }
+    getItem(module: string, id: string): Record<string, unknown> | null {
+      return this.items.get(`${module}:${id}`) ?? null;
+    }
+    countItems(module: string): number {
+      return Array.from(this.items.values()).filter((i) => i.module === module).length;
+    }
+    clearModule(module: string) {
+      for (const key of Array.from(this.items.keys())) {
+        if (key.startsWith(`${module}:`)) this.items.delete(key);
+      }
+    }
+    async rebuildFromFiles(): Promise<{ rebuilt: number; errors: string[] }> {
+      return { rebuilt: 0, errors: [] };
+    }
+    close() {
+      /* no-op */
+    }
+  }
+  return { IndexCache: MockIndexCache };
+});
+
 // Mock electron with a factory that creates the mock inline
 vi.mock('electron', () => {
   const getPath = vi.fn(() => path.join(os.tmpdir(), 'storage-manager-default'));
@@ -30,7 +67,7 @@ describe('StorageManager', () => {
   beforeEach(async () => {
     mockUserDataPath = await fs.mkdtemp(path.join(os.tmpdir(), 'storage-manager-'));
     vi.mocked(app.getPath).mockReturnValue(mockUserDataPath);
-    storageRoot = path.join(mockUserDataPath, 'data-v1');
+    storageRoot = path.join(mockUserDataPath, 'data-v2');
   });
 
   afterEach(async () => {
@@ -46,14 +83,17 @@ describe('StorageManager', () => {
 
   it('marks initialized and flips first-launch flag', async () => {
     const manager = new StorageManager();
+    // 创建 metaPath，使 isFirstLaunch 能进入第二阶段检查 localStatePath
     await fs.mkdir(storageRoot, { recursive: true });
+    await fs.writeFile(path.join(storageRoot, 'meta.json'), '{}');
 
     await manager.markInitialized();
 
-    const meta = JSON.parse(await fs.readFile(path.join(storageRoot, 'meta.json'), 'utf-8')) as {
-      initialized?: boolean;
-    };
-    expect(meta.initialized).toBe(true);
+    // markInitialized 写入 localStatePath（appDir/local-state.json），不是 dataDir/meta.json
+    const state = JSON.parse(
+      await fs.readFile(path.join(mockUserDataPath, 'local-state.json'), 'utf-8'),
+    ) as { initialized?: boolean };
+    expect(state.initialized).toBe(true);
     expect(await manager.isFirstLaunch()).toBe(false);
   });
 

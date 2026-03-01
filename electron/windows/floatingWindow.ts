@@ -7,6 +7,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
 import type { IpcProxyMethod } from '../../src/shared/types/ipc';
+import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST, getMainWindow } from './mainWindow';
 
 // ============ 类型定义 ============
@@ -430,7 +431,6 @@ export function registerFloatingWindowHandlers(): void {
     }
 
     // 便签任务同步：也向 Todo 药丸/悬浮窗口发送更新事件
-    const DEFAULT_TODO_LIST_ID = 'default-note-tasks';
     const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
     if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
       todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);

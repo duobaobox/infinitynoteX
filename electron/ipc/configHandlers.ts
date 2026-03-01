@@ -4,6 +4,8 @@
  */
 
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import log from '../logger';
 import {
   readAppConfig,
@@ -18,6 +20,8 @@ import { syncNativeTheme } from '../nativeTheme';
 let configSaveTimer: NodeJS.Timeout | null = null;
 let pendingConfigUpdates: DeepPartial<AppConfig> = {};
 const CONFIG_SAVE_DEBOUNCE_MS = 500; // 500ms 防抖延迟
+const configChannel = (method: IpcProxyMethod<'config'>) => getIpcProxyChannel('config', method);
+const appChannel = (method: IpcProxyMethod<'app'>) => getIpcProxyChannel('app', method);
 
 /**
  * 防抖保存配置
@@ -43,7 +47,7 @@ function debouncedSaveConfig(partial: DeepPartial<AppConfig>): void {
 
       // 广播配置变化
       BrowserWindow.getAllWindows().forEach((w) => {
-        w.webContents.send('app:configChanged', newConfig);
+        w.webContents.send(IPC_CHANNELS.appConfigChanged, newConfig);
       });
 
       // 清空待保存的配置
@@ -84,12 +88,12 @@ function deepMergePartial(
  */
 export function registerConfigHandlers(): void {
   // 快捷键配置
-  ipcMain.handle('config:getShortcutKeys', async () => {
+  ipcMain.handle(configChannel('getShortcutKeys'), async () => {
     const config = readAppConfig();
     return config.shortcutKeys || { aiChatWindow: 'CommandOrControl+Shift+Q' };
   });
 
-  ipcMain.handle('config:setShortcutKeys', async (_, keys: { aiChatWindow: string }) => {
+  ipcMain.handle(configChannel('setShortcutKeys'), async (_, keys: { aiChatWindow: string }) => {
     const config = readAppConfig();
     writeAppConfig({
       ...config,
@@ -100,13 +104,13 @@ export function registerConfigHandlers(): void {
   });
 
   // 统一配置
-  ipcMain.handle('app:getVersion', () => app.getVersion());
+  ipcMain.handle(IPC_CHANNELS.appGetVersion, () => app.getVersion());
 
-  ipcMain.handle('app:getConfig', () => {
+  ipcMain.handle(appChannel('getConfig'), () => {
     return readAppConfig();
   });
 
-  ipcMain.handle('app:setConfig', (_, partial: DeepPartial<AppConfig>) => {
+  ipcMain.handle(appChannel('setConfig'), (_, partial: DeepPartial<AppConfig>) => {
     // 使用防抖保存
     debouncedSaveConfig(partial);
 
@@ -115,7 +119,7 @@ export function registerConfigHandlers(): void {
     return deepMergePartial(currentConfig, { ...pendingConfigUpdates, ...partial });
   });
 
-  ipcMain.handle('app:getConfigPath', () => {
+  ipcMain.handle(appChannel('getConfigPath'), () => {
     return getConfigPath();
   });
 }

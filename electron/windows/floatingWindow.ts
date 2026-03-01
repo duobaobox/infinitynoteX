@@ -5,6 +5,8 @@
 
 import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST, getMainWindow } from './mainWindow';
 
 // ============ 类型定义 ============
@@ -36,6 +38,11 @@ const todoMinimizedBounds = new Map<string, StoredBounds>();
 
 // 默认悬浮窗口大小
 let defaultFloatingWindowSize = { width: 400, height: 400 };
+const floatingChannel = (method: IpcProxyMethod<'floating'>) =>
+  getIpcProxyChannel('floating', method);
+const floatingTodoChannel = (method: IpcProxyMethod<'floatingTodo'>) =>
+  getIpcProxyChannel('floatingTodo', method);
+const configChannel = (method: IpcProxyMethod<'config'>) => getIpcProxyChannel('config', method);
 
 // ============ 公共 API ============
 
@@ -365,35 +372,39 @@ function listFloatingTodoWindows() {
 
 export function registerFloatingWindowHandlers(): void {
   // 便签悬浮窗口
-  ipcMain.handle('floating:createWindow', (_, noteId: string) => createFloatingNoteWindow(noteId));
-  ipcMain.handle('floating:minimizeWindow', (_, noteId: string) =>
+  ipcMain.handle(floatingChannel('createWindow'), (_, noteId: string) =>
+    createFloatingNoteWindow(noteId),
+  );
+  ipcMain.handle(floatingChannel('minimizeWindow'), (_, noteId: string) =>
     minimizeFloatingNoteWindow(noteId),
   );
-  ipcMain.handle('floating:restoreWindow', (_, noteId: string) =>
+  ipcMain.handle(floatingChannel('restoreWindow'), (_, noteId: string) =>
     restoreFloatingNoteWindow(noteId),
   );
-  ipcMain.handle('floating:closeWindow', (_, noteId: string) => closeFloatingNoteWindow(noteId));
-  ipcMain.handle('floating:listWindows', () => listFloatingNoteWindows());
+  ipcMain.handle(floatingChannel('closeWindow'), (_, noteId: string) =>
+    closeFloatingNoteWindow(noteId),
+  );
+  ipcMain.handle(floatingChannel('listWindows'), () => listFloatingNoteWindows());
 
   // Todo 悬浮窗口
-  ipcMain.handle('floatingTodo:createWindow', (_, listId: string) =>
+  ipcMain.handle(floatingTodoChannel('createWindow'), (_, listId: string) =>
     createFloatingTodoWindow(listId),
   );
-  ipcMain.handle('floatingTodo:closeWindow', (_, listId: string) =>
+  ipcMain.handle(floatingTodoChannel('closeWindow'), (_, listId: string) =>
     closeFloatingTodoWindow(listId),
   );
-  ipcMain.handle('floatingTodo:minimizeWindow', (_, listId: string) =>
+  ipcMain.handle(floatingTodoChannel('minimizeWindow'), (_, listId: string) =>
     minimizeFloatingTodoWindow(listId),
   );
-  ipcMain.handle('floatingTodo:restoreWindow', (_, listId: string) =>
+  ipcMain.handle(floatingTodoChannel('restoreWindow'), (_, listId: string) =>
     restoreFloatingTodoWindow(listId),
   );
-  ipcMain.handle('floatingTodo:listWindows', () => listFloatingTodoWindows());
+  ipcMain.handle(floatingTodoChannel('listWindows'), () => listFloatingTodoWindows());
 
   // 配置相关
-  ipcMain.handle('config:getDefaultFloatingWindowSize', () => defaultFloatingWindowSize);
+  ipcMain.handle(configChannel('getDefaultFloatingWindowSize'), () => defaultFloatingWindowSize);
   ipcMain.handle(
-    'config:setDefaultFloatingWindowSize',
+    configChannel('setDefaultFloatingWindowSize'),
     (_, config: { width: number; height: number }) => {
       if (config.width && config.height) {
         defaultFloatingWindowSize = { width: config.width, height: config.height };
@@ -402,55 +413,76 @@ export function registerFloatingWindowHandlers(): void {
   );
 
   // 跨窗口消息转发
-  ipcMain.on('note:changed', (_event, noteId: string) => {
+  ipcMain.on(IPC_CHANNELS.noteChanged, (_event, noteId: string) => {
     const pillWindow = pillWindows.get(noteId);
     if (pillWindow && !pillWindow.isDestroyed()) {
-      pillWindow.webContents.send('note:updated', noteId);
+      pillWindow.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
     }
 
     const floatingWindow = floatingWindows.get(noteId);
     if (floatingWindow && !floatingWindow.isDestroyed()) {
-      floatingWindow.webContents.send('note:updated', noteId);
+      floatingWindow.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
     }
 
     const win = getMainWindow();
     if (win && !win.isDestroyed()) {
-      win.webContents.send('note:updated', noteId);
+      win.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
     }
 
     // 便签任务同步：也向 Todo 药丸/悬浮窗口发送更新事件
     const DEFAULT_TODO_LIST_ID = 'default-note-tasks';
     const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
     if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
-      todoFloatingWindow.webContents.send('todo:updated', DEFAULT_TODO_LIST_ID);
+      todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
     }
     const todoPill = todoPillWindows.get(DEFAULT_TODO_LIST_ID);
     if (todoPill && !todoPill.isDestroyed()) {
-      todoPill.webContents.send('todo:updated', DEFAULT_TODO_LIST_ID);
+      todoPill.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
     }
   });
 
-  ipcMain.on('floating-note:changed', (_event, noteId: string) => {
+  ipcMain.on(IPC_CHANNELS.floatingNoteChanged, (_event, noteId: string) => {
     const win = getMainWindow();
     if (win && !win.isDestroyed()) {
-      win.webContents.send('floating-note:updated', noteId);
+      win.webContents.send(IPC_CHANNELS.floatingNoteUpdated, noteId);
     }
   });
 
-  ipcMain.on('todo:changed', (_event, listId: string) => {
+  ipcMain.on(IPC_CHANNELS.todoChanged, (_event, listId: string) => {
     const floatingWindow = floatingTodoWindows.get(listId);
     if (floatingWindow && !floatingWindow.isDestroyed()) {
-      floatingWindow.webContents.send('todo:updated', listId);
+      floatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, listId);
     }
 
     const pillWindow = todoPillWindows.get(listId);
     if (pillWindow && !pillWindow.isDestroyed()) {
-      pillWindow.webContents.send('todo:updated', listId);
+      pillWindow.webContents.send(IPC_CHANNELS.todoUpdated, listId);
     }
 
     const win = getMainWindow();
     if (win && !win.isDestroyed()) {
-      win.webContents.send('todo:updated', listId);
+      win.webContents.send(IPC_CHANNELS.todoUpdated, listId);
     }
   });
+
+  // 从悬浮窗口跳转到主窗口指定便签
+  ipcMain.on(
+    IPC_CHANNELS.navigateNote,
+    (
+      _event,
+      payload: {
+        folderId?: string;
+        noteId?: string;
+        taskPath?: number[];
+      },
+    ) => {
+      const win = getMainWindow();
+      if (!win || win.isDestroyed() || !payload?.folderId || !payload?.noteId) return;
+
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+      win.webContents.send(IPC_CHANNELS.navigateNote, payload);
+    },
+  );
 }

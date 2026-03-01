@@ -4,6 +4,7 @@
  */
 
 import { BrowserWindow } from 'electron';
+import { IPC_CHANNELS } from '../../src/shared/types/ipc';
 
 /**
  * 存储事件类型
@@ -37,7 +38,7 @@ export function emitStorageEvent(event: StorageEvent): void {
 
   BrowserWindow.getAllWindows().forEach((win) => {
     if (!win.isDestroyed()) {
-      win.webContents.send('storage:event', event);
+      win.webContents.send(IPC_CHANNELS.storageEvent, event);
     }
   });
 }

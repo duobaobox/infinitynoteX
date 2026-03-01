@@ -6,6 +6,8 @@ import App from './App.tsx';
 import './index.css';
 import AntdConfig from './theme/AntdConfig';
 import { applyDataTheme, loadThemeFromConfig, subscribeToConfigChanges } from './theme/theme';
+import { IPC_CHANNELS } from './shared/types/ipc';
+import { onRendererIpc } from './shared/utils/ipcEvents';
 
 // 在 React 渲染前立即应用主题（避免背景闪烁）
 applyDataTheme();
@@ -23,6 +25,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 // Use contextBridge
-window.ipcRenderer.on('main-process-message', (_event, message) => {
+onRendererIpc(IPC_CHANNELS.mainProcessMessage, (_event, message) => {
   console.log(message);
 });

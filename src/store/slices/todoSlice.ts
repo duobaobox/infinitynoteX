@@ -11,7 +11,9 @@ import {
   updateTaskCheckedStatus,
 } from '../../features/todo/services/taskParser';
 import type { UISlice } from './uiSlice';
-import type { Note } from '../../services/types';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { sendRendererIpc } from '../../shared/utils/ipcEvents';
+import { loadAllNotes } from '../../shared/utils/noteLoader';
 
 // 定义依赖的其他 slice 类型
 type TodoSliceDeps = UISlice;
@@ -150,21 +152,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
 
   loadParsedTasks: async () => {
     try {
-      // 获取所有文件夹
-      const folders = await window.storage.listFolders();
-      const allNotes: Note[] = [];
-
-      // 获取每个文件夹的便签
-      for (const folder of folders) {
-        const noteIndices = await window.storage.listNotes(folder.id);
-        // 获取完整便签内容
-        for (const noteIndex of noteIndices) {
-          const note = await window.storage.getNote(noteIndex.id);
-          if (note) {
-            allNotes.push(note);
-          }
-        }
-      }
+      const allNotes = await loadAllNotes();
 
       // 解析所有任务
       const tasks = parseTasksFromNotes(allNotes);
@@ -193,7 +181,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       // 重新加载任务列表
       await get().loadParsedTasks();
       // 通知其他窗口同步（药丸、悬浮窗等）
-      window.ipcRenderer?.send('todo:changed', DEFAULT_TODO_LIST_ID);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
     } catch (error) {
       console.error('[TodoSlice] Failed to toggle parsed task checked:', error);
       throw error;
@@ -221,7 +209,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       await window.storage.createManualTask(listId, text, dueDate);
       await get().loadManualTasks(listId);
       // 通知悬浮窗口同步
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to create manual task:', error);
       throw error;
@@ -233,7 +221,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       await window.storage.updateManualTask(taskId, listId, patch);
       await get().loadManualTasks(listId);
       // 通知悬浮窗口同步
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to update manual task:', error);
       throw error;
@@ -245,7 +233,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       await window.storage.toggleManualTask(taskId, listId);
       await get().loadManualTasks(listId);
       // 通知悬浮窗口同步
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to toggle manual task:', error);
       throw error;
@@ -257,7 +245,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       await window.storage.deleteManualTask(taskId, listId);
       await get().loadManualTasks(listId);
       // 通知悬浮窗口同步
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('[TodoSlice] Failed to delete manual task:', error);
       throw error;

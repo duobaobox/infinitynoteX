@@ -16,12 +16,12 @@ import { AIChatWindow } from './pages/AIChatWindow';
 import { Button, Spin } from 'antd';
 import sidebarLeftSvg from './assets/sidebar-left.svg';
 import { getFeaturesByWorkspaceView } from './config/featureRegistry';
+import { IPC_CHANNELS } from './shared/types/ipc';
+import type { NavigateNotePayload } from './shared/types/ipc';
+import { onRendererIpc } from './shared/utils/ipcEvents';
 
-// 确保 Feature 模块被加载并完成注册
-import './features/note';
-import './features/ai-workbench';
-import './features/browser';
-import './features/todo';
+// 确保 Feature 模块被加载并完成注册（单点初始化）
+import './features/registerAllFeatures';
 
 import { useWorkspaceStore, setupFolderNotesSync } from './store/workspaceStore';
 import { useStorageEvents } from './hooks/useStorageEvents';
@@ -53,6 +53,9 @@ function App() {
   const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
   const setIsFirstLaunch = useWorkspaceStore((state) => state.setIsFirstLaunch);
   const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
+  const setWorkspaceView = useWorkspaceStore((state) => state.setWorkspaceView);
+  const setSelectedFolder = useWorkspaceStore((state) => state.setSelectedFolder);
+  const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
 
   // 保留的本地状态（非全局共享）
   const [lastTitlebarClickTime, setLastTitlebarClickTime] = useState(0);
@@ -112,6 +115,21 @@ function App() {
       }
     }
   }, [workspaceView, selectedToolId, setSelectedTool]);
+
+  // 响应悬浮窗口发起的便签跳转请求
+  useEffect(() => {
+    if (windowType !== 'main') return;
+
+    const handleNavigateNote = (_event: unknown, payload?: NavigateNotePayload) => {
+      if (!payload?.folderId || !payload?.noteId) return;
+
+      setWorkspaceView('note');
+      setSelectedFolder(payload.folderId);
+      setSelectedNote(payload.noteId, payload.taskPath ?? null);
+    };
+
+    return onRendererIpc(IPC_CHANNELS.navigateNote, handleNavigateNote);
+  }, [windowType, setWorkspaceView, setSelectedFolder, setSelectedNote]);
 
   // 切换到 AI 对话视图时，确保选中一个对话（如果有）
   useEffect(() => {

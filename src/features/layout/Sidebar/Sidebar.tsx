@@ -11,10 +11,6 @@ import {
   MoreOutlined,
 } from '@ant-design/icons';
 import { getFeaturesByWorkspaceView } from '../../../config/featureRegistry';
-
-// 确保 Feature 模块被加载并完成注册
-import '../../note';
-import '../../ai-workbench';
 import type { Folder } from '../../../services/types';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import { useSettingsStore } from '../../../store/settingsStore';

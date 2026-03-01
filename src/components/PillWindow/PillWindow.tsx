@@ -7,6 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { NoteColor } from '../../services/types';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { onRendererIpc } from '../../shared/utils/ipcEvents';
 import './PillWindow.css';
 
 // 便签装饰图标
@@ -70,10 +72,7 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
       }
     };
 
-    window.ipcRenderer?.on('note:updated', handleNoteUpdate);
-    return () => {
-      window.ipcRenderer?.off('note:updated', handleNoteUpdate);
-    };
+    return onRendererIpc(IPC_CHANNELS.noteUpdated, handleNoteUpdate);
   }, [noteId]);
 
   const handleRestore = async () => {

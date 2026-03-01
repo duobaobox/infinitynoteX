@@ -1,8 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { autoUpdater, type UpdateDownloadedEvent, type ProgressInfo } from 'electron-updater';
 import type { UpdateStatusPayload } from '../src/services/types';
+import { IPC_CHANNELS } from '../src/shared/types/ipc';
 
-const STATUS_CHANNEL = 'updater:status';
 let lastStatus: UpdateStatusPayload = { state: app.isPackaged ? 'idle' : 'disabled' };
 let isInitialized = false;
 let isChecking = false;
@@ -31,7 +31,7 @@ const createStatusSender =
     lastStatus = payload;
     const window = getWindow();
     if (window && !window.isDestroyed()) {
-      window.webContents.send(STATUS_CHANNEL, payload);
+      window.webContents.send(IPC_CHANNELS.updaterStatus, payload);
     }
   };
 
@@ -52,11 +52,11 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null) {
 
   const sendStatus = createStatusSender(getWindow);
 
-  ipcMain.handle('updater:last-status', async () => lastStatus);
+  ipcMain.handle(IPC_CHANNELS.updaterLastStatus, async () => lastStatus);
 
   if (!app.isPackaged) {
-    ipcMain.handle('updater:check-now', async () => ({ skipped: true, reason: 'dev' }));
-    ipcMain.handle('updater:install-now', async () => ({ skipped: true, reason: 'dev' }));
+    ipcMain.handle(IPC_CHANNELS.updaterCheckNow, async () => ({ skipped: true, reason: 'dev' }));
+    ipcMain.handle(IPC_CHANNELS.updaterInstallNow, async () => ({ skipped: true, reason: 'dev' }));
     sendStatus({ state: 'disabled' });
     return;
   }
@@ -159,9 +159,9 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null) {
     });
   });
 
-  ipcMain.handle('updater:check-now', async () => checkForUpdates());
+  ipcMain.handle(IPC_CHANNELS.updaterCheckNow, async () => checkForUpdates());
 
-  ipcMain.handle('updater:install-now', async () => {
+  ipcMain.handle(IPC_CHANNELS.updaterInstallNow, async () => {
     setImmediate(() => {
       autoUpdater.quitAndInstall(true, true);
     });

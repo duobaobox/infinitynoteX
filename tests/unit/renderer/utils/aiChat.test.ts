@@ -10,7 +10,7 @@ import {
   convertMarkdownToTipTap,
   splitParagraphs,
   copyToClipboard,
-} from '../../../../src/components/AIChat/utils';
+} from '../../../../src/features/ai-chat/utils';
 
 // Mock clipboard API
 const mockWrite = vi.fn();

@@ -5,7 +5,11 @@
 
 import { ipcMain } from 'electron';
 import type { AIConfig, ChatPayload } from '../../src/services/aiConfig';
+import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import { readAIConfig, writeAIConfig, createAdapter } from '../ai';
+
+const aiChannel = (method: IpcProxyMethod<'ai'>) => getIpcProxyChannel('ai', method);
 
 // 流式请求中止控制器
 const aiStreamAbortControllers = new Map<number, AbortController>();
@@ -14,16 +18,16 @@ const aiStreamAbortControllers = new Map<number, AbortController>();
  * 注册 AI 相关 IPC 处理器
  */
 export function registerAIHandlers(): void {
-  ipcMain.handle('ai:getConfig', async () => {
+  ipcMain.handle(aiChannel('getConfig'), async () => {
     const config = await readAIConfig();
     return config;
   });
 
-  ipcMain.handle('ai:setConfig', async (_, config: AIConfig) => {
+  ipcMain.handle(aiChannel('setConfig'), async (_, config: AIConfig) => {
     await writeAIConfig(config);
   });
 
-  ipcMain.handle('ai:testConnection', async () => {
+  ipcMain.handle(aiChannel('testConnection'), async () => {
     try {
       const config = await readAIConfig();
       if (!config) {
@@ -37,7 +41,7 @@ export function registerAIHandlers(): void {
     }
   });
 
-  ipcMain.handle('ai:chat', async (_, payload: ChatPayload) => {
+  ipcMain.handle(aiChannel('chat'), async (_, payload: ChatPayload) => {
     try {
       const config = await readAIConfig();
       if (!config) {
@@ -52,7 +56,7 @@ export function registerAIHandlers(): void {
     }
   });
 
-  ipcMain.handle('ai:chatStream', async (event, payload: ChatPayload) => {
+  ipcMain.handle(aiChannel('chatStream'), async (event, payload: ChatPayload) => {
     try {
       const config = await readAIConfig();
       if (!config) {
@@ -74,12 +78,12 @@ export function registerAIHandlers(): void {
           for await (const chunk of adapter.chatStream(payload, {
             signal: abortController.signal,
           })) {
-            event.sender.send('ai:stream:chunk', chunk);
+            event.sender.send(IPC_CHANNELS.aiStreamChunk, chunk);
           }
-          event.sender.send('ai:stream:done', { success: true });
+          event.sender.send(IPC_CHANNELS.aiStreamDone, { success: true });
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
-          event.sender.send('ai:stream:error', { error: msg });
+          event.sender.send(IPC_CHANNELS.aiStreamError, { error: msg });
         } finally {
           const current = aiStreamAbortControllers.get(wcId);
           if (current === abortController) {
@@ -95,7 +99,7 @@ export function registerAIHandlers(): void {
     }
   });
 
-  ipcMain.handle('ai:abortStream', (event) => {
+  ipcMain.handle(aiChannel('abortStream'), (event) => {
     const wcId = event.sender.id;
     const controller = aiStreamAbortControllers.get(wcId);
     if (!controller) {

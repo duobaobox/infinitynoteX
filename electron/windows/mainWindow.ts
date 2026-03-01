@@ -7,6 +7,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 import type { BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { IPC_CHANNELS } from '../../src/shared/types/ipc';
 import { readAppConfig, writeAppConfig } from '../config';
 
 // 计算绝对路径（ESM 没有 __dirname）
@@ -109,7 +110,7 @@ export function createMainWindow(): BrowserWindow {
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString());
+    win?.webContents.send(IPC_CHANNELS.mainProcessMessage, new Date().toLocaleString());
   });
 
   // 准备好再显示窗口，减少"半秒加载感"
@@ -146,11 +147,11 @@ export function createMainWindow(): BrowserWindow {
  */
 export function registerMainWindowHandlers(): void {
   // 窗口控制
-  ipcMain.on('window-minimize', () => {
+  ipcMain.on(IPC_CHANNELS.windowMinimize, () => {
     win?.minimize();
   });
 
-  ipcMain.on('window-maximize', () => {
+  ipcMain.on(IPC_CHANNELS.windowMaximize, () => {
     if (win) {
       if (win.isMaximized()) {
         win.unmaximize();
@@ -160,7 +161,7 @@ export function registerMainWindowHandlers(): void {
     }
   });
 
-  ipcMain.on('window-close', () => {
+  ipcMain.on(IPC_CHANNELS.windowClose, () => {
     if (!win) return;
     if (process.platform === 'darwin') {
       win.hide();
@@ -169,15 +170,15 @@ export function registerMainWindowHandlers(): void {
     }
   });
 
-  ipcMain.handle('window-is-maximized', () => {
+  ipcMain.handle(IPC_CHANNELS.windowIsMaximized, () => {
     return win?.isMaximized() ?? false;
   });
 
-  ipcMain.handle('window-reload', () => {
+  ipcMain.handle(IPC_CHANNELS.windowReload, () => {
     win?.webContents.reload();
   });
 
-  ipcMain.on('window-double-click-titlebar', () => {
+  ipcMain.on(IPC_CHANNELS.windowDoubleClickTitlebar, () => {
     if (win) {
       if (win.isMaximized()) {
         win.unmaximize();

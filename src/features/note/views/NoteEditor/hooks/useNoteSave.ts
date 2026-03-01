@@ -4,7 +4,7 @@
  * 保存机制：
  * 1. 编辑时防抖保存（1.5秒延迟）
  * 2. 切换便签时立即保存当前内容
- * 3. 页面关闭/刷新时保存
+ * 3. 页面关闭/刷新时异步尽力保存
  * 4. 脏数据追踪，避免重复保存
  */
 
@@ -12,6 +12,8 @@ import { useCallback, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import type { PendingSave } from '../types';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
+import { IPC_CHANNELS } from '../../../../../shared/types/ipc';
+import { sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
 
 interface UseNoteSaveReturn {
   /** 待保存数据引用 */
@@ -63,9 +65,9 @@ export const useNoteSave = (): UseNoteSaveReturn => {
         }
 
         // 通知其他窗口（便签窗口）
-        window.ipcRenderer?.send('note:changed', saveData.noteId);
+        sendRendererIpc(IPC_CHANNELS.noteChanged, saveData.noteId);
         // 同时通知 Todo 窗口（确保任务勾选能同步更新）
-        window.ipcRenderer?.send('todo:changed', 'default-note-tasks');
+        sendRendererIpc(IPC_CHANNELS.todoChanged, 'default-note-tasks');
         triggerListRefresh();
 
         return true;
@@ -121,22 +123,14 @@ export const useNoteSave = (): UseNoteSaveReturn => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (pendingSaveRef.current) {
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
         const data = pendingSaveRef.current;
 
-        // 使用同步 IPC 确保数据在进程终止前发送到主进程
-        try {
-          const success = window.storage.updateNoteSync(data.noteId, {
-            title: data.title,
-            content: data.content,
-          });
-
-          if (!success) {
-            console.error('Failed to sync save on unload');
-          }
-        } catch (e) {
-          console.error('Error during sync save on unload:', e);
-        }
+        // beforeunload 仅能做“尽力而为”的异步保存，避免 sendSync 阻塞主线程
+        void saveImmediately(data, true);
       }
     };
 
@@ -144,7 +138,7 @@ export const useNoteSave = (): UseNoteSaveReturn => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []);
+  }, [saveImmediately]);
 
   // 组件卸载时保存
   useEffect(() => {

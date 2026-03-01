@@ -11,6 +11,7 @@ import {
   extractTipTapText,
   truncateTitle,
 } from './utils';
+import { loadFolderNoteGroups } from '../../shared/utils/noteLoader';
 import type { ChatItem, AIChatPanelProps, NoteReference } from './types';
 import './styles/AIChat.css';
 
@@ -56,22 +57,16 @@ export const AIChatPanel = ({
   useEffect(() => {
     const loadNotes = async () => {
       try {
-        const folders = await window.storage.listFolders();
-        const items: MenuProps['items'] = [];
-        for (const folder of folders) {
-          const notes = await window.storage.listNotes(folder.id);
-          if (notes.length > 0) {
-            items.push({
-              key: `folder-${folder.id}`,
-              type: 'group',
-              label: folder.name || '未命名文件夹',
-              children: notes.map((note) => ({
-                key: note.id,
-                label: truncateTitle(note.title) || '无标题',
-              })),
-            });
-          }
-        }
+        const groups = await loadFolderNoteGroups();
+        const items: MenuProps['items'] = groups.map((group) => ({
+          key: `folder-${group.folderId}`,
+          type: 'group',
+          label: group.folderName,
+          children: group.notes.map((note) => ({
+            key: note.id,
+            label: truncateTitle(note.title) || '无标题',
+          })),
+        }));
         setNoteItems(items);
       } catch (err) {
         console.error('[AIChatPanel] Failed to load notes:', err);

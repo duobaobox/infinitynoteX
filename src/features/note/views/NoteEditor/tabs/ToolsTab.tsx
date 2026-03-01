@@ -34,7 +34,7 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
   useEffect(() => {
     const loadDefaultFloatingWindowSize = async () => {
       try {
-        const config = await window.ipcRenderer?.invoke('config:getDefaultFloatingWindowSize');
+        const config = await window.config?.getDefaultFloatingWindowSize?.();
         if (config) {
           setDefaultFloatingWindowWidth(config.width || 400);
           setDefaultFloatingWindowHeight(config.height || 400);
@@ -51,8 +51,8 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
   const handleDefaultWidthChange = (value: number | number[]) => {
     const newWidth = Array.isArray(value) ? value[0] : value;
     setDefaultFloatingWindowWidth(newWidth);
-    window.ipcRenderer
-      ?.invoke('config:setDefaultFloatingWindowSize', {
+    window.config
+      ?.setDefaultFloatingWindowSize?.({
         width: newWidth,
         height: defaultFloatingWindowHeight,
       })
@@ -65,8 +65,8 @@ export const ToolsTab: React.FC<ToolsTabProps> = ({ noteId, noteColor, onColorCh
   const handleDefaultHeightChange = (value: number | number[]) => {
     const newHeight = Array.isArray(value) ? value[0] : value;
     setDefaultFloatingWindowHeight(newHeight);
-    window.ipcRenderer
-      ?.invoke('config:setDefaultFloatingWindowSize', {
+    window.config
+      ?.setDefaultFloatingWindowSize?.({
         width: defaultFloatingWindowWidth,
         height: newHeight,
       })

@@ -49,6 +49,7 @@ import {
   renderMarkdownToHtml,
 } from '../../../../ai-chat/utils';
 import { NOTE_COLOR_HEX_MAP, type NoteColorId } from '../../../../../constants/noteColors';
+import { loadFolderNoteGroups } from '../../../../../shared/utils/noteLoader';
 import './CanvasTab.css';
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
@@ -163,17 +164,13 @@ const CanvasInner: React.FC = () => {
   useEffect(() => {
     const loadNotes = async () => {
       try {
-        const folders = await window.storage.listFolders();
-        const items: MenuProps['items'] = [];
-        for (const folder of folders) {
-          const folderNotes = await window.storage.listNotes(folder.id);
-          folderNotes.forEach((note) => {
-            items.push({
-              key: note.id,
-              label: note.title || '无标题',
-            });
-          });
-        }
+        const groups = await loadFolderNoteGroups();
+        const items: MenuProps['items'] = groups.flatMap((group) =>
+          group.notes.map((note) => ({
+            key: note.id,
+            label: note.title || '无标题',
+          })),
+        );
         setNoteItems(items);
       } catch (err) {
         console.error('Failed to load notes for reference:', err);
@@ -423,7 +420,7 @@ const CanvasInner: React.FC = () => {
     let defaultHeight = NODE_HEIGHT;
 
     try {
-      const config = await window.ipcRenderer?.invoke('config:getDefaultFloatingWindowSize');
+      const config = await window.config?.getDefaultFloatingWindowSize?.();
       if (config) {
         defaultWidth = config.width || NODE_WIDTH;
         defaultHeight = config.height || NODE_HEIGHT;

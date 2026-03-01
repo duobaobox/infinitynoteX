@@ -25,6 +25,8 @@ import type { TipTapJSONContent } from '../../../../services/types';
 import type { NoteColor as NoteColorType } from '../../../../services/types';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
+import { IPC_CHANNELS } from '../../../../shared/types/ipc';
+import { onRendererIpc, sendRendererIpc } from '../../../../shared/utils/ipcEvents';
 
 // 从模块导入
 import type { TabKeyType } from './types';
@@ -108,10 +110,7 @@ export const NoteEditor: React.FC = () => {
       }
     };
 
-    window.ipcRenderer?.on('note:updated', handleFloatingNoteUpdate);
-    return () => {
-      window.ipcRenderer?.off('note:updated', handleFloatingNoteUpdate);
-    };
+    return onRendererIpc(IPC_CHANNELS.noteUpdated, handleFloatingNoteUpdate);
   }, []);
 
   const loadNote = async (id: string) => {
@@ -160,7 +159,7 @@ export const NoteEditor: React.FC = () => {
       try {
         await window.storage.updateNote(currentNoteIdRef.current, { color: newColor });
         setNoteColor(newColor);
-        window.ipcRenderer?.send('note:updated', currentNoteIdRef.current);
+        sendRendererIpc(IPC_CHANNELS.noteChanged, currentNoteIdRef.current);
         triggerListRefresh();
       } catch (error) {
         console.error('Failed to update color:', error);

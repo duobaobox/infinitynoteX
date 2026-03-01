@@ -5,6 +5,7 @@
 
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import path from 'node:path';
+import { IPC_CHANNELS } from '../../src/shared/types/ipc';
 import { readAppConfig, writeAppConfig } from '../config';
 import log from '../logger';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST } from './mainWindow';
@@ -168,19 +169,19 @@ export function toggleAIChatWindow(): void {
  * 注册 AI 对话窗口相关 IPC 处理器
  */
 export function registerAIChatWindowHandlers(): void {
-  ipcMain.handle('ai-chat-window:show', () => {
+  ipcMain.handle(IPC_CHANNELS.aiChatWindowShow, () => {
     log.info('Show AI chat window requested');
     createAIChatWindow();
   });
 
-  ipcMain.handle('ai-chat-window:hide', () => {
+  ipcMain.handle(IPC_CHANNELS.aiChatWindowHide, () => {
     log.info('Hide AI chat window requested');
     if (aiChatWindow && !aiChatWindow.isDestroyed()) {
       aiChatWindow.hide();
     }
   });
 
-  ipcMain.handle('ai-chat-window:toggle', () => {
+  ipcMain.handle(IPC_CHANNELS.aiChatWindowToggle, () => {
     log.info('Toggle AI chat window requested');
     toggleAIChatWindow();
   });

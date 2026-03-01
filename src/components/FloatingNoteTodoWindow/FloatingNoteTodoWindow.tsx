@@ -18,12 +18,14 @@ import {
   InfoCircleOutlined,
 } from '@ant-design/icons';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
-import type { Note } from '../../services/types';
 import type { ParsedTask } from '../../features/todo/types';
 import {
   parseTasksFromNotes,
   updateTaskCheckedStatus,
 } from '../../features/todo/services/taskParser';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { onRendererIpc, sendRendererIpc } from '../../shared/utils/ipcEvents';
+import { loadAllNotes } from '../../shared/utils/noteLoader';
 import './FloatingNoteTodoWindow.css';
 
 // 日期状态类型
@@ -69,20 +71,7 @@ const FloatingNoteTodoWindow: React.FC = () => {
   const loadData = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
-      // 获取所有文件夹
-      const folders = await window.storage.listFolders();
-      const allNotes: Note[] = [];
-
-      // 获取每个文件夹的便签
-      for (const folder of folders) {
-        const noteIndices = await window.storage.listNotes(folder.id);
-        for (const noteIndex of noteIndices) {
-          const note = await window.storage.getNote(noteIndex.id);
-          if (note) {
-            allNotes.push(note);
-          }
-        }
-      }
+      const allNotes = await loadAllNotes();
 
       // 解析所有任务
       const parsedTasks = parseTasksFromNotes(allNotes);
@@ -106,15 +95,18 @@ const FloatingNoteTodoWindow: React.FC = () => {
       await loadData(true);
     };
 
-    window.ipcRenderer?.on('note:updated', handleNoteUpdate);
-    window.ipcRenderer?.on('floating-note:updated', handleNoteUpdate);
+    const offNoteUpdated = onRendererIpc(IPC_CHANNELS.noteUpdated, handleNoteUpdate);
+    const offFloatingNoteUpdated = onRendererIpc(
+      IPC_CHANNELS.floatingNoteUpdated,
+      handleNoteUpdate,
+    );
     // 监听主页面的便签任务勾选操作
-    window.ipcRenderer?.on('todo:updated', handleNoteUpdate);
+    const offTodoUpdated = onRendererIpc(IPC_CHANNELS.todoUpdated, handleNoteUpdate);
 
     return () => {
-      window.ipcRenderer?.off('note:updated', handleNoteUpdate);
-      window.ipcRenderer?.off('floating-note:updated', handleNoteUpdate);
-      window.ipcRenderer?.off('todo:updated', handleNoteUpdate);
+      offNoteUpdated();
+      offFloatingNoteUpdated();
+      offTodoUpdated();
     };
   }, [loadData]);
 
@@ -137,9 +129,9 @@ const FloatingNoteTodoWindow: React.FC = () => {
       await window.storage.updateNote(task.noteId, { content: newContent });
 
       // 5. 通知其他窗口（便签窗口 + Todo 窗口）
-      window.ipcRenderer?.send('note:changed', task.noteId);
+      sendRendererIpc(IPC_CHANNELS.noteChanged, task.noteId);
       // 同时通知 Todo 窗口（确保药丸和主页面也能同步）
-      window.ipcRenderer?.send('todo:changed', 'default-note-tasks');
+      sendRendererIpc(IPC_CHANNELS.todoChanged, 'default-note-tasks');
 
       // 注意：这里不需要手动调用 loadData()，因为事件会触发上方监听的 reload
       // 即使不触发，本地状态已经更新了，用户体验是流畅的
@@ -154,7 +146,7 @@ const FloatingNoteTodoWindow: React.FC = () => {
   // 跳转到源便签
   const handleGoToSource = (task: ParsedTask) => {
     // 通过 IPC 通知主窗口跳转
-    window.ipcRenderer?.send('navigate:note', {
+    sendRendererIpc(IPC_CHANNELS.navigateNote, {
       folderId: task.folderId,
       noteId: task.noteId,
       taskPath: task.path,

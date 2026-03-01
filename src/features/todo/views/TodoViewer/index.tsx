@@ -22,6 +22,8 @@ import {
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useThemeColor } from '../../../../hooks/useThemeColor';
+import { IPC_CHANNELS } from '../../../../shared/types/ipc';
+import { onRendererIpc } from '../../../../shared/utils/ipcEvents';
 import type { ParsedTask, ManualTaskIndex } from '../../types';
 import { DEFAULT_TODO_LIST_ID } from '../../types';
 import './TodoViewer.css';
@@ -129,10 +131,7 @@ export const TodoViewer: React.FC = () => {
       await loadTodoLists();
     };
 
-    window.ipcRenderer?.on('todo:updated', handleTodoUpdate);
-    return () => {
-      window.ipcRenderer?.off('todo:updated', handleTodoUpdate);
-    };
+    return onRendererIpc(IPC_CHANNELS.todoUpdated, handleTodoUpdate);
   }, [selectedTodoListId, isDefaultList, loadParsedTasks, loadManualTasks, loadTodoLists]);
 
   // ============ 派生数据 ============

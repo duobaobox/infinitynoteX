@@ -6,10 +6,14 @@
 import { app, ipcMain, shell } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import { storageManager } from '../storage';
 import { getMainWindow } from '../windows/mainWindow';
 import { SyncManager } from '../sync/syncManager';
 import type { SyncProgress, WebDAVConfig, SyncConfig } from '../sync/types';
+
+const syncChannel = (method: IpcProxyMethod<'sync'>) => getIpcProxyChannel('sync', method);
 
 // 同步管理器实例
 const syncManager = new SyncManager();
@@ -18,7 +22,7 @@ const syncManager = new SyncManager();
  * 注册同步相关 IPC 处理器
  */
 export function registerSyncHandlers(): void {
-  ipcMain.handle('sync:testConnection', async (_, providerId: string, config: unknown) => {
+  ipcMain.handle(syncChannel('testConnection'), async (_, providerId: string, config: unknown) => {
     try {
       if (providerId === 'webdav') {
         return await syncManager.testWebDAVConnection(config as WebDAVConfig);
@@ -30,11 +34,11 @@ export function registerSyncHandlers(): void {
     }
   });
 
-  ipcMain.handle('sync:execute', async (event, providerId: string, config: unknown) => {
+  ipcMain.handle(syncChannel('execute'), async (event, providerId: string, config: unknown) => {
     try {
       const storagePath = storageManager.getCurrentPath();
       const progressCallback = (progress: SyncProgress) => {
-        event.sender.send('sync:progress', progress);
+        event.sender.send(IPC_CHANNELS.syncProgress, progress);
       };
       syncManager.setProgressCallback(progressCallback);
       const result = await syncManager.execute(providerId, config as SyncConfig, storagePath);
@@ -58,11 +62,11 @@ export function registerSyncHandlers(): void {
       );
       await storageManager.reloadAllCaches();
 
-      event.sender.send('sync:completed', result);
+      event.sender.send(IPC_CHANNELS.syncCompleted, result);
 
       const win = getMainWindow();
       if (win && !win.isDestroyed()) {
-        win.webContents.send('sync:dataChanged');
+        win.webContents.send(IPC_CHANNELS.syncDataChanged);
       }
 
       return result;
@@ -72,7 +76,7 @@ export function registerSyncHandlers(): void {
     }
   });
 
-  ipcMain.handle('sync:getLastResult', async () => {
+  ipcMain.handle(syncChannel('getLastResult'), async () => {
     const storagePath = storageManager.getCurrentPath();
     const lastResultPath = path.join(storagePath, '.sync-meta', 'last-result.json');
     try {
@@ -83,7 +87,7 @@ export function registerSyncHandlers(): void {
     }
   });
 
-  ipcMain.handle('sync:preview', async (_, providerId: string, config: unknown) => {
+  ipcMain.handle(syncChannel('preview'), async (_, providerId: string, config: unknown) => {
     try {
       if (providerId !== 'webdav') {
         throw new Error(`Unknown provider: ${providerId}`);
@@ -96,15 +100,15 @@ export function registerSyncHandlers(): void {
     }
   });
 
-  ipcMain.handle('sync:getConfig', async (_, providerId: string) => {
+  ipcMain.handle(syncChannel('getConfig'), async (_, providerId: string) => {
     return await syncManager.getConfig(providerId);
   });
 
-  ipcMain.handle('sync:setConfig', async (_, providerId: string, config: unknown) => {
+  ipcMain.handle(syncChannel('setConfig'), async (_, providerId: string, config: unknown) => {
     await syncManager.setConfig(providerId, config as SyncConfig);
   });
 
-  ipcMain.handle('sync:openLogDir', async () => {
+  ipcMain.handle(syncChannel('openLogDir'), async () => {
     const logDir = path.join(app.getPath('userData'), 'sync-logs');
     await fs.mkdir(logDir, { recursive: true });
     await shell.openPath(logDir);

@@ -10,6 +10,8 @@ import { message, Spin } from 'antd';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { onRendererIpc, sendRendererIpc } from '../../shared/utils/ipcEvents';
 import './FloatingNoteWindow.css';
 
 // 懒加载编辑器
@@ -69,10 +71,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
       }
     };
 
-    window.ipcRenderer?.on('note:updated', handleNoteUpdate);
-    return () => {
-      window.ipcRenderer?.off('note:updated', handleNoteUpdate);
-    };
+    return onRendererIpc(IPC_CHANNELS.noteUpdated, handleNoteUpdate);
   }, [noteId, editorContent]);
 
   // 防抖保存
@@ -88,7 +87,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
         try {
           await window.storage.updateNote(noteId, { title, content });
 
-          window.ipcRenderer?.send('note:updated', noteId);
+          sendRendererIpc(IPC_CHANNELS.noteChanged, noteId);
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');

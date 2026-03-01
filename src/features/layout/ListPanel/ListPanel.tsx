@@ -8,10 +8,6 @@ import { useWorkspaceStore } from '../../../store/workspaceStore';
 import { getActiveFeature } from '../../../config/featureRegistry';
 import './ListPanel.css';
 
-// 确保 Feature 模块被加载并完成注册
-import '../../note';
-import '../../ai-workbench';
-
 interface ListPanelProps {
   flex: string | number;
 }

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfinityNoteX：2025 随手记</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Zcool+XiaoWei&family=Long+Cang&family=Noto+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400&display=swap');
+
+        :root {
+            --paper-bg: #fdfbf7;
+            --ink-color: #2c2c2c;
+            --accent-red: #d32f2f;
+            --accent-blue: #1976d2;
+            --highlight-yellow: rgba(255, 235, 59, 0.3);
+            --tape-color: rgba(255, 255, 255, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #e0e0e0;
+            font-family: 'Noto Serif SC', serif;
+            color: var(--ink-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        /* --- Paper Container --- */
+        .paper {
+            background-color: var(--paper-bg);
+            background-image:
+                linear-gradient(90deg, transparent 95%, rgba(0, 0, 0, 0.02) 95%),
+                linear-gradient(transparent 95%, rgba(0, 0, 0, 0.02) 95%);
+            background-size: 20px 20px;
+
+            width: 100%;
+            max-width: 420px;
+            padding: 50px 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            position: relative;
+            transform: none;
+        }
+
+        /* Top Tape */
+        .paper::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 35px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-left: 1px dashed rgba(0, 0, 0, 0.1);
+            border-right: 1px dashed rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(2px);
+        }
+
+        /* --- Typography --- */
+        h1 {
+            font-family: 'Long Cang', cursive;
+            font-size: 2.8rem;
+            text-align: center;
+            margin: 20px 0 40px;
+            color: var(--ink-color);
+            position: relative;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-family: 'Zcool XiaoWei', serif;
+            font-size: 1.3rem;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--ink-color);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        .handwritten {
+            font-family: 'Long Cang', cursive;
+            color: var(--accent-blue);
+        }
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            margin-bottom: 24px;
+            text-align: justify;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, var(--highlight-yellow) 0%, var(--highlight-yellow) 100%);
+            background-repeat: no-repeat;
+            background-size: 100% 40%;
+            background-position: 0 88%;
+            display: inline;
+        }
+
+        /* --- Elements --- */
+        .logo-container {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .stamp {
+            border: 3px double var(--accent-red);
+            color: var(--accent-red);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 5px 15px;
+            border-radius: 4px;
+            transform: rotate(-12deg);
+            display: inline-block;
+            opacity: 0.85;
+            mix-blend-mode: multiply;
+        }
+
+        .sticky-note {
+            background-color: #fff9c4;
+            padding: 20px;
+            box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.1);
+            transform: rotate(1.5deg);
+            margin: 30px 0;
+            font-family: 'Long Cang', cursive;
+            font-size: 1.2rem;
+            color: #444;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        ul.features {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        ul.features li {
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        ul.features li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+            line-height: 1;
+            top: 2px;
+        }
+
+        .feature-title {
+            font-weight: bold;
+            font-family: 'Zcool XiaoWei';
+            font-size: 1.1rem;
+        }
+
+        .feature-desc {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 2px;
+            font-family: 'Noto Serif SC';
+        }
+
+        /* --- Polaroids --- */
+        .polaroid {
+            background: #fff;
+            padding: 10px 10px 30px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: rotate(-2deg);
+            margin: 40px auto 20px;
+            width: 85%;
+            text-align: center;
+        }
+
+        .polaroid img {
+            width: 100%;
+            height: auto;
+            /* Remove grayscale for a cleaner look if images are nice */
+            filter: contrast(1.05);
+            display: block;
+        }
+
+        .polaroid-caption {
+            font-family: 'Long Cang', cursive;
+            color: #555;
+            margin-top: 15px;
+            font-size: 1.1rem;
+        }
+
+        .divider {
+            border-top: 1px dashed #bbb;
+            margin: 30px 0;
+        }
+
+        .fab-extended {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ink-color);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 30px;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .fab-extended:hover {
+            transform: translateX(-50%) translateY(-2px);
+            background: #000;
+        }
+
+        /* --- Timeline --- */
+        .timeline {
+            position: relative;
+            max-width: 100%;
+            margin: 30px 0;
+            padding-left: 20px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 6px;
+            width: 2px;
+            background: #e0e0e0;
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+            padding-left: 25px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--accent-blue);
+            z-index: 1;
+        }
+
+        .timeline-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+
+        .timeline-content {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1rem;
+            color: var(--ink-color);
+            line-height: 1.5;
+        }
+
+        .timeline-title {
+            font-weight: bold;
+            color: #333;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="paper" id="report-content">
+        <div class="logo-container">
+            <img src="../build/icon.png" alt="InfinityNoteX Logo">
+        </div>
+
+
+
+        <h1>InfinityNoteX - 无限便签</h1>
+
+        <p>
+            <span class="highlight">关于“关于无限便签”的故事</span>。
+        </p>
+        <p>
+            2025 年，发现自己越来越不敢打开“笔记软件”。<br>
+            那里堆满了也许永远不会再读的长篇大论的笔记和收藏，却唯独少了当下的鲜活灵感和思考。
+        </p>
+        <p>
+            在这个AI时代下获取知识的成本越来越低、越来越及时、越来越方便，对我而言需要的不再是一个更沉重的笔记“仓库”来沉淀一些低密度的知识和一时兴起的收藏，
+            而是需要一张随时待命、轻盈灵动、轻量的 <strong>『便签』</strong>，来接住脑海中一闪而过的“火花”。
+        </p>
+        <p>
+            <strong>InfinityNoteX</strong> 的诞生，只为一件事：<br>
+            <strong>接住脑海中一闪而过的“火花”。</strong><br>
+            让碎片化的、高价值的想法，在 AI 的碰撞下，绽放出意想不到的光芒。<br>
+            当然，最重要的还是想验证AI时代下是否真的可以通过AI重塑一种新的记录方式，以及为自己的学习交一份答卷。所以产品依旧是免费！
+        </p>
+        <h2># 想法与火花</h2>
+
+        <div class="sticky-note">
+            "Don't let the noise drown out your own inner voice."
+            <div style="text-align: right; font-size: 0.9rem; margin-top: 10px;">-- Steve Jobs</div>
+        </div>
+
+        <p>
+            <strong>极度克制地做“减法”：</strong><br>
+            尽可能的去掉编辑文本以外的功能和按钮。<br>
+            坚持 <strong>『本地优先』</strong> 与 <strong>『悬浮便签』</strong>，让工具退居幕后，只为保留最纯粹的灵感记录空间。
+        </p>
+
+        <p>
+            <strong>但更能在关键处做“加法”：</strong><br>
+            <strong>加</strong>上思维的广度 —— <strong>无限画布</strong> 让灵感自由生长。<br>
+            <strong>加</strong>上记忆的深度 —— <strong>RAG知识库</strong> 唤醒沉睡的灵感。<br>
+            <strong>加</strong>上 AI 的维度 —— <strong>AI 工坊</strong> 是与你共同思考的第二大脑。
+        </p>
+
+        <p>
+            <strong>InfinityNoteX，就是在『减』与『加』的辩证中，构建的纯粹秩序。</strong>
+        </p>
+
+        <ul class="features">
+            <li>
+                <div class="feature-title">本地优先</div>
+                <div class="feature-desc">你的数据只属于你。不仅是隐私，更是安全感。</div>
+            </li>
+            <li>
+                <div class="feature-title">悬浮窗</div>
+                <div class="feature-desc">极简交互。当灵感闪现时它就在手边；当你需要专注时它悄然隐身。</div>
+            </li>
+            <li>
+                <div class="feature-title">无限画布</div>
+                <div class="feature-desc">思维延展。打破线性的束缚，在一望无际的画板上自由连接。</div>
+            </li>
+            <li>
+                <div class="feature-title">知识库</div>
+                <div class="feature-desc">记忆沉淀。让 AI 穿梭于万千便签之间，将碎片化的灵感重新编织。</div>
+            </li>
+            <li>
+                <div class="feature-title">AI 工坊</div>
+                <div class="feature-desc">智慧涌现。结构与灵魂的结合，它是你的第二大脑。</div>
+            </li>
+        </ul>
+
+        <div class="polaroid" style="transform: rotate(1deg); width: 95%; margin-bottom: 30px;">
+            <img src="../build/image.png" alt="InfinityNoteX 桌面端展示">
+        </div>
+
+        <div class="polaroid" style="transform: rotate(-1.5deg); width: 95%; margin-bottom: 30px;">
+            <img src="../build/image1.png" alt="InfinityNoteX 移动端同步">
+        </div>
+
+        <div class="polaroid" style="transform: rotate(2deg); width: 95%; margin-bottom: 30px;">
+            <img src="../build/image2.png" alt="InfinityNoteX AI 功能">
+        </div>
+
+        <h2># 进化的印记</h2>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot" style="border-color: #aaa;"></div>
+                <div class="timeline-date">2025.10.26</div>
+                <div class="timeline-content">
+                    <span class="timeline-title">Hello World.</span>
+                    项目启动，基于自己开源的InfinityNote，重新开发InfinityNoteX。
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot" style="border-color: #66bb6a;"></div>
+                <div class="timeline-date">2025.11.16</div>
+                <div class="timeline-content">
+                    <span class="timeline-title">Markdown Engine.</span>
+                    可用富文本编辑的便签正式上线。
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot" style="border-color: #ffa726;"></div>
+                <div class="timeline-date">2026.01.03</div>
+                <div class="timeline-content">
+                    <span class="timeline-title">Infinite Possibilities.</span>
+                    无限画布与 AI 工坊上线。引入 <strong>快捷指令</strong>，让 AI 协助你思考。
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot" style="border-color: #ef5350;"></div>
+                <div class="timeline-date">2026.01.10</div>
+                <div class="timeline-content">
+                    <span class="timeline-title">Memory & Context.</span>
+                    接入 <strong>RAG 知识库</strong> 与 <strong>便签上下文感知</strong>。它开始懂你的“语境”，铭记你的过往，并支持 WebDAV 同步。
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-date">2026.01.23</div>
+                <div class="timeline-content">
+                    <span class="timeline-title">Stay Foolish.</span>
+                    v1.1.0 发布，初心不改，依旧免费。
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="polaroid">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQMAAABDsxw2AAAABlBMVEX///8AAABVwtN+AAAACXBIWXMAAA7EAAAOxAGVKw4bAAACKklEQVRoge2aTW6EMAyFjViw5AgchaMNR+MoHIElC1Q3/stkqlYazHT3vKjS5KOLOHp5dkr0XjzYogynfZDRMpcfJxEvNPniBiyLrbLJHZfBtFMvk2Vm4C/SDy0FwPJY2eqzY/1dVmXzPR0+APYBrJz2fSiDcsg3zUtJB7CPYaSrRTpYZ2wA7DYWGsLbKKseHf8hNcAuYX7JqUQPZ/c68EVgWewZM/NhVyGNR69a/VsAu4JpFkSZy16Ph81sNNQZ54HlsLL5u/qKEGR3xeY0NC96yIGlsBAKUkE2e+waIn+BIlnAsphfc2u1xzRKFnzJnDOwHEZRIC/z0x6PR7UcVuUBy2Lz9nrfSe2sWq3Fnc1swJKYaMjRqzKT22OXDnMaxgNLYvUGFCz8G5lWl2q6agiwFKZZILvv+LAPpcpryr2aLGDXMa/cvF3J7t/O0BCRF60BgWUwCW3vaLiYUPVvcf6B3cBEmR/cTNrALQcRsBtYdWux+RtZW7jREGA5rGw+e0eCza0t7jR+SA2wFLa6Mkez3Xjxb62GALuB6eoafZ41RFsLE3b/BiyPqWI0p33wRzrPywYsidXQVeb2LSPSASyNPXzqWdMt8V5vjeKmOQ/sOiar1Jph1Wob1HoEWBqb/N8hmmY7u6NjjidmYHcxr5C1n+YfupGLNyNgd7DYc6k+en+ko2owgOUw+eltNPVv8qghn9hpB3YPY4ta5alEm0/m5sUT2H9i78U3ZU3WhMTDqB8AAAAASUVORK5CYII="
+                alt="QR Code">
+            <div class="polaroid-caption">扫码免费下载使用</div>
+        </div>
+
+        <p style="text-align: center; font-family: 'Long Cang', cursive; font-size: 1.3rem; margin-top: 30px;">
+            让记录回归纯粹。<br>
+            ——致 2026 的我们
+        </p>
+
+        <p style="text-align: center; font-size: 0.7rem; color: #999; margin-top: 40px; font-family: 'JetBrains Mono';">
+            // End of File
+        </p>
+
+    </div>
+
+    <button class="fab-extended" onclick="exportImage()">
+        保存我的年度便签
+    </button>
+
+    <script>
+        async function exportImage() {
+            const btn = document.querySelector('.fab-extended');
+            const paper = document.getElementById('report-content');
+
+            btn.style.display = 'none';
+
+            try {
+                const canvas = await html2canvas(paper, {
+                    scale: 4, // Increase scale for higher resolution
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false, // Turn off logging for cleaner console
+                });
+
+                const link = document.createElement('a');
+                link.download = 'InfinityNoteX_2025_Memo.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                console.error('Export failed:', err);
+                alert('保存失败，请重试');
+            } finally {
+                btn.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+
+</html>

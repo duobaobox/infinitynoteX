@@ -4,6 +4,8 @@
  */
 
 import { ipcMain } from 'electron';
+import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import log, {
   openLogDir,
   readRecentLogs,
@@ -14,43 +16,45 @@ import log, {
   getLogStats,
 } from '../logger';
 
+const logChannel = (method: IpcProxyMethod<'log'>) => getIpcProxyChannel('log', method);
+
 /**
  * 注册日志相关 IPC 处理器
  */
 export function registerLogHandlers(): void {
-  ipcMain.handle('log:openDir', async () => {
+  ipcMain.handle(logChannel('openDir'), async () => {
     await openLogDir();
   });
 
-  ipcMain.handle('log:getPath', () => {
+  ipcMain.handle(logChannel('getPath'), () => {
     return getLogPath();
   });
 
-  ipcMain.handle('log:readRecent', async (_, lines?: number) => {
+  ipcMain.handle(logChannel('readRecent'), async (_, lines?: number) => {
     return await readRecentLogs(lines);
   });
 
   ipcMain.handle(
-    'log:readByLevel',
+    logChannel('readByLevel'),
     async (_, level: 'error' | 'warn' | 'info' | 'debug' | 'all', lines?: number) => {
       return await readLogsByLevel(level, lines);
     },
   );
 
-  ipcMain.handle('log:search', async (_, keyword: string, lines?: number) => {
+  ipcMain.handle(logChannel('search'), async (_, keyword: string, lines?: number) => {
     return await searchLogs(keyword, lines);
   });
 
-  ipcMain.handle('log:cleanOld', async () => {
+  ipcMain.handle(logChannel('cleanOld'), async () => {
     return await cleanOldLogs();
   });
 
-  ipcMain.handle('log:getStats', async () => {
+  ipcMain.handle(logChannel('getStats'), async () => {
     return await getLogStats();
   });
 
   // 渲染进程日志收集
-  ipcMain.on('log:renderer', (_, level: string, ...args: unknown[]) => {
+  ipcMain.on(IPC_CHANNELS.logRenderer, (_, level: string, ...args: unknown[]) => {
     switch (level) {
       case 'error':
         log.error('[Renderer]', ...args);

@@ -1,46 +1,166 @@
 /**
- * IPC 通道定义
- * Single Source of Truth for IPC Channels
+ * IPC 契约定义（共享）
+ * 作为 preload / 渲染层类型声明的单一来源，避免方法名漂移
  */
 
-export enum IpcChannels {
-  // ============ Window Controls ============
-  WINDOW_MINIMIZE = 'window-minimize',
-  WINDOW_MAXIMIZE = 'window-maximize',
-  WINDOW_UNMAXIMIZE = 'window-unmaximize',
-  WINDOW_CLOSE = 'window-close',
-  WINDOW_IS_MAXIMIZED = 'window-is-maximized',
-  WINDOW_RELOAD = 'window-reload',
-  WINDOW_STATE_CHANGED = 'window-state-changed',
+// ============ Proxy 方法清单 ============
 
-  // ============ App ============
-  APP_GET_CONFIG = 'app:getConfig',
-  APP_SET_CONFIG = 'app:setConfig',
-  APP_GET_VERSION = 'app:getVersion',
+export const IPC_PROXY_METHODS = {
+  storage: [
+    'getDefaultPath',
+    'getCurrentPath',
+    'isFirstLaunch',
+    'markInitialized',
+    'setStoragePath',
+    'healthCheck',
+    'openInFinder',
+    'getStats',
+    'createBackup',
+    'restoreBackup',
+    'exportData',
+    'resetAllData',
+    'listFolders',
+    'createFolder',
+    'renameFolder',
+    'deleteFolder',
+    'listNotes',
+    'createNote',
+    'getNote',
+    'updateNote',
+    'deleteNote',
+    'getAIConversations',
+    'createAIConversation',
+    'deleteAIConversation',
+    'saveAIConversationMessages',
+    'updateAIConversationTitle',
+    'listTrash',
+    'getTrashItem',
+    'restoreNote',
+    'deleteTrashItemPermanently',
+    'emptyTrash',
+    'listTodoLists',
+    'createTodoList',
+    'updateTodoList',
+    'deleteTodoList',
+    'listManualTasks',
+    'createManualTask',
+    'updateManualTask',
+    'deleteManualTask',
+    'toggleManualTask',
+  ],
+  browserCards: ['list', 'create', 'update', 'delete', 'reorder'],
+  attachments: ['save', 'getPath', 'delete', 'list', 'cleanup'],
+  sync: [
+    'testConnection',
+    'execute',
+    'getLastResult',
+    'preview',
+    'getConfig',
+    'setConfig',
+    'openLogDir',
+  ],
+  ai: ['getConfig', 'setConfig', 'testConnection', 'chat', 'chatStream', 'abortStream'],
+  knowledge: [
+    'getConfig',
+    'setConfig',
+    'testEmbedding',
+    'rebuildIndex',
+    'getStats',
+    'search',
+    'getChunks',
+    'getNoteIndexList',
+    'testSearch',
+    'incrementalUpdate',
+    'reindexNote',
+    'deleteNoteIndex',
+    'runDiagnostics',
+    'repairIndex',
+    'getIndexingConfig',
+    'setIndexingConfig',
+    'resetIndexingConfig',
+    'getDefaultIndexingConfig',
+  ],
+  config: [
+    'getShortcutKeys',
+    'setShortcutKeys',
+    'getDefaultFloatingWindowSize',
+    'setDefaultFloatingWindowSize',
+  ],
+  log: ['openDir', 'getPath', 'readRecent', 'readByLevel', 'search', 'cleanOld', 'getStats'],
+  floating: ['createWindow', 'minimizeWindow', 'restoreWindow', 'closeWindow', 'listWindows'],
+  floatingTodo: ['createWindow', 'closeWindow', 'minimizeWindow', 'restoreWindow', 'listWindows'],
+  app: ['getConfig', 'setConfig', 'getConfigPath'],
+} as const;
 
-  // ============ Storage: Notes ============
-  NOTE_LIST = 'storage:listNotes',
-  NOTE_GET = 'storage:getNote',
-  NOTE_CREATE = 'storage:createNote',
-  NOTE_UPDATE = 'storage:updateNote',
-  NOTE_DELETE = 'storage:deleteNote',
+export type IpcProxyNamespace = keyof typeof IPC_PROXY_METHODS;
+export type IpcProxyMethod<T extends IpcProxyNamespace> = (typeof IPC_PROXY_METHODS)[T][number];
 
-  // ============ AI ============
-  AI_CHAT = 'ai:chat',
-  AI_CHAT_STREAM = 'ai:chatStream',
-  AI_ABORT_STREAM = 'ai:abortStream',
-
-  // ============ Events ============
-  NOTE_UPDATED_EVENT = 'note:updated',
-  AI_CONFIG_CHANGED_EVENT = 'ai:config-changed',
+/**
+ * 构造 Proxy 通道名，保持主/渲染进程使用一致
+ */
+export function getIpcProxyChannel<T extends IpcProxyNamespace>(
+  namespace: T,
+  method: IpcProxyMethod<T>,
+): `${T}:${IpcProxyMethod<T>}` {
+  return `${namespace}:${method}` as `${T}:${IpcProxyMethod<T>}`;
 }
 
-export interface IpcRequest<T> {
-  payload: T;
+// ============ 非 Proxy 通道 ============
+
+export const IPC_CHANNELS = {
+  mainProcessMessage: 'main-process-message',
+  windowMinimize: 'window-minimize',
+  windowMaximize: 'window-maximize',
+  windowUnmaximize: 'window-unmaximize',
+  windowClose: 'window-close',
+  windowDoubleClickTitlebar: 'window-double-click-titlebar',
+  windowIsMaximized: 'window-is-maximized',
+  windowReload: 'window-reload',
+  windowStateChanged: 'window-state-changed',
+  dialogShowOpen: 'dialog:showOpenDialog',
+  aiChatWindowShow: 'ai-chat-window:show',
+  aiChatWindowHide: 'ai-chat-window:hide',
+  aiChatWindowToggle: 'ai-chat-window:toggle',
+  storageEvent: 'storage:event',
+  aiStreamChunk: 'ai:stream:chunk',
+  aiStreamDone: 'ai:stream:done',
+  aiStreamError: 'ai:stream:error',
+  updaterCheckNow: 'updater:check-now',
+  updaterInstallNow: 'updater:install-now',
+  updaterLastStatus: 'updater:last-status',
+  updaterStatus: 'updater:status',
+  appGetVersion: 'app:getVersion',
+  appConfigChanged: 'app:configChanged',
+  syncProgress: 'sync:progress',
+  syncCompleted: 'sync:completed',
+  syncDataChanged: 'sync:dataChanged',
+  logRenderer: 'log:renderer',
+  noteChanged: 'note:changed',
+  todoChanged: 'todo:changed',
+  noteUpdated: 'note:updated',
+  todoUpdated: 'todo:updated',
+  floatingNoteChanged: 'floating-note:changed',
+  floatingNoteUpdated: 'floating-note:updated',
+  navigateNote: 'navigate:note',
+} as const;
+
+// ============ Renderer 事件载荷 ============
+
+export interface NavigateNotePayload {
+  folderId: string;
+  noteId: string;
+  taskPath?: number[];
 }
 
-export interface IpcResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+export type RendererIpcEventPayloadMap = {
+  [IPC_CHANNELS.mainProcessMessage]: [message: string];
+  [IPC_CHANNELS.noteChanged]: [noteId: string];
+  [IPC_CHANNELS.todoChanged]: [listId: string];
+  [IPC_CHANNELS.noteUpdated]: [noteId: string];
+  [IPC_CHANNELS.todoUpdated]: [listId: string];
+  [IPC_CHANNELS.floatingNoteChanged]: [noteId: string];
+  [IPC_CHANNELS.floatingNoteUpdated]: [noteId: string];
+  [IPC_CHANNELS.navigateNote]: [payload: NavigateNotePayload];
+};
+
+export type RendererIpcEventChannel = keyof RendererIpcEventPayloadMap;

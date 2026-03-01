@@ -22,6 +22,8 @@ import {
 } from '@ant-design/icons';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import type { ManualTaskIndex, TodoList } from '../../services/types';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { onRendererIpc, sendRendererIpc } from '../../shared/utils/ipcEvents';
 import './FloatingTodoWindow.css';
 
 interface FloatingTodoWindowProps {
@@ -137,10 +139,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
         await loadData();
       }
     };
-    window.ipcRenderer?.on('todo:updated', handleTodoUpdate);
-    return () => {
-      window.ipcRenderer?.off('todo:updated', handleTodoUpdate);
-    };
+    return onRendererIpc(IPC_CHANNELS.todoUpdated, handleTodoUpdate);
   }, [listId, loadData]);
 
   useEffect(() => {
@@ -165,7 +164,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
       setSelectedDate(null);
       setShowDatePanel(false);
       await loadData();
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('Failed to create task:', error);
       message.error('添加失败');
@@ -176,7 +175,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
     try {
       await window.storage.toggleManualTask(taskId, listId);
       await loadData();
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('Failed to toggle task:', error);
       message.error('操作失败');
@@ -187,7 +186,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
     try {
       await window.storage.deleteManualTask(taskId, listId);
       await loadData();
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('Failed to delete task:', error);
       message.error('删除失败');
@@ -210,7 +209,7 @@ const FloatingTodoWindow: React.FC<FloatingTodoWindowProps> = ({ listId }) => {
       });
       setEditingTaskId(null);
       await loadData();
-      window.ipcRenderer?.send('todo:changed', listId);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, listId);
     } catch (error) {
       console.error('Failed to update task:', error);
       message.error('保存失败');

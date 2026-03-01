@@ -1,131 +1,7 @@
 import { ipcRenderer, contextBridge } from 'electron';
 import type { OpenDialogOptions } from '../src/services/types';
+import { IPC_CHANNELS, IPC_PROXY_METHODS } from '../src/shared/types/ipc';
 import { createProxy } from '../src/shared/utils/ipcProxy';
-
-// ============ 方法名列表定义 ============
-// 注意：这些列表必须与 electron/ipc/*Handlers.ts 中注册的 IPC 通道保持一致
-
-const STORAGE_METHODS = [
-  'getDefaultPath',
-  'getCurrentPath',
-  'isFirstLaunch',
-  'markInitialized',
-  'setStoragePath',
-  'healthCheck',
-  'openInFinder',
-  'getStats',
-  'createBackup',
-  'restoreBackup',
-  'exportData',
-  'resetAllData',
-  'listFolders',
-  'createFolder',
-  'renameFolder',
-  'deleteFolder',
-  'listNotes',
-  'createNote',
-  'getNote',
-  'updateNote',
-  'deleteNote',
-  'getAIConversations',
-  'createAIConversation',
-  'deleteAIConversation',
-  'saveAIConversationMessages',
-  'updateAIConversationTitle',
-  'listTrash',
-  'getTrashItem',
-  'restoreNote',
-  'deleteTrashItemPermanently',
-  'emptyTrash',
-  'listTodoLists',
-  'createTodoList',
-  'updateTodoList',
-  'deleteTodoList',
-  'listManualTasks',
-  'createManualTask',
-  'updateManualTask',
-  'deleteManualTask',
-  'toggleManualTask',
-];
-
-const BROWSER_CARDS_METHODS = ['list', 'create', 'update', 'delete', 'reorder'];
-
-const ATTACHMENTS_METHODS = ['save', 'getPath', 'delete', 'list', 'cleanup'];
-
-const SYNC_METHODS = [
-  'testConnection',
-  'execute',
-  'getLastResult',
-  'preview',
-  'getConfig',
-  'setConfig',
-  'openLogDir',
-];
-
-const AI_METHODS = [
-  'getConfig',
-  'setConfig',
-  'testConnection',
-  'chat',
-  'chatStream',
-  'abortStream',
-];
-
-const KNOWLEDGE_METHODS = [
-  'getConfig',
-  'setConfig',
-  'testEmbedding',
-  'rebuildIndex',
-  'getStats',
-  'search',
-  'getChunks',
-  'getNoteIndexList',
-  'testSearch',
-  'incrementalUpdate',
-  'reindexNote',
-  'deleteNoteIndex',
-  'runDiagnostics',
-  'repairIndex',
-  'getIndexingConfig',
-  'setIndexingConfig',
-  'resetIndexingConfig',
-  'getDefaultIndexingConfig',
-];
-
-const CONFIG_METHODS = [
-  'getShortcutKeys',
-  'setShortcutKeys',
-  'getDefaultFloatingWindowSize',
-  'setDefaultFloatingWindowSize',
-];
-
-const LOG_METHODS = [
-  'openDir',
-  'getPath',
-  'readRecent',
-  'readByLevel',
-  'search',
-  'cleanOld',
-  'getStats',
-];
-
-const FLOATING_METHODS = [
-  'createWindow',
-  'minimizeWindow',
-  'restoreWindow',
-  'closeWindow',
-  'listWindows',
-];
-
-const FLOATING_TODO_METHODS = [
-  'createWindow',
-  'closeWindow',
-  'minimizeWindow',
-  'restoreWindow',
-  'listWindows',
-];
-
-const APP_METHODS = ['getConfig', 'setConfig', 'getConfigPath'];
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -149,34 +25,31 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
 // --------- Expose window control API ---------
 contextBridge.exposeInMainWorld('electronAPI', {
-  minimize: () => ipcRenderer.send('window-minimize'),
-  maximize: () => ipcRenderer.send('window-maximize'),
-  unmaximize: () => ipcRenderer.send('window-unmaximize'),
-  close: () => ipcRenderer.send('window-close'),
-  isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
-  reload: () => ipcRenderer.invoke('window-reload'),
+  minimize: () => ipcRenderer.send(IPC_CHANNELS.windowMinimize),
+  maximize: () => ipcRenderer.send(IPC_CHANNELS.windowMaximize),
+  unmaximize: () => ipcRenderer.send(IPC_CHANNELS.windowUnmaximize),
+  close: () => ipcRenderer.send(IPC_CHANNELS.windowClose),
+  isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.windowIsMaximized),
+  reload: () => ipcRenderer.invoke(IPC_CHANNELS.windowReload),
   onWindowStateChanged: (callback: (isMaximized: boolean) => void) => {
-    ipcRenderer.on('window-state-changed', (_event, isMaximized: boolean) => {
+    ipcRenderer.on(IPC_CHANNELS.windowStateChanged, (_event, isMaximized: boolean) => {
       callback(isMaximized);
     });
   },
   showOpenDialog: (options: OpenDialogOptions) =>
-    ipcRenderer.invoke('dialog:showOpenDialog', options),
+    ipcRenderer.invoke(IPC_CHANNELS.dialogShowOpen, options),
 
   // AI 对话悬浮窗口
-  showAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:show'),
-  hideAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:hide'),
-  toggleAIChatWindow: () => ipcRenderer.invoke('ai-chat-window:toggle'),
+  showAIChatWindow: () => ipcRenderer.invoke(IPC_CHANNELS.aiChatWindowShow),
+  hideAIChatWindow: () => ipcRenderer.invoke(IPC_CHANNELS.aiChatWindowHide),
+  toggleAIChatWindow: () => ipcRenderer.invoke(IPC_CHANNELS.aiChatWindowToggle),
 });
 
 // --------- Expose storage API ---------
-contextBridge.exposeInMainWorld('storage', {
-  ...createProxy(ipcRenderer, 'storage', STORAGE_METHODS),
-  // 手动暴露同步方法（绕过 createProxy 的 invoke 机制）
-  updateNoteSync: (id: string, patch: unknown) => {
-    return ipcRenderer.sendSync('storage:updateNoteSync', id, patch);
-  },
-});
+contextBridge.exposeInMainWorld(
+  'storage',
+  createProxy(ipcRenderer, 'storage', IPC_PROXY_METHODS.storage),
+);
 
 // --------- Expose storage events API ---------
 contextBridge.exposeInMainWorld('storageEvents', {
@@ -201,9 +74,9 @@ contextBridge.exposeInMainWorld('storageEvents', {
         data?: unknown;
       },
     ) => callback(event);
-    ipcRenderer.on('storage:event', listener);
+    ipcRenderer.on(IPC_CHANNELS.storageEvent, listener);
     return () => {
-      ipcRenderer.removeListener('storage:event', listener);
+      ipcRenderer.removeListener(IPC_CHANNELS.storageEvent, listener);
     };
   },
 });
@@ -211,64 +84,64 @@ contextBridge.exposeInMainWorld('storageEvents', {
 // --------- Expose floating window API ---------
 contextBridge.exposeInMainWorld(
   'floatingWindow',
-  createProxy(ipcRenderer, 'floating', FLOATING_METHODS),
+  createProxy(ipcRenderer, 'floating', IPC_PROXY_METHODS.floating),
 );
 
 // --------- Expose floating todo window API ---------
 contextBridge.exposeInMainWorld(
   'floatingTodo',
-  createProxy(ipcRenderer, 'floatingTodo', FLOATING_TODO_METHODS),
+  createProxy(ipcRenderer, 'floatingTodo', IPC_PROXY_METHODS.floatingTodo),
 );
 
 // --------- Expose auto-updater API (Manual due to naming mismatch) ---------
 contextBridge.exposeInMainWorld('autoUpdater', {
-  checkForUpdates: () => ipcRenderer.invoke('updater:check-now'),
-  installUpdate: () => ipcRenderer.invoke('updater:install-now'),
-  getLastStatus: () => ipcRenderer.invoke('updater:last-status'),
+  checkForUpdates: () => ipcRenderer.invoke(IPC_CHANNELS.updaterCheckNow),
+  installUpdate: () => ipcRenderer.invoke(IPC_CHANNELS.updaterInstallNow),
+  getLastStatus: () => ipcRenderer.invoke(IPC_CHANNELS.updaterLastStatus),
   onStatusChange: (callback: (status: unknown) => void) => {
     const listener = (_event: unknown, status: unknown) => {
       callback(status);
     };
-    ipcRenderer.on('updater:status', listener);
-    return () => ipcRenderer.removeListener('updater:status', listener);
+    ipcRenderer.on(IPC_CHANNELS.updaterStatus, listener);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.updaterStatus, listener);
   },
 });
 
 // --------- Expose app info API (Manual) ---------
 contextBridge.exposeInMainWorld('appInfo', {
-  getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  getVersion: () => ipcRenderer.invoke(IPC_CHANNELS.appGetVersion),
 });
 
 // --------- Expose Browser Cards API ---------
 contextBridge.exposeInMainWorld(
   'browserCards',
-  createProxy(ipcRenderer, 'browserCards', BROWSER_CARDS_METHODS),
+  createProxy(ipcRenderer, 'browserCards', IPC_PROXY_METHODS.browserCards),
 );
 
 // --------- Expose Attachments API ---------
 contextBridge.exposeInMainWorld(
   'attachments',
-  createProxy(ipcRenderer, 'attachments', ATTACHMENTS_METHODS),
+  createProxy(ipcRenderer, 'attachments', IPC_PROXY_METHODS.attachments),
 );
 
 // --------- Expose AI API ---------
 contextBridge.exposeInMainWorld(
   'ai',
-  createProxy(ipcRenderer, 'ai', AI_METHODS, {
+  createProxy(ipcRenderer, 'ai', IPC_PROXY_METHODS.ai, {
     onStreamChunk: (callback: (data: unknown) => void) => {
       const listener = (_: unknown, data: unknown) => callback(data);
-      ipcRenderer.on('ai:stream:chunk', listener);
-      return () => ipcRenderer.removeListener('ai:stream:chunk', listener);
+      ipcRenderer.on(IPC_CHANNELS.aiStreamChunk, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiStreamChunk, listener);
     },
     onStreamDone: (callback: (data: unknown) => void) => {
       const listener = (_: unknown, data: unknown) => callback(data);
-      ipcRenderer.on('ai:stream:done', listener);
-      return () => ipcRenderer.removeListener('ai:stream:done', listener);
+      ipcRenderer.on(IPC_CHANNELS.aiStreamDone, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiStreamDone, listener);
     },
     onStreamError: (callback: (error: unknown) => void) => {
       const listener = (_: unknown, data: unknown) => callback(data);
-      ipcRenderer.on('ai:stream:error', listener);
-      return () => ipcRenderer.removeListener('ai:stream:error', listener);
+      ipcRenderer.on(IPC_CHANNELS.aiStreamError, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiStreamError, listener);
     },
   }),
 );
@@ -276,21 +149,21 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Sync API ---------
 contextBridge.exposeInMainWorld(
   'sync',
-  createProxy(ipcRenderer, 'sync', SYNC_METHODS, {
+  createProxy(ipcRenderer, 'sync', IPC_PROXY_METHODS.sync, {
     onProgress: (callback: (progress: unknown) => void) => {
       const listener = (_: unknown, progress: unknown) => callback(progress);
-      ipcRenderer.on('sync:progress', listener);
-      return () => ipcRenderer.removeListener('sync:progress', listener);
+      ipcRenderer.on(IPC_CHANNELS.syncProgress, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.syncProgress, listener);
     },
     onCompleted: (callback: (result: unknown) => void) => {
       const listener = (_: unknown, result: unknown) => callback(result);
-      ipcRenderer.on('sync:completed', listener);
-      return () => ipcRenderer.removeListener('sync:completed', listener);
+      ipcRenderer.on(IPC_CHANNELS.syncCompleted, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.syncCompleted, listener);
     },
     onDataChanged: (callback: () => void) => {
       const listener = () => callback();
-      ipcRenderer.on('sync:dataChanged', listener);
-      return () => ipcRenderer.removeListener('sync:dataChanged', listener);
+      ipcRenderer.on(IPC_CHANNELS.syncDataChanged, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.syncDataChanged, listener);
     },
   }),
 );
@@ -298,11 +171,11 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Unified App Config API ---------
 contextBridge.exposeInMainWorld(
   'app',
-  createProxy(ipcRenderer, 'app', APP_METHODS, {
+  createProxy(ipcRenderer, 'app', IPC_PROXY_METHODS.app, {
     onConfigChanged: (callback: (config: unknown) => void) => {
       const listener = (_: unknown, config: unknown) => callback(config);
-      ipcRenderer.on('app:configChanged', listener);
-      return () => ipcRenderer.removeListener('app:configChanged', listener);
+      ipcRenderer.on(IPC_CHANNELS.appConfigChanged, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.appConfigChanged, listener);
     },
   }),
 );
@@ -310,19 +183,22 @@ contextBridge.exposeInMainWorld(
 // --------- Expose Log API ---------
 contextBridge.exposeInMainWorld(
   'log',
-  createProxy(ipcRenderer, 'log', LOG_METHODS, {
-    error: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'error', ...args),
-    warn: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'warn', ...args),
-    info: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'info', ...args),
-    debug: (...args: unknown[]) => ipcRenderer.send('log:renderer', 'debug', ...args),
+  createProxy(ipcRenderer, 'log', IPC_PROXY_METHODS.log, {
+    error: (...args: unknown[]) => ipcRenderer.send(IPC_CHANNELS.logRenderer, 'error', ...args),
+    warn: (...args: unknown[]) => ipcRenderer.send(IPC_CHANNELS.logRenderer, 'warn', ...args),
+    info: (...args: unknown[]) => ipcRenderer.send(IPC_CHANNELS.logRenderer, 'info', ...args),
+    debug: (...args: unknown[]) => ipcRenderer.send(IPC_CHANNELS.logRenderer, 'debug', ...args),
   }),
 );
 
 // --------- Expose Knowledge Base API ---------
 contextBridge.exposeInMainWorld(
   'knowledge',
-  createProxy(ipcRenderer, 'knowledge', KNOWLEDGE_METHODS),
+  createProxy(ipcRenderer, 'knowledge', IPC_PROXY_METHODS.knowledge),
 );
 
 // --------- Expose Config API ---------
-contextBridge.exposeInMainWorld('config', createProxy(ipcRenderer, 'config', CONFIG_METHODS));
+contextBridge.exposeInMainWorld(
+  'config',
+  createProxy(ipcRenderer, 'config', IPC_PROXY_METHODS.config),
+);

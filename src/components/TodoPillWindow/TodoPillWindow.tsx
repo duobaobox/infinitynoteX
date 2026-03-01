@@ -5,9 +5,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
-import type { TodoList, ManualTaskIndex, Note } from '../../services/types';
+import type { TodoList, ManualTaskIndex } from '../../services/types';
 import { DEFAULT_TODO_LIST_ID } from '../../features/todo/types';
 import { parseTasksFromNotes } from '../../features/todo/services/taskParser';
+import { IPC_CHANNELS } from '../../shared/types/ipc';
+import { onRendererIpc } from '../../shared/utils/ipcEvents';
+import { loadAllNotes } from '../../shared/utils/noteLoader';
 import './TodoPillWindow.css';
 
 // Todo 装饰图标
@@ -45,15 +48,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
         let pending = 0;
         if (listId === DEFAULT_TODO_LIST_ID) {
           // 便签任务：需要解析所有便签
-          const folders = await window.storage.listFolders();
-          const allNotes: Note[] = [];
-          for (const folder of folders) {
-            const noteIndices = await window.storage.listNotes(folder.id);
-            for (const noteIndex of noteIndices) {
-              const note = await window.storage.getNote(noteIndex.id);
-              if (note) allNotes.push(note);
-            }
-          }
+          const allNotes = await loadAllNotes();
           const parsedTasks = parseTasksFromNotes(allNotes);
           pending = parsedTasks.filter((t) => !t.checked).length;
         } else {
@@ -86,18 +81,17 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
       }
     };
 
-    window.ipcRenderer?.on('todo:updated', handleUpdate);
+    const offTodoUpdated = onRendererIpc(IPC_CHANNELS.todoUpdated, handleUpdate);
 
     // 如果是便签任务，还需要监听便签更新
+    let offNoteUpdated: (() => void) | null = null;
     if (listId === DEFAULT_TODO_LIST_ID) {
-      window.ipcRenderer?.on('note:updated', handleUpdate);
+      offNoteUpdated = onRendererIpc(IPC_CHANNELS.noteUpdated, handleUpdate);
     }
 
     return () => {
-      window.ipcRenderer?.off('todo:updated', handleUpdate);
-      if (listId === DEFAULT_TODO_LIST_ID) {
-        window.ipcRenderer?.off('note:updated', handleUpdate);
-      }
+      offTodoUpdated();
+      offNoteUpdated?.();
     };
   }, [listId, loadData]);
 

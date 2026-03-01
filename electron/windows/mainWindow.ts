@@ -108,10 +108,20 @@ export function createMainWindow(): BrowserWindow {
 
   win = new BrowserWindow(windowOptions);
 
+  // 广播窗口最大化状态，供渲染进程更新 UI
+  const emitWindowStateChanged = () => {
+    if (!win || win.isDestroyed()) return;
+    win.webContents.send(IPC_CHANNELS.windowStateChanged, win.isMaximized());
+  };
+
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send(IPC_CHANNELS.mainProcessMessage, new Date().toLocaleString());
+    emitWindowStateChanged();
   });
+
+  win.on('maximize', emitWindowStateChanged);
+  win.on('unmaximize', emitWindowStateChanged);
 
   // 准备好再显示窗口，减少"半秒加载感"
   win.once('ready-to-show', () => {

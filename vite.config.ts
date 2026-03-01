@@ -4,6 +4,80 @@ import electron from 'vite-plugin-electron/simple';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 
+function manualChunks(id: string): string | undefined {
+  const normalizedId = id.replace(/\\/g, '/');
+  if (!normalizedId.includes('/node_modules/')) return undefined;
+
+  if (normalizedId.includes('/refractor/')) {
+    return 'vendor-refractor';
+  }
+
+  if (normalizedId.includes('/react-syntax-highlighter/')) {
+    return 'vendor-highlight';
+  }
+
+  if (
+    normalizedId.includes('/mermaid/') ||
+    normalizedId.includes('/@mermaid-js/') ||
+    normalizedId.includes('/langium/') ||
+    normalizedId.includes('/chevrotain/')
+  ) {
+    return 'vendor-mermaid';
+  }
+
+  if (
+    normalizedId.includes('/cytoscape') ||
+    normalizedId.includes('/cose-base/') ||
+    normalizedId.includes('/layout-base/')
+  ) {
+    return 'vendor-graph-layout';
+  }
+
+  if (
+    normalizedId.includes('/@ant-design/x-markdown/') ||
+    normalizedId.includes('/markdown-it/') ||
+    normalizedId.includes('/mdast-util-') ||
+    normalizedId.includes('/micromark/')
+  ) {
+    return 'vendor-markdown';
+  }
+
+  if (normalizedId.includes('/katex/')) {
+    return 'vendor-diagram';
+  }
+
+  if (normalizedId.includes('/@xyflow/react/') || normalizedId.includes('/@xyflow/system/')) {
+    return 'vendor-xyflow';
+  }
+
+  if (
+    normalizedId.includes('/@tiptap/') ||
+    normalizedId.includes('/prosemirror-') ||
+    normalizedId.includes('/highlight.js/') ||
+    normalizedId.includes('/lowlight/')
+  ) {
+    return 'vendor-editor';
+  }
+
+  if (
+    normalizedId.includes('/@ant-design/') ||
+    normalizedId.includes('/antd/') ||
+    normalizedId.includes('/@rc-component/')
+  ) {
+    return 'vendor-antd';
+  }
+
+  if (
+    normalizedId.includes('/react/') ||
+    normalizedId.includes('/react-dom/') ||
+    normalizedId.includes('/scheduler/')
+  ) {
+    return 'vendor-react';
+  }
+
+  return 'vendor-misc';
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
@@ -66,6 +140,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       external: ['electron-updater', 'electron'],
+      output: {
+        manualChunks,
+      },
     },
   },
 });

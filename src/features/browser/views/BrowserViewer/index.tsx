@@ -105,7 +105,6 @@ export const BrowserViewer: React.FC = () => {
         // 忽略销毁时的错误
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCard]);
 
   // ============ 事件处理 ============

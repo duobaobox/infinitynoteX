@@ -7,7 +7,7 @@
  * 支持：流式渲染、代码高亮、Mermaid 图表、Think 思维链、Sources 引用
  */
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useSyncExternalStore, useState, useEffect } from 'react';
 import { XMarkdown, type ComponentProps } from '@ant-design/x-markdown';
 import type { XMarkdownProps } from '@ant-design/x-markdown';
 import { CodeHighlighter, Mermaid, Think, Sources } from '@ant-design/x';
@@ -31,6 +31,40 @@ export interface MarkdownRendererProps {
   streaming?: XMarkdownProps['streaming'];
   /** 引用来源列表（用于展示 [来源 X] 标签） */
   sources?: SourceItem[];
+}
+
+// 全局单例观察器：避免每条消息都创建一个 MutationObserver
+const themeSubscribers = new Set<() => void>();
+let themeObserver: MutationObserver | null = null;
+
+function getIsDarkTheme(): boolean {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
+
+function emitThemeChange(): void {
+  themeSubscribers.forEach((listener) => listener());
+}
+
+function ensureThemeObserver(): void {
+  if (themeObserver) return;
+  themeObserver = new MutationObserver(emitThemeChange);
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+}
+
+function subscribeTheme(listener: () => void): () => void {
+  themeSubscribers.add(listener);
+  ensureThemeObserver();
+
+  return () => {
+    themeSubscribers.delete(listener);
+    if (themeSubscribers.size === 0 && themeObserver) {
+      themeObserver.disconnect();
+      themeObserver = null;
+    }
+  };
 }
 
 /**
@@ -138,21 +172,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   streaming,
   sources = [],
 }) => {
-  // 监听主题变化
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark',
-  );
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
+  const isDark = useSyncExternalStore(subscribeTheme, getIsDarkTheme, () => false);
 
   // 根据主题动态选择 x-markdown-light 或 x-markdown-dark 类名
   const classNames = useMemo(() => {

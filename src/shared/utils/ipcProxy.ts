@@ -1,3 +1,5 @@
+import type { IpcProxyMethod, IpcProxyNamespace } from '../types/ipc';
+
 export interface IpcInvoker {
   invoke(channel: string, ...args: unknown[]): Promise<unknown>;
 }
@@ -10,6 +12,18 @@ export interface IpcInvoker {
  * 注意：不能使用 JavaScript Proxy，因为 Electron contextBridge 不支持 Proxy 对象
  * 必须显式传入方法名列表来生成普通对象
  */
+export function createProxy<T extends object, N extends IpcProxyNamespace>(
+  invoker: IpcInvoker,
+  prefix: N,
+  methods: readonly IpcProxyMethod<N>[],
+  overrides?: Record<string, unknown>,
+): T;
+export function createProxy<T extends object>(
+  invoker: IpcInvoker,
+  prefix: string,
+  methods: readonly string[],
+  overrides?: Record<string, unknown>,
+): T;
 export function createProxy<T extends object>(
   invoker: IpcInvoker,
   prefix: string,

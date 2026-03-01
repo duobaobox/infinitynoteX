@@ -7,7 +7,7 @@
  * - 与左侧列表双向联动
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import {
   ReactFlow,
   Background,
@@ -38,7 +38,6 @@ import {
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import NoteNode, { type NoteNodeData } from './NoteNode';
 import { ChatInput } from '../../../../ai-chat/components/ChatInput';
-import { MarkdownRenderer } from '../../../../ai-chat/components/MarkdownRenderer';
 import { useAIConfig, useAIChat } from '../../../../ai-chat/hooks';
 import type { NoteReference } from '../../../../ai-chat/types';
 import {
@@ -51,6 +50,12 @@ import {
 import { NOTE_COLOR_HEX_MAP, type NoteColorId } from '../../../../../constants/noteColors';
 import { loadFolderNoteGroups } from '../../../../../shared/utils/noteLoader';
 import './CanvasTab.css';
+
+const MarkdownRenderer = lazy(() =>
+  import('../../../../ai-chat/components/MarkdownRenderer').then((module) => ({
+    default: module.MarkdownRenderer,
+  })),
+);
 
 // 注册自定义节点类型（在组件外部定义，避免重复创建）
 const nodeTypes = {
@@ -645,12 +650,14 @@ const CanvasInner: React.FC = () => {
 
                   {/* Markdown渲染 */}
                   {aiResponse && (
-                    <MarkdownRenderer
-                      content={aiResponse}
-                      streaming={
-                        isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
-                      }
-                    />
+                    <Suspense fallback={<div style={{ whiteSpace: 'pre-wrap' }}>{aiResponse}</div>}>
+                      <MarkdownRenderer
+                        content={aiResponse}
+                        streaming={
+                          isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
+                        }
+                      />
+                    </Suspense>
                   )}
                 </div>
 

@@ -19,8 +19,8 @@
  * 4. 在本文件的 renderTabContent() 中添加 case
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Segmented, Splitter, message } from 'antd';
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+import { Segmented, Splitter, message, Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../services/types';
 import type { NoteColor as NoteColorType } from '../../../../services/types';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
@@ -31,8 +31,20 @@ import { onRendererIpc, sendRendererIpc } from '../../../../shared/utils/ipcEven
 // 从模块导入
 import type { TabKeyType } from './types';
 import { useNoteSave } from './hooks/useNoteSave';
-import { EditTab, ToolsTab, AITab, CanvasTab, TAB_CONFIG } from './tabs';
+import { EditTab, ToolsTab, TAB_CONFIG } from './tabs';
 import './tabs/AITab.css';
+
+const AITab = lazy(() =>
+  import('./tabs/AITab').then((module) => ({
+    default: module.AITab,
+  })),
+);
+
+const CanvasTab = lazy(() =>
+  import('./tabs/CanvasTab').then((module) => ({
+    default: module.CanvasTab,
+  })),
+);
 
 /**
  * NoteEditor - 便签编辑器组件
@@ -236,7 +248,17 @@ export const NoteEditor: React.FC = () => {
       case 'ai':
         return null; // AI Tab 的内容在主渲染中处理
       case 'other':
-        return <CanvasTab />;
+        return (
+          <Suspense
+            fallback={
+              <div style={{ padding: 16, textAlign: 'center' }}>
+                <Spin />
+              </div>
+            }
+          >
+            <CanvasTab />
+          </Suspense>
+        );
       default:
         return null;
     }
@@ -278,7 +300,15 @@ export const NoteEditor: React.FC = () => {
             </Splitter.Panel>
             <Splitter.Panel defaultSize={380} min={380}>
               <div className="ai-side">
-                <AITab noteId={selectedNoteId} />
+                <Suspense
+                  fallback={
+                    <div style={{ padding: 16, textAlign: 'center' }}>
+                      <Spin />
+                    </div>
+                  }
+                >
+                  <AITab noteId={selectedNoteId} />
+                </Suspense>
               </div>
             </Splitter.Panel>
           </Splitter>

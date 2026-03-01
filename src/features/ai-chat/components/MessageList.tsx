@@ -3,9 +3,14 @@ import { Bubble, Actions, FileCard } from '@ant-design/x';
 import { Avatar } from 'antd';
 import { RobotOutlined, UserOutlined, CopyOutlined, SaveOutlined } from '@ant-design/icons';
 import type { GetProp } from 'antd';
-import { MarkdownRenderer } from './MarkdownRenderer';
 import { EmptyState } from './EmptyState';
 import type { ChatItem, NoteReference } from '../types';
+
+const MarkdownRenderer = React.lazy(() =>
+  import('./MarkdownRenderer').then((module) => ({
+    default: module.MarkdownRenderer,
+  })),
+);
 
 // Bubble.List 类型
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
@@ -69,17 +74,30 @@ export const MessageList: React.FC<MessageListProps> = ({
           // AI 消息：传递 ragSources 用于引用展示
           const sources = m.role === 'ai' && m.ragSources ? m.ragSources : undefined;
 
+          const isUser = m.role === 'user';
+
           return (
             <>
-              <MarkdownRenderer
-                content={displayContent as string}
-                streaming={
-                  m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
-                }
-                sources={sources}
-              />
+              {isUser ? (
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {displayContent}
+                </div>
+              ) : (
+                <React.Suspense
+                  fallback={<div style={{ whiteSpace: 'pre-wrap' }}>{displayContent}</div>}
+                >
+                  <MarkdownRenderer
+                    content={displayContent as string}
+                    streaming={
+                      m.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined
+                    }
+                    sources={sources}
+                  />
+                </React.Suspense>
+              )}
+
               {/* 用户消息显示引用的便签 FileCard */}
-              {m.role === 'user' && m.references && m.references.length > 0 && (
+              {isUser && m.references && m.references.length > 0 && (
                 <div
                   className="ai-chat-reference-cards"
                   style={{ marginTop: 8, maxWidth: '100%', overflow: 'hidden' }}

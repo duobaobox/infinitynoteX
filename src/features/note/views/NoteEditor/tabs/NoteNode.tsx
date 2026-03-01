@@ -7,17 +7,22 @@
  * - TipTap 编辑器区域（可编辑内容）
  */
 
-import React, { memo, useCallback, useState, useEffect, useRef } from 'react';
+import React, { memo, useCallback, useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { HolderOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../../services/types';
-import { TipTapEditor } from '../../../../editor';
 import { NOTE_COLOR_CSS_VAR_MAP } from '../../../../../constants/noteColors';
 import { IPC_CHANNELS } from '../../../../../shared/types/ipc';
 import { sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import './NoteNode.css';
+
+const TipTapEditor = lazy(() =>
+  import('../../../../editor').then((module) => ({
+    default: module.TipTapEditor,
+  })),
+);
 
 export interface NoteNodeData {
   noteId: string;
@@ -159,15 +164,17 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
             <Spin size="small" />
           </div>
         ) : content ? (
-          <TipTapEditor
-            initialContent={content}
-            onContentChange={handleContentChange}
-            onTitleChange={handleTitleChange}
-            showMenuBar={false}
-            showTitleInput={false}
-            contentId={data.noteId}
-            editable={true}
-          />
+          <Suspense fallback={<Spin size="small" />}>
+            <TipTapEditor
+              initialContent={content}
+              onContentChange={handleContentChange}
+              onTitleChange={handleTitleChange}
+              showMenuBar={false}
+              showTitleInput={false}
+              contentId={data.noteId}
+              editable={true}
+            />
+          </Suspense>
         ) : (
           <div className="note-node__excerpt">{data.excerpt || '点击编辑...'}</div>
         )}

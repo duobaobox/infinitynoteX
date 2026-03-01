@@ -76,6 +76,30 @@ export function parseTasksFromNotes(notes: Note[]): ParsedTask[] {
 }
 
 /**
+ * 生成任务内容签名（用于判断任务相关字段是否变化）
+ * - 仅关注 taskItem 的路径、勾选状态、文本
+ * - 返回稳定字符串，可用于轻量比较
+ */
+export function getTaskContentSignature(content: TipTapJSONContent): string {
+  const tokens: string[] = [];
+
+  function traverse(node: TipTapJSONContent, path: number[]) {
+    if (node.type === 'taskItem') {
+      const checked = node.attrs?.checked ? '1' : '0';
+      const text = extractTextFromNode(node).replace(/\s+/g, ' ').trim();
+      tokens.push(`${path.join('.')}:${checked}:${text}`);
+    }
+
+    if (Array.isArray(node.content)) {
+      node.content.forEach((child, index) => traverse(child, [...path, index]));
+    }
+  }
+
+  traverse(content, []);
+  return tokens.join('|');
+}
+
+/**
  * 更新便签中某个任务的勾选状态
  * @returns 更新后的便签内容
  */

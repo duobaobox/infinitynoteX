@@ -6,7 +6,7 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
-import type { IpcProxyMethod } from '../../src/shared/types/ipc';
+import type { IpcProxyMethod, NoteSyncPayload } from '../../src/shared/types/ipc';
 import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST, getMainWindow } from './mainWindow';
 
@@ -44,6 +44,21 @@ const floatingChannel = (method: IpcProxyMethod<'floating'>) =>
 const floatingTodoChannel = (method: IpcProxyMethod<'floatingTodo'>) =>
   getIpcProxyChannel('floatingTodo', method);
 const configChannel = (method: IpcProxyMethod<'config'>) => getIpcProxyChannel('config', method);
+
+function normalizeNoteSyncPayload(payload: NoteSyncPayload | string): NoteSyncPayload {
+  if (typeof payload === 'string') {
+    return {
+      noteId: payload,
+      sourceId: 'legacy',
+      revision: 0,
+      taskChanged: true,
+    };
+  }
+  return {
+    ...payload,
+    taskChanged: payload.taskChanged !== false,
+  };
+}
 
 // ============ 公共 API ============
 
@@ -414,30 +429,35 @@ export function registerFloatingWindowHandlers(): void {
   );
 
   // 跨窗口消息转发
-  ipcMain.on(IPC_CHANNELS.noteChanged, (_event, noteId: string) => {
+  ipcMain.on(IPC_CHANNELS.noteChanged, (_event, payload: NoteSyncPayload | string) => {
+    const syncPayload = normalizeNoteSyncPayload(payload);
+    const noteId = syncPayload.noteId;
+
     const pillWindow = pillWindows.get(noteId);
     if (pillWindow && !pillWindow.isDestroyed()) {
-      pillWindow.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
+      pillWindow.webContents.send(IPC_CHANNELS.noteUpdated, syncPayload);
     }
 
     const floatingWindow = floatingWindows.get(noteId);
     if (floatingWindow && !floatingWindow.isDestroyed()) {
-      floatingWindow.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
+      floatingWindow.webContents.send(IPC_CHANNELS.noteUpdated, syncPayload);
     }
 
     const win = getMainWindow();
     if (win && !win.isDestroyed()) {
-      win.webContents.send(IPC_CHANNELS.noteUpdated, noteId);
+      win.webContents.send(IPC_CHANNELS.noteUpdated, syncPayload);
     }
 
-    // 便签任务同步：也向 Todo 药丸/悬浮窗口发送更新事件
-    const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
-    if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
-      todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
-    }
-    const todoPill = todoPillWindows.get(DEFAULT_TODO_LIST_ID);
-    if (todoPill && !todoPill.isDestroyed()) {
-      todoPill.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
+    // 仅任务变化时，才触发默认清单刷新
+    if (syncPayload.taskChanged) {
+      const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
+      if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
+        todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
+      }
+      const todoPill = todoPillWindows.get(DEFAULT_TODO_LIST_ID);
+      if (todoPill && !todoPill.isDestroyed()) {
+        todoPill.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
+      }
     }
   });
 

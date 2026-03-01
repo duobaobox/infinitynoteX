@@ -10,8 +10,13 @@ import { message, Spin } from 'antd';
 import { BaseFloatingWindow } from '../BaseFloatingWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { TipTapJSONContent, NoteColor } from '../../services/types';
+import type { NoteSyncPayload } from '../../shared/types/ipc';
 import { IPC_CHANNELS } from '../../shared/types/ipc';
-import { onRendererIpc, sendRendererIpc } from '../../shared/utils/ipcEvents';
+import {
+  createNoteSyncPayload,
+  onRendererIpc,
+  sendRendererIpc,
+} from '../../shared/utils/ipcEvents';
 import './FloatingNoteWindow.css';
 
 // 懒加载编辑器
@@ -56,8 +61,8 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
   useEffect(() => {
     if (!noteId) return;
 
-    const handleNoteUpdate = async (_event: unknown, updatedNoteId: string) => {
-      if (updatedNoteId === noteId) {
+    const handleNoteUpdate = async (_event: unknown, payload: NoteSyncPayload) => {
+      if (payload.noteId === noteId) {
         try {
           const note = await window.storage.getNote(noteId);
           setNoteTitle(note.title);
@@ -87,7 +92,7 @@ const FloatingNoteWindow: React.FC<FloatingNoteWindowProps> = ({ noteId }) => {
         try {
           await window.storage.updateNote(noteId, { title, content });
 
-          sendRendererIpc(IPC_CHANNELS.noteChanged, noteId);
+          sendRendererIpc(IPC_CHANNELS.noteChanged, createNoteSyncPayload(noteId));
         } catch (error) {
           console.error('Failed to save note:', error);
           message.error('自动保存失败');

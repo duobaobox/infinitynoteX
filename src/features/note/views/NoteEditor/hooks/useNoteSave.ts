@@ -12,9 +12,10 @@ import { useCallback, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import type { PendingSave } from '../types';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
+import type { NoteSyncPayload } from '../../../../../shared/types/ipc';
 import { IPC_CHANNELS } from '../../../../../shared/types/ipc';
-import { sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
-import { DEFAULT_TODO_LIST_ID } from '../../../../../shared/constants/todoConstants';
+import { createNoteSyncPayload, sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
+import { getTaskContentSignature } from '../../../../todo/services/taskParser';
 
 interface UseNoteSaveReturn {
   /** 待保存数据引用 */
@@ -26,15 +27,32 @@ interface UseNoteSaveReturn {
   debouncedSave: (noteId: string, title: string, content: PendingSave['content']) => void;
   /** 强制保存待处理内容 */
   flushPendingSave: () => Promise<void>;
+  /** 同步某条便签的任务签名和标题基线（用于精准触发 todo 联动） */
+  syncTaskBaseline: (noteId: string, title: string, content: PendingSave['content']) => void;
 }
 
-export const useNoteSave = (): UseNoteSaveReturn => {
+interface UseNoteSaveOptions {
+  onNoteSynced?: (payload: NoteSyncPayload) => void;
+}
+
+export const useNoteSave = (options?: UseNoteSaveOptions): UseNoteSaveReturn => {
+  const { onNoteSynced } = options || {};
   const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
 
   // 保存相关的 refs
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef<PendingSave | null>(null);
   const isSavingRef = useRef<boolean>(false);
+  const taskSignatureByNoteRef = useRef<Map<string, string>>(new Map());
+  const titleByNoteRef = useRef<Map<string, string>>(new Map());
+
+  const syncTaskBaseline = useCallback(
+    (noteId: string, title: string, content: PendingSave['content']) => {
+      taskSignatureByNoteRef.current.set(noteId, getTaskContentSignature(content));
+      titleByNoteRef.current.set(noteId, title);
+    },
+    [],
+  );
 
   /**
    * 立即执行保存（核心保存函数）
@@ -55,10 +73,29 @@ export const useNoteSave = (): UseNoteSaveReturn => {
       isSavingRef.current = true;
 
       try {
+        const nextTaskSignature = getTaskContentSignature(saveData.content);
+        const previousTaskSignature = taskSignatureByNoteRef.current.get(saveData.noteId);
+        const previousTitle = titleByNoteRef.current.get(saveData.noteId);
+
+        const hasTasksBefore = Boolean(previousTaskSignature);
+        const hasTasksNow = Boolean(nextTaskSignature);
+        const hasTaskSignatureChanged =
+          previousTaskSignature === undefined || previousTaskSignature !== nextTaskSignature;
+        // 任务来源列表会展示 noteTitle，因此“有任务时标题变更”也属于 todo 相关变化
+        const hasTaskTitleChanged =
+          previousTitle !== undefined &&
+          previousTitle !== saveData.title &&
+          (hasTasksBefore || hasTasksNow);
+        // 无基线时默认认为有任务变化，避免漏通知
+        const taskChanged = hasTaskSignatureChanged || hasTaskTitleChanged;
+
         await window.storage.updateNote(saveData.noteId, {
           title: saveData.title,
           content: saveData.content,
         });
+
+        taskSignatureByNoteRef.current.set(saveData.noteId, nextTaskSignature);
+        titleByNoteRef.current.set(saveData.noteId, saveData.title);
 
         // 清除待保存数据
         if (pendingSaveRef.current?.noteId === saveData.noteId) {
@@ -66,9 +103,9 @@ export const useNoteSave = (): UseNoteSaveReturn => {
         }
 
         // 通知其他窗口（便签窗口）
-        sendRendererIpc(IPC_CHANNELS.noteChanged, saveData.noteId);
-        // 同时通知 Todo 窗口（确保任务勾选能同步更新）
-        sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
+        const syncPayload = createNoteSyncPayload(saveData.noteId, { taskChanged });
+        sendRendererIpc(IPC_CHANNELS.noteChanged, syncPayload);
+        onNoteSynced?.(syncPayload);
         triggerListRefresh();
 
         return true;
@@ -82,7 +119,7 @@ export const useNoteSave = (): UseNoteSaveReturn => {
         isSavingRef.current = false;
       }
     },
-    [triggerListRefresh],
+    [onNoteSynced, triggerListRefresh],
   );
 
   /**
@@ -162,6 +199,7 @@ export const useNoteSave = (): UseNoteSaveReturn => {
     saveImmediately,
     debouncedSave,
     flushPendingSave,
+    syncTaskBaseline,
     // 依然暴露 ref 以备不时之需，但建议尽量少用
     pendingSaveRef,
   };

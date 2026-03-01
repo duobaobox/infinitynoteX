@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
 import { useNoteCardTheme } from '../../hooks/useNoteCardTheme';
 import type { NoteColor } from '../../services/types';
+import type { NoteSyncPayload } from '../../shared/types/ipc';
 import { IPC_CHANNELS } from '../../shared/types/ipc';
 import { onRendererIpc } from '../../shared/utils/ipcEvents';
 import './PillWindow.css';
@@ -60,8 +61,8 @@ const PillWindow: React.FC<PillWindowProps> = ({ noteId }) => {
   useEffect(() => {
     if (!noteId) return;
 
-    const handleNoteUpdate = async (_event: unknown, updatedNoteId: string) => {
-      if (updatedNoteId === noteId) {
+    const handleNoteUpdate = async (_event: unknown, payload: NoteSyncPayload) => {
+      if (payload.noteId === noteId) {
         try {
           const note = await window.storage.getNote(noteId);
           setNoteTitle(note.title);

@@ -152,11 +152,18 @@ export interface NavigateNotePayload {
   taskPath?: number[];
 }
 
+export interface NoteSyncPayload {
+  noteId: string;
+  sourceId: string;
+  revision: number;
+  taskChanged: boolean;
+}
+
 export type RendererIpcEventPayloadMap = {
   [IPC_CHANNELS.mainProcessMessage]: [message: string];
-  [IPC_CHANNELS.noteChanged]: [noteId: string];
+  [IPC_CHANNELS.noteChanged]: [payload: NoteSyncPayload];
   [IPC_CHANNELS.todoChanged]: [listId: string];
-  [IPC_CHANNELS.noteUpdated]: [noteId: string];
+  [IPC_CHANNELS.noteUpdated]: [payload: NoteSyncPayload];
   [IPC_CHANNELS.todoUpdated]: [listId: string];
   [IPC_CHANNELS.floatingNoteChanged]: [noteId: string];
   [IPC_CHANNELS.floatingNoteUpdated]: [noteId: string];

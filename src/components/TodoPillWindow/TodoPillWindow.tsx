@@ -72,8 +72,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
   }, [loadData]);
 
   useEffect(() => {
-    const handleUpdate = async (_event: unknown, updatedId?: string) => {
-      // 如果是便签任务相关，无论 ID 是什么都静默刷新 (便签更新事件不带清单 ID)
+    const handleTodoUpdate = async (_event: unknown, updatedId?: string) => {
       if (listId === DEFAULT_TODO_LIST_ID) {
         await loadData(true);
       } else if (updatedId === listId) {
@@ -81,12 +80,18 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
       }
     };
 
-    const offTodoUpdated = onRendererIpc(IPC_CHANNELS.todoUpdated, handleUpdate);
+    const handleNoteUpdate = async () => {
+      if (listId === DEFAULT_TODO_LIST_ID) {
+        await loadData(true);
+      }
+    };
+
+    const offTodoUpdated = onRendererIpc(IPC_CHANNELS.todoUpdated, handleTodoUpdate);
 
     // 如果是便签任务，还需要监听便签更新
     let offNoteUpdated: (() => void) | null = null;
     if (listId === DEFAULT_TODO_LIST_ID) {
-      offNoteUpdated = onRendererIpc(IPC_CHANNELS.noteUpdated, handleUpdate);
+      offNoteUpdated = onRendererIpc(IPC_CHANNELS.noteUpdated, handleNoteUpdate);
     }
 
     return () => {

@@ -24,7 +24,11 @@ import {
   updateTaskCheckedStatus,
 } from '../../features/todo/services/taskParser';
 import { IPC_CHANNELS } from '../../shared/types/ipc';
-import { onRendererIpc, sendRendererIpc } from '../../shared/utils/ipcEvents';
+import {
+  createNoteSyncPayload,
+  onRendererIpc,
+  sendRendererIpc,
+} from '../../shared/utils/ipcEvents';
 import { loadAllNotes } from '../../shared/utils/noteLoader';
 import { DEFAULT_TODO_LIST_ID } from '../../shared/constants/todoConstants';
 import './FloatingNoteTodoWindow.css';
@@ -130,7 +134,7 @@ const FloatingNoteTodoWindow: React.FC = () => {
       await window.storage.updateNote(task.noteId, { content: newContent });
 
       // 5. 通知其他窗口（便签窗口 + Todo 窗口）
-      sendRendererIpc(IPC_CHANNELS.noteChanged, task.noteId);
+      sendRendererIpc(IPC_CHANNELS.noteChanged, createNoteSyncPayload(task.noteId));
       // 同时通知 Todo 窗口（确保药丸和主页面也能同步）
       sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
 

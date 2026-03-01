@@ -23,10 +23,16 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspens
 import { Segmented, Splitter, message, Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../services/types';
 import type { NoteColor as NoteColorType } from '../../../../services/types';
+import type { NoteSyncPayload } from '../../../../shared/types/ipc';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { IPC_CHANNELS } from '../../../../shared/types/ipc';
-import { onRendererIpc, sendRendererIpc } from '../../../../shared/utils/ipcEvents';
+import {
+  createNoteSyncPayload,
+  getRendererIpcSourceId,
+  onRendererIpc,
+  sendRendererIpc,
+} from '../../../../shared/utils/ipcEvents';
 
 // 从模块导入
 import type { TabKeyType } from './types';
@@ -74,11 +80,49 @@ export const NoteEditor: React.FC = () => {
     }
   }, [enableInfiniteCanvas, activeTab]);
 
+  // 跟踪“本窗口本组件”发出的同步事件，避免回流后二次重载
+  const localSyncKeySetRef = useRef<Set<string>>(new Set());
+  const rendererSourceIdRef = useRef(getRendererIpcSourceId());
+  const markLocalNoteSync = useCallback((payload: NoteSyncPayload) => {
+    const key = `${payload.noteId}:${payload.revision}`;
+    const syncKeys = localSyncKeySetRef.current;
+    syncKeys.add(key);
+    // 轻量限长，防止长期运行 Set 增长
+    if (syncKeys.size > 200) {
+      const oldestKey = syncKeys.values().next().value;
+      if (typeof oldestKey === 'string') {
+        syncKeys.delete(oldestKey);
+      }
+    }
+  }, []);
+
   // 使用保存 hook
-  const { debouncedSave, flushPendingSave } = useNoteSave();
+  const { debouncedSave, flushPendingSave, syncTaskBaseline } = useNoteSave({
+    onNoteSynced: markLocalNoteSync,
+  });
 
   // 当前便签 ID 引用
   const currentNoteIdRef = useRef<string | null>(null);
+
+  const loadNote = useCallback(
+    async (id: string) => {
+      setIsContentLoading(true);
+      try {
+        const note = await window.storage.getNote(id);
+        setNoteTitle(note.title);
+        setEditorContent(note.content);
+        setNoteColor(note.color || 'ffffff');
+        syncTaskBaseline(id, note.title, note.content);
+        // 延迟重置加载状态，给编辑器一点时间处理内容更新
+        setTimeout(() => setIsContentLoading(false), 50);
+      } catch (error) {
+        console.error('Failed to load note:', error);
+        message.error('加载便签失败');
+        setIsContentLoading(false);
+      }
+    },
+    [syncTaskBaseline],
+  );
 
   // 切换便签时：先保存当前便签，再加载新便签
   useEffect(() => {
@@ -96,7 +140,7 @@ export const NoteEditor: React.FC = () => {
     };
 
     switchNote();
-  }, [selectedNoteId, flushPendingSave]);
+  }, [selectedNoteId, flushPendingSave, loadNote]);
 
   // 监听 tab 重置信号（如从画布双击跳转）
   useEffect(() => {
@@ -105,41 +149,38 @@ export const NoteEditor: React.FC = () => {
     if (currentNoteIdRef.current) {
       loadNote(currentNoteIdRef.current);
     }
-  }, [resetEditorTabTrigger]);
+  }, [resetEditorTabTrigger, loadNote]);
 
   // 监听来自悬浮窗口的更新通知
   useEffect(() => {
-    const handleFloatingNoteUpdate = async (_event: unknown, updatedNoteId: string) => {
-      if (updatedNoteId === currentNoteIdRef.current) {
-        try {
-          const note = await window.storage.getNote(updatedNoteId);
-          setNoteTitle(note.title);
-          setEditorContent(note.content);
-          setNoteColor(note.color || 'ffffff');
-        } catch (error) {
-          console.error('Failed to reload note from floating window:', error);
+    const handleFloatingNoteUpdate = async (_event: unknown, payload: NoteSyncPayload) => {
+      const { noteId, sourceId, revision } = payload;
+      if (noteId !== currentNoteIdRef.current) {
+        return;
+      }
+
+      // 仅跳过“本组件自己发出的那一次”回流事件，不影响其他来源联动
+      if (sourceId === rendererSourceIdRef.current) {
+        const key = `${noteId}:${revision}`;
+        if (localSyncKeySetRef.current.has(key)) {
+          localSyncKeySetRef.current.delete(key);
+          return;
         }
+      }
+
+      try {
+        const note = await window.storage.getNote(noteId);
+        setNoteTitle(note.title);
+        setEditorContent(note.content);
+        setNoteColor(note.color || 'ffffff');
+        syncTaskBaseline(noteId, note.title, note.content);
+      } catch (error) {
+        console.error('Failed to reload note from floating window:', error);
       }
     };
 
     return onRendererIpc(IPC_CHANNELS.noteUpdated, handleFloatingNoteUpdate);
-  }, []);
-
-  const loadNote = async (id: string) => {
-    setIsContentLoading(true);
-    try {
-      const note = await window.storage.getNote(id);
-      setNoteTitle(note.title);
-      setEditorContent(note.content);
-      setNoteColor(note.color || 'ffffff');
-      // 延迟重置加载状态，给编辑器一点时间处理内容更新
-      setTimeout(() => setIsContentLoading(false), 50);
-    } catch (error) {
-      console.error('Failed to load note:', error);
-      message.error('加载便签失败');
-      setIsContentLoading(false);
-    }
-  };
+  }, [syncTaskBaseline]);
 
   // 标题变更处理
   const handleTitleChange = useCallback(
@@ -171,14 +212,18 @@ export const NoteEditor: React.FC = () => {
       try {
         await window.storage.updateNote(currentNoteIdRef.current, { color: newColor });
         setNoteColor(newColor);
-        sendRendererIpc(IPC_CHANNELS.noteChanged, currentNoteIdRef.current);
+        const syncPayload = createNoteSyncPayload(currentNoteIdRef.current, {
+          taskChanged: false,
+        });
+        markLocalNoteSync(syncPayload);
+        sendRendererIpc(IPC_CHANNELS.noteChanged, syncPayload);
         triggerListRefresh();
       } catch (error) {
         console.error('Failed to update color:', error);
         message.error('更新颜色失败');
       }
     },
-    [triggerListRefresh],
+    [markLocalNoteSync, triggerListRefresh],
   );
 
   // 处理 Tab 切换

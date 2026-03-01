@@ -14,7 +14,7 @@ import { Spin } from 'antd';
 import type { TipTapJSONContent } from '../../../../../services/types';
 import { NOTE_COLOR_CSS_VAR_MAP } from '../../../../../constants/noteColors';
 import { IPC_CHANNELS } from '../../../../../shared/types/ipc';
-import { sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
+import { createNoteSyncPayload, sendRendererIpc } from '../../../../../shared/utils/ipcEvents';
 import { useWorkspaceStore } from '../../../../../store/workspaceStore';
 import './NoteNode.css';
 
@@ -86,7 +86,7 @@ const NoteNode: React.FC<NoteNodeProps> = ({ data, selected }) => {
       timeoutRef.current = setTimeout(async () => {
         await window.storage.updateNote(noteId, patch);
         // 发送 IPC 通知，让 NoteEditor 同步更新
-        sendRendererIpc(IPC_CHANNELS.noteChanged, noteId);
+        sendRendererIpc(IPC_CHANNELS.noteChanged, createNoteSyncPayload(noteId));
         // 刷新左侧便签列表
         triggerListRefresh();
       }, 500);

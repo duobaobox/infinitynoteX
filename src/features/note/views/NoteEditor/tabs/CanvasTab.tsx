@@ -49,6 +49,7 @@ import {
 } from '../../../../ai-chat/utils';
 import { NOTE_COLOR_HEX_MAP, type NoteColorId } from '../../../../../constants/noteColors';
 import { loadFolderNoteGroups } from '../../../../../shared/utils/noteLoader';
+import type { NoteIndex } from '../../../../../services/types';
 import './CanvasTab.css';
 
 const MarkdownRenderer = lazy(() =>
@@ -68,6 +69,31 @@ const NODE_WIDTH = 400;
 const NODE_HEIGHT = 400;
 const GAP_X = 40;
 const GAP_Y = 40;
+const NODE_SAVE_DEBOUNCE_MS = 160;
+const NODE_SAVE_MAX_RETRIES = 3;
+const NODE_SAVE_RETRY_BASE_MS = 300;
+
+type CanvasNodePatch = {
+  canvasX?: number;
+  canvasY?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
+};
+type CanvasFlowNode = Node<NoteNodeData>;
+type CanvasNodeUpdate = {
+  id: string;
+  patch: CanvasNodePatch;
+};
+
+function mergeCanvasPatch(
+  current: CanvasNodePatch | undefined,
+  patch: CanvasNodePatch,
+): CanvasNodePatch {
+  return {
+    ...(current || {}),
+    ...patch,
+  };
+}
 
 /**
  * 计算节点的初始位置（网格布局）
@@ -86,6 +112,7 @@ function calculateInitialPosition(index: number): { x: number; y: number } {
  */
 const CanvasInner: React.FC = () => {
   const notes = useWorkspaceStore((state) => state.notes);
+  const setNotes = useWorkspaceStore((state) => state.setNotes);
   const selectedNoteId = useWorkspaceStore((state) => state.selectedNoteId);
   const setSelectedNote = useWorkspaceStore((state) => state.setSelectedNote);
   const selectedFolderId = useWorkspaceStore((state) => state.selectedFolderId);
@@ -97,9 +124,14 @@ const CanvasInner: React.FC = () => {
     Map<string, { id: string; title: string; content: string; color?: string }>
   >(new Map());
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<NoteNodeData>>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasFlowNode>([]);
   const viewportRef = useRef<Viewport>({ x: 0, y: 0, zoom: 0.8 });
   const [showMiniMap, setShowMiniMap] = useState(false);
+  const pendingNodePatchRef = useRef<Map<string, CanvasNodePatch>>(new Map());
+  const patchRetryCountRef = useRef<Map<string, number>>(new Map());
+  const patchFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFlushingNodePatchRef = useRef(false);
+  const hasShownRetryNoticeRef = useRef(false);
 
   // AI Chat 相关状态
   const { isConfigured, config, providerOptions, currentProviderId, switchProvider, isSwitching } =
@@ -258,6 +290,147 @@ const CanvasInner: React.FC = () => {
       .then(() => message.success('已复制'))
       .catch(() => message.error('复制失败'));
   }, [aiResponse]);
+
+  /**
+   * 合并队列并批量落库：
+   * - 高频拖拽/缩放变更先进入内存队列
+   * - 定时批量写库，失败自动重试
+   */
+  const flushQueuedNodePatches = useCallback(async () => {
+    if (isFlushingNodePatchRef.current) {
+      return;
+    }
+
+    const pendingPatches = pendingNodePatchRef.current;
+    if (pendingPatches.size === 0) {
+      return;
+    }
+
+    isFlushingNodePatchRef.current = true;
+    const currentBatch = Array.from(pendingPatches.entries());
+    pendingPatches.clear();
+
+    const failed: Array<{ id: string; patch: CanvasNodePatch; attempt: number }> = [];
+
+    await Promise.all(
+      currentBatch.map(async ([id, patch]) => {
+        try {
+          await window.storage.updateNote(id, patch);
+          patchRetryCountRef.current.delete(id);
+        } catch (error) {
+          const attempt = (patchRetryCountRef.current.get(id) || 0) + 1;
+          patchRetryCountRef.current.set(id, attempt);
+          failed.push({ id, patch, attempt });
+          console.error(`[Canvas] Failed to persist node patch (attempt ${attempt}):`, id, error);
+        }
+      }),
+    );
+
+    if (failed.length > 0) {
+      let retryableCount = 0;
+      let droppedCount = 0;
+      let maxRetryAttempt = 1;
+
+      failed.forEach(({ id, patch, attempt }) => {
+        if (attempt <= NODE_SAVE_MAX_RETRIES) {
+          pendingPatches.set(id, mergeCanvasPatch(pendingPatches.get(id), patch));
+          retryableCount += 1;
+          if (attempt > maxRetryAttempt) {
+            maxRetryAttempt = attempt;
+          }
+        } else {
+          patchRetryCountRef.current.delete(id);
+          droppedCount += 1;
+        }
+      });
+
+      if (retryableCount > 0 && !hasShownRetryNoticeRef.current) {
+        hasShownRetryNoticeRef.current = true;
+        message.warning('画布位置保存失败，正在自动重试');
+      }
+
+      if (droppedCount > 0) {
+        message.error('部分画布变更保存失败，请稍后重试');
+      }
+
+      if (retryableCount > 0) {
+        const retryDelay = NODE_SAVE_RETRY_BASE_MS * maxRetryAttempt;
+        if (patchFlushTimerRef.current) {
+          clearTimeout(patchFlushTimerRef.current);
+        }
+        patchFlushTimerRef.current = setTimeout(() => {
+          patchFlushTimerRef.current = null;
+          void flushQueuedNodePatches();
+        }, retryDelay);
+      }
+    } else {
+      hasShownRetryNoticeRef.current = false;
+    }
+
+    isFlushingNodePatchRef.current = false;
+  }, []);
+
+  const scheduleNodePatchFlush = useCallback(
+    (delay = NODE_SAVE_DEBOUNCE_MS) => {
+      if (patchFlushTimerRef.current) {
+        return;
+      }
+
+      patchFlushTimerRef.current = setTimeout(() => {
+        patchFlushTimerRef.current = null;
+        void flushQueuedNodePatches();
+      }, delay);
+    },
+    [flushQueuedNodePatches],
+  );
+
+  const enqueueNodePatch = useCallback(
+    (id: string, patch: CanvasNodePatch) => {
+      pendingNodePatchRef.current.set(
+        id,
+        mergeCanvasPatch(pendingNodePatchRef.current.get(id), patch),
+      );
+      scheduleNodePatchFlush();
+    },
+    [scheduleNodePatchFlush],
+  );
+
+  const syncCanvasUpdatesToStore = useCallback(
+    (updates: CanvasNodeUpdate[]) => {
+      if (updates.length === 0) {
+        return;
+      }
+
+      const mergedPatchById = new Map<string, CanvasNodePatch>();
+      updates.forEach(({ id, patch }) => {
+        mergedPatchById.set(id, mergeCanvasPatch(mergedPatchById.get(id), patch));
+      });
+
+      const currentNotes = useWorkspaceStore.getState().notes;
+      const nextNotes: NoteIndex[] = currentNotes.map((note) => {
+        const patch = mergedPatchById.get(note.id);
+        if (!patch) {
+          return note;
+        }
+        return {
+          ...note,
+          ...patch,
+        };
+      });
+      setNotes(nextNotes);
+    },
+    [setNotes],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (patchFlushTimerRef.current) {
+        clearTimeout(patchFlushTimerRef.current);
+        patchFlushTimerRef.current = null;
+      }
+      void flushQueuedNodePatches();
+    };
+  }, [flushQueuedNodePatches]);
 
   // 监听视口变化并保存
   useOnViewportChange({
@@ -434,18 +607,22 @@ const CanvasInner: React.FC = () => {
       console.error('Failed to load default size:', error);
     }
 
-    // 批量更新数据库中的位置和尺寸
-    const updatePromises = nodes.map((node, index) => {
+    // 将自动排列结果写入持久化队列（合并 + 重试）
+    const updates: CanvasNodeUpdate[] = nodes.map((node, index) => {
       const position = calculateInitialPosition(index);
-      return window.storage.updateNote(node.id, {
-        canvasX: position.x,
-        canvasY: position.y,
-        canvasWidth: defaultWidth,
-        canvasHeight: defaultHeight,
-      });
+      return {
+        id: node.id,
+        patch: {
+          canvasX: position.x,
+          canvasY: position.y,
+          canvasWidth: defaultWidth,
+          canvasHeight: defaultHeight,
+        },
+      };
     });
-
-    await Promise.all(updatePromises);
+    syncCanvasUpdatesToStore(updates);
+    updates.forEach(({ id, patch }) => enqueueNodePatch(id, patch));
+    void flushQueuedNodePatches();
 
     // 更新节点（直接设置新的位置和尺寸）
     const layoutedNodes = nodes.map((node, index) => ({
@@ -460,19 +637,15 @@ const CanvasInner: React.FC = () => {
     }));
 
     setNodes(layoutedNodes);
-  }, [nodes, setNodes]);
+  }, [enqueueNodePatch, flushQueuedNodePatches, nodes, setNodes, syncCanvasUpdatesToStore]);
 
   // 节点拖拽/调整尺寸结束：批量保存位置和尺寸
   const handleNodesChange = useCallback(
-    (changes: NodeChange<Node>[]) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onNodesChange(changes as any);
+    (changes: NodeChange<CanvasFlowNode>[]) => {
+      onNodesChange(changes);
 
       // 收集需要保存的变更
-      const updates: Array<{
-        id: string;
-        patch: { canvasX?: number; canvasY?: number; canvasWidth?: number; canvasHeight?: number };
-      }> = [];
+      const updates: CanvasNodeUpdate[] = [];
 
       changes.forEach((change) => {
         // 保存位置变化
@@ -498,17 +671,18 @@ const CanvasInner: React.FC = () => {
         }
       });
 
-      // 批量更新数据库（避免多次调用）
+      // 写入队列（合并 + 批量落库 + 自动重试）
+      syncCanvasUpdatesToStore(updates);
       updates.forEach(({ id, patch }) => {
-        window.storage.updateNote(id, patch);
+        enqueueNodePatch(id, patch);
       });
     },
-    [onNodesChange],
+    [enqueueNodePatch, onNodesChange, syncCanvasUpdatesToStore],
   );
 
   // 处理节点选中变化
   const handleSelectionChange = useCallback(
-    async (selection: { nodes: Node[] }) => {
+    async (selection: { nodes: CanvasFlowNode[] }) => {
       const selectedNodesList = selection.nodes;
 
       // 使用 Promise.all 并发获取所有选中便签的完整内容

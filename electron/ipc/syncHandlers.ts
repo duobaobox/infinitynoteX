@@ -36,12 +36,17 @@ export function registerSyncHandlers(): void {
 
   ipcMain.handle(syncChannel('execute'), async (event, providerId: string, config: unknown) => {
     try {
+      if (syncManager.isSyncInProgress()) {
+        throw new Error('同步已在进行中，请等待当前同步完成后再试');
+      }
+
       const storagePath = storageManager.getCurrentPath();
       const progressCallback = (progress: SyncProgress) => {
         event.sender.send(IPC_CHANNELS.syncProgress, progress);
       };
-      syncManager.setProgressCallback(progressCallback);
-      const result = await syncManager.execute(providerId, config as SyncConfig, storagePath);
+      const result = await syncManager.execute(providerId, config as SyncConfig, storagePath, {
+        onProgress: progressCallback,
+      });
 
       // 持久化最近一次同步结果
       try {
@@ -53,21 +58,32 @@ export function registerSyncHandlers(): void {
         console.warn('[Sync] Failed to persist last sync result:', e);
       }
 
-      // 同步完成后清除缓存并重建索引
-      storageManager.clearAllCaches();
-      console.log('[Sync] Rebuilding all indexes after sync...');
-      const rebuildResult = await storageManager.rebuildAllIndexes();
-      console.log(
-        `[Sync] Indexes rebuilt: ${rebuildResult.folders.rebuilt} folders, ${rebuildResult.notes.rebuilt} notes, ${rebuildResult.conversations.rebuilt} conversations`,
-      );
-      await storageManager.reloadAllCaches();
-
+      // 先通知前端同步已完成，不阻塞UI等待后续的索引重建
       event.sender.send(IPC_CHANNELS.syncCompleted, result);
 
       const win = getMainWindow();
       if (win && !win.isDestroyed()) {
         win.webContents.send(IPC_CHANNELS.syncDataChanged);
       }
+
+      // 异步重建索引（不阻塞 IPC 返回），并在完成后单独上报状态
+      storageManager.clearAllCaches();
+      setImmediate(async () => {
+        try {
+          console.log('[Sync] Rebuilding all indexes after sync...');
+          const rebuildResult = await storageManager.rebuildAllIndexes();
+          console.log(
+            `[Sync] Indexes rebuilt: ${rebuildResult.folders.rebuilt} folders, ${rebuildResult.notes.rebuilt} notes, ${rebuildResult.conversations.rebuilt} conversations`,
+          );
+          await storageManager.reloadAllCaches();
+          // 重建完成后再次通知数据变更（触发前端刷新）
+          if (win && !win.isDestroyed()) {
+            win.webContents.send(IPC_CHANNELS.syncDataChanged);
+          }
+        } catch (rebuildErr) {
+          console.error('[Sync] Index rebuild failed (non-fatal):', rebuildErr);
+        }
+      });
 
       return result;
     } catch (error) {

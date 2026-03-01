@@ -7,31 +7,14 @@ import { WebDAVSyncClient } from './webdavClient';
 import { SyncEngine } from './syncEngine';
 import { readAppConfig, writeAppConfig } from '../config';
 import { app } from 'electron';
-import type {
-  WebDAVConfig,
-  SyncConfig,
-  SyncResult,
-  SyncProgressCallback,
-  SyncOptions,
-} from './types';
+import type { WebDAVConfig, SyncConfig, SyncResult, SyncOptions } from './types';
 
 export class SyncManager {
-  private webdavClient: WebDAVSyncClient;
-  private syncEngine: SyncEngine | null = null;
-  private progressCallback: SyncProgressCallback | null = null;
+  /** 全局互斥：防止并发同步互相污染共享状态 */
+  private isSyncing = false;
 
-  constructor() {
-    this.webdavClient = new WebDAVSyncClient();
-  }
-
-  /**
-   * 设置进度回调
-   */
-  setProgressCallback(callback: SyncProgressCallback | null): void {
-    this.progressCallback = callback;
-    if (this.syncEngine) {
-      this.syncEngine.setProgressCallback(callback || (() => {}));
-    }
+  isSyncInProgress(): boolean {
+    return this.isSyncing;
   }
 
   /**
@@ -82,7 +65,8 @@ export class SyncManager {
    * 测试 WebDAV 连接
    */
   async testWebDAVConnection(config: WebDAVConfig): Promise<{ ok: boolean; message: string }> {
-    return await this.webdavClient.testConnection(config);
+    const webdavClient = new WebDAVSyncClient();
+    return await webdavClient.testConnection(config);
   }
 
   /**
@@ -93,31 +77,36 @@ export class SyncManager {
     storagePath: string,
     options?: SyncOptions,
   ): Promise<SyncResult> {
-    console.log('[SyncManager] Starting sync...');
-
-    // 初始化 WebDAV 客户端
-    this.webdavClient.initialize(config);
-
-    // 获取应用目录路径
-    const appPath = app.getPath('userData');
-
-    // 创建同步引擎
-    this.syncEngine = new SyncEngine(this.webdavClient, storagePath, appPath);
-
-    // 设置进度回调
-    if (this.progressCallback) {
-      this.syncEngine.setProgressCallback(this.progressCallback);
+    // 全局互斥：主进程级防并发
+    if (this.isSyncing) {
+      throw new Error('同步已在进行中，请等待当前同步完成后再试');
     }
+    this.isSyncing = true;
+    try {
+      console.log('[SyncManager] Starting sync...');
 
-    // 执行同步
-    const result = await this.syncEngine.sync({
-      conflictStrategy: options?.conflictStrategy || 'newest',
-      onProgress: options?.onProgress || this.progressCallback || undefined,
-      dryRun: options?.dryRun,
-    });
+      // 初始化 WebDAV 客户端
+      const webdavClient = new WebDAVSyncClient();
+      webdavClient.initialize(config);
 
-    console.log('[SyncManager] Sync completed:', result);
-    return result;
+      // 获取应用目录路径
+      const appPath = app.getPath('userData');
+
+      // 创建同步引擎
+      const syncEngine = new SyncEngine(webdavClient, storagePath, appPath);
+
+      // 执行同步
+      const result = await syncEngine.sync({
+        conflictStrategy: options?.conflictStrategy || 'newest',
+        onProgress: options?.onProgress,
+        dryRun: options?.dryRun,
+      });
+
+      console.log('[SyncManager] Sync completed:', result);
+      return result;
+    } finally {
+      this.isSyncing = false;
+    }
   }
 
   /**
@@ -134,26 +123,38 @@ export class SyncManager {
     conflicts: string[];
     unchanged: number;
   }> {
+    // 同步进行中不允许预览，避免共享资源被并发改写
+    if (this.isSyncing) {
+      throw new Error('同步进行中，暂时无法预览，请稍后再试');
+    }
+
     // 初始化 WebDAV 客户端
-    this.webdavClient.initialize(config);
+    const webdavClient = new WebDAVSyncClient();
+    webdavClient.initialize(config);
 
     // 获取应用目录路径
     const appPath = app.getPath('userData');
 
     // 创建同步引擎
-    this.syncEngine = new SyncEngine(this.webdavClient, storagePath, appPath);
+    const syncEngine = new SyncEngine(webdavClient, storagePath, appPath);
 
-    return await this.syncEngine.preview();
+    return await syncEngine.preview();
   }
 
   /**
    * 通用同步接口（保持向后兼容）
    */
-  async execute(providerId: string, config: SyncConfig, storagePath: string): Promise<SyncResult> {
+  async execute(
+    providerId: string,
+    config: SyncConfig,
+    storagePath: string,
+    options?: Pick<SyncOptions, 'onProgress'>,
+  ): Promise<SyncResult> {
     switch (providerId) {
       case 'webdav':
         return await this.sync(config, storagePath, {
           conflictStrategy: config.conflictStrategy,
+          onProgress: options?.onProgress,
         });
       default:
         throw new Error(`Unknown provider: ${providerId}`);

@@ -16,6 +16,7 @@ import { STORAGE_MODULES } from '../storage/core/moduleRegistry';
 
 type ManifestReadResult = {
   manifest: RemoteSyncManifest | null;
+  exists: boolean;
   etag?: string;
 };
 
@@ -59,10 +60,7 @@ export class WebDAVSyncClient {
    */
   async testConnection(config: WebDAVConfig): Promise<{ ok: boolean; message: string }> {
     try {
-      console.log('[WebDAV] testConnection called');
-      console.log('[WebDAV] Config type:', typeof config);
-      console.log('[WebDAV] Config keys:', config ? Object.keys(config) : 'null');
-      console.log('[WebDAV] Config values:', { ...config, password: '***' });
+      console.log('[WebDAV] testConnection called, url:', config?.url ?? '(empty)');
 
       if (!config) {
         return { ok: false, message: '配置对象为空' };
@@ -77,26 +75,18 @@ export class WebDAVSyncClient {
       }
 
       const remotePath = config.remotePath || '/InfinityNoteX';
-      console.log('[WebDAV] remotePath:', remotePath);
 
-      const clientOptions = {
+      const client = createClient(config.url, {
         username: config.username || '',
         password: config.password || '',
-      };
-      console.log('[WebDAV] Creating client with options:', { ...clientOptions, password: '***' });
-
-      const client = createClient(config.url, clientOptions);
-      console.log('[WebDAV] Client created');
+      });
 
       // 尝试访问远程路径
-      console.log('[WebDAV] Checking existence of:', remotePath);
       const exists = await client.exists(remotePath);
-      console.log('[WebDAV] Exists result:', exists);
 
       if (!exists) {
         // 如果路径不存在，尝试创建
         try {
-          console.log('[WebDAV] Creating directory:', remotePath);
           await client.createDirectory(remotePath, { recursive: true });
           return { ok: true, message: 'WebDAV 连接成功，已创建远程目录' };
         } catch (createError) {
@@ -110,11 +100,10 @@ export class WebDAVSyncClient {
 
       return { ok: true, message: 'WebDAV 连接成功' };
     } catch (error) {
-      console.error('[WebDAV] Connection test failed:', error);
-      // 打印完整的错误堆栈
-      if (error instanceof Error) {
-        console.error('[WebDAV] Stack:', error.stack);
-      }
+      console.error(
+        '[WebDAV] Connection test failed:',
+        error instanceof Error ? error.message : error,
+      );
       return {
         ok: false,
         message: `连接失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -276,21 +265,22 @@ export class WebDAVSyncClient {
   async readManifestWithEtag(): Promise<ManifestReadResult> {
     const config = this.config!;
     const manifestPath = `${config.remotePath}/${SYNC_META_DIR}/${MANIFEST_FILE}`;
+    let manifestExists = false;
 
     try {
-      const exists = await this.exists(manifestPath);
-      if (!exists) {
-        return { manifest: null };
+      manifestExists = await this.exists(manifestPath);
+      if (!manifestExists) {
+        return { manifest: null, exists: false };
       }
 
       const stat = await this.stat(manifestPath);
       const etag = (stat as unknown as Record<string, unknown>)?.etag as string | undefined;
 
       const content = await this.downloadFile(manifestPath);
-      return { manifest: JSON.parse(content) as RemoteSyncManifest, etag };
+      return { manifest: JSON.parse(content) as RemoteSyncManifest, exists: true, etag };
     } catch (error) {
       console.error('[WebDAV] Failed to read manifest with etag:', error);
-      return { manifest: null };
+      return { manifest: null, exists: manifestExists };
     }
   }
 

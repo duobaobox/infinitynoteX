@@ -248,6 +248,7 @@ export class SyncEngine {
       );
 
       let remoteManifest = manifestResult.manifest;
+      const manifestExists = manifestResult.exists;
       const manifestEtag = manifestResult.etag;
 
       if (!remoteManifest) {
@@ -423,12 +424,26 @@ export class SyncEngine {
       remoteManifest.updatedAt = Date.now();
       remoteManifest.updatedBy = localState.deviceId;
 
+      // 标记 manifest 写入是否成功，失败时不得提交本地状态（避免"误删本地"）
+      let manifestWriteSucceeded = false;
       try {
+        let writeOptions: { ifMatch?: string; ifNoneMatch?: boolean } | undefined;
+        if (!manifestExists) {
+          // manifest 首次写入：使用 If-None-Match 防止并发初始化互相覆盖
+          writeOptions = { ifNoneMatch: true };
+        } else if (manifestEtag) {
+          // manifest 已存在且有 ETag：使用 If-Match 做并发保护
+          writeOptions = { ifMatch: manifestEtag };
+        } else {
+          // 某些 WebDAV 服务不返回 ETag，此时只能降级为普通写入
+          this.logger.warn('manifest', '远程 manifest 存在但未返回 ETag，降级为非条件写入');
+        }
         await this.withRetry(
-          () => this.webdavClient.writeManifest(remoteManifest, { ifMatch: manifestEtag }),
+          () => this.webdavClient.writeManifest(remoteManifest, writeOptions),
           'writeManifest',
           maxRetries,
         );
+        manifestWriteSucceeded = true;
         this.logger.info('manifest', '远程清单更新成功');
       } catch (manifestError) {
         // 处理 412 Precondition Failed (Etag 不匹配)
@@ -441,22 +456,28 @@ export class SyncEngine {
           throw new Error('SYNC_CONFLICT_MANIFEST_CHANGED');
         }
 
-        // manifest 写入失败是严重问题，但不应导致整个同步失败
+        // manifest 写入失败：记录错误，但不提交本地状态
+        // 若提交本地状态，下次同步会把"manifest 缺失的条目"当成"远程已删"，从而误删本地文件
         this.logger.error(
           'manifest',
-          `远程清单写入失败: ${manifestError instanceof Error ? manifestError.message : '未知错误'}`,
+          `远程清单写入失败，本次本地状态不会提交: ${manifestError instanceof Error ? manifestError.message : '未知错误'}`,
         );
         errors.push({
           code: 'MANIFEST_WRITE_FAILED',
-          message: '远程清单更新失败，下次同步可能需要重新计算差异',
+          message: '远程清单更新失败，本地同步状态未提交，下次同步将重新计算差异',
           retryable: true,
         });
       }
 
-      // 更新本地状态
-      localState.lastSyncAt = Date.now();
-      await writeLocalSyncState(this.appPath, localState);
-      this.logger.info('state', '本地状态更新成功');
+      // 仅在 manifest 写入成功后才更新本地状态
+      // 否则下次同步读取的是旧状态，能正确重算差异，不会误删本地文件
+      if (manifestWriteSucceeded) {
+        localState.lastSyncAt = Date.now();
+        await writeLocalSyncState(this.appPath, localState);
+        this.logger.info('state', '本地状态更新成功');
+      } else {
+        this.logger.warn('state', '远程清单写入失败，跳过本地状态提交');
+      }
 
       // 保存同步日志
       await this.logger.save();

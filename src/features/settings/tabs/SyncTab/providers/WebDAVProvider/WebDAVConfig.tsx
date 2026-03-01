@@ -298,7 +298,11 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
             <Button onClick={handleTest} loading={testing}>
               测试连接
             </Button>
-            <Button onClick={handlePreview} loading={loadingPreview} disabled={!config?.enabled}>
+            <Button
+              onClick={handlePreview}
+              loading={loadingPreview}
+              disabled={!config?.enabled || syncing}
+            >
               预览差异
             </Button>
             <Button

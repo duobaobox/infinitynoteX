@@ -263,12 +263,12 @@ export async function readLocalSyncState(appPath: string): Promise<LocalSyncStat
 }
 
 /**
- * 保存本地同步状态
+ * 保存本地同步状态（原子写入：先写临时文件再重命名，崩溃不损坏状态文件）
  * @param appPath 应用目录路径（存储同步系统文件）
  */
 export async function writeLocalSyncState(appPath: string, state: LocalSyncState): Promise<void> {
   const statePath = path.join(appPath, LOCAL_STATE_FILE);
-  await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf-8');
+  await safeWriteFile(statePath, JSON.stringify(state, null, 2));
 }
 
 /**

@@ -15,6 +15,9 @@ interface SyncStatus {
 const getErrMsg = (e: unknown) =>
   e instanceof Error ? e.message : typeof e === 'string' ? e : '未知错误';
 
+// 记录每个 provider 最近一次配置持久化请求版本，避免旧请求失败回滚新输入
+const persistRequestVersion: Record<string, number> = {};
+
 // ============ Slice 类型定义 ============
 export interface SyncSlice {
   // 状态
@@ -49,24 +52,38 @@ export const createSyncSlice: StateCreator<SyncSlice, [], [], SyncSlice> = (set,
   setSelectedSyncProvider: (id) => set({ selectedSyncProvider: id }),
 
   setSyncConfig: (providerId, config) => {
-    const { syncConfigs } = get();
-    set({
+    const previousConfig = get().syncConfigs[providerId];
+    const requestVersion = (persistRequestVersion[providerId] || 0) + 1;
+    persistRequestVersion[providerId] = requestVersion;
+
+    // 乐观更新本地状态
+    set((state) => ({
       syncConfigs: {
-        ...syncConfigs,
+        ...state.syncConfigs,
         [providerId]: config,
       },
-    });
+    }));
 
-    // 持久化到主进程（主进程将保存到 app.getPath('userData')/sync-config.json）
-    // 采用无阻塞调用，失败时在控制台记录错误
-    try {
-      // window.sync.setConfig 返回 Promise
-      window.sync.setConfig(providerId, config).catch((e) => {
-        console.error('Failed to persist sync config to main process:', e);
+    // 持久化到主进程，失败时回滚本地状态并提示
+    window.sync.setConfig(providerId, config).catch((e) => {
+      console.error('Failed to persist sync config to main process:', e);
+
+      // 已有更新请求发出，当前失败属于旧请求，忽略其回滚
+      if (persistRequestVersion[providerId] !== requestVersion) {
+        return;
+      }
+
+      // 回滚当前 provider 到提交前的值，避免整表回滚导致新输入丢失
+      set((state) => {
+        const nextConfigs = { ...state.syncConfigs };
+        if (previousConfig !== undefined) {
+          nextConfigs[providerId] = previousConfig;
+        } else {
+          delete nextConfigs[providerId];
+        }
+        return { syncConfigs: nextConfigs };
       });
-    } catch (e) {
-      console.error('Failed to call window.sync.setConfig:', e);
-    }
+    });
   },
 
   setSyncStatus: (status) => {

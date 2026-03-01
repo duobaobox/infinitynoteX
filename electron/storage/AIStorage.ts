@@ -5,6 +5,7 @@
 
 import type { StorageContext } from './StorageContext';
 import type { AIConversation, AIConversationIndex, AIMessage } from './types';
+import type { IndexCache } from './core/IndexCache';
 import { StorageError, StorageErrorCode } from './errors';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
@@ -14,8 +15,8 @@ import { generateId, generateConversationTitle } from './utils';
 const aiConfig = getModuleConfig('ai-conversations')!;
 
 export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversationIndex> {
-  constructor(context: StorageContext) {
-    super(context.dataDir, context.tempDir, aiConfig);
+  constructor(context: StorageContext, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, aiConfig, indexCache);
   }
 
   // ============ AI 对话特有方法 ============

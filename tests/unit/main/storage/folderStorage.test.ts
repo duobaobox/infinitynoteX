@@ -58,8 +58,7 @@ describe('FolderStorage', () => {
     await context.ensureBaseDirectories();
     const cache = new IndexCache(path.join(tempPath, 'app.sqlite'));
     await cache.initialize();
-    folderStorage = new FolderStorage(context);
-    folderStorage.setIndexCache(cache);
+    folderStorage = new FolderStorage(context, cache);
     await folderStorage.createDefaultFolder();
   });
 

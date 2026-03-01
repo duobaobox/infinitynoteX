@@ -5,6 +5,7 @@
 
 import type { StorageContext } from './StorageContext';
 import type { BrowserCard, BrowserCardIndex } from './types';
+import type { IndexCache } from './core/IndexCache';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
 
@@ -23,8 +24,8 @@ const PRESET_BROWSER_CARDS: Omit<BrowserCard, 'id' | 'createdAt' | 'updatedAt'>[
 ];
 
 export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, BrowserCardIndex> {
-  constructor(context: StorageContext) {
-    super(context.dataDir, context.tempDir, browserCardsConfig);
+  constructor(context: StorageContext, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, browserCardsConfig, indexCache);
   }
 
   // ============ 网页看板卡片特有方法 ============

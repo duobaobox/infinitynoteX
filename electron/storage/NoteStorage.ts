@@ -7,6 +7,7 @@ import type { StorageContext } from './StorageContext';
 import type { FolderStorage } from './FolderStorage';
 import type { Note, NoteIndex, CreateNotePayload } from './types';
 import type { TipTapJSONContent } from '../../src/services/types';
+import type { IndexCache } from './core/IndexCache';
 import { StorageError, StorageErrorCode } from './errors';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
@@ -18,8 +19,8 @@ const notesConfig = getModuleConfig('notes')!;
 export class NoteStorage extends BaseDirectoryStorage<Note, NoteIndex> {
   private folderStorage: FolderStorage;
 
-  constructor(context: StorageContext, folderStorage: FolderStorage) {
-    super(context.dataDir, context.tempDir, notesConfig);
+  constructor(context: StorageContext, folderStorage: FolderStorage, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, notesConfig, indexCache);
     this.folderStorage = folderStorage;
   }
 

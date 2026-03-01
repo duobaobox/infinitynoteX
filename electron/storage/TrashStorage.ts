@@ -19,27 +19,17 @@ const MODULE_ID = 'trash';
 
 export class TrashStorage {
   private context: StorageContext;
-  private sqliteCache: IndexCache | null = null;
+  private sqliteCache: IndexCache;
 
-  constructor(context: StorageContext) {
+  constructor(context: StorageContext, indexCache: IndexCache) {
     this.context = context;
-  }
-
-  /**
-   * 设置 IndexCache
-   */
-  setIndexCache(cache: IndexCache): void {
-    this.sqliteCache = cache;
+    this.sqliteCache = indexCache;
   }
 
   /**
    * 获取回收站索引列表
    */
   async list(): Promise<TrashIndex[]> {
-    if (!this.sqliteCache) {
-      throw new Error('IndexCache not initialized');
-    }
-
     const items = this.sqliteCache.listItems(MODULE_ID, {
       sortBy: 'updated_at',
       sortOrder: 'desc',
@@ -142,9 +132,7 @@ export class TrashStorage {
     }
 
     // 清空索引
-    if (this.sqliteCache) {
-      this.sqliteCache.clearModule(MODULE_ID);
-    }
+    this.sqliteCache.clearModule(MODULE_ID);
 
     return deletedCount;
   }
@@ -199,17 +187,12 @@ export class TrashStorage {
    * 获取缓存数量
    */
   getCacheCount(): number {
-    if (!this.sqliteCache) return 0;
     return this.sqliteCache.countItems(MODULE_ID);
   }
   /**
    * 重建索引
    */
   async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
-    if (!this.sqliteCache) {
-      return { rebuilt: 0, errors: ['IndexCache not initialized'] };
-    }
-
     const errors: string[] = [];
 
     try {
@@ -302,12 +285,10 @@ export class TrashStorage {
   }
 
   private addToIndex(trashItem: TrashItem): void {
-    if (!this.sqliteCache) return;
     this.sqliteCache.upsertItem(this.toIndexItem(trashItem));
   }
 
   private removeFromIndex(id: string): void {
-    if (!this.sqliteCache) return;
     this.sqliteCache.deleteItem(MODULE_ID, id);
   }
 

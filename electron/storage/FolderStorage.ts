@@ -7,6 +7,7 @@
 
 import type { StorageContext } from './StorageContext';
 import type { Folder } from './types';
+import type { IndexCache } from './core/IndexCache';
 import { StorageError, StorageErrorCode } from './errors';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
@@ -32,8 +33,8 @@ export interface FolderIndex {
  * 文件夹存储类
  */
 export class FolderStorage extends BaseDirectoryStorage<Folder, FolderIndex> {
-  constructor(context: StorageContext) {
-    super(context.dataDir, context.tempDir, foldersConfig);
+  constructor(context: StorageContext, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, foldersConfig, indexCache);
   }
 
   // ============ 文件夹特有方法 ============

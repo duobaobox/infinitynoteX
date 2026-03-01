@@ -77,12 +77,10 @@ describe('NoteStorage', () => {
     const indexCache = new IndexCache(context.appDatabasePath);
     await indexCache.initialize();
 
-    folderStorage = new FolderStorage(context);
-    folderStorage.setIndexCache(indexCache);
+    folderStorage = new FolderStorage(context, indexCache);
     await folderStorage.createDefaultFolder();
 
-    noteStorage = new NoteStorage(context, folderStorage);
-    noteStorage.setIndexCache(indexCache);
+    noteStorage = new NoteStorage(context, folderStorage, indexCache);
   });
 
   afterEach(async () => {

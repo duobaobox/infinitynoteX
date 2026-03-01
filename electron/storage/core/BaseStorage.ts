@@ -38,22 +38,17 @@ export interface BaseIndex {
 export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extends BaseIndex> {
   protected storagePath: string;
   protected tempDir: string;
-  protected indexCache: IndexCache | null = null;
+  protected indexCache: IndexCache;
 
   constructor(
     storagePath: string,
     tempDir: string,
     protected config: StorageModuleConfig,
+    indexCache: IndexCache,
   ) {
     this.storagePath = storagePath;
     this.tempDir = tempDir;
-  }
-
-  /**
-   * 设置 IndexCache（由 StorageManager 在初始化时注入）
-   */
-  setIndexCache(cache: IndexCache): void {
-    this.indexCache = cache;
+    this.indexCache = indexCache;
   }
 
   // ============ 路径管理 ============
@@ -78,10 +73,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 获取索引列表
    */
   async list(): Promise<TIndex[]> {
-    if (!this.indexCache) {
-      throw new Error('IndexCache not initialized');
-    }
-
     const items = this.indexCache.listItems(this.config.id, {
       sortBy: this.config.features.sortField === 'createdAt' ? 'created_at' : 'updated_at',
       sortOrder: 'asc',
@@ -185,7 +176,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 获取缓存数量
    */
   getCacheCount(): number {
-    if (!this.indexCache) return 0;
     return this.indexCache.countItems(this.config.id);
   }
   /**
@@ -193,10 +183,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 扫描目录文件，同步到 SQLite
    */
   async rebuildIndex(): Promise<{ rebuilt: number; errors: string[] }> {
-    if (!this.indexCache) {
-      return { rebuilt: 0, errors: ['IndexCache not initialized'] };
-    }
-
     const errors: string[] = [];
 
     try {
@@ -323,7 +309,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 添加到索引
    */
   protected addToIndex(data: TData): void {
-    if (!this.indexCache) return;
     this.indexCache.upsertItem(this.toIndexItem(data));
   }
 
@@ -331,7 +316,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 更新索引中的项
    */
   protected updateIndexItem(data: TData): void {
-    if (!this.indexCache) return;
     this.indexCache.upsertItem(this.toIndexItem(data));
   }
 
@@ -339,7 +323,6 @@ export abstract class BaseDirectoryStorage<TData extends BaseData, TIndex extend
    * 从索引移除
    */
   protected removeFromIndex(id: string): void {
-    if (!this.indexCache) return;
     this.indexCache.deleteItem(this.config.id, id);
   }
 }

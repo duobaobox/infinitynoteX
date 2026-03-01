@@ -5,6 +5,7 @@
 
 import type { StorageContext } from './StorageContext';
 import type { ManualTask, ManualTaskIndex } from './schemas';
+import type { IndexCache } from './core/IndexCache';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
 
@@ -12,8 +13,8 @@ import { getModuleConfig } from './core/moduleRegistry';
 const manualTasksConfig = getModuleConfig('manual-tasks')!;
 
 export class ManualTaskStorage extends BaseDirectoryStorage<ManualTask, ManualTaskIndex> {
-  constructor(context: StorageContext) {
-    super(context.dataDir, context.tempDir, manualTasksConfig);
+  constructor(context: StorageContext, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, manualTasksConfig, indexCache);
   }
 
   // ============ 手动任务特有方法 ============

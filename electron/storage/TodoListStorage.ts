@@ -5,6 +5,7 @@
 
 import type { StorageContext } from './StorageContext';
 import type { TodoList, TodoListIndex } from './schemas';
+import type { IndexCache } from './core/IndexCache';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
 import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
@@ -15,8 +16,8 @@ const todoListsConfig = getModuleConfig('todo-lists')!;
 export { DEFAULT_TODO_LIST_ID };
 
 export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListIndex> {
-  constructor(context: StorageContext) {
-    super(context.dataDir, context.tempDir, todoListsConfig);
+  constructor(context: StorageContext, indexCache: IndexCache) {
+    super(context.dataDir, context.tempDir, todoListsConfig, indexCache);
   }
 
   // ============ Todo 清单特有方法 ============

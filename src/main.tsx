@@ -10,7 +10,12 @@ import { IPC_CHANNELS } from './shared/types/ipc';
 import { onRendererIpc } from './shared/utils/ipcEvents';
 
 // 在 React 渲染前立即应用主题（避免背景闪烁）
-applyDataTheme();
+const cleanupDataTheme = applyDataTheme();
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cleanupDataTheme();
+  });
+}
 // 启动时加载主题配置
 loadThemeFromConfig();
 // 监听主题配置变化

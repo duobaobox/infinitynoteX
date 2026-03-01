@@ -14,16 +14,24 @@ export const AIChatWindow: React.FC = React.memo(() => {
 
   // 初始化主题同步
   useEffect(() => {
+    let cleanupDataTheme: (() => void) | null = null;
+    let disposed = false;
+
     // 从主进程加载主题配置
     loadThemeFromConfig().then(() => {
+      if (disposed) return;
       // 应用主题
-      applyDataTheme();
+      cleanupDataTheme = applyDataTheme();
     });
 
     // 订阅配置变化（跨窗口同步）
     const unsubscribe = subscribeToConfigChanges();
 
-    return unsubscribe;
+    return () => {
+      disposed = true;
+      unsubscribe();
+      cleanupDataTheme?.();
+    };
   }, []);
 
   // 窗口可见时重新加载配置，确保状态同步

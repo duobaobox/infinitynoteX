@@ -22,6 +22,68 @@ let cachedTheme = {
   loaded: false,
 };
 
+// data-theme 监听器（单例）状态
+let dataThemeRefCount = 0;
+let dataThemeMql: MediaQueryList | null = null;
+let onSystemThemeChange: ((e: MediaQueryListEvent) => void) | null = null;
+let onThemeModeChange: ((e: Event) => void) | null = null;
+let onThemeBgChange: (() => void) | null = null;
+
+function resolveDataTheme(mode: ThemeMode, mql: MediaQueryList | null): 'light' | 'dark' {
+  if (mode === 'auto') {
+    return mql?.matches ? 'dark' : 'light';
+  }
+  return mode;
+}
+
+function applyDataThemeNow(mode: ThemeMode): void {
+  const current = resolveDataTheme(mode, dataThemeMql);
+  document.documentElement.setAttribute('data-theme', current);
+  applyThemeBg();
+}
+
+function ensureDataThemeListeners(): void {
+  if (onThemeModeChange && onThemeBgChange) return;
+
+  dataThemeMql = window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
+
+  onSystemThemeChange = () => {
+    if (getThemeMode() === 'auto') {
+      applyDataThemeNow('auto');
+    }
+  };
+  dataThemeMql?.addEventListener?.('change', onSystemThemeChange as EventListener);
+
+  // 只做“刷新”，不要递归调用 applyDataTheme，避免监听器爆炸
+  onThemeModeChange = (e: Event) => {
+    const next = (e as unknown as CustomEvent<ThemeMode>).detail;
+    const mode = next ?? getThemeMode();
+    applyDataThemeNow(mode);
+  };
+  window.addEventListener('theme-mode-change', onThemeModeChange as EventListener);
+
+  onThemeBgChange = () => {
+    applyThemeBg();
+  };
+  window.addEventListener('theme-bg-change', onThemeBgChange as EventListener);
+}
+
+function removeDataThemeListeners(): void {
+  if (onSystemThemeChange) {
+    dataThemeMql?.removeEventListener?.('change', onSystemThemeChange as EventListener);
+    onSystemThemeChange = null;
+  }
+  if (onThemeModeChange) {
+    window.removeEventListener('theme-mode-change', onThemeModeChange as EventListener);
+    onThemeModeChange = null;
+  }
+  if (onThemeBgChange) {
+    window.removeEventListener('theme-bg-change', onThemeBgChange as EventListener);
+    onThemeBgChange = null;
+  }
+  dataThemeMql = null;
+}
+
 /**
  * 从主进程加载主题配置（异步，启动时调用一次）
  */
@@ -217,32 +279,15 @@ export function applyThemeBg(light?: string, dark?: string) {
  * Returns a cleanup function to unbind listeners.
  */
 export function applyDataTheme(mode?: ThemeMode) {
-  const m = mode ?? getThemeMode();
-  const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
-  const resolve = () => (m === 'auto' ? (mql?.matches ? 'dark' : 'light') : m);
-  const apply = () => {
-    const current = resolve();
-    document.documentElement.setAttribute('data-theme', current);
-    // Also apply theme backgrounds
-    applyThemeBg();
-  };
-  apply();
-  const onSys = () => {
-    if (getThemeMode() === 'auto') apply();
-  };
-  mql?.addEventListener?.('change', onSys as EventListener);
-  const onMode = (e: Event) => {
-    const next = (e as unknown as CustomEvent<ThemeMode>).detail;
-    applyDataTheme(next);
-  };
-  window.addEventListener('theme-mode-change', onMode as EventListener);
-  const onBg = () => {
-    applyThemeBg();
-  };
-  window.addEventListener('theme-bg-change', onBg as EventListener);
+  ensureDataThemeListeners();
+  dataThemeRefCount += 1;
+
+  applyDataThemeNow(mode ?? getThemeMode());
+
   return () => {
-    mql?.removeEventListener?.('change', onSys as EventListener);
-    window.removeEventListener('theme-mode-change', onMode as EventListener);
-    window.removeEventListener('theme-bg-change', onBg as EventListener);
+    dataThemeRefCount = Math.max(0, dataThemeRefCount - 1);
+    if (dataThemeRefCount === 0) {
+      removeDataThemeListeners();
+    }
   };
 }

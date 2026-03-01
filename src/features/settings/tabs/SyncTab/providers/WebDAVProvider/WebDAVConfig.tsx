@@ -464,7 +464,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
       <Alert
         style={{ marginTop: 12 }}
         title="同步范围"
-        description="当前同步：文件夹、便签、附件。AI 对话/回收站/浏览器卡片默认不同步。"
+        description="当前同步：文件夹、便签、附件。AI 对话/回收站/网页看板卡片默认不同步。"
         type="info"
         showIcon
       />

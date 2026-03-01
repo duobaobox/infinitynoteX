@@ -229,7 +229,7 @@ export class StorageManager {
       // 清理过期的回收站项目
       await this.trash.cleanupExpired();
 
-      // 初始化预设浏览器卡片（如果尚未初始化）
+      // 初始化预设网页看板卡片（如果尚未初始化）
       await this.browserCards.initializePresets();
 
       // 初始化默认 Todo 清单（如果尚未初始化）
@@ -255,7 +255,7 @@ export class StorageManager {
     // 创建默认文件夹
     await this.folders.createDefaultFolder();
 
-    // 初始化预设浏览器卡片
+    // 初始化预设网页看板卡片
     await this.browserCards.initializePresets();
 
     // 初始化默认 Todo 清单

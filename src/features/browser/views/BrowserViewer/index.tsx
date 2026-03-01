@@ -1,5 +1,5 @@
 /**
- * BrowserViewer - 浏览器视图组件
+ * BrowserViewer - 网页看板视图组件
  *
  * 【组件职责】
  * - 显示 webview 加载选中的网页

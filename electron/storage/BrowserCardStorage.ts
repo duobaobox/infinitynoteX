@@ -1,6 +1,6 @@
 /**
- * 浏览器卡片存储模块
- * 继承 BaseDirectoryStorage，管理内置浏览器网页卡片数据
+ * 网页看板卡片存储模块
+ * 继承 BaseDirectoryStorage，管理内置网页看板卡片数据
  */
 
 import type { StorageContext } from './StorageContext';
@@ -27,10 +27,10 @@ export class BrowserCardStorage extends BaseDirectoryStorage<BrowserCard, Browse
     super(context.dataDir, context.tempDir, browserCardsConfig);
   }
 
-  // ============ 浏览器卡片特有方法 ============
+  // ============ 网页看板卡片特有方法 ============
 
   /**
-   * 获取所有浏览器卡片（完整内容，按 order 排序）
+   * 获取所有网页看板卡片（完整内容，按 order 排序）
    */
   async getAll(): Promise<BrowserCard[]> {
     const index = await this.list();

@@ -151,10 +151,10 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
     description: '图片等附件文件',
   },
 
-  // ============ 浏览器卡片 ============
+  // ============ 网页看板卡片 ============
   {
     id: 'browser-cards',
-    name: '浏览器卡片',
+    name: '网页看板卡片',
     path: 'browser-cards',
     extension: '.json',
     schema: BrowserCardSchema,
@@ -165,7 +165,7 @@ export const STORAGE_MODULES: StorageModuleConfig[] = [
       sortField: 'order',
       hasIndex: true,
     },
-    description: '内置浏览器网页卡片（本地专用，不同步）',
+    description: '内置网页看板卡片（本地专用，不同步）',
   },
 
   // ============ Todo 清单 ============

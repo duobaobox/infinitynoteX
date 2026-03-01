@@ -223,7 +223,7 @@ export const TodoIndexSchema = z.object({
 export type Todo = z.infer<typeof TodoSchema>;
 export type TodoIndex = z.infer<typeof TodoIndexSchema>;
 
-// ============ 浏览器卡片 Schema ============
+// ============ 网页看板卡片 Schema ============
 
 export const BrowserCardSchema = z.object({
   id: z.string(),

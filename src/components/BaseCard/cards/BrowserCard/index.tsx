@@ -1,5 +1,5 @@
 /**
- * BrowserCard - 浏览器网页卡片
+ * BrowserCard - 网页看板卡片
  * 配置：地球图标 + 固定颜色 + 无钉住
  * 样式与 ConversationCard 保持一致
  */

@@ -292,7 +292,7 @@ export function registerStorageHandlers(): void {
     return await storageManager.manualTasks.update(id, { checked: !task.checked });
   });
 
-  // ============ 浏览器卡片 ============
+  // ============ 网页看板卡片 ============
 
   ipcMain.handle(browserCardsChannel('list'), async () => {
     return await storageManager.browserCards.list();

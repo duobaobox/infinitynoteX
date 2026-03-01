@@ -1,5 +1,5 @@
 /**
- * Browser Cards Slice - 管理浏览器卡片数据和选中状态
+ * Browser Cards Slice - 管理网页看板卡片数据和选中状态
  * 参考 aiConversationSlice.ts 实现
  */
 
@@ -9,7 +9,7 @@ import type { UISlice } from './uiSlice';
 // 定义依赖的其他 slice 类型
 type BrowserCardsSliceDeps = UISlice;
 
-// 浏览器卡片类型（与 window.browserCards 返回类型一致）
+// 网页看板卡片类型（与 window.browserCards 返回类型一致）
 export interface BrowserCard {
   id: string;
   name: string;

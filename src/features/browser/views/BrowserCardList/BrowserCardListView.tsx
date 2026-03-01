@@ -1,14 +1,14 @@
 /**
- * BrowserCardListView - 浏览器卡片列表视图组件
+ * BrowserCardListView - 网页看板卡片列表视图组件
  *
  * 【组件职责】
- * - 展示浏览器卡片列表
+ * - 展示网页看板卡片列表
  * - 支持新建、删除、搜索卡片
  * - 作为 Browser 功能的左侧列表区
  *
  * 【数据流】
  * 1. 从 workspaceStore 获取卡片列表 (browserCards)
- * 2. 用户点击卡片 → 设置 selectedBrowserCardId → 右侧浏览器加载对应网页
+ * 2. 用户点击卡片 → 设置 selectedBrowserCardId → 右侧网页看板加载对应网页
  * 3. 新建/删除卡片 → 调用 store action → 刷新列表
  */
 
@@ -46,7 +46,7 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
 
   // ============ 副作用 ============
 
-  // 初始化加载浏览器卡片列表
+  // 初始化加载网页看板卡片列表
   useEffect(() => {
     loadBrowserCards();
   }, [loadBrowserCards]);
@@ -106,8 +106,8 @@ export const BrowserCardListView: React.FC<BrowserCardListViewProps> = ({ flex }
             alignItems: 'center',
           }}
         >
-          <span className="folder-name" title="浏览器">
-            浏览器
+          <span className="folder-name" title="网页看板">
+            网页看板
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Badge count={filteredCards.length} showZero style={{ backgroundColor: themeColor }} />

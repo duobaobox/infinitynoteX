@@ -24,7 +24,7 @@ export type {
   AIConversation,
   AIConversationIndex,
 
-  // 浏览器卡片
+  // 网页看板卡片
   BrowserCard,
   BrowserCardIndex,
 

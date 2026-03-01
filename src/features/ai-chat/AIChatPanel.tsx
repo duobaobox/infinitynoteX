@@ -43,8 +43,9 @@ export const AIChatPanel = ({
     isSwitching,
   } = useAIConfig();
 
-  // AI 模式：默认 / 外部
-  const [aiMode, setAiMode] = useState<'default' | 'external'>('default');
+  // 从 store 读取知识库功能是否启用（响应式）、外部AI页面URL以及AI模式
+  const { knowledgeBaseEnabled, loadKnowledgeBaseConfig, externalAiUrl, aiMode, setAiMode } =
+    useSettingsStore();
 
   // 便签列表（用于引用下拉菜单）
   const [noteItems, setNoteItems] = useState<MenuProps['items']>([]);
@@ -113,9 +114,6 @@ export const AIChatPanel = ({
 
   // 知识库开关状态（本次对话是否使用知识库）
   const [useKnowledgeBase, setUseKnowledgeBase] = useState(false);
-
-  // 从 store 读取知识库功能是否启用（响应式）+ 外部AI页面URL
-  const { knowledgeBaseEnabled, loadKnowledgeBaseConfig, externalAiUrl } = useSettingsStore();
 
   // 组件挂载时加载知识库配置
   useEffect(() => {

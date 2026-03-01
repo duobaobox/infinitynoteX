@@ -14,6 +14,10 @@ const INFINITE_CANVAS_ENABLED_KEY = 'note_infinite_canvas_enabled';
 /** 默认外部AI页面URL（豆包） */
 export const DEFAULT_EXTERNAL_AI_URL = 'https://www.doubao.com/chat/';
 
+/** AI助手默认模式 */
+const AI_MODE_KEY = 'note_ai_mode';
+export type AIMode = 'default' | 'external';
+
 // ============ Slice 类型定义 ============
 export interface AppSlice {
   // 状态
@@ -27,10 +31,14 @@ export interface AppSlice {
   settingsModalOpenTrigger: number;
   isSettingsModalOpen: boolean;
   activeSettingsTab: string; // 新增：当前选中的设置 Tab
+  aiMode: AIMode; // AI 助手模式
 
   // Actions - 应用信息
   setAppVersion: (version: string) => void;
   loadAppInfo: () => Promise<void>;
+
+  // Actions - AI 助手模式
+  setAiMode: (mode: AIMode) => void;
 
   // Actions - 知识库
   setKnowledgeBaseEnabled: (enabled: boolean) => void;
@@ -66,9 +74,16 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
   settingsModalOpenTrigger: 0,
   isSettingsModalOpen: false,
   activeSettingsTab: 'appearance',
+  aiMode: (localStorage.getItem(AI_MODE_KEY) as AIMode) || 'external',
 
   // Actions - 应用信息
   setAppVersion: (version) => set({ appVersion: version }),
+
+  // Actions - AI 助手模式
+  setAiMode: (mode) => {
+    localStorage.setItem(AI_MODE_KEY, mode);
+    set({ aiMode: mode });
+  },
 
   loadAppInfo: async () => {
     try {

@@ -26,9 +26,8 @@ export function getAIChatWindow(): BrowserWindow | null {
 export function createAIChatWindow(): void {
   try {
     if (aiChatWindow && !aiChatWindow.isDestroyed()) {
-      log.info('AI chat window already exists, showing it');
-      aiChatWindow.show();
-      aiChatWindow.focus();
+      log.info('AI chat window already exists, bringing to current space/screen');
+      bringToCurrentSpaceAndScreen();
       return;
     }
 
@@ -150,15 +149,49 @@ export function createAIChatWindow(): void {
 }
 
 /**
- * 显示/隐藏 AI 对话窗口
+ * 将 AI 窗口移到当前活跃的屏幕和 Space（桌面）
+ *
+ * 多显示器：重新计算位置，保持窗口在鼠标所在屏幕内
+ * macOS 多桌面(Spaces)：利用 setVisibleOnAllWorkspaces 短暂置顶技巧，
+ *   让系统把窗口"锚定"到当前激活的 Space，而不是把用户拉回旧桌面
  */
+function bringToCurrentSpaceAndScreen(): void {
+  if (!aiChatWindow || aiChatWindow.isDestroyed()) return;
+
+  const cursorPoint = screen.getCursorScreenPoint();
+  const currentScreen = screen.getDisplayNearestPoint(cursorPoint);
+  const { width: sw, height: sh, x: sx, y: sy } = currentScreen.workArea;
+
+  const { width: ww, height: wh } = aiChatWindow.getBounds();
+
+  // 优先用保存的 X/Y，但限制在当前屏幕范围内；若跑出屏幕则回落到默认右侧位置
+  const config = readAppConfig();
+  const saved = config.aiChatWindow;
+  const newX = saved ? Math.max(sx, Math.min(saved.x, sx + sw - ww)) : sx + sw - ww - 20;
+  const newY = saved
+    ? Math.max(sy, Math.min(saved.y, sy + sh - wh))
+    : sy + Math.round((sh - wh) / 2);
+
+  aiChatWindow.setBounds({ x: newX, y: newY, width: ww, height: wh });
+
+  if (process.platform === 'darwin') {
+    // macOS Spaces 魔法：短暂让窗口对所有桌面可见 → 系统把它锚到当前 Space → 关闭全局可见
+    aiChatWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    aiChatWindow.show();
+    aiChatWindow.focus();
+    aiChatWindow.setVisibleOnAllWorkspaces(false);
+  } else {
+    aiChatWindow.show();
+    aiChatWindow.focus();
+  }
+}
+
 export function toggleAIChatWindow(): void {
   if (aiChatWindow && !aiChatWindow.isDestroyed()) {
     if (aiChatWindow.isVisible()) {
       aiChatWindow.hide();
     } else {
-      aiChatWindow.show();
-      aiChatWindow.focus();
+      bringToCurrentSpaceAndScreen();
     }
   } else {
     createAIChatWindow();

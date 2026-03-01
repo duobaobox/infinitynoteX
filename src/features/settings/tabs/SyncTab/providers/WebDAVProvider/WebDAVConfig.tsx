@@ -16,6 +16,7 @@ import {
   Typography,
   Alert,
   Divider,
+  Collapse,
 } from 'antd';
 import {
   SyncOutlined,
@@ -76,6 +77,18 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   const [loadingPreview, setLoadingPreview] = React.useState(false);
   const [lastResult, setLastResult] = React.useState<SyncResult | null>(null);
   const [openingLogs, setOpeningLogs] = React.useState(false);
+  const [connectionState, setConnectionState] = React.useState<'unknown' | 'ok' | 'failed'>(
+    'unknown',
+  );
+  const lastVerifiedSignatureRef = React.useRef('');
+
+  const normalizedUrl = (config?.url || '').trim();
+  const normalizedUsername = (config?.username || '').trim();
+  const normalizedPassword = (config?.password || '').trim();
+  const normalizedRemotePath = (config?.remotePath || '/InfinityNoteX').trim() || '/InfinityNoteX';
+  const isConfigComplete = Boolean(normalizedUrl && normalizedUsername && normalizedPassword);
+  const isEnabled = Boolean(config?.enabled);
+  const connectionSignature = `${normalizedUrl}|${normalizedUsername}|${normalizedPassword}|${normalizedRemotePath}`;
 
   // 监听同步进度
   useEffect(() => {
@@ -119,13 +132,31 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
     };
   }, []);
 
+  // 连接信息发生变化后，提示用户重新测试连接
+  useEffect(() => {
+    if (!lastVerifiedSignatureRef.current) {
+      return;
+    }
+    if (lastVerifiedSignatureRef.current !== connectionSignature && connectionState !== 'unknown') {
+      setConnectionState('unknown');
+    }
+  }, [connectionSignature, connectionState]);
+
   const handleTest = async () => {
+    if (!isConfigComplete) {
+      message.warning('请先填写完整的连接信息');
+      return;
+    }
+
     setTesting(true);
     try {
       const result = await onTest();
       if (result.ok) {
+        setConnectionState('ok');
+        lastVerifiedSignatureRef.current = connectionSignature;
         message.success(result.message);
       } else {
+        setConnectionState('failed');
         message.error(result.message);
       }
     } finally {
@@ -134,6 +165,18 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   };
 
   const handleSync = async () => {
+    if (!isConfigComplete) {
+      message.warning('请先填写完整的连接信息');
+      return;
+    }
+    if (!isEnabled) {
+      message.warning('请先开启“启用同步”');
+      return;
+    }
+    if (connectionState !== 'ok') {
+      message.warning('建议先测试连接，确认配置可用后再同步');
+    }
+
     setSyncing(true);
     setLastResult(null);
     setProgress({
@@ -169,7 +212,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   };
 
   const handlePreview = async () => {
-    if (!config?.url || !config?.username || !config?.password) {
+    if (!isConfigComplete) {
       message.warning('请先填写完整的连接信息');
       return;
     }
@@ -216,11 +259,17 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
       conflictStrategy: 'newest',
     };
 
-    onConfigChange({
+    const nextConfig: WebDAVConfig = {
       ...defaultConfig,
       ...(config || {}),
       ...partial,
-    });
+    };
+
+    const remotePathInput = (nextConfig.remotePath || '').trim();
+    const safeRemotePath = remotePathInput || '/InfinityNoteX';
+    nextConfig.remotePath = safeRemotePath.startsWith('/') ? safeRemotePath : `/${safeRemotePath}`;
+
+    onConfigChange(nextConfig);
   };
 
   const getStageText = (stage: string) => {
@@ -237,82 +286,111 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
     return stageMap[stage] || stage;
   };
 
+  const conciseHint = !isConfigComplete
+    ? '先填写地址、用户名、密码，再测试连接。'
+    : connectionState === 'failed'
+      ? '连接测试失败，请检查地址、账号和密码。'
+      : connectionState !== 'ok'
+        ? '建议先测试连接，确认可用后再同步。'
+        : !isEnabled
+          ? '已通过连接测试，开启同步后即可执行。'
+          : '';
+
   return (
     <>
       <Card className="sync-card" size="small" title="WebDAV 配置">
+        {conciseHint ? (
+          <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+            {conciseHint}
+          </Text>
+        ) : null}
+
         <Form layout="vertical">
           <Form.Item label="服务器地址" required tooltip="例如: https://dav.jianguoyun.com/dav">
             <Input
               placeholder="https://dav.example.com"
-              value={config?.url || ''}
+              value={normalizedUrl}
               onChange={(e) => updateConfig({ url: e.target.value })}
             />
           </Form.Item>
 
           <Form.Item label="用户名" required>
             <Input
-              value={config?.username || ''}
+              value={normalizedUsername}
               onChange={(e) => updateConfig({ username: e.target.value })}
             />
           </Form.Item>
 
           <Form.Item label="密码" required tooltip="坚果云需要使用应用密码">
             <Input.Password
-              value={config?.password || ''}
+              value={normalizedPassword}
               onChange={(e) => updateConfig({ password: e.target.value })}
             />
           </Form.Item>
 
-          <Form.Item label="远程路径" tooltip="数据存储在服务器上的目录">
-            <Input
-              placeholder="/InfinityNoteX"
-              value={config?.remotePath || '/InfinityNoteX'}
-              onChange={(e) => updateConfig({ remotePath: e.target.value })}
-            />
-          </Form.Item>
-
-          <Form.Item label="冲突策略" tooltip="当同一文件在多设备上被修改时的处理方式">
-            <Select
-              value={config?.conflictStrategy || 'newest'}
-              onChange={(val) =>
-                updateConfig({ conflictStrategy: val as WebDAVConfig['conflictStrategy'] })
-              }
-              options={[
-                { label: '保留最新修改（推荐）', value: 'newest' },
-                { label: '始终保留本地版本', value: 'local' },
-                { label: '始终使用远程版本', value: 'remote' },
-              ]}
-            />
-          </Form.Item>
-
           <Form.Item label="启用同步">
-            <Switch
-              checked={config?.enabled ?? false}
-              onChange={(val) => updateConfig({ enabled: val })}
-            />
+            <Switch checked={isEnabled} onChange={(val) => updateConfig({ enabled: val })} />
           </Form.Item>
+
+          <Collapse
+            ghost
+            size="small"
+            items={[
+              {
+                key: 'advanced',
+                label: '高级设置（可选）',
+                children: (
+                  <>
+                    <Form.Item label="远程路径" tooltip="数据存储在服务器上的目录">
+                      <Input
+                        placeholder="/InfinityNoteX"
+                        value={normalizedRemotePath}
+                        onChange={(e) => updateConfig({ remotePath: e.target.value })}
+                      />
+                    </Form.Item>
+
+                    <Form.Item label="冲突策略" tooltip="当同一文件在多设备上被修改时的处理方式">
+                      <Select
+                        value={config?.conflictStrategy || 'newest'}
+                        onChange={(val) =>
+                          updateConfig({
+                            conflictStrategy: val as WebDAVConfig['conflictStrategy'],
+                          })
+                        }
+                        options={[
+                          { label: '保留最新修改（推荐）', value: 'newest' },
+                          { label: '始终保留本地版本', value: 'local' },
+                          { label: '始终使用远程版本', value: 'remote' },
+                        ]}
+                      />
+                    </Form.Item>
+                  </>
+                ),
+              },
+            ]}
+          />
         </Form>
 
         <Space direction="vertical" style={{ width: '100%' }}>
           <Space wrap>
-            <Button onClick={handleTest} loading={testing}>
-              测试连接
+            <Button onClick={handleTest} loading={testing} disabled={!isConfigComplete || syncing}>
+              {connectionState === 'ok' ? '重新测试连接' : '测试连接'}
             </Button>
             <Button
               onClick={handlePreview}
               loading={loadingPreview}
-              disabled={!config?.enabled || syncing}
+              disabled={!isEnabled || syncing || !isConfigComplete}
             >
-              预览差异
+              预览变更
             </Button>
             <Button
               type="primary"
               icon={<SyncOutlined spin={syncing} />}
               onClick={handleSync}
               loading={syncing}
-              disabled={!config?.enabled}
+              disabled={!isEnabled || syncing || !isConfigComplete}
             >
-              立即同步
+              {syncing ? '同步中...' : '立即同步'}
             </Button>
             <Button onClick={handleOpenSyncLogs} loading={openingLogs} disabled={syncing}>
               打开同步日志

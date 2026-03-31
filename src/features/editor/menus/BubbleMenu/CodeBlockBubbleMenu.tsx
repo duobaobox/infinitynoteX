@@ -9,6 +9,7 @@ import type { Editor } from '@tiptap/react';
 import { Copy, Trash2, Check } from 'lucide-react';
 import { useForceUpdateOnEditor } from '../../hooks';
 import './BubbleMenu.css';
+import { MERMAID_LANGUAGE } from '../../extensions/mermaid';
 
 interface CodeBlockBubbleMenuProps {
   editor: Editor;
@@ -27,6 +28,7 @@ const LANGUAGES = [
   { value: 'json', label: 'JSON' },
   { value: 'bash', label: 'Bash' },
   { value: 'sql', label: 'SQL' },
+  { value: MERMAID_LANGUAGE, label: 'Mermaid' },
 ];
 
 /**

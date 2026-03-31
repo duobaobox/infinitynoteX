@@ -8,6 +8,7 @@
 import { Extension, type Range as TiptapRange } from '@tiptap/core';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import type { Editor } from '@tiptap/react';
+import { createMermaidCodeBlock, DEFAULT_MERMAID_TEMPLATE } from './mermaid';
 
 /**
  * 命令项类型
@@ -129,6 +130,19 @@ export const getSlashCommands = (): CommandGroup[] => [
   {
     title: '插入',
     commands: [
+      {
+        title: 'Mermaid 图表',
+        description: '插入可预览的 Mermaid 图表',
+        icon: 'MMD',
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent(createMermaidCodeBlock(DEFAULT_MERMAID_TEMPLATE))
+            .run();
+        },
+      },
       {
         title: '表格',
         description: '插入 3x3 表格',

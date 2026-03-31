@@ -10,6 +10,7 @@
 import { Extension } from '@tiptap/core';
 import { Markdown } from '@tiptap/markdown';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { createMermaidCodeBlock, isLikelyMermaid } from './mermaid';
 
 /**
  * 检测文本是否可能是 Markdown 格式
@@ -101,6 +102,8 @@ export const MarkdownPasteHandler = Extension.create({
 
             // 检测纯文本是否为 Markdown 格式
             const textIsMarkdown = text && isLikelyMarkdown(text);
+            // 检测纯文本是否为 Mermaid 图表源码
+            const textIsMermaid = text && isLikelyMermaid(text);
             // 检测 HTML 是否包含实际的富文本格式
             const htmlIsRichText = html && isRichTextHtml(html);
 
@@ -120,6 +123,19 @@ export const MarkdownPasteHandler = Extension.create({
                 return true;
               } catch (error) {
                 console.error('[MarkdownPasteHandler] Failed to parse markdown:', error);
+                editor.commands.insertContent(text);
+                return true;
+              }
+            }
+
+            if (textIsMermaid) {
+              event.preventDefault();
+
+              try {
+                editor.commands.insertContent(createMermaidCodeBlock(text));
+                return true;
+              } catch (error) {
+                console.error('[MarkdownPasteHandler] Failed to insert mermaid block:', error);
                 editor.commands.insertContent(text);
                 return true;
               }

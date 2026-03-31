@@ -1,6 +1,6 @@
 /**
  * CodeBlockWithToolbar 代码块组件
- * 普通代码块使用悬浮工具栏，Mermaid 使用轻量的图表/源码切换视图
+ * 普通代码块和 Mermaid 共用同一套卡片骨架，仅在内容区形态上区分
  */
 
 import React, { Suspense, useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
@@ -61,7 +61,6 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
   );
   const [mermaidValidation, setMermaidValidation] = useState<MermaidValidationResult | null>(null);
   const [mermaidRenderableCode, setMermaidRenderableCode] = useState('');
-  const [isMermaidValidating, setIsMermaidValidating] = useState(false);
 
   const mermaidError = mermaidValidation && !mermaidValidation.valid ? mermaidValidation : null;
   const mermaidCanRender = Boolean(
@@ -84,7 +83,6 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
       setMermaidView('code');
       setMermaidValidation(null);
       setMermaidRenderableCode('');
-      setIsMermaidValidating(false);
       return;
     }
 
@@ -101,18 +99,15 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
     if (!deferredCode.trim()) {
       setMermaidValidation(null);
       setMermaidRenderableCode('');
-      setIsMermaidValidating(false);
       return;
     }
 
     let cancelled = false;
-    setIsMermaidValidating(true);
 
     void validateMermaidSyntax(deferredCode).then((result) => {
       if (cancelled) return;
 
       setMermaidValidation(result);
-      setIsMermaidValidating(false);
 
       if (result.valid) {
         setMermaidRenderableCode(deferredCode);
@@ -203,159 +198,114 @@ export const CodeBlockWithToolbar: React.FC<NodeViewProps> = ({
     );
   };
 
-  const renderMermaidStatus = () => {
-    if (!code.trim()) return null;
-
-    if (isMermaidValidating) {
-      return <span className="mermaid-status is-pending">更新中</span>;
-    }
-
-    if (mermaidError) {
-      return <span className="mermaid-status is-error">语法错误</span>;
-    }
-
-    if (mermaidCanRender) {
-      return <span className="mermaid-status is-valid">已校验</span>;
-    }
-
-    return null;
-  };
-
   return (
     <NodeViewWrapper className={`code-block-wrapper ${isMermaid ? 'is-mermaid-block' : ''}`}>
-      {!isMermaid && (
-        <div className="code-block-toolbar" contentEditable={false}>
-          {renderLanguageDropdown()}
-
-          <button
-            type="button"
-            className={`toolbar-btn ${copied ? 'copied' : ''}`}
-            onClick={handleCopy}
-            title={copied ? '已复制' : '复制代码'}
-          >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-          </button>
-
-          <button
-            type="button"
-            className="toolbar-btn danger"
-            onClick={handleDelete}
-            title="删除代码块"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
-      )}
-
-      {!isMermaid && (
-        <pre className="code-block-lowlight">
-          <NodeViewContent<'code'> as="code" className="code-content" />
-        </pre>
-      )}
-
-      {isMermaid && (
-        <div className="mermaid-block">
-          <div className="mermaid-block-header" contentEditable={false}>
-            <div className="mermaid-view-switch">
-              <button
-                type="button"
-                className={`mermaid-view-tab ${mermaidView === 'chart' ? 'active' : ''}`}
-                onClick={() => setMermaidView('chart')}
-              >
-                图表
-              </button>
-              <button
-                type="button"
-                className={`mermaid-view-tab ${mermaidView === 'code' ? 'active' : ''}`}
-                onClick={() => setMermaidView('code')}
-              >
-                源码
-              </button>
-            </div>
-
-            <div className="mermaid-block-actions">
-              {renderMermaidStatus()}
-              {renderLanguageDropdown()}
-              <button
-                type="button"
-                className={`toolbar-btn ${copied ? 'copied' : ''}`}
-                onClick={handleCopy}
-                title={copied ? '已复制' : '复制代码'}
-              >
-                {copied ? <Check size={12} /> : <Copy size={12} />}
-              </button>
-              <button
-                type="button"
-                className="toolbar-btn danger"
-                onClick={handleDelete}
-                title="删除代码块"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mermaid-block-body">
-            {mermaidView === 'code' ? (
-              <pre className="code-block-lowlight mermaid-code-editor">
-                <NodeViewContent<'code'> as="code" className="code-content" />
-              </pre>
-            ) : (
-              <div className="mermaid-preview-surface" contentEditable={false}>
-                {!code.trim() ? (
-                  <div className="mermaid-preview-empty">切换到源码后开始编辑 Mermaid 图表</div>
-                ) : mermaidError ? (
-                  <div className="mermaid-preview-error">
-                    <div className="mermaid-preview-error-title">
-                      <AlertTriangle size={14} />
-                      <span>{mermaidError.message}</span>
-                    </div>
-                    <div className="mermaid-preview-error-hint">{mermaidError.hint}</div>
-                    {mermaidError.detail ? (
-                      <details className="mermaid-preview-error-details">
-                        <summary>查看解析详情</summary>
-                        <pre className="mermaid-preview-error-detail-text">
-                          {mermaidError.detail}
-                        </pre>
-                      </details>
-                    ) : null}
-                  </div>
-                ) : mermaidCanRender ? (
-                  <Suspense
-                    fallback={<div className="mermaid-preview-empty">Mermaid 渲染中...</div>}
-                  >
-                    <MermaidPreview
-                      header={null}
-                      classNames={{
-                        root: 'mermaid-preview-root',
-                        graph: 'mermaid-preview-graph',
-                      }}
-                      styles={{
-                        root: {
-                          background: 'transparent',
-                        },
-                        graph: {
-                          height: '350px',
-                          minHeight: '350px',
-                          padding: 0,
-                          border: 'none',
-                          alignItems: 'flex-start',
-                          justifyContent: 'center',
-                          background: 'transparent',
-                        },
-                      }}
-                    >
-                      {mermaidRenderableCode}
-                    </MermaidPreview>
-                  </Suspense>
-                ) : (
-                  <div className="mermaid-preview-empty">正在检查 Mermaid 语法...</div>
-                )}
+      <div className="code-block-card">
+        <div className="code-card-header" contentEditable={false}>
+          <div className="code-card-primary">
+            {isMermaid ? (
+              <div className="code-card-mode-switch">
+                <button
+                  type="button"
+                  className={`code-card-mode-tab ${mermaidView === 'chart' ? 'active' : ''}`}
+                  onClick={() => setMermaidView('chart')}
+                >
+                  图表
+                </button>
+                <button
+                  type="button"
+                  className={`code-card-mode-tab ${mermaidView === 'code' ? 'active' : ''}`}
+                  onClick={() => setMermaidView('code')}
+                >
+                  源码
+                </button>
               </div>
+            ) : (
+              <span className="code-card-mode-label">源码</span>
             )}
           </div>
+
+          <div className="code-card-actions">
+            {renderLanguageDropdown()}
+            <button
+              type="button"
+              className={`toolbar-btn ${copied ? 'copied' : ''}`}
+              onClick={handleCopy}
+              title={copied ? '已复制' : '复制代码'}
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+            </button>
+            <button
+              type="button"
+              className="toolbar-btn danger"
+              onClick={handleDelete}
+              title="删除代码块"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         </div>
-      )}
+
+        <div className="code-card-body">
+          {!isMermaid ? (
+            <pre className="code-block-lowlight code-card-editor">
+              <NodeViewContent<'code'> as="code" className="code-content" />
+            </pre>
+          ) : mermaidView === 'code' ? (
+            <pre className="code-block-lowlight code-card-editor mermaid-code-editor">
+              <NodeViewContent<'code'> as="code" className="code-content" />
+            </pre>
+          ) : (
+            <div className="mermaid-preview-surface" contentEditable={false}>
+              {!code.trim() ? (
+                <div className="mermaid-preview-empty">切换到源码后开始编辑 Mermaid 图表</div>
+              ) : mermaidError ? (
+                <div className="mermaid-preview-error">
+                  <div className="mermaid-preview-error-title">
+                    <AlertTriangle size={14} />
+                    <span>{mermaidError.message}</span>
+                  </div>
+                  <div className="mermaid-preview-error-hint">{mermaidError.hint}</div>
+                  {mermaidError.detail ? (
+                    <details className="mermaid-preview-error-details">
+                      <summary>查看解析详情</summary>
+                      <pre className="mermaid-preview-error-detail-text">{mermaidError.detail}</pre>
+                    </details>
+                  ) : null}
+                </div>
+              ) : mermaidCanRender ? (
+                <Suspense fallback={<div className="mermaid-preview-empty">Mermaid 渲染中...</div>}>
+                  <MermaidPreview
+                    header={null}
+                    classNames={{
+                      root: 'mermaid-preview-root',
+                      graph: 'mermaid-preview-graph',
+                    }}
+                    styles={{
+                      root: {
+                        background: 'transparent',
+                      },
+                      graph: {
+                        height: '350px',
+                        minHeight: '350px',
+                        padding: 0,
+                        border: 'none',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        background: 'transparent',
+                      },
+                    }}
+                  >
+                    {mermaidRenderableCode}
+                  </MermaidPreview>
+                </Suspense>
+              ) : (
+                <div className="mermaid-preview-empty">正在检查 Mermaid 语法...</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </NodeViewWrapper>
   );
 };

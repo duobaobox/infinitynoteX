@@ -3,3 +3,9 @@
  */
 
 export { OpenAICompatibleAdapter, createAdapter } from './adapter';
+export {
+  readAIConfig,
+  readActiveAIProviderConfig,
+  writeAIConfig,
+  sanitizeAppConfigForRenderer,
+} from './config';

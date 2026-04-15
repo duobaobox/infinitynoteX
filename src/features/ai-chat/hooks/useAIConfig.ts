@@ -12,6 +12,8 @@ import {
   readStoredProviderConfigs,
   subscribeAIConfigChanged,
   initializeAIConfigCache,
+  updateProviderConfigsCache,
+  emitAIConfigChanged,
 } from '../../../services/aiConfigStore';
 import type { ProviderOption, UseAIConfigReturn } from '../types';
 
@@ -84,6 +86,10 @@ export const useAIConfig = (): UseAIConfigReturn => {
   useEffect(() => {
     const unsubscribe = subscribeAIConfigChanged((nextConfig) => {
       const normalized = ensureAIConfigDefaults(nextConfig);
+      updateProviderConfigsCache({
+        ...readStoredProviderConfigs(),
+        [detectProviderIdFromConfig(normalized)]: normalized,
+      });
       setConfig(normalized);
       setIsConfigured(isAIConfigReady(normalized));
       refreshProviderOptions(normalized);
@@ -106,8 +112,13 @@ export const useAIConfig = (): UseAIConfigReturn => {
         setIsSwitching(true);
         const normalized = ensureAIConfigDefaults(target.config);
         await window.ai.setConfig(normalized);
+        updateProviderConfigsCache({
+          ...readStoredProviderConfigs(),
+          [providerId]: normalized,
+        });
         setConfig(normalized);
         setIsConfigured(true);
+        emitAIConfigChanged(normalized);
         message.success(`已切换到 ${normalized.provider} · ${normalized.model}`);
         refreshProviderOptions(normalized);
       } catch (err) {

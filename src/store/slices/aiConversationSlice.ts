@@ -4,15 +4,39 @@
 
 import type { StateCreator } from 'zustand';
 import type { AIConversationPreview } from '../../constants/tools';
+import type { AIWorkbenchConversationItem } from '../../features/ai-workbench/model/workbenchConversationItems';
+import {
+  getDefaultAIWorkbenchSelectionId,
+  resolveAIWorkbenchSelection,
+} from '../../features/ai-workbench/model/workbenchConversationItems';
 import type { UISlice } from './uiSlice';
 
 // 定义依赖的其他 slice 类型（setSelectedToolItem 需要访问 UISlice.showEditor）
 type AIConversationSliceDeps = UISlice;
 
+function reconcileSelectedAIWorkbenchItem(
+  currentItem: AIWorkbenchConversationItem | null,
+  fallbackItemId: string | null,
+  conversations: AIConversationPreview[],
+): AIWorkbenchConversationItem | null {
+  if (currentItem) {
+    return resolveAIWorkbenchSelection(currentItem.id, conversations);
+  }
+
+  if (fallbackItemId) {
+    return resolveAIWorkbenchSelection(fallbackItemId, conversations);
+  }
+
+  return null;
+}
+
 export interface AIConversationSlice {
   // ============ 状态 ============
   aiConversations: AIConversationPreview[];
   selectedToolId: string | null;
+  /** AI 工坊当前选中的结构化会话项 */
+  selectedAIWorkbenchItem: AIWorkbenchConversationItem | null;
+  /** 兼容旧调用链保留的字符串 ID */
   selectedToolItemId: string | null;
   refreshAIConversationsTrigger: number;
   /** 单个对话消息刷新触发器 - key 是 conversationId，value 是触发次数 */
@@ -21,6 +45,7 @@ export interface AIConversationSlice {
   // ============ Actions ============
   setAIConversations: (conversations: AIConversationPreview[]) => void;
   setSelectedTool: (toolId: string | null) => void;
+  setSelectedAIWorkbenchItem: (item: AIWorkbenchConversationItem | null) => void;
   setSelectedToolItem: (itemId: string | null) => void;
   loadAIConversations: () => Promise<void>;
   createAIConversation: () => Promise<void>;
@@ -39,25 +64,61 @@ export const createAIConversationSlice: StateCreator<
   // 初始状态
   aiConversations: [],
   selectedToolId: null,
+  selectedAIWorkbenchItem: null,
   selectedToolItemId: null,
   refreshAIConversationsTrigger: 0,
   messageRefreshTriggers: {},
 
   // Actions
-  setAIConversations: (conversations) => set({ aiConversations: conversations }),
+  setAIConversations: (conversations) =>
+    set((state) => {
+      const selectedAIWorkbenchItem = reconcileSelectedAIWorkbenchItem(
+        state.selectedAIWorkbenchItem,
+        state.selectedToolItemId,
+        conversations,
+      );
+
+      return {
+        aiConversations: conversations,
+        selectedAIWorkbenchItem,
+        selectedToolItemId: selectedAIWorkbenchItem?.id ?? null,
+      };
+    }),
   setSelectedTool: (toolId) => set({ selectedToolId: toolId }),
-  setSelectedToolItem: (itemId) =>
-    // 使用函数式更新，确保即使 ID 相同也能更新 showEditor
+  setSelectedAIWorkbenchItem: (item) =>
+    set((state) => ({
+      selectedAIWorkbenchItem: item,
+      selectedToolItemId: item?.id ?? null,
+      // 强制设为 true（解决折叠后点击无法展开的问题）
+      showEditor: item ? true : state.showEditor,
+    })),
+  setSelectedToolItem: (itemId) => {
+    if (!itemId) {
+      get().setSelectedAIWorkbenchItem(null);
+      return;
+    }
+
+    const selectedAIWorkbenchItem =
+      resolveAIWorkbenchSelection(itemId, get().aiConversations) ??
+      resolveAIWorkbenchSelection(getDefaultAIWorkbenchSelectionId(), get().aiConversations);
+
+    if (selectedAIWorkbenchItem?.id === itemId) {
+      get().setSelectedAIWorkbenchItem(selectedAIWorkbenchItem);
+      return;
+    }
+
+    // 无法解析时保留兼容字段，等待后续列表刷新后再自动对齐
     set((state) => ({
       selectedToolItemId: itemId,
-      // 强制设为 true（解决折叠后点击无法展开的问题）
-      showEditor: itemId ? true : state.showEditor,
-    })),
+      selectedAIWorkbenchItem: state.selectedAIWorkbenchItem,
+      showEditor: true,
+    }));
+  },
 
   loadAIConversations: async () => {
     try {
-      const conversations = await window.storage.getAIConversations();
-      set({ aiConversations: conversations });
+      const conversations = await window.storage.listAIConversationPreviews();
+      get().setAIConversations(conversations);
     } catch (error) {
       console.error('[AIConversationSlice] Failed to load AI conversations:', error);
     }
@@ -75,11 +136,19 @@ export const createAIConversationSlice: StateCreator<
 
   deleteAIConversation: async (id) => {
     try {
+      const previousSelection = get().selectedAIWorkbenchItem;
       await window.storage.deleteAIConversation(id);
       await get().loadAIConversations();
-      // 如果删除的是当前选中的对话，清空选中状态并关闭编辑器
-      if (get().selectedToolItemId === id) {
-        set({ selectedToolItemId: null, showEditor: false });
+      if (
+        previousSelection &&
+        !previousSelection.isSystemEntry &&
+        previousSelection.conversationId === id
+      ) {
+        set({
+          selectedAIWorkbenchItem: null,
+          selectedToolItemId: null,
+          showEditor: false,
+        });
       }
     } catch (error) {
       console.error('[AIConversationSlice] Failed to delete AI conversation:', error);

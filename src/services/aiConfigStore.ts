@@ -2,13 +2,11 @@
  * AI Config Store - AI 配置存储与事件系统
  *
  * 重构说明：
- * - 现在使用统一的 window.app API (IPC) 代替 localStorage
- * - Provider 配置存储在 app-config.json 的 ai.providerConfigs 字段
- * - 事件系统保持不变，确保组件间通信正常
+ * - 配置统一由主进程写入 app-config.json
+ * - 此文件只负责缓存脱敏后的 Provider 配置和广播变更事件
  */
 
 import type { AIConfig } from './aiConfig';
-import type { AIProviderConfig } from '../shared/types/config';
 
 export const AI_CONFIG_CHANGED_EVENT = 'infinitynotex:ai-config-changed';
 
@@ -54,24 +52,8 @@ export const readStoredProviderConfigsAsync = async (): Promise<Record<string, A
   }
 };
 
-/**
- * 持久化 Provider 配置到统一配置文件
- */
-export const persistProviderConfigs = (configs: Record<string, AIConfig>): void => {
-  if (typeof window === 'undefined' || !window.app) {
-    return;
-  }
-
-  // 立即更新缓存
+export const updateProviderConfigsCache = (configs: Record<string, AIConfig>): void => {
   providerConfigsCache = { ...configs };
-
-  // 异步写入主进程（非阻塞）
-  // 前端 AIConfig 包含 providerId 等额外字段，且 apiKey 类型宽松，此处使用 Partial 合并是安全的
-  window.app
-    .setConfig({ ai: { providerConfigs: configs as unknown as Record<string, AIProviderConfig> } })
-    .catch((error) => {
-      console.warn('[AI] Failed to persist provider configs:', error);
-    });
 };
 
 /**

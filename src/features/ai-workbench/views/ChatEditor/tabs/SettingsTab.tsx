@@ -33,7 +33,9 @@ import {
 } from '../../../../../services/aiProviders';
 import {
   emitAIConfigChanged,
+  readStoredProviderConfigs,
   subscribeAIConfigChanged,
+  updateProviderConfigsCache,
 } from '../../../../../services/aiConfigStore';
 import './SettingsTab.css';
 
@@ -166,6 +168,10 @@ const AISettingsTab = () => {
   useEffect(() => {
     const unsubscribe = subscribeAIConfigChanged((nextConfig) => {
       const normalized = ensureAIConfigDefaults(nextConfig);
+      updateProviderConfigsCache({
+        ...readStoredProviderConfigs(),
+        [normalized.providerId ?? detectProviderIdFromConfig(normalized)]: normalized,
+      });
       const prepared = enforceStreamEnabled(normalized);
       setConfig(prepared);
       setDraftConfig(prepared ? { ...prepared } : null);
@@ -212,6 +218,10 @@ const AISettingsTab = () => {
     }
     try {
       await window.ai.setConfig(normalized);
+      updateProviderConfigsCache({
+        ...readStoredProviderConfigs(),
+        [normalized.providerId ?? detectProviderIdFromConfig(normalized)]: normalized,
+      });
       emitAIConfigChanged(normalized);
       setConfig(normalized);
       setDraftConfig({ ...normalized });

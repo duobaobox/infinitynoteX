@@ -18,6 +18,7 @@ import { RobotOutlined } from '@ant-design/icons';
 import { registerFeature } from '../../config/featureRegistry';
 import { ConversationListView } from './views/ConversationList/ConversationListView';
 import { ChatEditor } from './views/ChatEditor';
+import './aiWorkbench.css';
 
 // 向 Feature Registry 注册 AI Chat 功能
 registerFeature({

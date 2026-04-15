@@ -4,5 +4,10 @@
  * - OpenAI 兼容适配器：electron/ai/adapter.ts
  */
 
-export { readAIConfig, writeAIConfig } from './ai/config';
+export {
+  readAIConfig,
+  readActiveAIProviderConfig,
+  writeAIConfig,
+  sanitizeAppConfigForRenderer,
+} from './ai/config';
 export { OpenAICompatibleAdapter, createAdapter } from './ai/adapter';

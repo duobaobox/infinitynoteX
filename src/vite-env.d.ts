@@ -3,6 +3,9 @@
 import type {
   Folder,
   Note,
+  AIConversation,
+  AIConversationBinding,
+  AIConversationPreview,
   NoteIndex,
   TrashIndex,
   TrashItem,
@@ -75,6 +78,12 @@ declare global {
       emptyTrash(): Promise<number>;
 
       // AI 对话操作
+      listAIConversationPreviews(): Promise<AIConversationPreview[]>;
+      getAIConversation(id: string): Promise<AIConversation>;
+      resolveAIConversationBinding(
+        binding: AIConversationBinding,
+        options?: { autoCreate?: boolean; title?: string },
+      ): Promise<AIConversation | null>;
       getAIConversations(): Promise<
         Array<{
           id: string;
@@ -96,6 +105,7 @@ declare global {
           createdAt: number;
           updatedAt: number;
           source?: 'note' | 'workbench' | 'canvas' | 'global';
+          sourceEntityId?: string;
         }>
       >;
       createAIConversation(title?: string): Promise<{
@@ -117,6 +127,8 @@ declare global {
         }>;
         createdAt: number;
         updatedAt: number;
+        source?: 'note' | 'workbench' | 'canvas' | 'global';
+        sourceEntityId?: string;
       }>;
       deleteAIConversation(id: string): Promise<void>;
       saveAIConversationMessages(
@@ -126,6 +138,12 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          ragSources?: Array<{
+            key: number;
+            title: string;
+            description?: string;
+            noteId?: string;
+          }>;
           references?: Array<{
             id: string;
             title: string;
@@ -133,7 +151,10 @@ declare global {
             content: string;
           }>;
         }>,
-        options?: { source?: 'note' | 'workbench' | 'canvas' | 'global' },
+        options?: {
+          source?: 'note' | 'workbench' | 'canvas' | 'global';
+          sourceEntityId?: string;
+        },
       ): Promise<{
         id: string;
         title: string;
@@ -144,6 +165,12 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          ragSources?: Array<{
+            key: number;
+            title: string;
+            description?: string;
+            noteId?: string;
+          }>;
           references?: Array<{
             id: string;
             title: string;
@@ -154,6 +181,7 @@ declare global {
         createdAt: number;
         updatedAt: number;
         source?: 'note' | 'workbench' | 'canvas' | 'global';
+        sourceEntityId?: string;
       }>;
       updateAIConversationTitle(
         id: string,
@@ -172,6 +200,34 @@ declare global {
         createdAt: number;
         updatedAt: number;
       }>;
+    };
+    ai: {
+      getConfig(): Promise<import('./services/aiConfig').AIConfig | null>;
+      setConfig(config: import('./services/aiConfig').AIConfig): Promise<void>;
+      testConnection(): Promise<{ ok: boolean; message: string }>;
+      chat(payload: import('./services/aiConfig').ChatPayload): Promise<{
+        success: boolean;
+        content?: string;
+        error?: string;
+      }>;
+      chatStream(payload: import('./services/aiConfig').ChatPayload): Promise<{
+        success: boolean;
+        requestId?: string;
+        error?: string;
+      }>;
+      abortStream(requestId: string): Promise<{ success: boolean; error?: string }>;
+      onStreamChunk(
+        callback: (data: {
+          requestId: string;
+          chunk: {
+            delta: string;
+            reasoningDelta?: string;
+            finishReason?: string;
+          };
+        }) => void,
+      ): () => void;
+      onStreamDone(callback: (data: { requestId: string; success: boolean }) => void): () => void;
+      onStreamError(callback: (data: { requestId: string; error: string }) => void): () => void;
     };
     floatingWindow: {
       // 悬浮窗口操作

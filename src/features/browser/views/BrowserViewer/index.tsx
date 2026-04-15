@@ -4,11 +4,11 @@
  * 【组件职责】
  * - 显示 webview 加载选中的网页
  * - 提供导航控制（后退/前进/刷新/主页）
- * - 使用 persist partition 保持登录状态
+ * - 使用独立 partition 保持网页看板登录状态
  *
  * 【技术要点】
  * - 使用 Electron 的 <webview> 标签
- * - partition="persist:browser" 确保会话持久化
+ * - 与外部 AI 分区隔离，避免跨模块共享登录态
  */
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -23,6 +23,7 @@ import {
 } from '@ant-design/icons';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useSettingsStore } from '../../../../store/settingsStore';
+import { BROWSER_WEBVIEW_PARTITION } from '../../../../shared/utils/webviewSafety';
 import './BrowserViewer.css';
 
 // Electron webview 类型扩展
@@ -189,7 +190,7 @@ export const BrowserViewer: React.FC = () => {
       <div className="browser-webview-container">
         <webview
           ref={webviewRef as React.RefObject<HTMLElement>}
-          partition="persist:browser"
+          partition={BROWSER_WEBVIEW_PARTITION}
           className="browser-webview"
           // @ts-expect-error webview 属性 TypeScript 不识别
           autosize="on"

@@ -12,13 +12,20 @@ declare global {
       setConfig(config: AIConfig): Promise<void>;
       testConnection(): Promise<{ ok: boolean; message: string }>;
       chat(payload: ChatPayload): Promise<{ success: boolean; content?: string; error?: string }>;
-      chatStream(payload: ChatPayload): Promise<{ success: boolean; error?: string }>;
-      abortStream(): Promise<{ success: boolean; error?: string }>;
+      chatStream(payload: ChatPayload): Promise<{
+        success: boolean;
+        requestId?: string;
+        error?: string;
+      }>;
+      abortStream(requestId: string): Promise<{ success: boolean; error?: string }>;
       onStreamChunk(
-        callback: (data: { delta: string; reasoningDelta?: string; finishReason?: string }) => void,
+        callback: (data: {
+          requestId: string;
+          chunk: { delta: string; reasoningDelta?: string; finishReason?: string };
+        }) => void,
       ): () => void;
-      onStreamDone(callback: (data: { success: boolean }) => void): () => void;
-      onStreamError(callback: (data: { error: string }) => void): () => void;
+      onStreamDone(callback: (data: { requestId: string; success: boolean }) => void): () => void;
+      onStreamError(callback: (data: { requestId: string; error: string }) => void): () => void;
     };
     attachments: {
       /**

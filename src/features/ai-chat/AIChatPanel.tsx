@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { message, Segmented } from 'antd';
+import { message, Segmented, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAIConfig, useAIChat } from './hooks';
@@ -12,6 +12,7 @@ import {
   truncateTitle,
 } from './utils';
 import { loadFolderNoteGroups } from '../../shared/utils/noteLoader';
+import { EXTERNAL_AI_WEBVIEW_PARTITION } from '../../shared/utils/webviewSafety';
 import type { ChatItem, AIChatPanelProps, NoteReference } from './types';
 import './styles/AIChat.css';
 
@@ -26,6 +27,7 @@ import { EmptyState, UnconfiguredState } from './components/EmptyState';
  */
 export const AIChatPanel = ({
   conversationId,
+  conversationBinding = null,
   title: externalTitle,
   onTitleChange,
   showTitleEditor = true,
@@ -111,6 +113,14 @@ export const AIChatPanel = ({
   const [conversationTitle, setConversationTitle] = useState<string>(externalTitle || 'AI 对话');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('');
+  const conversationBindingKey = conversationBinding
+    ? `${conversationBinding.source}:${conversationBinding.entityId}`
+    : null;
+
+  useEffect(() => {
+    setConversationTitle(externalTitle || 'AI 对话');
+    setSelectedNotes([]);
+  }, [conversationBindingKey, conversationId, externalTitle]);
 
   // 知识库开关状态（本次对话是否使用知识库）
   const [useKnowledgeBase, setUseKnowledgeBase] = useState(false);
@@ -134,8 +144,10 @@ export const AIChatPanel = ({
 
   // AI 对话
   const {
+    activeConversationId,
     chatItems,
     isLoading,
+    isResolvingConversation,
     isLoadingHistory,
     error,
     sendMessage,
@@ -144,6 +156,7 @@ export const AIChatPanel = ({
     clearError,
   } = useAIChat({
     conversationId,
+    conversationBinding,
     isConfigured,
     useKnowledgeBase,
     onTitleChange: handleTitleChangeCallback,
@@ -219,13 +232,13 @@ export const AIChatPanel = ({
   };
 
   const saveTitle = async () => {
-    if (!conversationId || !tempTitle.trim()) {
+    if (!activeConversationId || !tempTitle.trim()) {
       setIsEditingTitle(false);
       return;
     }
 
     try {
-      await window.storage.updateAIConversationTitle(conversationId, tempTitle.trim());
+      await window.storage.updateAIConversationTitle(activeConversationId, tempTitle.trim());
       setConversationTitle(tempTitle.trim());
       setIsEditingTitle(false);
       onTitleChange?.(tempTitle.trim());
@@ -261,10 +274,21 @@ export const AIChatPanel = ({
   );
 
   // 没有选中对话，显示空状态（屏蔽整个页面）
-  if (!conversationId) {
+  if (!conversationId && !conversationBinding && !isResolvingConversation) {
     return (
       <div className={`ai-chat-container ${className}`}>
         <EmptyState />
+      </div>
+    );
+  }
+
+  if (isResolvingConversation) {
+    return (
+      <div className={`ai-chat-container ${className}`}>
+        <div className="ai-chat-messages-empty">
+          <Spin size="small" />
+          <p style={{ marginTop: 8, fontSize: '12px', color: '#999' }}>正在恢复对话上下文...</p>
+        </div>
       </div>
     );
   }
@@ -314,7 +338,8 @@ export const AIChatPanel = ({
             isLoadingHistory={isLoadingHistory}
             isInitializing={isInitializing}
             isConfigured={isConfigured}
-            conversationId={conversationId}
+            hasConversationContext={!!conversationBinding || !!conversationId}
+            conversationId={activeConversationId}
             items={chatItems}
             copiedBubbleKey={copiedBubbleKey}
             onCopyAnswer={handleCopyAnswer}
@@ -350,9 +375,9 @@ export const AIChatPanel = ({
         /* 三方 AI - 外部页面 webview */
         <webview
           src={externalAiUrl}
-          partition="persist:browser"
+          partition={EXTERNAL_AI_WEBVIEW_PARTITION}
           className="ai-third-party-webview"
-          {...({ allowpopups: 'true', autosize: 'on' } as React.HTMLAttributes<HTMLElement>)}
+          {...({ autosize: 'on' } as React.HTMLAttributes<HTMLElement>)}
         />
       )}
     </div>

@@ -132,16 +132,31 @@ export function registerStorageHandlers(): void {
   });
 
   ipcMain.handle(storageChannel('deleteNote'), async (_, id: string) => {
-    const note = await storageManager.notes.get(id);
-    // 移入回收站
-    await storageManager.trash.moveToTrash(note);
-    // 从便签列表中删除
-    await storageManager.notes.delete(id);
+    await storageManager.noteLifecycle.deleteNote(id);
     // 发送删除事件
     emitDeleted('note', id);
   });
 
   // ============ AI 对话操作 ============
+
+  ipcMain.handle(storageChannel('listAIConversationPreviews'), async () => {
+    return await storageManager.ai.listPreviews();
+  });
+
+  ipcMain.handle(storageChannel('getAIConversation'), async (_, id: string) => {
+    return await storageManager.ai.getConversation(id);
+  });
+
+  ipcMain.handle(
+    storageChannel('resolveAIConversationBinding'),
+    async (
+      _,
+      binding: { source: 'note' | 'global'; entityId: string },
+      options?: { autoCreate?: boolean; title?: string },
+    ) => {
+      return await storageManager.ai.resolveBinding(binding.source, binding.entityId, options);
+    },
+  );
 
   ipcMain.handle(storageChannel('getAIConversations'), async () => {
     return await storageManager.ai.getAll();
@@ -164,7 +179,10 @@ export function registerStorageHandlers(): void {
       _,
       id: string,
       messages: AIMessage[],
-      options?: { source?: 'note' | 'workbench' | 'global' },
+      options?: {
+        source?: 'note' | 'workbench' | 'canvas' | 'global';
+        sourceEntityId?: string;
+      },
     ) => {
       return await storageManager.ai.saveMessages(id, messages, options);
     },
@@ -190,43 +208,17 @@ export function registerStorageHandlers(): void {
   ipcMain.handle(
     storageChannel('restoreNote'),
     async (_, trashItemId: string, targetFolderId?: string) => {
-      // 1. 从回收站还原（获取元数据）
-      const restoredNote = await storageManager.trash.restore(trashItemId);
-
-      // 2. 确定目标文件夹
-      const originalFolderExists = await storageManager.folders.exists(restoredNote.folderId);
-      let folderId = restoredNote.folderId;
-
-      if (targetFolderId) {
-        folderId = targetFolderId;
-      } else if (!originalFolderExists) {
-        folderId = 'default';
-      }
-
-      // 3. 创建新便签 (会生成新ID)
-      const newNote = await storageManager.notes.createNote(folderId, {
-        title: restoredNote.title,
-        content: restoredNote.content,
-      });
-      // createNote 已触发 emitCreated
-
-      // 4. 恢复其他属性 (Tags, Pinned, Color...)
-      await storageManager.notes.update(newNote.id, {
-        tags: restoredNote.tags,
-        pinned: restoredNote.pinned,
-        color: restoredNote.color,
-      });
-
-      return newNote;
+      return await storageManager.noteLifecycle.restoreNote(trashItemId, targetFolderId);
     },
   );
 
   ipcMain.handle(storageChannel('deleteTrashItemPermanently'), async (_, id: string) => {
-    await storageManager.trash.permanentDelete(id);
+    await storageManager.noteLifecycle.permanentlyDeleteTrashItem(id);
   });
 
   ipcMain.handle(storageChannel('emptyTrash'), async () => {
-    return await storageManager.trash.emptyTrash();
+    const result = await storageManager.noteLifecycle.emptyTrash();
+    return result.deletedCount;
   });
 
   // ============ Todo 清单 ============

@@ -140,26 +140,26 @@ export class TrashStorage {
   /**
    * 清理过期的回收站项目
    */
-  async cleanupExpired(): Promise<number> {
+  async cleanupExpired(): Promise<string[]> {
     const now = Date.now();
     const index = await this.list();
     const expiredItems = index.filter((item) => item.expiresAt <= now);
 
-    let cleanedCount = 0;
+    const cleanedOriginalIds: string[] = [];
     for (const item of expiredItems) {
       try {
         await this.permanentDelete(item.id);
-        cleanedCount++;
+        cleanedOriginalIds.push(item.originalId);
       } catch (error) {
         console.warn(`[TrashStorage] Failed to clean expired item ${item.id}:`, error);
       }
     }
 
-    if (cleanedCount > 0) {
-      console.log(`[TrashStorage] Cleaned up ${cleanedCount} expired items`);
+    if (cleanedOriginalIds.length > 0) {
+      console.log(`[TrashStorage] Cleaned up ${cleanedOriginalIds.length} expired items`);
     }
 
-    return cleanedCount;
+    return cleanedOriginalIds;
   }
 
   /**

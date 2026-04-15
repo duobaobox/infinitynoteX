@@ -30,6 +30,7 @@ export { StorageContext } from './StorageContext';
 export { FolderStorage } from './FolderStorage';
 export { NoteStorage } from './NoteStorage';
 export { AIStorage } from './AIStorage';
+export { NoteLifecycleService } from './NoteLifecycleService';
 
 // 导出主管理器和单例
 export { StorageManager, storageManager } from './StorageManager';

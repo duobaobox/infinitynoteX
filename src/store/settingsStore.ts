@@ -60,22 +60,3 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
-
-// ============ 持久化副作用 ============
-
-import { persistProviderConfigs } from '../services/aiConfigStore';
-
-/**
- * 持久化 providerConfigs 的副作用
- */
-export const persistProviderConfigsEffect = () => {
-  let prevProviderConfigs = useSettingsStore.getState().providerConfigs;
-  const unsubscribe = useSettingsStore.subscribe((state) => {
-    const { providerConfigs } = state;
-    if (providerConfigs !== prevProviderConfigs && Object.keys(providerConfigs).length > 0) {
-      prevProviderConfigs = providerConfigs;
-      persistProviderConfigs(providerConfigs);
-    }
-  });
-  return unsubscribe;
-};

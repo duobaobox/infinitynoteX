@@ -139,7 +139,10 @@ export class StorageInitializer {
 
     await this.loadAllCaches();
     await this.fixOrphanNotes();
-    await this.trash.cleanupExpired();
+    const expiredNoteIds = await this.trash.cleanupExpired();
+    for (const noteId of expiredNoteIds) {
+      await this.ai.deleteBySourceEntity('note', noteId);
+    }
     await this.browserCards.initializePresets();
     await this.todoLists.initializeDefault();
   }

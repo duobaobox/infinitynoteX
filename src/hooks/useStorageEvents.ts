@@ -61,8 +61,13 @@ export function useStorageEvents(): void {
 
         case 'aiConversation':
           // 如果删除的是当前选中的对话，清空选中状态
-          if (store.selectedToolItemId === event.id) {
-            store.setSelectedToolItem(null);
+          if (
+            (store.selectedAIWorkbenchItem &&
+              !store.selectedAIWorkbenchItem.isSystemEntry &&
+              store.selectedAIWorkbenchItem.conversationId === event.id) ||
+            store.selectedToolItemId === event.id
+          ) {
+            store.setSelectedAIWorkbenchItem(null);
           }
           // 刷新对话列表
           store.triggerAIConversationsRefresh();

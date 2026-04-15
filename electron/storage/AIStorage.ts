@@ -13,6 +13,8 @@ import { generateId, generateConversationTitle } from './utils';
 
 // 获取 ai-conversations 模块配置
 const aiConfig = getModuleConfig('ai-conversations')!;
+const DEFAULT_GLOBAL_BINDING_ID = 'default';
+type BoundConversationSource = 'note' | 'global';
 
 export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversationIndex> {
   constructor(context: StorageContext, indexCache: IndexCache) {
@@ -41,9 +43,64 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
   }
 
   /**
+   * 获取 AI 对话预览列表（不加载完整消息正文）
+   */
+  async listPreviews(): Promise<AIConversationIndex[]> {
+    return await this.list();
+  }
+
+  /**
+   * 获取单个 AI 对话完整内容
+   */
+  async getConversation(id: string): Promise<AIConversation> {
+    return await this.get(id);
+  }
+
+  /**
+   * 根据绑定关系查找或创建对话
+   */
+  async resolveBinding(
+    source: BoundConversationSource,
+    sourceEntityId: string,
+    options?: { autoCreate?: boolean; title?: string },
+  ): Promise<AIConversation | null> {
+    const normalizedSourceEntityId =
+      source === 'global' ? this.normalizeGlobalBindingId(sourceEntityId) : sourceEntityId;
+    const index = await this.list();
+    const existing = [...index]
+      .reverse()
+      .find((conversation) =>
+        this.matchesSourceEntity(conversation, source, normalizedSourceEntityId),
+      );
+
+    if (existing) {
+      const conversation = await this.get(existing.id);
+      const patch = this.buildBindingRepairPatch(conversation, source, normalizedSourceEntityId);
+
+      if (patch) {
+        return await this.update(existing.id, patch);
+      }
+
+      return conversation;
+    }
+
+    if (!options?.autoCreate) {
+      return null;
+    }
+
+    return await this.createConversation(options?.title, {
+      source,
+      sourceEntityId: normalizedSourceEntityId,
+    });
+  }
+
+  /**
    * 创建 AI 对话
    */
-  async createConversation(title?: string): Promise<AIConversation> {
+  async createConversation(
+    title?: string,
+    options?: { source?: AIConversation['source']; sourceEntityId?: string },
+  ): Promise<AIConversation> {
     const now = Date.now();
     const defaultTitle = generateConversationTitle();
 
@@ -54,6 +111,8 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       messages: [],
       createdAt: now,
       updatedAt: now,
+      source: options?.source,
+      sourceEntityId: options?.sourceEntityId,
     };
 
     await this.writeFile(newConversation);
@@ -84,7 +143,10 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
   async saveMessages(
     id: string,
     messages: AIMessage[],
-    options?: { source?: 'note' | 'workbench' | 'global' },
+    options?: {
+      source?: 'note' | 'workbench' | 'canvas' | 'global';
+      sourceEntityId?: string;
+    },
   ): Promise<AIConversation> {
     let conversation: AIConversation;
 
@@ -107,13 +169,14 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
           : generateConversationTitle();
 
         conversation = {
-          id, // 使用传入的 id（便签 id 或 global-ai-chat）
+          id, // 兼容直接按 conversationId 持久化的调用路径
           title,
           excerpt: '开始对话',
           messages: [],
           createdAt: now,
           updatedAt: now,
           source: options?.source, // 保存对话来源
+          sourceEntityId: options?.sourceEntityId,
         };
 
         // 写入文件并添加到索引
@@ -134,6 +197,12 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
     if (options?.source) {
       conversation.source = options.source;
     }
+    if (options?.sourceEntityId) {
+      conversation.sourceEntityId =
+        options.source === 'global'
+          ? this.normalizeGlobalBindingId(options.sourceEntityId)
+          : options.sourceEntityId;
+    }
 
     // 更新摘要（使用最后一条用户消息）
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
@@ -152,6 +221,46 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
    */
   async updateTitle(id: string, title: string): Promise<AIConversation> {
     return await this.update(id, { title } as Partial<AIConversation>);
+  }
+
+  /**
+   * 将绑定在旧实体 ID 上的对话迁移到新实体 ID
+   */
+  async rebindSourceEntity(
+    source: BoundConversationSource,
+    fromEntityId: string,
+    toEntityId: string,
+  ): Promise<number> {
+    const index = await this.list();
+    const conversations = index.filter((conversation) =>
+      this.matchesSourceEntity(conversation, source, fromEntityId),
+    );
+
+    for (const conversation of conversations) {
+      await this.update(conversation.id, {
+        source,
+        sourceEntityId:
+          source === 'global' ? this.normalizeGlobalBindingId(toEntityId) : toEntityId,
+      } as Partial<AIConversation>);
+    }
+
+    return conversations.length;
+  }
+
+  /**
+   * 删除指定绑定实体关联的对话
+   */
+  async deleteBySourceEntity(source: BoundConversationSource, entityId: string): Promise<number> {
+    const index = await this.list();
+    const conversations = index.filter((conversation) =>
+      this.matchesSourceEntity(conversation, source, entityId),
+    );
+
+    for (const conversation of conversations) {
+      await super.delete(conversation.id);
+    }
+
+    return conversations.length;
   }
 
   // ============ 向后兼容方法 ============
@@ -176,6 +285,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
       source: conversation.source,
+      sourceEntityId: conversation.sourceEntityId,
     };
   }
 
@@ -195,6 +305,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       createdAt: now,
       updatedAt: now,
       source: payload.source, // 保留 source
+      sourceEntityId: payload.sourceEntityId,
     };
   }
 
@@ -207,6 +318,7 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
     const conversations = await this.getAll();
 
     for (const conversation of conversations) {
+      const patch: Partial<AIConversation> = {};
       // 检查 source 字段是否存在且有效
       const validSources = ['note', 'workbench', 'canvas', 'global'];
       if (!conversation.source || !validSources.includes(conversation.source)) {
@@ -216,15 +328,28 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
 
         // 自动修复：根据 conversationId 推断 source
         if (conversation.id === 'global-ai-chat') {
-          conversation.source = 'global';
+          patch.source = 'global';
         } else {
           // 无法确定来源，设置为 workbench（默认）
-          conversation.source = 'workbench';
+          patch.source = 'workbench';
         }
+      }
 
-        await this.update(conversation.id, {
-          source: conversation.source,
-        } as Partial<AIConversation>);
+      const nextSource = patch.source ?? conversation.source;
+      if (nextSource === 'note' && !conversation.sourceEntityId) {
+        patch.sourceEntityId = conversation.id;
+        issues.push(`Conversation ${conversation.id} was missing sourceEntityId for note binding`);
+      }
+
+      if (nextSource === 'global' && !conversation.sourceEntityId) {
+        patch.sourceEntityId = DEFAULT_GLOBAL_BINDING_ID;
+        issues.push(
+          `Conversation ${conversation.id} was missing sourceEntityId for global binding`,
+        );
+      }
+
+      if (Object.keys(patch).length > 0) {
+        await this.update(conversation.id, patch);
       }
     }
 
@@ -232,5 +357,57 @@ export class AIStorage extends BaseDirectoryStorage<AIConversation, AIConversati
       valid: issues.length === 0,
       issues,
     };
+  }
+
+  private normalizeGlobalBindingId(sourceEntityId: string): string {
+    return sourceEntityId || DEFAULT_GLOBAL_BINDING_ID;
+  }
+
+  private matchesSourceEntity(
+    conversation: Pick<AIConversation, 'id' | 'source' | 'sourceEntityId'>,
+    source: BoundConversationSource,
+    sourceEntityId: string,
+  ): boolean {
+    const normalizedSourceEntityId =
+      source === 'global' ? this.normalizeGlobalBindingId(sourceEntityId) : sourceEntityId;
+
+    if (conversation.source !== source) {
+      return false;
+    }
+
+    if (conversation.sourceEntityId === normalizedSourceEntityId) {
+      return true;
+    }
+
+    // 兼容旧数据：历史上 note/global 对话直接复用了业务实体 ID
+    if (!conversation.sourceEntityId && source === 'note') {
+      return conversation.id === normalizedSourceEntityId;
+    }
+
+    if (!conversation.sourceEntityId && source === 'global') {
+      return conversation.id === 'global-ai-chat';
+    }
+
+    return false;
+  }
+
+  private buildBindingRepairPatch(
+    conversation: AIConversation,
+    source: BoundConversationSource,
+    sourceEntityId: string,
+  ): Partial<AIConversation> | null {
+    const patch: Partial<AIConversation> = {};
+    const normalizedSourceEntityId =
+      source === 'global' ? this.normalizeGlobalBindingId(sourceEntityId) : sourceEntityId;
+
+    if (conversation.source !== source) {
+      patch.source = source;
+    }
+
+    if (conversation.sourceEntityId !== normalizedSourceEntityId) {
+      patch.sourceEntityId = normalizedSourceEntityId;
+    }
+
+    return Object.keys(patch).length > 0 ? patch : null;
   }
 }

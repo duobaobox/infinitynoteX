@@ -19,6 +19,7 @@ import { AttachmentStorage } from './AttachmentStorage';
 import { BrowserCardStorage } from './BrowserCardStorage';
 import { TodoListStorage } from './TodoListStorage';
 import { ManualTaskStorage } from './ManualTaskStorage';
+import { NoteLifecycleService } from './NoteLifecycleService';
 import { DeviceManager } from './core/DeviceManager';
 import { IndexCache } from './core/IndexCache';
 import { StorageInitializer } from './StorageInitializer';
@@ -46,6 +47,7 @@ export class StorageManager {
   readonly browserCards: BrowserCardStorage;
   readonly todoLists: TodoListStorage;
   readonly manualTasks: ManualTaskStorage;
+  readonly noteLifecycle: NoteLifecycleService;
 
   // ============ 子管理器（私有，负责具体逻辑）============
   private readonly initializer: StorageInitializer;
@@ -70,6 +72,7 @@ export class StorageManager {
     this.browserCards = new BrowserCardStorage(this.context, this.indexCache);
     this.todoLists = new TodoListStorage(this.context, this.indexCache);
     this.manualTasks = new ManualTaskStorage(this.context, this.indexCache);
+    this.noteLifecycle = new NoteLifecycleService(this.folders, this.notes, this.trash, this.ai);
 
     // 子管理器
     this.initializer = new StorageInitializer(

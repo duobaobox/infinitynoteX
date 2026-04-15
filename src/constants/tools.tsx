@@ -19,6 +19,8 @@ export interface AIConversationPreview {
   color?: NoteColor;
   /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局悬浮窗 */
   source?: 'note' | 'workbench' | 'canvas' | 'global';
+  /** 绑定实体 ID（如 noteId、global 默认上下文 ID） */
+  sourceEntityId?: string;
 }
 
 export const DEFAULT_AI_CONVERSATIONS: AIConversationPreview[] = [

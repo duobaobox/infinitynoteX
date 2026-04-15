@@ -7,15 +7,27 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { useStorageEvents, type StorageEvent } from '../../../../src/hooks/useStorageEvents';
+import { resolveAIWorkbenchSelection } from '../../../../src/features/ai-workbench/model/workbenchConversationItems';
 
 // Mock workspace store selector调用行为
 const mockState = {
   selectedNoteId: 'note-1',
   selectedFolderId: 'folder-1',
   selectedToolItemId: 'conv-1',
+  selectedAIWorkbenchItem: resolveAIWorkbenchSelection('conv-1', [
+    {
+      id: 'conv-1',
+      title: '对话',
+      excerpt: '测试',
+      createdAt: 1,
+      updatedAt: 2,
+      source: 'workbench' as const,
+    },
+  ]),
   setSelectedNote: vi.fn(),
   setSelectedFolder: vi.fn(),
   setSelectedToolItem: vi.fn(),
+  setSelectedAIWorkbenchItem: vi.fn(),
   loadNotes: vi.fn(),
   loadFolders: vi.fn(),
   loadAIConversations: vi.fn(),
@@ -86,7 +98,7 @@ describe('useStorageEvents', () => {
     renderHook(() => useStorageEvents());
     fire({ type: 'deleted', entity: 'aiConversation', id: 'conv-1' });
 
-    expect(mockState.setSelectedToolItem).toHaveBeenCalledWith(null);
+    expect(mockState.setSelectedAIWorkbenchItem).toHaveBeenCalledWith(null);
     expect(mockState.triggerAIConversationsRefresh).toHaveBeenCalled();
   });
 

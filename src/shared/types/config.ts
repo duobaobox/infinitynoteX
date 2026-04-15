@@ -33,9 +33,10 @@ export interface AIProviderConfig {
 
 export interface AIConfig {
   activeProviderId: string;
-  providers: Record<string, AIProviderConfig>;
-  /** 前端使用的完整 provider 配置缓存 */
+  /** 当前使用的 Provider 配置集合 */
   providerConfigs?: Record<string, AIProviderConfig>;
+  /** 旧版本字段，仅读取迁移时使用 */
+  providers?: Record<string, AIProviderConfig>;
 }
 
 export interface WebDAVProviderConfig {

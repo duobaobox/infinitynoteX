@@ -28,6 +28,8 @@ export const selectUnpinnedNotes = (state: WorkspaceState) => state.notes.filter
 // ============ AI Conversation Selectors ============
 export const selectAIConversations = (state: WorkspaceState) => state.aiConversations;
 export const selectSelectedToolId = (state: WorkspaceState) => state.selectedToolId;
+export const selectSelectedAIWorkbenchItem = (state: WorkspaceState) =>
+  state.selectedAIWorkbenchItem;
 export const selectSelectedToolItemId = (state: WorkspaceState) => state.selectedToolItemId;
 export const selectRefreshAIConversationsTrigger = (state: WorkspaceState) =>
   state.refreshAIConversationsTrigger;

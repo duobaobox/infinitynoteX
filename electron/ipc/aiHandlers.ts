@@ -7,12 +7,12 @@ import { ipcMain } from 'electron';
 import type { AIConfig, ChatPayload } from '../../src/services/aiConfig';
 import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
 import type { IpcProxyMethod } from '../../src/shared/types/ipc';
-import { readAIConfig, writeAIConfig, createAdapter } from '../ai';
+import { readAIConfig, readActiveAIProviderConfig, writeAIConfig, createAdapter } from '../ai';
 
 const aiChannel = (method: IpcProxyMethod<'ai'>) => getIpcProxyChannel('ai', method);
 
 // 流式请求中止控制器
-const aiStreamAbortControllers = new Map<number, AbortController>();
+const aiStreamAbortControllers = new Map<string, AbortController>();
 
 /**
  * 注册 AI 相关 IPC 处理器
@@ -29,7 +29,7 @@ export function registerAIHandlers(): void {
 
   ipcMain.handle(aiChannel('testConnection'), async () => {
     try {
-      const config = await readAIConfig();
+      const config = await readActiveAIProviderConfig();
       if (!config) {
         return { ok: false, message: '未找到 AI 配置，请先设置' };
       }
@@ -43,7 +43,7 @@ export function registerAIHandlers(): void {
 
   ipcMain.handle(aiChannel('chat'), async (_, payload: ChatPayload) => {
     try {
-      const config = await readAIConfig();
+      const config = await readActiveAIProviderConfig();
       if (!config) {
         throw new Error('未找到 AI 配置，请先在设置中配置 AI');
       }
@@ -58,55 +58,59 @@ export function registerAIHandlers(): void {
 
   ipcMain.handle(aiChannel('chatStream'), async (event, payload: ChatPayload) => {
     try {
-      const config = await readAIConfig();
+      const config = await readActiveAIProviderConfig();
       if (!config) {
         throw new Error('未找到 AI 配置，请先在设置中配置 AI');
       }
       const adapter = createAdapter(config);
 
       const wcId = event.sender.id;
-      const previous = aiStreamAbortControllers.get(wcId);
-      if (previous) {
-        previous.abort();
-        aiStreamAbortControllers.delete(wcId);
-      }
+      const requestId = payload.requestId || `${wcId}-${Date.now()}`;
+      const controllerKey = `${wcId}:${requestId}`;
       const abortController = new AbortController();
-      aiStreamAbortControllers.set(wcId, abortController);
+      aiStreamAbortControllers.set(controllerKey, abortController);
 
       (async () => {
         try {
           for await (const chunk of adapter.chatStream(payload, {
             signal: abortController.signal,
           })) {
-            event.sender.send(IPC_CHANNELS.aiStreamChunk, chunk);
+            event.sender.send(IPC_CHANNELS.aiStreamChunk, {
+              requestId,
+              chunk,
+            });
           }
-          event.sender.send(IPC_CHANNELS.aiStreamDone, { success: true });
+          event.sender.send(IPC_CHANNELS.aiStreamDone, { requestId, success: true });
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
-          event.sender.send(IPC_CHANNELS.aiStreamError, { error: msg });
+          event.sender.send(IPC_CHANNELS.aiStreamError, { requestId, error: msg });
         } finally {
-          const current = aiStreamAbortControllers.get(wcId);
+          const current = aiStreamAbortControllers.get(controllerKey);
           if (current === abortController) {
-            aiStreamAbortControllers.delete(wcId);
+            aiStreamAbortControllers.delete(controllerKey);
           }
         }
       })();
 
-      return { success: true };
+      return { success: true, requestId };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       return { success: false, error: msg };
     }
   });
 
-  ipcMain.handle(aiChannel('abortStream'), (event) => {
-    const wcId = event.sender.id;
-    const controller = aiStreamAbortControllers.get(wcId);
+  ipcMain.handle(aiChannel('abortStream'), (event, requestId?: string) => {
+    if (!requestId) {
+      return { success: false, error: 'missing requestId' };
+    }
+
+    const controllerKey = `${event.sender.id}:${requestId}`;
+    const controller = aiStreamAbortControllers.get(controllerKey);
     if (!controller) {
       return { success: false, error: 'no in-flight stream' };
     }
     controller.abort();
-    aiStreamAbortControllers.delete(wcId);
+    aiStreamAbortControllers.delete(controllerKey);
     return { success: true };
   });
 }

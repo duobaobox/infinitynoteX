@@ -42,7 +42,7 @@ const DEFAULT_CONFIG: AppConfig = {
   },
   ai: {
     activeProviderId: 'deepseek',
-    providers: {
+    providerConfigs: {
       deepseek: {
         provider: 'deepseek',
         baseURL: 'https://api.deepseek.com/v1',
@@ -99,6 +99,26 @@ export function getConfigPath(): string {
  */
 export function getDefaultConfig(): AppConfig {
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+}
+
+function normalizeAIConfigShape(config: AppConfig): AppConfig {
+  const providerConfigs =
+    config.ai.providerConfigs && Object.keys(config.ai.providerConfigs).length > 0
+      ? config.ai.providerConfigs
+      : (config.ai.providers ?? {});
+
+  const activeProviderId =
+    config.ai.activeProviderId && providerConfigs[config.ai.activeProviderId]
+      ? config.ai.activeProviderId
+      : Object.keys(providerConfigs)[0] || 'deepseek';
+
+  return {
+    ...config,
+    ai: {
+      activeProviderId,
+      providerConfigs,
+    },
+  };
 }
 
 /**
@@ -160,6 +180,7 @@ export function overwriteAppConfig(config: AppConfig): void {
  * 配置版本迁移
  */
 export function migrateConfig(config: AppConfig): AppConfig {
+  config = normalizeAIConfigShape(config);
   let currentVersion = config.schemaVersion || 1;
 
   // 迁移逻辑
@@ -210,15 +231,18 @@ export async function migrateFromLegacyConfigs(): Promise<void> {
       if (aiConfig.provider && aiConfig.baseURL) {
         const providerId = aiConfig.provider;
         config.ai.activeProviderId = providerId;
-        config.ai.providers[providerId] = {
-          provider: aiConfig.provider,
-          baseURL: aiConfig.baseURL,
-          apiKey: aiConfig.apiKey || '',
-          model: aiConfig.model || '',
-          temperature: aiConfig.temperature,
-          max_tokens: aiConfig.max_tokens,
-          timeoutMs: aiConfig.timeoutMs,
-          systemPrompt: aiConfig.systemPrompt,
+        config.ai.providerConfigs = {
+          ...config.ai.providerConfigs,
+          [providerId]: {
+            provider: aiConfig.provider,
+            baseURL: aiConfig.baseURL,
+            apiKey: aiConfig.apiKey || '',
+            model: aiConfig.model || '',
+            temperature: aiConfig.temperature,
+            max_tokens: aiConfig.max_tokens,
+            timeoutMs: aiConfig.timeoutMs,
+            systemPrompt: aiConfig.systemPrompt,
+          },
         };
       }
       console.log('[Config] Migrated ai-config.json');

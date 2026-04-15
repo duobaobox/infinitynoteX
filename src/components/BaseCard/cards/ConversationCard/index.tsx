@@ -16,11 +16,17 @@ interface RobotIconProps {
 
 // 机器人图标组件 - 根据来源显示不同颜色
 const RobotIcon: React.FC<RobotIconProps> = React.memo(({ source }) => {
-  // 便签来源显示橙色，其他显示默认黑白
-  const isNoteSource = source === 'note';
+  const sourceClassName =
+    source === 'note'
+      ? 'robot-icon--note'
+      : source === 'global'
+        ? 'robot-icon--global'
+        : source === 'canvas'
+          ? 'robot-icon--canvas'
+          : 'robot-icon--workbench';
 
   return (
-    <div className={`robot-icon ${isNoteSource ? 'robot-icon--note' : ''}`}>
+    <div className={`robot-icon ${sourceClassName}`}>
       <div className="robot-icon__box">
         <RobotOutlined />
       </div>

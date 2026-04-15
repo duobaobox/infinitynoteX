@@ -13,40 +13,14 @@ import { useXChat } from '@ant-design/x-sdk';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
 import type { ChatItem, NoteReference, UseAIChatReturn, StreamChunkData } from '../types';
 import type { ChatMessage } from '../../../services/aiConfig';
+import type { AIConversation, AIConversationBinding } from '../../../services/types';
 import { IpcChatProvider, type IpcStreamInput, type XChatMessage } from '../xsdk/IpcChatProvider';
-
-// AI 对话完整类型（包含 messages）
-interface AIConversationFull {
-  id: string;
-  title: string;
-  excerpt: string;
-  messages?: Array<{
-    id?: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: number;
-    reasoning?: string;
-    ragSources?: Array<{
-      key: number;
-      title: string;
-      description?: string;
-      noteId?: string;
-    }>;
-    references?: Array<{
-      id: string;
-      title: string;
-      byteLength: number;
-      content: string;
-    }>;
-  }>;
-  createdAt: number;
-  updatedAt: number;
-  isDefault?: boolean;
-}
 
 interface UseAIChatOptions {
   /** 对话 ID */
   conversationId: string | null;
+  /** 绑定型对话（如 note/global） */
+  conversationBinding?: AIConversationBinding | null;
   /** 是否已配置 AI */
   isConfigured: boolean;
   /** 是否启用知识库增强 */
@@ -64,6 +38,7 @@ interface UseAIChatOptions {
  */
 export const useAIChat = ({
   conversationId,
+  conversationBinding = null,
   isConfigured,
   useKnowledgeBase = false,
   onTitleChange,
@@ -71,17 +46,22 @@ export const useAIChat = ({
   autoSave = true,
 }: UseAIChatOptions): UseAIChatReturn => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isResolvingConversation, setIsResolvingConversation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(conversationId);
 
   const lastRequestHadErrorRef = useRef(false);
   const prevIsRequestingRef = useRef(false);
   // 保存当前请求的 RAG sources，用于附加到 AI 回复消息
   const currentRagSourcesRef = useRef<ChatItem['ragSources']>(undefined);
-  // 标记是否已完成初始化（避免首次渲染时误触发历史加载）
-  const isInitializedRef = useRef(false);
-  // 记录上一次的 conversationId
-  const prevConversationIdRef = useRef<string | null>(conversationId);
+  const bindingSource = conversationBinding?.source ?? null;
+  const bindingEntityId = conversationBinding?.entityId ?? null;
+  const boundConversationKey =
+    bindingSource && bindingEntityId ? `bound-${bindingSource}-${bindingEntityId}` : null;
+  const persistedConversationId =
+    bindingSource && bindingEntityId ? activeConversationId : conversationId;
+  const prevConversationIdRef = useRef<string | null>(persistedConversationId);
 
   const [provider] = useState(() => new IpcChatProvider());
 
@@ -93,7 +73,7 @@ export const useAIChat = ({
   >({
     provider,
     // 为不同来源生成唯一的 key，避免状态污染
-    conversationKey: conversationId || `temp-${source}`,
+    conversationKey: boundConversationKey || conversationId || `temp-${source}`,
     requestPlaceholder: () => ({
       role: 'ai',
       content: '',
@@ -148,33 +128,134 @@ export const useAIChat = ({
 
   const isLoading = isRequesting;
 
+  useEffect(() => {
+    if (bindingSource && bindingEntityId) {
+      return;
+    }
+
+    setActiveConversationId(conversationId);
+    setIsResolvingConversation(false);
+  }, [bindingEntityId, bindingSource, conversationId]);
+
+  useEffect(() => {
+    if (!bindingSource || !bindingEntityId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const resolveExistingConversation = async () => {
+      setIsResolvingConversation(true);
+      setError(null);
+
+      try {
+        const conversation = await window.storage.resolveAIConversationBinding(
+          { source: bindingSource, entityId: bindingEntityId },
+          {
+            autoCreate: false,
+          },
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        setActiveConversationId(conversation?.id ?? null);
+        if (conversation) {
+          onTitleChange?.(conversation.title || 'AI 对话');
+        }
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error('[useAIChat] Failed to resolve bound conversation:', err);
+        setActiveConversationId(null);
+      } finally {
+        if (!cancelled) {
+          setIsResolvingConversation(false);
+        }
+      }
+    };
+
+    resolveExistingConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bindingEntityId, bindingSource, onTitleChange]);
+
+  const isConversationNotFoundError = useCallback((err: unknown): err is Error => {
+    return err instanceof Error && err.message.includes('not found');
+  }, []);
+
+  const handleMissingConversation = useCallback(
+    (missingConversationId: string) => {
+      setMessages([]);
+      setActiveConversationId(null);
+
+      if (source !== 'workbench') {
+        return;
+      }
+
+      const store = useWorkspaceStore.getState();
+      if (
+        store.selectedAIWorkbenchItem?.conversationId === missingConversationId ||
+        store.selectedToolItemId === missingConversationId
+      ) {
+        store.setSelectedAIWorkbenchItem(null);
+      }
+    },
+    [setMessages, source],
+  );
+
+  const loadExistingConversation = useCallback(
+    async (id: string): Promise<AIConversation | null> => {
+      const previews = await window.storage.listAIConversationPreviews();
+      const exists = previews.some((conversation) => conversation.id === id);
+
+      if (!exists) {
+        handleMissingConversation(id);
+        return null;
+      }
+
+      try {
+        return (await window.storage.getAIConversation(id)) as AIConversation;
+      } catch (err) {
+        if (isConversationNotFoundError(err)) {
+          handleMissingConversation(id);
+          return null;
+        }
+
+        throw err;
+      }
+    },
+    [handleMissingConversation, isConversationNotFoundError],
+  );
+
   // 加载对话历史
   useEffect(() => {
     // conversationId 变化时立即清空旧消息
-    if (prevConversationIdRef.current !== conversationId) {
+    if (prevConversationIdRef.current !== persistedConversationId) {
       setMessages([]);
       setError(null);
-      prevConversationIdRef.current = conversationId;
+      prevConversationIdRef.current = persistedConversationId;
     }
 
     const loadConversationHistory = async () => {
       // conversationId 为 null 时，不加载历史
-      if (!conversationId) {
+      if (!persistedConversationId) {
         setMessages([]);
         setIsLoadingHistory(false);
-        isInitializedRef.current = true;
         return;
       }
 
       setIsLoadingHistory(true);
 
       try {
-        // getConversations 返回完整的 AIConversation 对象（包含 messages）
-        const conversations = (await window.storage.getAIConversations()) as AIConversationFull[];
-        const conversation = conversations.find((c) => c.id === conversationId);
+        const conversation = await loadExistingConversation(persistedConversationId);
 
         if (conversation) {
-          // 通知标题变更
           onTitleChange?.(conversation.title || 'AI 对话');
 
           if (conversation.messages && conversation.messages.length > 0) {
@@ -186,16 +267,13 @@ export const useAIChat = ({
               }
 
               return {
-                // 使用 hist_ 前缀确保与 useXChat 生成的 msg_X 格式不冲突
-                id: msg.id ?? `hist_${conversationId}_${index}`,
+                id: msg.id ?? `hist_${persistedConversationId}_${index}`,
                 status: 'success' as const,
                 message: {
                   role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
                   content,
                   timestamp: msg.timestamp ?? Date.now(),
-                  // 从存储中恢复 RAG 来源引用
                   ragSources: msg.ragSources,
-                  // 从存储中恢复便签引用
                   references: msg.references,
                 },
               };
@@ -212,16 +290,16 @@ export const useAIChat = ({
         setMessages([]);
       } finally {
         setIsLoadingHistory(false);
-        isInitializedRef.current = true;
       }
     };
 
     loadConversationHistory();
-  }, [conversationId, onTitleChange, setMessages]);
+  }, [persistedConversationId, loadExistingConversation, onTitleChange, setMessages]);
 
   // 监听其他实例触发的刷新信号，重新加载历史
   const messageRefreshTrigger = useWorkspaceStore(
-    (state) => (conversationId ? state.messageRefreshTriggers[conversationId] : 0) ?? 0,
+    (state) =>
+      (persistedConversationId ? state.messageRefreshTriggers[persistedConversationId] : 0) ?? 0,
   );
   const prevRefreshTriggerRef = useRef(messageRefreshTrigger);
 
@@ -229,15 +307,14 @@ export const useAIChat = ({
     // 仅当 trigger 变化且不是初始值时重新加载
     if (
       messageRefreshTrigger !== prevRefreshTriggerRef.current &&
-      conversationId &&
+      persistedConversationId &&
       !isRequesting
     ) {
       prevRefreshTriggerRef.current = messageRefreshTrigger;
       // 延迟加载，避免与当前实例的保存冲突
       const timer = setTimeout(async () => {
         try {
-          const conversations = (await window.storage.getAIConversations()) as AIConversationFull[];
-          const conversation = conversations.find((c) => c.id === conversationId);
+          const conversation = await loadExistingConversation(persistedConversationId);
           if (conversation?.messages && conversation.messages.length > 0) {
             const infos = conversation.messages.map((msg, index) => {
               let content = msg.content;
@@ -246,7 +323,7 @@ export const useAIChat = ({
                 content = `<think>${sanitizedReasoning}</think>\n${msg.content}`;
               }
               return {
-                id: msg.id ?? `hist_${conversationId}_${index}`,
+                id: msg.id ?? `hist_${persistedConversationId}_${index}`,
                 status: 'success' as const,
                 message: {
                   role: msg.role === 'assistant' ? ('ai' as const) : ('user' as const),
@@ -258,6 +335,8 @@ export const useAIChat = ({
               };
             });
             setMessages(infos);
+          } else {
+            setMessages([]);
           }
         } catch (err) {
           console.error('[useAIChat] Failed to refresh from external update:', err);
@@ -265,16 +344,44 @@ export const useAIChat = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [messageRefreshTrigger, conversationId, isRequesting, setMessages]);
+  }, [
+    persistedConversationId,
+    isRequesting,
+    loadExistingConversation,
+    messageRefreshTrigger,
+    setMessages,
+  ]);
 
   // 保存对话历史
   const saveConversationHistory = useCallback(
     async (items: ChatItem[]) => {
       // 如果未启用自动保存，直接返回
       if (!autoSave) return;
-      if (!conversationId) return;
 
       try {
+        let nextConversationId = persistedConversationId;
+
+        if (!nextConversationId && bindingSource && bindingEntityId && items.length > 0) {
+          const conversation = await window.storage.resolveAIConversationBinding(
+            { source: bindingSource, entityId: bindingEntityId },
+            {
+              autoCreate: true,
+            },
+          );
+
+          if (!conversation) {
+            return;
+          }
+
+          nextConversationId = conversation.id;
+          setActiveConversationId(conversation.id);
+          onTitleChange?.(conversation.title || 'AI 对话');
+        }
+
+        if (!nextConversationId) {
+          return;
+        }
+
         const messages = items.map((item, index) => {
           // 从 content 中提取 <think> 标签
           const thinkMatch = item.content.match(/<think>([\s\S]*?)<\/think>/);
@@ -285,7 +392,7 @@ export const useAIChat = ({
 
           return {
             // 使用时间戳+索引生成持久化唯一 ID，避免 useXChat 的 msg_X 格式在重挂载时重复
-            id: `${conversationId}_${item.timestamp ?? Date.now()}_${index}`,
+            id: `${nextConversationId}_${item.timestamp ?? Date.now()}_${index}`,
             role: item.role === 'user' ? ('user' as const) : ('assistant' as const),
             content,
             timestamp: item.timestamp ?? Date.now(),
@@ -297,14 +404,17 @@ export const useAIChat = ({
           };
         });
 
-        await window.storage.saveAIConversationMessages(conversationId, messages, { source });
+        await window.storage.saveAIConversationMessages(nextConversationId, messages, {
+          source,
+          sourceEntityId: bindingEntityId ?? undefined,
+        });
         // 触发刷新，通知其他使用同一 conversationId 的实例
-        useWorkspaceStore.getState().triggerMessageRefresh(conversationId);
+        useWorkspaceStore.getState().triggerMessageRefresh(nextConversationId);
       } catch (err) {
         console.error('Fail, autoSaveed to save conversation history:', err);
       }
     },
-    [conversationId, source, autoSave],
+    [autoSave, bindingEntityId, bindingSource, onTitleChange, persistedConversationId, source],
   );
 
   // 请求结束后保存一次
@@ -391,15 +501,16 @@ export const useAIChat = ({
             return {
               role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
               content: parsed.content,
+              references: m.references,
             };
           });
 
         onRequest({
           text,
-          message: text, // 用户原始消息，不再拼接 RAG 上下文
+          message: text,
           messages: historyMessages,
           references,
-          ragContext, // 结构化的 RAG 上下文
+          ragContext,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -423,8 +534,10 @@ export const useAIChat = ({
   }, []);
 
   return {
+    activeConversationId,
     chatItems,
     isLoading,
+    isResolvingConversation,
     isLoadingHistory,
     error,
     inputValue,

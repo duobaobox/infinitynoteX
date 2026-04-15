@@ -30,7 +30,6 @@ import {
   findProviderPresetById,
   getProviderBrandColor,
 } from '../../../../services/aiProviders';
-import { persistProviderConfigs } from '../../../../services/aiConfigStore';
 import { QuestionCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import './AITab.css';
 
@@ -57,13 +56,6 @@ const AITab: React.FC = () => {
   useEffect(() => {
     loadAIConfig();
   }, [loadAIConfig]);
-
-  // 持久化 providerConfigs
-  useEffect(() => {
-    if (Object.keys(providerConfigs).length > 0) {
-      persistProviderConfigs(providerConfigs);
-    }
-  }, [providerConfigs]);
 
   // 切换 provider 时清除测试结果
   useEffect(() => {
@@ -318,7 +310,7 @@ const AITab: React.FC = () => {
                   </Button>
                 </Space.Compact>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Key 保存在本地配置文件中，不会上传到服务器。
+                  Key 仅由主进程保存，渲染层读取到的是脱敏占位符。
                 </Text>
               </Form.Item>
             </Form>

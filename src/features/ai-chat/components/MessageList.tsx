@@ -19,6 +19,7 @@ interface MessageListProps {
   isLoadingHistory: boolean;
   isInitializing: boolean;
   isConfigured: boolean;
+  hasConversationContext: boolean;
   conversationId: string | null;
   items: ChatItem[];
   copiedBubbleKey: string | null;
@@ -29,6 +30,7 @@ interface MessageListProps {
 export const MessageList: React.FC<MessageListProps> = ({
   isLoadingHistory,
   isInitializing,
+  hasConversationContext,
   conversationId,
   items,
   copiedBubbleKey,
@@ -163,7 +165,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   }
 
   // 没有选中对话，显示空状态
-  if (!conversationId) {
+  if (!conversationId && !hasConversationContext) {
     return <EmptyState />;
   }
 

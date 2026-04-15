@@ -1,4 +1,4 @@
-import type { NoteReference } from '../../services/types';
+import type { AIConversationBinding, NoteReference } from '../../services/types';
 
 export type { NoteReference };
 
@@ -64,6 +64,7 @@ export interface StreamChunkData {
  * 流式错误
  */
 export interface StreamErrorPayload {
+  requestId?: string;
   error?: string;
 }
 
@@ -73,6 +74,8 @@ export interface StreamErrorPayload {
 export interface AIChatPanelProps {
   /** 对话 ID */
   conversationId: string | null;
+  /** 绑定型对话（如 note/global） */
+  conversationBinding?: AIConversationBinding | null;
   /** 对话标题 */
   title?: string;
   /** 标题变更回调 */
@@ -89,8 +92,10 @@ export interface AIChatPanelProps {
  * useAIChat Hook 返回值
  */
 export interface UseAIChatReturn {
+  activeConversationId: string | null;
   chatItems: ChatItem[];
   isLoading: boolean;
+  isResolvingConversation: boolean;
   isLoadingHistory: boolean; // 是否正在加载历史记录
   error: string | null;
   inputValue: string;

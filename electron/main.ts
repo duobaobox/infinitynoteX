@@ -14,10 +14,6 @@ import { initAutoUpdater } from './updater';
 import { readAppConfig, migrateFromLegacyConfigs } from './config';
 import log from './logger';
 
-// 启用 Chromium 内核的自动暗黑模式生成（针对不支持 dark mode 的网页）
-// 配合 nativeTheme.themeSource 使用
-app.commandLine.appendSwitch('enable-features', 'WebContentsForceDark');
-
 // ============ 导入窗口模块 ============
 import {
   createMainWindow,
@@ -30,6 +26,7 @@ import {
 } from './windows/mainWindow';
 import { toggleAIChatWindow, registerAIChatWindowHandlers } from './windows/aiChatWindow';
 import { registerFloatingWindowHandlers } from './windows/floatingWindow';
+import { registerWebviewSecurity } from './windows/webviewSecurity';
 
 // ============ 导入 IPC 模块 ============
 import {
@@ -42,6 +39,11 @@ import {
 } from './ipc';
 import { syncNativeTheme } from './nativeTheme';
 import { setupApplicationMenu } from './menu';
+
+// 启用 Chromium 内核的自动暗黑模式生成（针对不支持 dark mode 的网页）
+// 配合 nativeTheme.themeSource 使用
+app.commandLine.appendSwitch('enable-features', 'WebContentsForceDark');
+registerWebviewSecurity();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -40,6 +40,14 @@ export interface AIMessage {
   references?: NoteReference[];
 }
 
+export type AIConversationSource = 'note' | 'workbench' | 'canvas' | 'global';
+export type AIConversationBindingSource = 'note' | 'global';
+
+export interface AIConversationBinding {
+  source: AIConversationBindingSource;
+  entityId: string;
+}
+
 /**
  * AI 对话
  */
@@ -50,6 +58,18 @@ export interface AIConversation {
   messages: AIMessage[];
   createdAt: number;
   updatedAt: number;
+  source?: AIConversationSource;
+  sourceEntityId?: string;
+}
+
+export interface AIConversationPreview {
+  id: string;
+  title: string;
+  excerpt: string;
+  createdAt: number;
+  updatedAt: number;
+  source?: AIConversationSource;
+  sourceEntityId?: string;
 }
 
 /**
@@ -370,6 +390,12 @@ declare global {
       deleteNote(id: string): Promise<void>;
 
       // AI 对话操作
+      listAIConversationPreviews(): Promise<AIConversationPreview[]>;
+      getAIConversation(id: string): Promise<AIConversation>;
+      resolveAIConversationBinding(
+        binding: AIConversationBinding,
+        options?: { autoCreate?: boolean; title?: string },
+      ): Promise<AIConversation | null>;
       getAIConversations(): Promise<AIConversation[]>;
       createAIConversation(title?: string): Promise<AIConversation>;
       deleteAIConversation(id: string): Promise<void>;
@@ -381,8 +407,17 @@ declare global {
           timestamp: number;
           reasoning?: string;
           references?: NoteReference[];
+          ragSources?: Array<{
+            key: number;
+            title: string;
+            description?: string;
+            noteId?: string;
+          }>;
         }>,
-        options?: { source?: 'note' | 'workbench' | 'canvas' | 'global' },
+        options?: {
+          source?: 'note' | 'workbench' | 'canvas' | 'global';
+          sourceEntityId?: string;
+        },
       ): Promise<AIConversation>;
       updateAIConversationTitle(id: string, title: string): Promise<AIConversation>;
 

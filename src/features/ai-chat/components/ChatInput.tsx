@@ -152,16 +152,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     content: note.content,
                   }));
 
-                  // 构建便签上下文（作为隐藏上下文发送给 AI）
-                  let noteContext = '';
-                  if (selectedNotes.length > 0) {
-                    noteContext = '\n\n以下是用户引用的便签内容，请结合这些内容回答：\n\n';
-                    selectedNotes.forEach((note, i) => {
-                      noteContext += `[引用 ${i + 1}: ${note.title}]\n${note.content}\n\n`;
-                    });
-                  }
-
-                  onSend(value + noteContext, references.length > 0 ? references : undefined);
+                  // 仅发送用户可见输入，便签引用通过 references 单独传输
+                  onSend(value, references.length > 0 ? references : undefined);
                   senderRef.current?.clear?.();
                 }
               }}

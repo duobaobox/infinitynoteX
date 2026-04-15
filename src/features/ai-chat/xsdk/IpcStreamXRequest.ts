@@ -19,6 +19,7 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
   private _asyncHandler: Promise<void> | null = null;
   private _isRequesting = false;
   private _aborted = false;
+  private currentRequestId: string | null = null;
 
   private unsubscribeChunk: (() => void) | null = null;
   private unsubscribeDone: (() => void) | null = null;
@@ -70,13 +71,15 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
     this.cleanupListeners();
     this._isRequesting = false;
 
-    // Best-effort: ask main process to abort.
     try {
-      void window.ai?.abortStream?.();
+      if (this.currentRequestId) {
+        void window.ai?.abortStream?.(this.currentRequestId);
+      }
     } catch {
       // ignore
     }
 
+    this.currentRequestId = null;
     const error = createAbortError();
     this.options.callbacks?.onError(error);
   }
@@ -103,24 +106,34 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
     }
 
     const headers = new Headers();
+    const requestId =
+      params.requestId ??
+      globalThis.crypto?.randomUUID?.() ??
+      `req_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    this.currentRequestId = requestId;
 
-    this.unsubscribeChunk = window.ai.onStreamChunk((chunk) => {
+    this.unsubscribeChunk = window.ai.onStreamChunk((data) => {
+      if (data?.requestId !== requestId) return;
       if (!this._isRequesting || this._aborted) return;
-      this.chunks.push(chunk);
-      callbacks.onUpdate?.(chunk, headers);
+      this.chunks.push(data.chunk);
+      callbacks.onUpdate?.(data.chunk, headers);
     });
 
-    this.unsubscribeDone = window.ai.onStreamDone(() => {
+    this.unsubscribeDone = window.ai.onStreamDone((data) => {
+      if (data?.requestId !== requestId) return;
       if (!this._isRequesting || this._aborted) return;
       this.cleanupListeners();
       this._isRequesting = false;
+      this.currentRequestId = null;
       callbacks.onSuccess(this.chunks, headers);
     });
 
     this.unsubscribeError = window.ai.onStreamError((data) => {
+      if (data?.requestId !== requestId) return;
       if (!this._isRequesting || this._aborted) return;
       this.cleanupListeners();
       this._isRequesting = false;
+      this.currentRequestId = null;
       callbacks.onError(new Error(data?.error || 'Stream error'));
     });
 
@@ -128,7 +141,9 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
       const payload: ChatPayload = {
         message: params.message,
         messages: params.messages,
-        ragContext: params.ragContext, // 传递 RAG 上下文到主进程
+        references: params.references,
+        ragContext: params.ragContext,
+        requestId,
       };
       const result = await window.ai.chatStream(payload);
       if (!result?.success) {
@@ -138,6 +153,7 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
       if (!this._aborted) {
         this.cleanupListeners();
         this._isRequesting = false;
+        this.currentRequestId = null;
         callbacks.onError(err instanceof Error ? err : new Error(String(err)));
       }
     }

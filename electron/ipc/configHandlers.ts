@@ -14,6 +14,7 @@ import {
   type AppConfig,
   type DeepPartial,
 } from '../config';
+import { sanitizeAppConfigForRenderer } from '../ai';
 import { syncNativeTheme } from '../nativeTheme';
 
 // 配置保存防抖机制
@@ -47,7 +48,7 @@ function debouncedSaveConfig(partial: DeepPartial<AppConfig>): void {
 
       // 广播配置变化
       BrowserWindow.getAllWindows().forEach((w) => {
-        w.webContents.send(IPC_CHANNELS.appConfigChanged, newConfig);
+        w.webContents.send(IPC_CHANNELS.appConfigChanged, sanitizeAppConfigForRenderer(newConfig));
       });
 
       // 清空待保存的配置
@@ -107,7 +108,7 @@ export function registerConfigHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.appGetVersion, () => app.getVersion());
 
   ipcMain.handle(appChannel('getConfig'), () => {
-    return readAppConfig();
+    return sanitizeAppConfigForRenderer(readAppConfig());
   });
 
   ipcMain.handle(appChannel('setConfig'), (_, partial: DeepPartial<AppConfig>) => {
@@ -116,7 +117,9 @@ export function registerConfigHandlers(): void {
 
     // 立即返回当前配置（包含待保存的更新）
     const currentConfig = readAppConfig();
-    return deepMergePartial(currentConfig, { ...pendingConfigUpdates, ...partial });
+    return sanitizeAppConfigForRenderer(
+      deepMergePartial(currentConfig, { ...pendingConfigUpdates, ...partial }) as AppConfig,
+    );
   });
 
   ipcMain.handle(appChannel('getConfigPath'), () => {

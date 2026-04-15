@@ -8,7 +8,7 @@
  *
  * 【数据流】
  * 1. 从 workspaceStore 获取对话列表 (aiConversations)
- * 2. 用户点击对话卡片 → 设置 selectedToolItemId → 右侧编辑器加载对应对话
+ * 2. 用户点击对话卡片 → 设置结构化选中项 → 右侧编辑器加载对应对话
  * 3. 新建/删除对话 → 调用 store action → 刷新列表
  *
  * 【使用的共享组件】
@@ -16,14 +16,19 @@
  * - CardListContext: 用于传递选中状态
  */
 
-import React, { useEffect, useState } from 'react';
-import { Input, Badge, Button, message, Popconfirm, Empty, Tooltip } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Input, Badge, Button, message, Popconfirm, Empty, Tooltip, Segmented } from 'antd';
 import {
+  AppstoreOutlined,
   PlusOutlined,
   DeleteOutlined,
   SearchOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
+  GlobalOutlined,
+  MessageOutlined,
+  FileTextOutlined,
+  DeploymentUnitOutlined,
 } from '@ant-design/icons';
 import ConversationCard, {
   CardListContext,
@@ -31,6 +36,26 @@ import ConversationCard, {
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
 import { useThemeColor } from '../../../../hooks/useThemeColor';
+import {
+  AI_WORKBENCH_SOURCE_ORDER,
+  type AIWorkbenchConversationItem,
+  type AIWorkbenchConversationFilter,
+  buildAIWorkbenchItems,
+  getAIWorkbenchSourceLabel,
+  matchesAIWorkbenchQuery,
+  resolveAIWorkbenchSelection,
+} from '../../model/workbenchConversationItems';
+
+const FILTER_META: Record<
+  AIWorkbenchConversationFilter,
+  { label: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  all: { label: '全部会话', icon: AppstoreOutlined },
+  global: { label: '全局 AI', icon: GlobalOutlined },
+  workbench: { label: '工坊对话', icon: MessageOutlined },
+  note: { label: '便签对话', icon: FileTextOutlined },
+  canvas: { label: '画布 AI', icon: DeploymentUnitOutlined },
+};
 
 interface ConversationListViewProps {
   /** 列表容器的 flex 值，由父组件传入 */
@@ -42,24 +67,26 @@ interface ConversationListViewProps {
  */
 export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex }) => {
   // ============ Store 状态 ============
-  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
   const aiConversations = useWorkspaceStore((state) => state.aiConversations);
+  const selectedAIWorkbenchItem = useWorkspaceStore((state) => state.selectedAIWorkbenchItem);
   const refreshAIConversationsTrigger = useWorkspaceStore(
     (state) => state.refreshAIConversationsTrigger,
   );
   const createAIConversation = useWorkspaceStore((state) => state.createAIConversation);
   const deleteAIConversation = useWorkspaceStore((state) => state.deleteAIConversation);
   const loadAIConversations = useWorkspaceStore((state) => state.loadAIConversations);
-  const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
+  const setSelectedAIWorkbenchItem = useWorkspaceStore((state) => state.setSelectedAIWorkbenchItem);
   const resetEditorTab = useWorkspaceStore((state) => state.resetEditorTab);
 
   // ============ Hooks ============
   const themeColor = useThemeColor();
   const { scrollableRef, containerRef } = useScrollOverflow();
   const [searchQuery, setSearchQuery] = useState('');
+  const FILTER_STORAGE_KEY = 'ai_list_source_filter';
+  const [sourceFilter, setSourceFilter] = useState<AIWorkbenchConversationFilter>(() => {
+    return (localStorage.getItem(FILTER_STORAGE_KEY) as AIWorkbenchConversationFilter) || 'all';
+  });
 
-  // 排序状态：'asc' = 旧→新，'desc' = 新→旧
-  // 排序状态：'asc' = 旧→新，'desc' = 新→旧
   const STORAGE_KEY = 'ai_list_sort_order';
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
     return (localStorage.getItem(STORAGE_KEY) as 'asc' | 'desc') || 'asc';
@@ -71,6 +98,12 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
       localStorage.setItem(STORAGE_KEY, next);
       return next;
     });
+  };
+
+  const handleSourceFilterChange = (value: string | number) => {
+    const nextFilter = value as AIWorkbenchConversationFilter;
+    setSourceFilter(nextFilter);
+    localStorage.setItem(FILTER_STORAGE_KEY, nextFilter);
   };
 
   // ============ 副作用 ============
@@ -93,13 +126,22 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
       await createAIConversation();
       message.success('新建对话成功');
       // 创建后自动选中新对话（按 createdAt 最新的）
-      const conversations = await window.storage.getAIConversations();
+      const conversations = await window.storage.listAIConversationPreviews();
       if (conversations.length > 0) {
-        // 找到 createdAt 最新的对话
-        const newestConversation = conversations.reduce((newest, current) =>
-          (current.createdAt || 0) > (newest.createdAt || 0) ? current : newest,
-        );
-        setSelectedToolItem(newestConversation.id);
+        const newestWorkbenchConversation = [...conversations]
+          .filter((conversation) => !conversation.source || conversation.source === 'workbench')
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+
+        if (newestWorkbenchConversation) {
+          const selectedItem = resolveAIWorkbenchSelection(
+            newestWorkbenchConversation.id,
+            conversations,
+          );
+          if (selectedItem) {
+            setSelectedAIWorkbenchItem(selectedItem);
+          }
+          resetEditorTab();
+        }
       }
     } catch (error) {
       console.error('Failed to create AI conversation:', error);
@@ -107,10 +149,23 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
     }
   };
 
-  /** 删除对话 */
-  const handleDeleteAIConversation = async (id: string) => {
+  /** 删除对话或系统入口对应的历史 */
+  const handleDeleteAIConversation = async (item: AIWorkbenchConversationItem) => {
     try {
-      await deleteAIConversation(id);
+      if (item.source === 'global' && item.isSystemEntry) {
+        const globalConversationIds = aiConversations
+          .filter((conversation) => conversation.source === 'global')
+          .map((conversation) => conversation.id);
+
+        await Promise.all(globalConversationIds.map((id) => deleteAIConversation(id)));
+        return;
+      }
+
+      if (!item.conversationId) {
+        return;
+      }
+
+      await deleteAIConversation(item.conversationId);
     } catch (error) {
       console.error('Failed to delete AI conversation:', error);
       message.error('删除对话失败');
@@ -119,21 +174,42 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
 
   // ============ 派生数据 ============
 
-  // 根据来源和搜索关键词过滤对话列表
-  // 只显示 workbench 对话，排除 global 和 note
-  const filteredAiConversations = aiConversations.filter((item) => {
-    // 排除全局 AI 助手和便签关联对话
-    if (item.source === 'global' || item.source === 'note') {
-      return false;
-    }
-    // 兼容旧数据：未设置 source 或 source === 'workbench' 都显示
-    return item.title.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  // 排序：按 createdAt 排序
-  const sortedConversations = [...filteredAiConversations].sort((a, b) =>
-    sortOrder === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt,
+  const workbenchItems = useMemo(
+    () => buildAIWorkbenchItems(aiConversations, sortOrder),
+    [aiConversations, sortOrder],
   );
+
+  const visibleItems = useMemo(
+    () =>
+      workbenchItems.filter((item) => {
+        if (sourceFilter !== 'all' && item.source !== sourceFilter) {
+          return false;
+        }
+
+        return matchesAIWorkbenchQuery(item, searchQuery);
+      }),
+    [searchQuery, sourceFilter, workbenchItems],
+  );
+
+  const sourceSections = useMemo(
+    () =>
+      AI_WORKBENCH_SOURCE_ORDER.map((source) => ({
+        source,
+        label: getAIWorkbenchSourceLabel(source),
+        items: visibleItems.filter((item) => item.source === source),
+      })).filter((section) => section.items.length > 0),
+    [visibleItems],
+  );
+
+  const sourceCounts = useMemo(() => {
+    return AI_WORKBENCH_SOURCE_ORDER.reduce<Record<string, number>>(
+      (acc, source) => {
+        acc[source] = workbenchItems.filter((item) => item.source === source).length;
+        return acc;
+      },
+      { all: workbenchItems.length },
+    );
+  }, [workbenchItems]);
 
   // ============ 主渲染 ============
 
@@ -149,14 +225,10 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
           }}
         >
           <span className="folder-name" title="AI对话">
-            AI对话
+            AI会话
           </span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Badge
-              count={filteredAiConversations.length}
-              showZero
-              style={{ backgroundColor: themeColor }}
-            />
+            <Badge count={visibleItems.length} showZero style={{ backgroundColor: themeColor }} />
             <Tooltip title={sortOrder === 'asc' ? '当前：旧→新' : '当前：新→旧'}>
               <Button
                 type="text"
@@ -183,51 +255,94 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
           prefix={<SearchOutlined style={{ color: '#bfbfbf', fontSize: 16 }} />}
           style={{ width: '100%' }}
         />
+        <Segmented
+          block
+          size="small"
+          className="ai-workbench-icon-segmented"
+          value={sourceFilter}
+          onChange={handleSourceFilterChange}
+          options={(['all', ...AI_WORKBENCH_SOURCE_ORDER] as AIWorkbenchConversationFilter[]).map(
+            (key) => {
+              const { label, icon: Icon } = FILTER_META[key];
+
+              return {
+                value: key,
+                label: (
+                  <Tooltip title={`${label} · ${sourceCounts[key] ?? 0}`}>
+                    <span className="ai-workbench-segmented-icon" aria-label={label}>
+                      <Icon />
+                    </span>
+                  </Tooltip>
+                ),
+              };
+            },
+          )}
+        />
       </div>
 
       {/* 列表区域 */}
       <div className="flex-vertical-equal" ref={containerRef}>
-        <CardListContext.Provider value={{ selectedId: selectedToolItemId ?? undefined }}>
-          <div className="scrollable-list" ref={scrollableRef}>
-            {sortedConversations.length === 0 ? (
+        <CardListContext.Provider value={{ selectedId: selectedAIWorkbenchItem?.id ?? undefined }}>
+          <div className="scrollable-list ai-workbench-list" ref={scrollableRef}>
+            {sourceSections.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={searchQuery ? '没有找到匹配的对话' : '点击 + 开始新对话'}
+                description={
+                  searchQuery
+                    ? '没有找到匹配的会话入口'
+                    : sourceFilter === 'canvas'
+                      ? '画布 AI 当前只保留统一入口，没有独立历史列表'
+                      : '点击 + 开始新对话'
+                }
                 style={{ marginTop: 40 }}
               />
             ) : (
-              sortedConversations.map((session) => (
-                <ConversationCard
-                  key={session.id}
-                  title={session.title}
-                  content={session.excerpt}
-                  source={session.source}
-                  onClick={() => {
-                    setSelectedToolItem(session.id);
-                    resetEditorTab(); // 切换对话时重置 Tab 到默认
-                  }}
-                  actions={
-                    <Popconfirm
-                      title="删除对话"
-                      description={`确定删除"${session.title}"吗？`}
-                      onConfirm={(e) => {
-                        e?.stopPropagation();
-                        handleDeleteAIConversation(session.id);
+              sourceSections.map((section) => (
+                <React.Fragment key={section.source}>
+                  <div className="ai-workbench-section-label">
+                    <span>{section.label}</span>
+                    <span>{section.items.length}</span>
+                  </div>
+                  {section.items.map((session) => (
+                    <ConversationCard
+                      key={session.id}
+                      title={session.title}
+                      content={session.excerpt}
+                      source={session.source}
+                      onClick={() => {
+                        setSelectedAIWorkbenchItem(session);
+                        resetEditorTab();
                       }}
-                      okText="删除"
-                      cancelText="取消"
-                      placement="right"
-                    >
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </Popconfirm>
-                  }
-                  id={session.id}
-                />
+                      actions={
+                        session.deletable && session.conversationId ? (
+                          <Popconfirm
+                            title={session.source === 'global' ? '清空全局对话历史' : '删除对话'}
+                            description={
+                              session.source === 'global'
+                                ? '删除后会保留全局入口，下次发消息会自动重新创建会话。'
+                                : `确定删除“${session.title}”吗？`
+                            }
+                            onConfirm={(e) => {
+                              e?.stopPropagation();
+                              handleDeleteAIConversation(session);
+                            }}
+                            okText="删除"
+                            cancelText="取消"
+                            placement="right"
+                          >
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<DeleteOutlined />}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </Popconfirm>
+                        ) : null
+                      }
+                      id={session.id}
+                    />
+                  ))}
+                </React.Fragment>
               ))
             )}
           </div>

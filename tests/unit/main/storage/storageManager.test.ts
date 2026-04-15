@@ -107,4 +107,77 @@ describe('StorageManager', () => {
     await expect(ensureDir(path.join(storageRoot, 'trash'))).resolves.toBe(true);
     await expect(fs.readFile(path.join(storageRoot, 'meta.json'), 'utf-8')).resolves.toBeTruthy();
   });
+
+  it('resolves a global AI conversation by binding instead of fixed conversation id', async () => {
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const created = await manager.ai.resolveBinding('global', 'default', { autoCreate: true });
+    const resolved = await manager.ai.resolveBinding('global', 'default', { autoCreate: false });
+
+    expect(created).not.toBeNull();
+    expect(created?.source).toBe('global');
+    expect(created?.sourceEntityId).toBe('default');
+    expect(resolved?.id).toBe(created?.id);
+  });
+
+  it('rebinds note conversations to a restored note id and supports cleanup by source entity', async () => {
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const conversation = await manager.ai.createConversation('旧便签对话', {
+      source: 'note',
+      sourceEntityId: 'note-old',
+    });
+
+    const reboundCount = await manager.ai.rebindSourceEntity('note', 'note-old', 'note-new');
+    const reboundConversation = await manager.ai.resolveBinding('note', 'note-new', {
+      autoCreate: false,
+    });
+    const deletedCount = await manager.ai.deleteBySourceEntity('note', 'note-new');
+    const deletedConversation = await manager.ai.resolveBinding('note', 'note-new', {
+      autoCreate: false,
+    });
+
+    expect(reboundCount).toBe(1);
+    expect(reboundConversation?.id).toBe(conversation.id);
+    expect(reboundConversation?.sourceEntityId).toBe('note-new');
+    expect(deletedCount).toBe(1);
+    expect(deletedConversation).toBeNull();
+  });
+
+  it('moves note conversations through delete and restore lifecycle', async () => {
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const note = await manager.notes.createNote('default', {
+      title: '生命周期便签',
+      content: { type: 'doc', content: [] },
+    });
+    const conversation = await manager.ai.createConversation('便签对话', {
+      source: 'note',
+      sourceEntityId: note.id,
+    });
+
+    await manager.noteLifecycle.deleteNote(note.id);
+
+    const trashItems = await manager.trash.list();
+    const deletedConversation = await manager.ai.resolveBinding('note', note.id, {
+      autoCreate: false,
+    });
+    const restoredNote = await manager.noteLifecycle.restoreNote(trashItems[0].id);
+    const restoredConversation = await manager.ai.resolveBinding('note', restoredNote.id, {
+      autoCreate: false,
+    });
+
+    await expect(manager.notes.get(note.id)).rejects.toThrow();
+    expect(trashItems).toHaveLength(1);
+    expect(deletedConversation?.id).toBe(conversation.id);
+    expect(restoredNote.id).not.toBe(note.id);
+    expect(restoredConversation?.id).toBe(conversation.id);
+    expect(restoredConversation?.sourceEntityId).toBe(restoredNote.id);
+  });
 });

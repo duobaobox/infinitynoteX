@@ -19,6 +19,11 @@ import { getFeaturesByWorkspaceView } from './config/featureRegistry';
 import { IPC_CHANNELS } from './shared/types/ipc';
 import type { NavigateNotePayload } from './shared/types/ipc';
 import { onRendererIpc } from './shared/utils/ipcEvents';
+import {
+  buildAIWorkbenchItems,
+  getDefaultAIWorkbenchSelectionId,
+  resolveAIWorkbenchSelection,
+} from './features/ai-workbench/model/workbenchConversationItems';
 
 // 确保 Feature 模块被加载并完成注册（单点初始化）
 import './features/registerAllFeatures';
@@ -42,7 +47,8 @@ function App() {
   const showEditor = useWorkspaceStore((state) => state.showEditor);
   const showSidebar = useWorkspaceStore((state) => state.showSidebar);
   const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
-  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
+  const aiConversations = useWorkspaceStore((state) => state.aiConversations);
+  const selectedAIWorkbenchItem = useWorkspaceStore((state) => state.selectedAIWorkbenchItem);
   const workspaceView = useWorkspaceStore((state) => state.workspaceView);
   const isFirstLaunch = useWorkspaceStore((state) => state.isFirstLaunch);
   const loadFolders = useWorkspaceStore((state) => state.loadFolders);
@@ -50,7 +56,7 @@ function App() {
   const toggleSidebar = useWorkspaceStore((state) => state.toggleSidebar);
   const toggleEditor = useWorkspaceStore((state) => state.toggleEditor);
   const setSelectedTool = useWorkspaceStore((state) => state.setSelectedTool);
-  const setSelectedToolItem = useWorkspaceStore((state) => state.setSelectedToolItem);
+  const setSelectedAIWorkbenchItem = useWorkspaceStore((state) => state.setSelectedAIWorkbenchItem);
   const setIsFirstLaunch = useWorkspaceStore((state) => state.setIsFirstLaunch);
   const triggerListRefresh = useWorkspaceStore((state) => state.triggerListRefresh);
   const setWorkspaceView = useWorkspaceStore((state) => state.setWorkspaceView);
@@ -133,24 +139,35 @@ function App() {
 
   // 切换到 AI 对话视图时，确保选中一个对话（如果有）
   useEffect(() => {
-    if (workspaceView === 'tool' && selectedToolId === 'ai-chat' && !selectedToolItemId) {
-      const selectDefaultConversation = async () => {
-        try {
-          const conversations = await window.storage.getAIConversations();
-          if (conversations.length > 0 && !selectedToolItemId) {
-            // 选中第一个对话（默认对话）
-            setSelectedToolItem(conversations[0].id);
-          }
-        } catch (error) {
-          console.error('Failed to select default conversation:', error);
+    if (workspaceView === 'tool' && selectedToolId === 'ai-chat') {
+      const availableItems = buildAIWorkbenchItems(aiConversations);
+
+      if (!selectedAIWorkbenchItem) {
+        const defaultSelection =
+          resolveAIWorkbenchSelection(getDefaultAIWorkbenchSelectionId(), aiConversations) ??
+          availableItems[0] ??
+          null;
+        if (defaultSelection) {
+          setSelectedAIWorkbenchItem(defaultSelection);
         }
-      };
-      selectDefaultConversation();
-    } else if (workspaceView !== 'tool' && selectedToolItemId) {
+      } else if (!availableItems.some((item) => item.id === selectedAIWorkbenchItem.id)) {
+        const fallbackSelection =
+          resolveAIWorkbenchSelection(getDefaultAIWorkbenchSelectionId(), aiConversations) ??
+          availableItems[0] ??
+          null;
+        setSelectedAIWorkbenchItem(fallbackSelection);
+      }
+    } else if (workspaceView !== 'tool' && selectedAIWorkbenchItem) {
       // 切换回便签视图时清空选中的工具项
-      setSelectedToolItem(null);
+      setSelectedAIWorkbenchItem(null);
     }
-  }, [workspaceView, selectedToolId, selectedToolItemId, setSelectedToolItem]);
+  }, [
+    aiConversations,
+    selectedAIWorkbenchItem,
+    selectedToolId,
+    setSelectedAIWorkbenchItem,
+    workspaceView,
+  ]);
 
   // 如果是悬浮窗口模式，提取 noteId 并渲染悬浮窗口组件
   if (windowType === 'floating') {

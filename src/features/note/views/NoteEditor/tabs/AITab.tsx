@@ -47,7 +47,8 @@ export const AITab: React.FC<AITabProps> = ({ noteId }) => {
 
   return (
     <AIChatPanel
-      conversationId={noteId}
+      conversationId={null}
+      conversationBinding={{ source: 'note', entityId: noteId }}
       onTitleChange={handleTitleChange}
       showTitleEditor={false}
       className="ai-tab-panel"

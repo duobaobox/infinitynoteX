@@ -8,7 +8,7 @@
  * 【数据流】
  * 1. 从 workspaceStore 获取当前选中的工具ID和对话ID
  * 2. 根据 activeTab 状态渲染对应的 Tab 组件
- * 3. Tab 切换通过 Ant Design Segmented 组件实现
+ * 3. Tab 切换通过图标版 Segmented 实现，保持与原模板一致的交互结构
  *
  * 【如何添加新 Tab】
  * 1. 在 tabs/ 目录创建新组件 (如 MyTab.tsx)
@@ -16,8 +16,8 @@
  * 3. 在 renderTabContent() 的 switch 中添加 case
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { Segmented } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Segmented, Tooltip } from 'antd';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { AITab, KitTab, SettingsTab, TAB_CONFIG, type TabKeyType } from './tabs';
 
@@ -27,7 +27,7 @@ import { AITab, KitTab, SettingsTab, TAB_CONFIG, type TabKeyType } from './tabs'
 export const ChatEditor: React.FC = () => {
   // ============ Store 状态 ============
   const selectedToolId = useWorkspaceStore((state) => state.selectedToolId);
-  const selectedToolItemId = useWorkspaceStore((state) => state.selectedToolItemId);
+  const selectedAIWorkbenchItem = useWorkspaceStore((state) => state.selectedAIWorkbenchItem);
   const resetEditorTabTrigger = useWorkspaceStore((state) => state.resetEditorTabTrigger);
 
   // ============ 本地状态 ============
@@ -47,23 +47,6 @@ export const ChatEditor: React.FC = () => {
     setActiveTab('ai');
   }, [resetEditorTabTrigger]);
 
-  // ============ 派生数据 ============
-
-  // 根据 TAB_CONFIG 生成 Segmented 选项
-  const segmentOptions = useMemo(
-    () =>
-      TAB_CONFIG.map(({ key, icon: Icon, label }) => ({
-        label: (
-          <span>
-            <Icon style={{ marginRight: 4 }} />
-            {label}
-          </span>
-        ),
-        value: key,
-      })),
-    [],
-  );
-
   // ============ 渲染函数 ============
 
   /**
@@ -72,7 +55,7 @@ export const ChatEditor: React.FC = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'ai':
-        return <AITab conversationId={selectedToolItemId} />;
+        return <AITab selectedItem={selectedAIWorkbenchItem} />;
       case 'settings':
         return <SettingsTab />;
       case 'kit':
@@ -90,9 +73,19 @@ export const ChatEditor: React.FC = () => {
         {/* Tab 切换栏 */}
         <div style={{ display: 'inline-block' }}>
           <Segmented
-            options={segmentOptions}
+            className="ai-workbench-editor-segmented"
             value={activeTab}
             onChange={(value) => setActiveTab(value as TabKeyType)}
+            options={TAB_CONFIG.map(({ key, icon: Icon, label }) => ({
+              value: key,
+              label: (
+                <Tooltip title={label}>
+                  <span className="ai-workbench-segmented-icon" aria-label={label}>
+                    <Icon />
+                  </span>
+                </Tooltip>
+              ),
+            }))}
           />
         </div>
 

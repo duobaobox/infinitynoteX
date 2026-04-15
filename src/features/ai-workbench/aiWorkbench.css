@@ -1,0 +1,39 @@
+.ai-workbench-icon-segmented {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.ai-workbench-icon-segmented .ant-segmented-group {
+  width: 100%;
+}
+
+.ai-workbench-icon-segmented .ant-segmented-item {
+  flex: 1 1 0;
+}
+
+.ai-workbench-icon-segmented .ant-segmented-item-label,
+.ai-workbench-editor-segmented .ant-segmented-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-workbench-segmented-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.ai-workbench-list .conversation-card {
+  margin-bottom: 0;
+}
+
+.ai-workbench-section-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 4px 0;
+  color: var(--ant-color-text-description);
+  font-size: 12px;
+}

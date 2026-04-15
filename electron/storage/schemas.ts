@@ -144,6 +144,8 @@ export const AIConversationSchema = z.object({
   updatedAt: z.number(),
   /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局悬浮窗 */
   source: z.enum(['note', 'workbench', 'canvas', 'global']).optional(),
+  /** 绑定实体 ID（如 noteId、global 默认上下文 ID） */
+  sourceEntityId: z.string().optional(),
 });
 
 export const AIConversationIndexSchema = z.object({
@@ -154,6 +156,8 @@ export const AIConversationIndexSchema = z.object({
   updatedAt: z.number(),
   /** 对话来源：note=便签, workbench=AI工坊, canvas=画布, global=全局悬浮窗 */
   source: z.enum(['note', 'workbench', 'canvas', 'global']).optional(),
+  /** 绑定实体 ID（如 noteId、global 默认上下文 ID） */
+  sourceEntityId: z.string().optional(),
 });
 
 export const AIConversationsIndexArraySchema = z.array(AIConversationIndexSchema);

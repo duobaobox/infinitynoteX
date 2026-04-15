@@ -35,6 +35,20 @@
   color: #fa8c16;
 }
 
+/* ==================== 全局来源 - 绿色样式 ==================== */
+.robot-icon--global .robot-icon__box {
+  background: linear-gradient(135deg, #f6ffed 30%, #b7eb8f 100%);
+  border-color: rgba(82, 196, 26, 0.28);
+  color: #389e0d;
+}
+
+/* ==================== 画布来源 - 青色样式 ==================== */
+.robot-icon--canvas .robot-icon__box {
+  background: linear-gradient(135deg, #e6fffb 30%, #87e8de 100%);
+  border-color: rgba(19, 194, 194, 0.28);
+  color: #08979c;
+}
+
 /* ==================== 暗色模式 ==================== */
 [data-theme='dark'] .robot-icon__box {
   border-color: rgba(255, 255, 255, 0.15);
@@ -46,4 +60,16 @@
   background: linear-gradient(135deg, #2b1d11 30%, #3d2817 100%);
   border-color: rgba(250, 173, 20, 0.25);
   color: #d89614;
+}
+
+[data-theme='dark'] .robot-icon--global .robot-icon__box {
+  background: linear-gradient(135deg, #162312 30%, #1f3a14 100%);
+  border-color: rgba(82, 196, 26, 0.22);
+  color: #73d13d;
+}
+
+[data-theme='dark'] .robot-icon--canvas .robot-icon__box {
+  background: linear-gradient(135deg, #112123 30%, #15313a 100%);
+  border-color: rgba(19, 194, 194, 0.22);
+  color: #5cdbd3;
 }

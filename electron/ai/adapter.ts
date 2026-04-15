@@ -11,6 +11,7 @@ import type {
   StreamChunk,
   ConnectionTestResult,
 } from '../../src/services/aiConfig';
+import type { NoteReference } from '../../src/services/types';
 
 export class OpenAICompatibleAdapter {
   private config: AIConfig;
@@ -54,6 +55,59 @@ export class OpenAICompatibleAdapter {
 - 不要编造参考资料中不存在的信息
 
 ${formattedResults}`;
+  }
+
+  private buildReferenceContextPrompt(references: NoteReference[]): string {
+    const formattedReferences = references
+      .map((reference, index) => `### [引用 ${index + 1}] ${reference.title}\n${reference.content}`)
+      .join('\n\n---\n\n');
+
+    return `## 用户主动引用的便签内容
+
+以下内容由用户显式引用，请把它们当作额外上下文使用。
+- 优先结合这些便签内容回答
+- 如果便签内容与历史消息冲突，明确说明冲突点
+- 不要把这些上下文误写成用户当前输入的一部分
+
+${formattedReferences}`;
+  }
+
+  private toApiMessage(message: ChatMessage): ChatMessage[] {
+    if (message.role !== 'user' || !message.references || message.references.length === 0) {
+      return [{ role: message.role, content: message.content }];
+    }
+
+    return [
+      {
+        role: 'system',
+        content: this.buildReferenceContextPrompt(message.references),
+      },
+      {
+        role: 'user',
+        content: message.content,
+      },
+    ];
+  }
+
+  private buildRequestMessages(payload: ChatPayload): ChatMessage[] {
+    return [
+      ...(this.config.systemPrompt
+        ? [{ role: 'system' as const, content: this.config.systemPrompt }]
+        : []),
+      ...(payload.ragContext && payload.ragContext.results.length > 0
+        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
+        : []),
+      ...payload.messages.flatMap((message) => this.toApiMessage(message)),
+      ...(payload.references && payload.references.length > 0
+        ? [
+            {
+              role: 'system' as const,
+              content: this.buildReferenceContextPrompt(payload.references),
+            },
+          ]
+        : []),
+      { role: 'user' as const, content: payload.message },
+    ];
   }
 
   /**
@@ -104,20 +158,7 @@ ${formattedResults}`;
    * 发送聊天请求（非流式）
    */
   async chat(payload: ChatPayload): Promise<ChatResponse> {
-    const messages: ChatMessage[] = [
-      // 1. 用户配置的系统提示词
-      ...(this.config.systemPrompt
-        ? [{ role: 'system' as const, content: this.config.systemPrompt }]
-        : []),
-      // 2. RAG 上下文作为独立系统消息（如果有）
-      ...(payload.ragContext && payload.ragContext.results.length > 0
-        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
-        : []),
-      // 3. 历史消息
-      ...payload.messages,
-      // 4. 当前用户消息
-      { role: 'user' as const, content: payload.message },
-    ];
+    const messages = this.buildRequestMessages(payload);
 
     try {
       const url = this.buildAPIURL('chat/completions');
@@ -174,20 +215,7 @@ ${formattedResults}`;
       signal?: AbortSignal;
     },
   ): AsyncGenerator<StreamChunk, void> {
-    const messages: ChatMessage[] = [
-      // 1. 用户配置的系统提示词
-      ...(this.config.systemPrompt
-        ? [{ role: 'system' as const, content: this.config.systemPrompt }]
-        : []),
-      // 2. RAG 上下文作为独立系统消息（如果有）
-      ...(payload.ragContext && payload.ragContext.results.length > 0
-        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
-        : []),
-      // 3. 历史消息
-      ...payload.messages,
-      // 4. 当前用户消息（不再拼接 RAG 上下文）
-      { role: 'user' as const, content: payload.message },
-    ];
+    const messages = this.buildRequestMessages(payload);
 
     try {
       const url = this.buildAPIURL('chat/completions');

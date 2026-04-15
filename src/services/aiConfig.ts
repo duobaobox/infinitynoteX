@@ -1,4 +1,5 @@
 import type { AIProviderConfig } from '../shared/types/config';
+import type { NoteReference } from './types';
 
 /**
  * AI 配置（用户在"AI 管理"中配置）
@@ -9,8 +10,8 @@ export interface AIConfig extends Omit<AIProviderConfig, 'apiKey'> {
   providerId?: string; // e.g., 'deepseek', 'alibaba'
 
   /**
-   * API Key（由主进程持有，渲染进程绝不访问）
-   * 前端使用 undefined 表示未设置或未修改，后端配置中必须是 string
+   * API Key（仅主进程持有明文）
+   * 渲染进程拿到的只会是占位符或用户新输入的值
    */
   apiKey?: string;
 
@@ -31,6 +32,7 @@ export const API_KEY_PLACEHOLDER = '********';
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  references?: NoteReference[];
 }
 
 /**
@@ -40,6 +42,8 @@ export interface ChatPayload {
   messages: ChatMessage[];
   message: string; // 当前用户消息
   stream?: boolean;
+  references?: NoteReference[];
+  requestId?: string;
   /** RAG 检索上下文（可选） */
   ragContext?: {
     results: Array<{

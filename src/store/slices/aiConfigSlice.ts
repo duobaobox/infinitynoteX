@@ -15,6 +15,7 @@ import {
   emitAIConfigChanged,
   readStoredProviderConfigs,
   initializeAIConfigCache,
+  updateProviderConfigsCache,
 } from '../../services/aiConfigStore';
 
 // ============ 辅助类型和函数 ============
@@ -170,6 +171,7 @@ export const createAIConfigSlice: StateCreator<AIConfigSlice, [], [], AIConfigSl
         aiConfig: normalizedStored[resolvedProviderId],
         aiTestResult: null,
       });
+      updateProviderConfigsCache(normalizedStored);
       activeConfigRef = active;
     } catch (error) {
       console.error('Failed to load AI config:', error);
@@ -212,6 +214,10 @@ export const createAIConfigSlice: StateCreator<AIConfigSlice, [], [], AIConfigSl
       await window.ai.setConfig(config);
       activeConfigRef = config;
       set({ activeProviderId: config.providerId ?? CUSTOM_PROVIDER_ID });
+      updateProviderConfigsCache({
+        ...get().providerConfigs,
+        [config.providerId ?? CUSTOM_PROVIDER_ID]: config,
+      });
       emitAIConfigChanged(config);
 
       if (options?.skipTest) {
@@ -224,6 +230,10 @@ export const createAIConfigSlice: StateCreator<AIConfigSlice, [], [], AIConfigSl
         await window.ai.setConfig(previous);
         activeConfigRef = previous;
         set({ activeProviderId: previous.providerId ?? CUSTOM_PROVIDER_ID });
+        updateProviderConfigsCache({
+          ...get().providerConfigs,
+          [previous.providerId ?? CUSTOM_PROVIDER_ID]: previous,
+        });
         emitAIConfigChanged(previous);
       }
       return result;
@@ -232,6 +242,10 @@ export const createAIConfigSlice: StateCreator<AIConfigSlice, [], [], AIConfigSl
         await window.ai.setConfig(previous);
         activeConfigRef = previous;
         set({ activeProviderId: previous.providerId ?? CUSTOM_PROVIDER_ID });
+        updateProviderConfigsCache({
+          ...get().providerConfigs,
+          [previous.providerId ?? CUSTOM_PROVIDER_ID]: previous,
+        });
         emitAIConfigChanged(previous);
       }
       return { ok: false, message: getErrMsg(error) };

@@ -25,7 +25,7 @@ export type XChatMessage = {
  * We keep it compatible with the main-process `ChatPayload` while attaching UI-only metadata.
  */
 export type IpcStreamInput = ChatPayload & {
-  /** The user-visible text (may include note context that UI later strips). */
+  /** The user-visible text shown in the chat bubble. */
   text: string;
   /** Optional note references to show as FileCard for the user message. */
   references?: NoteReference[];

@@ -1,7 +1,21 @@
 import React from 'react';
 import { ThoughtChain } from '@ant-design/x';
 import { Button, Space, Typography } from 'antd';
-import { CheckOutlined, CloseOutlined, EditOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined,
+  BulbOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  CodeOutlined,
+  ConsoleSqlOutlined,
+  EditOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  RobotOutlined,
+  SafetyCertificateOutlined,
+  SearchOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
 import type { ThoughtChainItemType } from '@ant-design/x';
 
 import type { ChatItem } from '../types';
@@ -15,6 +29,74 @@ const MarkdownRenderer = React.lazy(() =>
 );
 
 const { Text } = Typography;
+
+function translateToolTitle(title: string): string {
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('run_command') || lowerTitle.includes('bash')) return '执行终端系统命令';
+  if (lowerTitle.includes('view_file') || lowerTitle.includes('read_file'))
+    return '查看本地文件内容';
+  if (lowerTitle.includes('replace_file_content')) return '局部重构并修改文件';
+  if (lowerTitle.includes('grep_search') || lowerTitle.includes('search_code'))
+    return '在当前工作区全文搜索';
+  if (lowerTitle.includes('read_url_content')) return '抓取目标网页分析';
+  if (lowerTitle.includes('search_web')) return '检索外部网页资料';
+  if (lowerTitle.includes('browser_subagent')) return '唤起浏览器智能体';
+  if (lowerTitle.includes('generate_image')) return '生成图像内容';
+  if (lowerTitle.includes('list_dir')) return '浏览目录内容';
+  if (lowerTitle.includes('write_to_file')) return '创建或覆盖文件';
+  if (lowerTitle.includes('ask_question')) return '向用户提问';
+  return title;
+}
+
+function formatDuration(startedAt?: number, endedAt?: number): string | null {
+  if (!startedAt || !endedAt) return null;
+  const seconds = (endedAt - startedAt) / 1000;
+  return `(${seconds.toFixed(1)}s)`;
+}
+
+function getStepIcon(
+  title: string = '',
+  fallback: React.ReactNode = <EditOutlined />,
+): React.ReactNode {
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes('web') || lowerTitle.includes('search') || lowerTitle.includes('搜索')) {
+    return <SearchOutlined />;
+  }
+  if (
+    lowerTitle.includes('bash') ||
+    lowerTitle.includes('command') ||
+    lowerTitle.includes('terminal') ||
+    lowerTitle.includes('终端')
+  ) {
+    return <ConsoleSqlOutlined />;
+  }
+  if (
+    lowerTitle.includes('file') ||
+    lowerTitle.includes('read') ||
+    lowerTitle.includes('write') ||
+    lowerTitle.includes('文件')
+  ) {
+    return <FileTextOutlined />;
+  }
+  if (lowerTitle.includes('think') || lowerTitle.includes('plan') || lowerTitle.includes('思考')) {
+    return <BulbOutlined />;
+  }
+  if (lowerTitle.includes('code') || lowerTitle.includes('script') || lowerTitle.includes('代码')) {
+    return <CodeOutlined />;
+  }
+  if (lowerTitle.includes('api') || lowerTitle.includes('request') || lowerTitle.includes('请求')) {
+    return <ApiOutlined />;
+  }
+  if (
+    lowerTitle.includes('tool') ||
+    lowerTitle.includes('skill') ||
+    lowerTitle.includes('技能') ||
+    lowerTitle.includes('工具')
+  ) {
+    return <ToolOutlined />;
+  }
+  return fallback;
+}
 
 function getRunStepStatusMeta(status: AIStepStatus): {
   status: 'loading' | 'success' | 'error' | 'abort';
@@ -77,10 +159,14 @@ function buildThoughtChainItems(args: {
       ?.map((artifact) => artifact.summary || artifact.title)
       .filter((artifact): artifact is string => Boolean(artifact));
 
+    const translatedTitle = translateToolTitle(step.title);
+    const duration = formatDuration(step.startedAt, step.endedAt);
+    const displayTitle = duration ? `${translatedTitle} ${duration}` : translatedTitle;
+
     chainItems.push({
       key: `run_${item.runTrace?.runId}_${step.stepId}`,
-      icon: <EditOutlined />,
-      title: step.title,
+      icon: getStepIcon(step.title),
+      title: displayTitle,
       description: step.detail,
       status: meta.status,
       blink: meta.blink,
@@ -108,7 +194,7 @@ function buildThoughtChainItems(args: {
 
     chainItems.push({
       key: draft.toolCallId,
-      icon: <EditOutlined />,
+      icon: getStepIcon(draftDisplay.title, <ToolOutlined />),
       title: draftDisplay.title,
       description: draftDisplay.description,
       status: 'loading',
@@ -126,7 +212,7 @@ function buildThoughtChainItems(args: {
 
     chainItems.push({
       key: approval.toolCallId || approval.approvalId,
-      icon: <EditOutlined />,
+      icon: <SafetyCertificateOutlined />,
       title: approval.title,
       description: `${approval.description}${approval.targetLabel ? ` · 目标：${approval.targetLabel}` : ''}`,
       status: meta.status,
@@ -209,13 +295,37 @@ export const ToolThoughtChain: React.FC<ToolThoughtChainProps> = ({
     return null;
   }
 
+  const isError = items.some((i) => i.status === 'error' || i.status === 'abort');
+  const globalStatus = item.isStreaming ? 'loading' : isError ? 'error' : 'success';
+  const rootTitle = item.isStreaming
+    ? '正在执行深度思考与操作...'
+    : isError
+      ? '执行遭遇意外，流程已中断'
+      : '已完成工具调度操作';
+
+  const rootItems: ThoughtChainItemType[] = [
+    {
+      key: 'main_trace',
+      icon: <RobotOutlined />,
+      title: rootTitle,
+      status: globalStatus,
+      collapsible: true,
+      content: (
+        <ThoughtChain
+          items={items}
+          defaultExpandedKeys={items
+            .filter((chainItem) => chainItem.status === 'loading' || chainItem.status === 'error')
+            .map((chainItem) => String(chainItem.key))}
+        />
+      ),
+    },
+  ];
+
   return (
     <div style={{ marginBottom: withBottomSpacing ? 12 : 0 }}>
       <ThoughtChain
-        items={items}
-        defaultExpandedKeys={items
-          .filter((chainItem) => chainItem.status === 'loading')
-          .map((chainItem) => String(chainItem.key))}
+        items={rootItems}
+        defaultExpandedKeys={item.isStreaming || isError ? ['main_trace'] : []}
       />
     </div>
   );

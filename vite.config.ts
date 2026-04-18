@@ -82,6 +82,7 @@ function manualChunks(id: string): string | undefined {
 export default defineConfig({
   server: {
     port: 1997,
+    strictPort: true,
   },
   resolve: {
     // 确保使用正确的 React 导出

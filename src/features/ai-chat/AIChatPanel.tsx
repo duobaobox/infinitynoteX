@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { message, Segmented, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -13,7 +13,9 @@ import {
 } from './utils';
 import { loadFolderNoteGroups } from '../../shared/utils/noteLoader';
 import { EXTERNAL_AI_WEBVIEW_PARTITION } from '../../shared/utils/webviewSafety';
+import { getProviderCapabilities } from '../../services/aiProviders';
 import type { ChatItem, AIChatPanelProps, NoteReference } from './types';
+import { resolveAIRetrievalPolicy } from './retrievalPolicy';
 import './styles/AIChat.css';
 
 // 引入子组件
@@ -137,6 +139,15 @@ export const AIChatPanel = ({
     }
   }, [knowledgeBaseEnabled]);
 
+  const retrievalPolicy = useMemo(
+    () =>
+      resolveAIRetrievalPolicy({
+        useKnowledgeBase,
+        supportsToolCalling: getProviderCapabilities(config).toolCalling,
+      }),
+    [config, useKnowledgeBase],
+  );
+
   // 处理标题变更
   const handleTitleChangeCallback = useCallback((newTitle: string) => {
     setConversationTitle(newTitle);
@@ -154,11 +165,13 @@ export const AIChatPanel = ({
     abort,
     clearChat,
     clearError,
+    respondToToolApproval,
   } = useAIChat({
     conversationId,
     conversationBinding,
     isConfigured,
-    useKnowledgeBase,
+    allowActiveRetrieval: retrievalPolicy.allowActiveRetrieval,
+    useFallbackRag: retrievalPolicy.useFallbackRag,
     onTitleChange: handleTitleChangeCallback,
     source,
   });
@@ -344,6 +357,7 @@ export const AIChatPanel = ({
             copiedBubbleKey={copiedBubbleKey}
             onCopyAnswer={handleCopyAnswer}
             onSaveToNote={handleSaveToNote}
+            onRespondToolApproval={respondToToolApproval}
           />
 
           {/* 输入框 */}

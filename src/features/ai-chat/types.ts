@@ -1,6 +1,18 @@
-import type { AIConversationBinding, NoteReference } from '../../services/types';
+import type {
+  AIConversationBinding,
+  AIRunTrace,
+  AIToolApproval,
+  NoteReference,
+} from '../../services/types';
 
 export type { NoteReference };
+
+export interface AIToolDraft {
+  toolCallId: string;
+  toolName: string;
+  inputText: string;
+  title?: string;
+}
 
 /**
  * 聊天消息项（UI 层使用）
@@ -21,6 +33,12 @@ export interface ChatItem {
     description?: string;
     noteId?: string;
   }>;
+  /** 需要用户审批的 AI 工具动作 */
+  toolApprovals?: AIToolApproval[];
+  /** 工具调用准备中的临时链路节点（仅 UI 层使用，不持久化） */
+  toolDrafts?: AIToolDraft[];
+  /** 单次执行链路追踪 */
+  runTrace?: AIRunTrace;
 }
 
 /**
@@ -41,6 +59,8 @@ export interface AIMessageData {
   }>;
   /** 用户引用的便签（仅用户消息） */
   references?: NoteReference[];
+  toolApprovals?: AIToolApproval[];
+  runTrace?: AIRunTrace;
 }
 
 /**
@@ -104,6 +124,7 @@ export interface UseAIChatReturn {
   abort: () => void;
   clearChat: () => void;
   clearError: () => void;
+  respondToToolApproval: (approvalId: string, approved: boolean) => Promise<void>;
 }
 
 /**

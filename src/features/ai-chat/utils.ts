@@ -6,8 +6,14 @@
 export const MAX_NOTE_TITLE_DISPLAY_LENGTH = 15;
 
 import { Editor } from '@tiptap/core';
-import type { TipTapJSONContent } from '../../services/types';
 import { getExtensions } from '../../features/editor/extensions';
+import {
+  buildPlainTextDoc,
+  convertMarkdownToTipTap,
+  stripThinkBlocks,
+} from '../../shared/utils/tiptapMarkdown';
+
+export { buildPlainTextDoc, convertMarkdownToTipTap, stripThinkBlocks };
 
 /**
  * 创建临时编辑器用于 Markdown 转换
@@ -19,19 +25,6 @@ const createTempEditor = () => {
     extensions,
     content: '',
   });
-};
-
-/**
- * 导出用：去掉 <think> 思考内容。
- * 用于“复制回答 / 保存到便签”等场景，避免把思考过程写入外部内容。
- */
-export const stripThinkBlocks = (markdown: string): string => {
-  if (!markdown) return '';
-
-  const removedClosed = markdown.replace(/<think>[\sS]*?<\/think>\s*/g, '');
-  // 容错：未闭合的 <think>，直接从 <think> 起丢弃到结尾
-  const removedOpen = removedClosed.replace(/<think>[\sS]*/g, '');
-  return removedOpen.trim();
 };
 
 /**
@@ -81,66 +74,6 @@ export const renderMarkdownToHtml = (markdown: string): string => {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`(.*?)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br>');
-  }
-};
-
-/**
- * 构建纯文本 TipTap 文档
- */
-export const buildPlainTextDoc = (text: string): TipTapJSONContent => {
-  const paragraphs = text
-    .split(/\n\n+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-
-  if (paragraphs.length === 0) {
-    return {
-      type: 'doc',
-      content: [{ type: 'paragraph' }],
-    };
-  }
-
-  return {
-    type: 'doc',
-    content: paragraphs.map((paragraph) => ({
-      type: 'paragraph',
-      content: [
-        {
-          type: 'text',
-          text: paragraph,
-        },
-      ],
-    })),
-  };
-};
-
-/**
- * 将 Markdown 转换为 TipTap JSON
- * 使用 @tiptap/markdown 扩展进行转换
- */
-export const convertMarkdownToTipTap = (markdown: string): TipTapJSONContent => {
-  if (!markdown?.trim()) {
-    return buildPlainTextDoc('');
-  }
-
-  try {
-    const editor = createTempEditor();
-    // 关键：使用 contentType: 'markdown' 告诉 TipTap 按 Markdown 格式解析
-    editor.commands.setContent(markdown, { contentType: 'markdown' });
-    const json = editor.getJSON();
-    editor.destroy();
-
-    if (json?.type === 'doc') {
-      return json as TipTapJSONContent;
-    }
-
-    return {
-      type: 'doc',
-      content: json ? [json as TipTapJSONContent] : [],
-    };
-  } catch (error) {
-    console.error('Failed to convert markdown to TipTap JSON:', error);
-    return buildPlainTextDoc(markdown);
   }
 };
 

@@ -144,6 +144,21 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.on(IPC_CHANNELS.aiStreamError, listener);
       return () => ipcRenderer.removeListener(IPC_CHANNELS.aiStreamError, listener);
     },
+    onToolApprovalRequest: (callback: (data: unknown) => void) => {
+      const listener = (_: unknown, data: unknown) => callback(data);
+      ipcRenderer.on(IPC_CHANNELS.aiToolApprovalRequested, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiToolApprovalRequested, listener);
+    },
+    onToolProgress: (callback: (data: unknown) => void) => {
+      const listener = (_: unknown, data: unknown) => callback(data);
+      ipcRenderer.on(IPC_CHANNELS.aiToolProgress, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiToolProgress, listener);
+    },
+    onRunUpdate: (callback: (data: unknown) => void) => {
+      const listener = (_: unknown, data: unknown) => callback(data);
+      ipcRenderer.on(IPC_CHANNELS.aiRunUpdate, listener);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.aiRunUpdate, listener);
+    },
   }),
 );
 

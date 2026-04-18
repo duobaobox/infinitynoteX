@@ -68,7 +68,8 @@ const getMermaidErrorLine = (error: unknown): number | undefined => {
     return hash.line;
   }
 
-  const firstLine = hash.loc?.first_line;
+  const loc = isObjectLike(hash.loc) ? (hash.loc as MermaidParseHash['loc']) : undefined;
+  const firstLine = loc?.first_line;
   if (typeof firstLine === 'number' && Number.isFinite(firstLine) && firstLine > 0) {
     return firstLine;
   }

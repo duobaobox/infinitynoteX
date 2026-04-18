@@ -101,6 +101,27 @@ export function getDefaultConfig(): AppConfig {
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
 
+function ensureConfigDirExists(configPath: string): void {
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+}
+
+function writeConfigAtomically(configPath: string, config: AppConfig): void {
+  ensureConfigDirExists(configPath);
+  const tempPath = `${configPath}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(config, null, 2), 'utf-8');
+  fs.renameSync(tempPath, configPath);
+}
+
+function backupCorruptedConfig(configPath: string): void {
+  if (!fs.existsSync(configPath)) {
+    return;
+  }
+
+  const backupPath = `${configPath}.corrupted-${Date.now()}`;
+  fs.renameSync(configPath, backupPath);
+  console.warn('[Config] Corrupted config backed up to:', backupPath);
+}
+
 function normalizeAIConfigShape(config: AppConfig): AppConfig {
   const providerConfigs =
     config.ai.providerConfigs && Object.keys(config.ai.providerConfigs).length > 0
@@ -138,6 +159,14 @@ export function readAppConfig(): AppConfig {
     }
   } catch (error) {
     console.error('[Config] Failed to read config:', error);
+    try {
+      backupCorruptedConfig(configPath);
+      const fallback = getDefaultConfig();
+      writeConfigAtomically(configPath, fallback);
+      return fallback;
+    } catch (recoveryError) {
+      console.error('[Config] Failed to recover config:', recoveryError);
+    }
   }
 
   // 返回默认配置
@@ -153,7 +182,7 @@ export function writeAppConfig(partial: DeepPartial<AppConfig>): void {
   try {
     const current = readAppConfig();
     const merged = deepMerge(current, partial);
-    fs.writeFileSync(configPath, JSON.stringify(merged, null, 2), 'utf-8');
+    writeConfigAtomically(configPath, merged);
     console.log('[Config] Config saved successfully');
   } catch (error) {
     console.error('[Config] Failed to write config:', error);
@@ -168,7 +197,7 @@ export function overwriteAppConfig(config: AppConfig): void {
   const configPath = getConfigPath();
 
   try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    writeConfigAtomically(configPath, config);
     console.log('[Config] Config overwritten successfully');
   } catch (error) {
     console.error('[Config] Failed to overwrite config:', error);

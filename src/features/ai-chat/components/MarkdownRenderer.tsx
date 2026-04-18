@@ -109,24 +109,26 @@ const Code: React.FC<ComponentProps> = (props) => {
  * - 支持点击切换展开/折叠状态
  */
 const ThinkComponent = React.memo<ComponentProps>((props) => {
-  // 根据初始流状态决定初始显示状态
-  // done = 历史对话，直接折叠；loading = 正在流式输出，展开
   const isDone = props.streamStatus === 'done';
-
-  const [title, setTitle] = useState(isDone ? '思考完成' : '深度思考中...');
-  const [loading, setLoading] = useState(!isDone);
-  const [expand, setExpand] = useState(!isDone);
+  const [expanded, setExpanded] = useState(!isDone);
 
   useEffect(() => {
     if (props.streamStatus === 'done') {
-      setTitle('思考完成');
-      setLoading(false);
-      setExpand(false);
+      setExpanded(false);
+      return;
     }
+
+    setExpanded(true);
   }, [props.streamStatus]);
 
   return (
-    <Think title={title} loading={loading} expanded={expand} onClick={() => setExpand(!expand)}>
+    <Think
+      title={isDone ? '思考完成' : '深度思考中...'}
+      loading={!isDone}
+      blink={!isDone}
+      expanded={expanded}
+      onExpand={setExpanded}
+    >
       {props.children}
     </Think>
   );

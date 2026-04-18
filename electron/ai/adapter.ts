@@ -1,17 +1,30 @@
 /**
- * 通用 OpenAI 兼容适配器
- * 支持任何兼容 OpenAI /v1/chat/completions 接口的服务
+ * 基于 Vercel AI SDK Core 的 OpenAI 兼容运行时适配器。
+ *
+ * 设计目标：
+ * - 保留现有 Electron IPC 协议与前端聊天 UI
+ * - 用现成 SDK 接管 provider / streaming / tool loop
+ * - 为后续 agent 架构预留 read-only tools 基础
  */
+
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, stepCountIs, streamText, type ModelMessage } from 'ai';
 
 import type {
   AIConfig,
-  ChatMessage,
   ChatPayload,
   ChatResponse,
-  StreamChunk,
   ConnectionTestResult,
+  StreamChunk,
 } from '../../src/services/aiConfig';
-import type { NoteReference } from '../../src/services/types';
+import { getProviderCapabilities } from '../../src/services/aiProviders';
+import {
+  buildUnsupportedToolActionMessage,
+  detectRequiredTools,
+  type RequiredToolName,
+} from './actionIntent';
+import { buildModelMessages, mergeReasoningAndText } from './contextBuilder';
+import { createAgentTools } from './toolRegistry';
 
 export class OpenAICompatibleAdapter {
   private config: AIConfig;
@@ -31,83 +44,84 @@ export class OpenAICompatibleAdapter {
     return url.toString();
   }
 
-  /**
-   * 构建 RAG 上下文的系统提示词
-   */
-  private buildRagContextPrompt(ragContext: NonNullable<ChatPayload['ragContext']>): string {
-    const { results } = ragContext;
+  private createModel() {
+    const provider = createOpenAICompatible({
+      name: this.config.providerId || this.config.provider || 'custom',
+      baseURL: this.config.baseURL,
+      apiKey: this.config.apiKey,
+    });
 
-    const formattedResults = results
-      .map((r, i) => `### [来源 ${i + 1}] ${r.noteTitle}\n${r.excerpt}`)
-      .join('\n\n---\n\n');
-
-    return `## 参考资料（来自用户知识库，共 ${results.length} 条）
-
-请优先基于以下参考资料回答用户问题。
-
-**引用格式要求**：
-- 引用来源时，使用 HTML 上标格式：<sup>1</sup>、<sup>2</sup>、<sup>3</sup>
-- 在句子末尾标注来源编号，例如："RAG 是检索增强生成的缩写。<sup>1</sup>"
-- 可以同时引用多个来源：<sup>1</sup><sup>2</sup>
-
-**回答原则**：
-- 如果参考资料中没有相关信息，请诚实告知用户
-- 不要编造参考资料中不存在的信息
-
-${formattedResults}`;
+    return provider.chatModel(this.config.model);
   }
 
-  private buildReferenceContextPrompt(references: NoteReference[]): string {
-    const formattedReferences = references
-      .map((reference, index) => `### [引用 ${index + 1}] ${reference.title}\n${reference.content}`)
-      .join('\n\n---\n\n');
-
-    return `## 用户主动引用的便签内容
-
-以下内容由用户显式引用，请把它们当作额外上下文使用。
-- 优先结合这些便签内容回答
-- 如果便签内容与历史消息冲突，明确说明冲突点
-- 不要把这些上下文误写成用户当前输入的一部分
-
-${formattedReferences}`;
+  buildRequestMessages(payload: ChatPayload): ModelMessage[] {
+    return buildModelMessages(this.config, payload);
   }
 
-  private toApiMessage(message: ChatMessage): ChatMessage[] {
-    if (message.role !== 'user' || !message.references || message.references.length === 0) {
-      return [{ role: message.role, content: message.content }];
+  private resolveToolStrategy(payload: ChatPayload): {
+    requiredTools: RequiredToolName[];
+    unsupportedToolActionMessage?: string;
+  } {
+    const capabilities = getProviderCapabilities(this.config);
+    const requiredTools = detectRequiredTools(payload.message);
+
+    if (!capabilities.toolCalling && requiredTools.length > 0) {
+      return {
+        requiredTools,
+        unsupportedToolActionMessage: buildUnsupportedToolActionMessage(requiredTools),
+      };
     }
 
-    return [
-      {
-        role: 'system',
-        content: this.buildReferenceContextPrompt(message.references),
-      },
-      {
-        role: 'user',
-        content: message.content,
-      },
-    ];
+    return {
+      requiredTools,
+    };
   }
 
-  private buildRequestMessages(payload: ChatPayload): ChatMessage[] {
-    return [
-      ...(this.config.systemPrompt
-        ? [{ role: 'system' as const, content: this.config.systemPrompt }]
-        : []),
-      ...(payload.ragContext && payload.ragContext.results.length > 0
-        ? [{ role: 'system' as const, content: this.buildRagContextPrompt(payload.ragContext) }]
-        : []),
-      ...payload.messages.flatMap((message) => this.toApiMessage(message)),
-      ...(payload.references && payload.references.length > 0
-        ? [
-            {
-              role: 'system' as const,
-              content: this.buildReferenceContextPrompt(payload.references),
-            },
-          ]
-        : []),
-      { role: 'user' as const, content: payload.message },
-    ];
+  getUnsupportedToolActionMessage(payload: ChatPayload): string | undefined {
+    return this.resolveToolStrategy(payload).unsupportedToolActionMessage;
+  }
+
+  private buildRuntimeOptionsForMessages(
+    messages: ModelMessage[],
+    signal?: AbortSignal,
+    requiredTools?: RequiredToolName[],
+    allowActiveRetrieval: boolean = true,
+  ) {
+    const capabilities = getProviderCapabilities(this.config);
+    const tools = capabilities.toolCalling ? createAgentTools({ allowActiveRetrieval }) : undefined;
+
+    return {
+      model: this.createModel(),
+      messages,
+      tools,
+      activeTools: tools && requiredTools && requiredTools.length > 0 ? requiredTools : undefined,
+      toolChoice: tools
+        ? requiredTools && requiredTools.length > 0
+          ? requiredTools.length === 1
+            ? ({ type: 'tool', toolName: requiredTools[0] } as const)
+            : ('required' as const)
+          : undefined
+        : undefined,
+      stopWhen: tools ? stepCountIs(5) : undefined,
+      temperature: this.config.temperature ?? 0.7,
+      maxOutputTokens: this.config.max_tokens,
+      abortSignal: signal,
+      timeout: this.config.timeoutMs ? { totalMs: this.config.timeoutMs } : undefined,
+    };
+  }
+
+  private buildRuntimeOptions(payload: ChatPayload, signal?: AbortSignal) {
+    const strategy = this.resolveToolStrategy(payload);
+    return this.buildRuntimeOptionsForMessages(
+      this.buildRequestMessages(payload),
+      signal,
+      strategy.requiredTools,
+      payload.allowActiveRetrieval ?? false,
+    );
+  }
+
+  createStreamResult(payload: ChatPayload, signal?: AbortSignal) {
+    return streamText(this.buildRuntimeOptions(payload, signal));
   }
 
   /**
@@ -158,50 +172,65 @@ ${formattedReferences}`;
    * 发送聊天请求（非流式）
    */
   async chat(payload: ChatPayload): Promise<ChatResponse> {
-    const messages = this.buildRequestMessages(payload);
-
     try {
-      const url = this.buildAPIURL('chat/completions');
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.config.model,
-          messages,
-          temperature: this.config.temperature ?? 0.7,
-          max_tokens: this.config.max_tokens,
-          stream: false,
-        }),
-        signal: AbortSignal.timeout(this.config.timeoutMs || 60000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const strategy = this.resolveToolStrategy(payload);
+      if (strategy.unsupportedToolActionMessage) {
+        return {
+          content: strategy.unsupportedToolActionMessage,
+          finishReason: 'stop',
+        };
       }
 
-      const data = (await response.json()) as unknown;
-      const choices = (data as { choices?: unknown[] } | null | undefined)?.choices;
-      const firstChoice = (Array.isArray(choices) ? choices[0] : undefined) as
-        | { message?: { content?: unknown }; finish_reason?: unknown }
-        | undefined;
-      const content =
-        typeof firstChoice?.message?.content === 'string' ? firstChoice.message.content : '';
+      const result = await generateText(this.buildRuntimeOptions(payload));
 
-      if (!content) {
+      const content = mergeReasoningAndText(result.reasoningText, result.text);
+      if (!content.trim()) {
         throw new Error('No content in response');
       }
 
       return {
         content,
-        finishReason:
-          typeof firstChoice?.finish_reason === 'string' ? firstChoice.finish_reason : undefined,
+        finishReason: result.finishReason,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       throw new Error(`Chat failed: ${msg}`);
+    }
+  }
+
+  async continueWithMessages(
+    messages: ModelMessage[],
+    options?: { allowActiveRetrieval?: boolean },
+  ): Promise<{
+    content: string;
+    finishReason?: string;
+    toolCalls: Array<{ toolCallId: string; toolName: string; input: unknown }>;
+    toolResults: unknown[];
+    responseMessages: ModelMessage[];
+  }> {
+    try {
+      const result = await generateText(
+        this.buildRuntimeOptionsForMessages(
+          messages,
+          undefined,
+          undefined,
+          options?.allowActiveRetrieval ?? true,
+        ),
+      );
+      return {
+        content: mergeReasoningAndText(result.reasoningText, result.text),
+        finishReason: result.finishReason,
+        toolCalls: result.toolCalls.map((toolCall) => ({
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+        })),
+        toolResults: result.toolResults as unknown[],
+        responseMessages: result.response.messages as ModelMessage[],
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Tool approval continuation failed: ${msg}`);
     }
   }
 
@@ -215,124 +244,40 @@ ${formattedReferences}`;
       signal?: AbortSignal;
     },
   ): AsyncGenerator<StreamChunk, void> {
-    const messages = this.buildRequestMessages(payload);
-
     try {
-      const url = this.buildAPIURL('chat/completions');
-      const timeoutMs = this.config.timeoutMs || 60000;
-      const timeoutSignal = AbortSignal.timeout(timeoutMs);
-      const signal = options?.signal
-        ? AbortSignal.any([options.signal, timeoutSignal])
-        : timeoutSignal;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.config.model,
-          messages,
-          temperature: this.config.temperature ?? 0.7,
-          max_tokens: this.config.max_tokens,
-          stream: true,
-        }),
-        signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const strategy = this.resolveToolStrategy(payload);
+      if (strategy.unsupportedToolActionMessage) {
+        yield {
+          delta: strategy.unsupportedToolActionMessage,
+          finishReason: 'stop',
+        };
+        return;
       }
 
-      if (!response.body) {
-        throw new Error('No response body');
-      }
+      const result = this.createStreamResult(payload, options?.signal);
 
-      // 读取流并解析 SSE
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let receivedDone = false;
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed === ':') continue;
-
-            if (trimmed.startsWith('data: ')) {
-              const data = trimmed.slice(6);
-              if (data === '[DONE]') {
-                receivedDone = true;
-                break;
-              }
-
-              try {
-                const json = JSON.parse(data) as unknown;
-                const choices = (json as { choices?: unknown[] } | null | undefined)?.choices;
-                const choiceItem = (Array.isArray(choices) ? choices[0] : undefined) as
-                  | { delta?: Record<string, unknown>; finish_reason?: unknown }
-                  | undefined;
-                const deltaObj = choiceItem?.delta ?? {};
-                const delta = typeof deltaObj?.content === 'string' ? deltaObj.content : '';
-                const reasoningRaw = (deltaObj as Record<string, unknown>)['reasoning_content'];
-                const reasoningDelta = typeof reasoningRaw === 'string' ? reasoningRaw : undefined;
-                if (delta || reasoningDelta) {
-                  yield {
-                    delta: delta || '',
-                    reasoningDelta: reasoningDelta || undefined,
-                    finishReason: choiceItem?.finish_reason as string | undefined,
-                  };
-                }
-              } catch (e) {
-                console.warn('[AI] Failed to parse SSE:', trimmed);
-              }
-            }
-          }
-
-          if (receivedDone) break;
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          case 'reasoning-delta':
+            yield {
+              delta: '',
+              reasoningDelta: part.text,
+            };
+            break;
+          case 'text-delta':
+            yield {
+              delta: part.text,
+            };
+            break;
+          case 'finish':
+            yield {
+              delta: '',
+              finishReason: part.finishReason,
+            };
+            break;
+          default:
+            break;
         }
-
-        // 处理剩余缓冲区
-        if (!receivedDone && buffer.trim() && buffer.trim() !== ':') {
-          if (buffer.trim().startsWith('data: ')) {
-            const data = buffer.trim().slice(6);
-            if (data !== '[DONE]') {
-              try {
-                const json = JSON.parse(data) as unknown;
-                const choices = (json as { choices?: unknown[] } | null | undefined)?.choices;
-                const choiceItem = (Array.isArray(choices) ? choices[0] : undefined) as
-                  | { delta?: Record<string, unknown>; finish_reason?: unknown }
-                  | undefined;
-                const deltaObj = choiceItem?.delta ?? {};
-                const delta = typeof deltaObj?.content === 'string' ? deltaObj.content : '';
-                const reasoningRaw = (deltaObj as Record<string, unknown>)['reasoning_content'];
-                const reasoningDelta = typeof reasoningRaw === 'string' ? reasoningRaw : undefined;
-                if (delta || reasoningDelta) {
-                  yield {
-                    delta: delta || '',
-                    reasoningDelta: reasoningDelta || undefined,
-                    finishReason:
-                      typeof choiceItem?.finish_reason === 'string'
-                        ? choiceItem.finish_reason
-                        : undefined,
-                  };
-                }
-              } catch (e) {
-                console.warn('[AI] Failed to parse final SSE:', buffer);
-              }
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

@@ -51,6 +51,7 @@ vi.mock('../../../../src/services/aiConfigStore', () => ({
   initializeAIConfigCache: vi.fn(),
   readStoredProviderConfigs: vi.fn(() => ({})),
   persistProviderConfigs: vi.fn(),
+  updateProviderConfigsCache: vi.fn(),
   emitAIConfigChanged: vi.fn(),
 }));
 

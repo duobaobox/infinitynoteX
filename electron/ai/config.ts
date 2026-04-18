@@ -75,6 +75,29 @@ function redactProviderConfig(
   };
 }
 
+function toRuntimeProviderConfig(
+  providerId: string,
+  config?: AIProviderConfig,
+): RendererAIConfig | null {
+  if (!config) {
+    return null;
+  }
+
+  return {
+    providerId,
+    provider: config.provider,
+    baseURL: config.baseURL,
+    apiKey: config.apiKey,
+    model: config.model,
+    temperature: config.temperature,
+    max_tokens: config.max_tokens,
+    timeoutMs: config.timeoutMs,
+    systemPrompt: config.systemPrompt,
+    httpProxy: config.httpProxy,
+    stream: config.stream ?? true,
+  };
+}
+
 function mergeProviderConfig(
   nextConfig: RendererAIConfig,
   existing?: AIProviderConfig,
@@ -134,9 +157,9 @@ export async function readAIConfig(): Promise<RendererAIConfig | null> {
   return redactProviderConfig(activeProviderId, activeConfig);
 }
 
-export async function readActiveAIProviderConfig(): Promise<AIProviderConfig | null> {
-  const { activeConfig } = readActiveProviderConfig();
-  return activeConfig ?? null;
+export async function readActiveAIProviderConfig(): Promise<RendererAIConfig | null> {
+  const { activeProviderId, activeConfig } = readActiveProviderConfig();
+  return toRuntimeProviderConfig(activeProviderId, activeConfig);
 }
 
 export async function writeAIConfig(config: RendererAIConfig): Promise<void> {

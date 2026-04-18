@@ -133,6 +133,24 @@ export const AIMessageSchema = z.object({
       }),
     )
     .optional(),
+  toolApprovals: z
+    .array(
+      z.object({
+        approvalId: z.string(),
+        toolCallId: z.string(),
+        toolName: z.string(),
+        title: z.string(),
+        description: z.string(),
+        status: z.enum(['pending', 'processing', 'executed', 'denied', 'failed']),
+        preview: z.string().optional(),
+        targetId: z.string().optional(),
+        targetLabel: z.string().optional(),
+        resultSummary: z.string().optional(),
+        error: z.string().optional(),
+      }),
+    )
+    .optional(),
+  runTrace: z.any().optional(),
 });
 
 export const AIConversationSchema = z.object({

@@ -11,6 +11,7 @@ import type { GetRef } from 'antd';
 import { ProviderSwitcher } from './ProviderSwitcher';
 import { NoteReference } from './NoteReference';
 import type { NoteReference as NoteReferenceType, ProviderOption } from '../types';
+import { buildOutgoingUserInput } from '../requestComposer';
 import { truncateTitle } from '../utils';
 import { NOTE_COLOR_WITH_BORDER_MAP } from '../../../constants/noteColors';
 
@@ -144,16 +145,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               }}
               onSubmit={(value) => {
                 if (value.trim()) {
-                  // 将 selectedNotes 转换为 NoteReference 格式
-                  const references = selectedNotes.map((note) => ({
-                    id: note.id,
-                    title: note.title,
-                    byteLength: new TextEncoder().encode(note.content).length,
-                    content: note.content,
-                  }));
-
-                  // 仅发送用户可见输入，便签引用通过 references 单独传输
-                  onSend(value, references.length > 0 ? references : undefined);
+                  const payload = buildOutgoingUserInput(value, selectedNotes);
+                  onSend(payload.text, payload.references);
                   senderRef.current?.clear?.();
                 }
               }}
@@ -190,7 +183,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                       {/* 知识库开关 */}
                       {knowledgeBase.enabled && (
                         <Tooltip
-                          title={knowledgeBase.inUse ? '已开启知识库增强' : '点击开启知识库问答'}
+                          title={
+                            knowledgeBase.inUse
+                              ? '已允许 AI 检索便签和知识库'
+                              : '点击允许 AI 检索便签和知识库'
+                          }
                         >
                           <span
                             className={`ai-icon-btn ${knowledgeBase.inUse ? 'ai-icon-btn--active' : ''}`}

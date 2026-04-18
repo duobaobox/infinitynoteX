@@ -401,11 +401,11 @@ const AISettingsTab = () => {
             <Form.Item
               label={
                 <div className="ai-settings-field-label">
-                  <Text strong>最大 Token</Text>
-                  <Text type="secondary">限制回复长度</Text>
+                  <Text strong>最大输出 Token</Text>
+                  <Text type="secondary">限制单次回复长度</Text>
                 </div>
               }
-              extra="建议 1,000 - 32,000。如需长内容可以适当放大。"
+              extra="用于预留输出预算；历史、引用和知识库上下文会由系统按窗口大小自动裁剪。"
             >
               <InputNumber
                 min={MAX_TOKEN_MIN}

@@ -212,7 +212,7 @@ const WebDAVConfigComponent: React.FC<SyncProviderConfigProps<WebDAVConfig>> = (
   };
 
   const handlePreview = async () => {
-    if (!isConfigComplete) {
+    if (!isConfigComplete || !config) {
       message.warning('请先填写完整的连接信息');
       return;
     }

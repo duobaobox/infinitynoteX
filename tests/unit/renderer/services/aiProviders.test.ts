@@ -10,6 +10,7 @@ import {
   createDefaultAIConfig,
   DEFAULT_PROVIDER_ID,
   CUSTOM_PROVIDER_ID,
+  getProviderCapabilities,
 } from '../../../../src/services/aiProviders';
 
 describe('AIProviders', () => {
@@ -63,6 +64,29 @@ describe('AIProviders', () => {
 
       expect(defaults.timeoutMs).toBe(1000);
       expect(defaults.model).toBe('gpt-custom');
+    });
+  });
+
+  describe('getProviderCapabilities', () => {
+    it('marks reasoning models correctly', () => {
+      const capabilities = getProviderCapabilities({
+        providerId: 'deepseek',
+        model: 'deepseek-reasoner',
+      });
+
+      expect(capabilities.reasoning).toBe(true);
+      expect(capabilities.toolCalling).toBe(false);
+    });
+
+    it('marks tool capable chat models correctly', () => {
+      const capabilities = getProviderCapabilities({
+        providerId: 'openai',
+        model: 'gpt-4o',
+      });
+
+      expect(capabilities.streaming).toBe(true);
+      expect(capabilities.toolCalling).toBe(true);
+      expect(capabilities.structuredOutputs).toBe(true);
     });
   });
 });

@@ -16,6 +16,18 @@ export interface AIProviderPreset {
   models: AIModelPreset[];
 }
 
+export interface AIProviderCapabilities {
+  streaming: boolean;
+  reasoning: boolean;
+  toolCalling: boolean;
+  structuredOutputs: boolean;
+}
+
+export interface AIContextWindowHint {
+  tokens: number;
+  source: 'model' | 'provider' | 'default';
+}
+
 export const CUSTOM_PROVIDER_ID = 'custom';
 export const DEFAULT_PROVIDER_ID = 'deepseek';
 
@@ -194,4 +206,90 @@ export function ensureAIConfigDefaults(config?: AIConfig | null): AIConfig {
     timeoutMs: config.timeoutMs ?? 300000,
     httpProxy: config.httpProxy,
   };
+}
+
+function matchesReasoningModel(modelId?: string): boolean {
+  const normalized = (modelId || '').toLowerCase();
+  return (
+    normalized.includes('reasoner') ||
+    normalized.includes('thinking') ||
+    normalized.startsWith('o1') ||
+    normalized.startsWith('o3') ||
+    normalized.startsWith('o4')
+  );
+}
+
+function matchesToolModel(providerId: string, modelId?: string): boolean {
+  const normalized = (modelId || '').toLowerCase();
+
+  if (providerId === 'deepseek') {
+    return !normalized.includes('reasoner');
+  }
+
+  if (providerId === 'openai') {
+    return true;
+  }
+
+  if (providerId === 'zhipu') {
+    return normalized.includes('alltools') || normalized.startsWith('glm-4');
+  }
+
+  if (providerId === 'alibaba' || providerId === 'siliconflow') {
+    return true;
+  }
+
+  return false;
+}
+
+export function getProviderCapabilities(config?: Partial<AIConfig> | null): AIProviderCapabilities {
+  const providerId = detectProviderIdFromConfig(config);
+  const modelId = config?.model;
+  const reasoning = matchesReasoningModel(modelId);
+  const toolCalling = matchesToolModel(providerId, modelId);
+
+  return {
+    streaming: true,
+    reasoning,
+    toolCalling,
+    structuredOutputs:
+      providerId === 'openai' || providerId === 'zhipu' || providerId === 'alibaba',
+  };
+}
+
+export function getConservativeContextWindow(
+  config?: Partial<AIConfig> | null,
+): AIContextWindowHint {
+  const providerId = detectProviderIdFromConfig(config);
+  const modelId = (config?.model || '').toLowerCase();
+
+  if (
+    modelId.includes('gpt-4o') ||
+    modelId.includes('o4-mini') ||
+    modelId.includes('deepseek-chat') ||
+    modelId.includes('deepseek-reasoner')
+  ) {
+    return { tokens: 128_000, source: 'model' };
+  }
+
+  if (
+    modelId.includes('qwen') ||
+    modelId.includes('glm-4') ||
+    modelId.includes('kimi') ||
+    modelId.includes('moonshot') ||
+    modelId.includes('deepseek')
+  ) {
+    return { tokens: 64_000, source: 'model' };
+  }
+
+  if (
+    providerId === 'openai' ||
+    providerId === 'deepseek' ||
+    providerId === 'alibaba' ||
+    providerId === 'zhipu' ||
+    providerId === 'siliconflow'
+  ) {
+    return { tokens: 64_000, source: 'provider' };
+  }
+
+  return { tokens: 32_000, source: 'default' };
 }

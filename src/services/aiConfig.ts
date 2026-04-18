@@ -44,6 +44,8 @@ export interface ChatPayload {
   stream?: boolean;
   references?: NoteReference[];
   requestId?: string;
+  /** 是否允许 AI 主动检索用户资料（便签 / 知识库） */
+  allowActiveRetrieval?: boolean;
   /** RAG 检索上下文（可选） */
   ragContext?: {
     results: Array<{

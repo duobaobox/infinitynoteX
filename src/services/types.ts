@@ -38,10 +38,76 @@ export interface AIMessage {
     noteId?: string;
   }>;
   references?: NoteReference[];
+  toolApprovals?: AIToolApproval[];
+  runTrace?: AIRunTrace;
 }
 
 export type AIConversationSource = 'note' | 'workbench' | 'canvas' | 'global';
 export type AIConversationBindingSource = 'note' | 'global';
+
+export type AIToolApprovalStatus = 'pending' | 'processing' | 'executed' | 'denied' | 'failed';
+
+export type AIRunStatus = 'running' | 'waiting_approval' | 'completed' | 'failed' | 'cancelled';
+
+export type AIStepStatus = 'pending' | 'running' | 'waiting' | 'completed' | 'failed' | 'skipped';
+
+export type AIStepKind = 'planning' | 'retrieval' | 'generation' | 'tool' | 'approval';
+
+export type AIArtifactType =
+  | 'retrieval-query'
+  | 'retrieval-result'
+  | 'tool-input'
+  | 'tool-result'
+  | 'context'
+  | 'answer';
+
+export interface AIArtifact {
+  id: string;
+  type: AIArtifactType;
+  title: string;
+  summary?: string;
+  data?: unknown;
+  createdAt: number;
+}
+
+export interface AIStepTrace {
+  stepId: string;
+  kind: AIStepKind;
+  title: string;
+  status: AIStepStatus;
+  detail?: string;
+  toolName?: string;
+  approvalId?: string;
+  startedAt: number;
+  endedAt?: number;
+  artifacts?: AIArtifact[];
+}
+
+export interface AIRunTrace {
+  runId: string;
+  requestId: string;
+  status: AIRunStatus;
+  input: string;
+  startedAt: number;
+  endedAt?: number;
+  error?: string;
+  steps: AIStepTrace[];
+  artifacts: AIArtifact[];
+}
+
+export interface AIToolApproval {
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  title: string;
+  description: string;
+  status: AIToolApprovalStatus;
+  preview?: string;
+  targetId?: string;
+  targetLabel?: string;
+  resultSummary?: string;
+  error?: string;
+}
 
 export interface AIConversationBinding {
   source: AIConversationBindingSource;
@@ -413,6 +479,8 @@ declare global {
             description?: string;
             noteId?: string;
           }>;
+          toolApprovals?: AIToolApproval[];
+          runTrace?: AIRunTrace;
         }>,
         options?: {
           source?: 'note' | 'workbench' | 'canvas' | 'global';

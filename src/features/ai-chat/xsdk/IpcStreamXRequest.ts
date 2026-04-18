@@ -142,6 +142,7 @@ export class IpcStreamXRequest extends AbstractXRequestClass<IpcStreamInput, Str
         message: params.message,
         messages: params.messages,
         references: params.references,
+        allowActiveRetrieval: params.allowActiveRetrieval,
         ragContext: params.ragContext,
         requestId,
       };

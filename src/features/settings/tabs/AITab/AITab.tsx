@@ -29,6 +29,7 @@ import {
   CUSTOM_PROVIDER_ID,
   findProviderPresetById,
   getProviderBrandColor,
+  getProviderCapabilities,
 } from '../../../../services/aiProviders';
 import { QuestionCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import './AITab.css';
@@ -98,6 +99,8 @@ const AITab: React.FC = () => {
         : undefined,
     [aiConfig.model, recommendedModelOptions],
   );
+
+  const capabilities = useMemo(() => getProviderCapabilities(aiConfig), [aiConfig]);
 
   const handleModelPresetChange = (modelId?: string) => {
     if (!modelId) return;
@@ -172,6 +175,12 @@ const AITab: React.FC = () => {
               {selectedProviderId === activeProviderId ? '⚡ 正在使用' : '未激活'}
             </Tag>
           </div>
+          <Space size={[6, 6]} wrap style={{ marginTop: 10 }}>
+            <Tag bordered={false}>流式</Tag>
+            {capabilities.reasoning && <Tag color="purple">推理</Tag>}
+            {capabilities.toolCalling && <Tag color="cyan">工具调用</Tag>}
+            {capabilities.structuredOutputs && <Tag color="geekblue">结构化输出</Tag>}
+          </Space>
         </Card>
 
         <Card className="ai-parameters-card" size="small" variant="outlined">
@@ -204,8 +213,8 @@ const AITab: React.FC = () => {
             <div className="ai-parameter-field">
               <div className="ai-parameter-label">
                 <Space>
-                  <Text strong>◎ 最大长度 (Max Tokens)</Text>
-                  <Tooltip title="建议范围 100 ~ 128000">
+                  <Text strong>◎ 最大输出 (Max Tokens)</Text>
+                  <Tooltip title="控制单次回答的最大输出长度；上下文预算会由系统按模型窗口和安全余量自动分配。">
                     <QuestionCircleOutlined style={{ color: '#8c8c8c', cursor: 'help' }} />
                   </Tooltip>
                 </Space>

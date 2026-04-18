@@ -4,6 +4,7 @@
  */
 
 import type { AIConfig, ChatPayload } from '../services/aiConfig';
+import type { AIRunTrace, AIToolApproval } from '../services/types';
 
 declare global {
   interface Window {
@@ -17,6 +18,17 @@ declare global {
         requestId?: string;
         error?: string;
       }>;
+      respondToolApproval(payload: {
+        approvalId: string;
+        approved: boolean;
+        reason?: string;
+      }): Promise<{
+        success: boolean;
+        content?: string;
+        approval?: AIToolApproval;
+        followUpApprovals?: AIToolApproval[];
+        error?: string;
+      }>;
       abortStream(requestId: string): Promise<{ success: boolean; error?: string }>;
       onStreamChunk(
         callback: (data: {
@@ -26,6 +38,22 @@ declare global {
       ): () => void;
       onStreamDone(callback: (data: { requestId: string; success: boolean }) => void): () => void;
       onStreamError(callback: (data: { requestId: string; error: string }) => void): () => void;
+      onToolApprovalRequest(
+        callback: (data: { requestId: string; approval: AIToolApproval }) => void,
+      ): () => void;
+      onToolProgress(
+        callback: (data: {
+          requestId: string;
+          progress: {
+            phase: 'start' | 'delta';
+            toolCallId: string;
+            toolName?: string;
+            title?: string;
+            inputTextDelta?: string;
+          };
+        }) => void,
+      ): () => void;
+      onRunUpdate(callback: (data: { requestId: string; run: AIRunTrace }) => void): () => void;
     };
     attachments: {
       /**

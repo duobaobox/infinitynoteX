@@ -150,6 +150,8 @@ declare global {
             byteLength: number;
             content: string;
           }>;
+          toolApprovals?: import('./services/types').AIToolApproval[];
+          runTrace?: import('./services/types').AIRunTrace;
         }>,
         options?: {
           source?: 'note' | 'workbench' | 'canvas' | 'global';
@@ -177,6 +179,8 @@ declare global {
             byteLength: number;
             content: string;
           }>;
+          toolApprovals?: import('./services/types').AIToolApproval[];
+          runTrace?: import('./services/types').AIRunTrace;
         }>;
         createdAt: number;
         updatedAt: number;
@@ -196,6 +200,8 @@ declare global {
           content: string;
           timestamp: number;
           reasoning?: string;
+          toolApprovals?: import('./services/types').AIToolApproval[];
+          runTrace?: import('./services/types').AIRunTrace;
         }>;
         createdAt: number;
         updatedAt: number;
@@ -215,6 +221,17 @@ declare global {
         requestId?: string;
         error?: string;
       }>;
+      respondToolApproval(payload: {
+        approvalId: string;
+        approved: boolean;
+        reason?: string;
+      }): Promise<{
+        success: boolean;
+        content?: string;
+        approval?: import('./services/types').AIToolApproval;
+        followUpApprovals?: import('./services/types').AIToolApproval[];
+        error?: string;
+      }>;
       abortStream(requestId: string): Promise<{ success: boolean; error?: string }>;
       onStreamChunk(
         callback: (data: {
@@ -228,6 +245,27 @@ declare global {
       ): () => void;
       onStreamDone(callback: (data: { requestId: string; success: boolean }) => void): () => void;
       onStreamError(callback: (data: { requestId: string; error: string }) => void): () => void;
+      onToolApprovalRequest(
+        callback: (data: {
+          requestId: string;
+          approval: import('./services/types').AIToolApproval;
+        }) => void,
+      ): () => void;
+      onToolProgress(
+        callback: (data: {
+          requestId: string;
+          progress: {
+            phase: 'start' | 'delta';
+            toolCallId: string;
+            toolName?: string;
+            title?: string;
+            inputTextDelta?: string;
+          };
+        }) => void,
+      ): () => void;
+      onRunUpdate(
+        callback: (data: { requestId: string; run: import('./services/types').AIRunTrace }) => void,
+      ): () => void;
     };
     floatingWindow: {
       // 悬浮窗口操作

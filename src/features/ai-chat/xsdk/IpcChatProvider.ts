@@ -3,7 +3,8 @@ import type { XRequestOptions } from '@ant-design/x-sdk';
 
 import { IpcStreamXRequest } from './IpcStreamXRequest';
 import type { ChatPayload, ChatMessage } from '../../../services/aiConfig';
-import type { NoteReference, StreamChunkData } from '../types';
+import type { AIToolDraft, NoteReference, StreamChunkData } from '../types';
+import type { AIRunTrace, AIToolApproval } from '../../../services/types';
 
 export type XChatMessage = {
   role: 'user' | 'ai';
@@ -16,6 +17,9 @@ export type XChatMessage = {
     description?: string;
     noteId?: string;
   }>;
+  toolApprovals?: AIToolApproval[];
+  toolDrafts?: AIToolDraft[];
+  runTrace?: AIRunTrace;
 };
 
 /**
@@ -90,10 +94,12 @@ export class IpcChatProvider extends AbstractChatProvider<
     const messages = requestParams.messages ?? requestParams.historyMessages ?? [];
 
     return {
+      requestId: requestParams.requestId,
       message,
       messages,
       text: requestParams.text ?? '',
       references: requestParams.references,
+      allowActiveRetrieval: requestParams.allowActiveRetrieval,
       ragContext: requestParams.ragContext, // 传递 RAG 上下文
     };
   }

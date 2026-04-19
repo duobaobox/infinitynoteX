@@ -10,6 +10,25 @@ import {
   resolveAIWorkbenchSelection,
 } from '../../features/ai-workbench/model/workbenchConversationItems';
 import type { UISlice } from './uiSlice';
+import type { NoteReference } from '../../features/ai-chat/types';
+import type { RagSource } from './retrievalSlice';
+import type { AIRunTrace, AIToolApproval } from '../../services/types';
+
+// ============ Message 类型定义（统一格式）============
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  reasoning?: string;
+  references?: NoteReference[];
+  ragSources?: RagSource[];
+  relatedToolCallIds?: string[];
+  // UI层数据（不持久化）
+  toolApprovals?: AIToolApproval[];
+  runTrace?: AIRunTrace;
+}
 
 // 定义依赖的其他 slice 类型（setSelectedToolItem 需要访问 UISlice.showEditor）
 type AIConversationSliceDeps = UISlice;
@@ -42,6 +61,9 @@ export interface AIConversationSlice {
   /** 单个对话消息刷新触发器 - key 是 conversationId，value 是触发次数 */
   messageRefreshTriggers: Record<string, number>;
 
+  // NEW: 消息存储 (key: conversationId)
+  conversationMessages: Record<string, Message[]>;
+
   // ============ Actions ============
   setAIConversations: (conversations: AIConversationPreview[]) => void;
   setSelectedTool: (toolId: string | null) => void;
@@ -53,6 +75,13 @@ export interface AIConversationSlice {
   triggerAIConversationsRefresh: () => void;
   /** 触发特定对话的消息刷新 */
   triggerMessageRefresh: (conversationId: string) => void;
+
+  // NEW: Message 管理 Actions
+  setConversationMessages: (conversationId: string, messages: Message[]) => void;
+  appendMessage: (conversationId: string, message: Message) => void;
+  updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
+  getConversationMessages: (conversationId: string) => Message[];
+  clearConversationMessages: (conversationId: string) => void;
 }
 
 export const createAIConversationSlice: StateCreator<
@@ -68,6 +97,7 @@ export const createAIConversationSlice: StateCreator<
   selectedToolItemId: null,
   refreshAIConversationsTrigger: 0,
   messageRefreshTriggers: {},
+  conversationMessages: {}, // NEW
 
   // Actions
   setAIConversations: (conversations) =>
@@ -166,6 +196,44 @@ export const createAIConversationSlice: StateCreator<
       messageRefreshTriggers: {
         ...state.messageRefreshTriggers,
         [conversationId]: (state.messageRefreshTriggers[conversationId] ?? 0) + 1,
+      },
+    })),
+
+  // NEW: Message 管理 Actions
+
+  setConversationMessages: (conversationId, messages) =>
+    set((state) => ({
+      conversationMessages: {
+        ...state.conversationMessages,
+        [conversationId]: messages,
+      },
+    })),
+
+  appendMessage: (conversationId, message) =>
+    set((state) => ({
+      conversationMessages: {
+        ...state.conversationMessages,
+        [conversationId]: [...(state.conversationMessages[conversationId] ?? []), message],
+      },
+    })),
+
+  updateMessage: (conversationId, messageId, updates) =>
+    set((state) => ({
+      conversationMessages: {
+        ...state.conversationMessages,
+        [conversationId]: (state.conversationMessages[conversationId] ?? []).map((msg) =>
+          msg.id === messageId ? { ...msg, ...updates } : msg,
+        ),
+      },
+    })),
+
+  getConversationMessages: (conversationId) => get().conversationMessages[conversationId] ?? [],
+
+  clearConversationMessages: (conversationId) =>
+    set((state) => ({
+      conversationMessages: {
+        ...state.conversationMessages,
+        [conversationId]: [],
       },
     })),
 });

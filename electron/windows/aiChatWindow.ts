@@ -136,9 +136,26 @@ export function createAIChatWindow(): void {
     aiChatWindow.on('moved', saveAIChatWindowState);
     aiChatWindow.on('resized', saveAIChatWindowState);
 
+    // NEW: 注册窗口到toolApprovalStateManager以接收审批状态更新
+    import('../ai/toolApprovalStateManager')
+      .then(({ toolApprovalStateManager }) => {
+        toolApprovalStateManager.registerRendererWindow(aiChatWindow);
+      })
+      .catch((error) => {
+        log.error('Failed to register AI chat window with approval manager:', error);
+      });
+
     // 窗口关闭时清理
     aiChatWindow.on('closed', () => {
       log.info('AI chat window closed');
+      // NEW: 注销窗口从toolApprovalStateManager
+      import('../ai/toolApprovalStateManager')
+        .then(({ toolApprovalStateManager }) => {
+          toolApprovalStateManager.unregisterRendererWindow(aiChatWindow);
+        })
+        .catch((error) => {
+          log.error('Failed to unregister AI chat window from approval manager:', error);
+        });
       aiChatWindow = null;
     });
 

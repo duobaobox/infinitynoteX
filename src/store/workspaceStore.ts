@@ -26,6 +26,13 @@ import {
   createTodoSlice,
   WorkspaceViewSlice,
   createWorkspaceViewSlice,
+  // NEW: AI Chat State Machine slices
+  RequestSlice,
+  createRequestSlice,
+  ToolCallSlice,
+  createToolCallSlice,
+  RetrievalSlice,
+  createRetrievalSlice,
 } from './slices';
 
 // ============ 组合所有 Slices 的完整状态类型 ============
@@ -35,7 +42,10 @@ export type WorkspaceState = UISlice &
   AIConversationSlice &
   BrowserCardsSlice &
   TodoSlice &
-  WorkspaceViewSlice;
+  WorkspaceViewSlice &
+  RequestSlice &
+  ToolCallSlice &
+  RetrievalSlice;
 
 // 为了向后兼容，保留 WorkspaceView 类型导出
 export type { WorkspaceView } from './slices/workspaceViewSlice';
@@ -51,6 +61,10 @@ const createStoreSlice: StateCreator<WorkspaceState> = (...a) => ({
   ...createBrowserCardsSlice(...a),
   ...createTodoSlice(...a),
   ...createWorkspaceViewSlice(...a),
+  // NEW: AI Chat state machine slices
+  ...createRequestSlice(...a),
+  ...createToolCallSlice(...a),
+  ...createRetrievalSlice(...a),
 });
 
 export const useWorkspaceStore = create<WorkspaceState>()(

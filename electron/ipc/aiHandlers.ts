@@ -20,6 +20,7 @@ import {
   isApprovalRequiredTool,
 } from '../ai/toolRegistry';
 import { consumePendingToolApproval, registerPendingToolApproval } from '../ai/toolApprovalManager';
+import { toolApprovalStateManager } from '../ai/toolApprovalStateManager';
 
 const aiChannel = (method: IpcProxyMethod<'ai'>) => getIpcProxyChannel('ai', method);
 
@@ -440,6 +441,16 @@ export function registerAIHandlers(): void {
                   createdAt: Date.now(),
                 });
 
+                // NEW: 推送工具审批请求状态到Renderer
+                toolApprovalStateManager.notifyToolApprovalRequested({
+                  requestId,
+                  approvalId: part.approvalId,
+                  toolCallId: part.toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  inputPreview: approval.preview ?? 'Tool input preview',
+                  timestamp: Date.now(),
+                });
+
                 hasPendingApprovals = true;
                 runTracker.upsertStep({
                   stepId: `tool:${part.toolCall.toolCallId}`,
@@ -608,6 +619,23 @@ export function registerAIHandlers(): void {
         });
       }
 
+      // NEW: 推送用户决策状态到Renderer
+      if (payload.approved) {
+        toolApprovalStateManager.notifyToolExecutionStarted({
+          requestId: pendingApproval.requestId,
+          approvalId: payload.approvalId,
+          toolCallId: pendingApproval.approval.toolCallId,
+          timestamp: Date.now(),
+        });
+      } else {
+        toolApprovalStateManager.notifyToolRejected({
+          requestId: pendingApproval.requestId,
+          approvalId: payload.approvalId,
+          toolCallId: pendingApproval.approval.toolCallId,
+          timestamp: Date.now(),
+        });
+      }
+
       try {
         const adapter = createAdapter(pendingApproval.config);
         const responseMessages = await pendingApproval.responseMessagesPromise;
@@ -661,6 +689,17 @@ export function registerAIHandlers(): void {
           resultSummary: executionSummary,
         };
 
+        // NEW: 推送工具执行成功状态到Renderer
+        if (payload.approved && matchingToolResult?.output) {
+          toolApprovalStateManager.notifyToolExecutionSuccess({
+            requestId: pendingApproval.requestId,
+            approvalId: payload.approvalId,
+            toolCallId: pendingApproval.approval.toolCallId,
+            result: matchingToolResult.output,
+            timestamp: Date.now(),
+          });
+        }
+
         const followUpApprovals = await Promise.all(
           findFollowUpApprovals(result.responseMessages, result.toolCalls).map(
             async (approvalCandidate) => {
@@ -686,6 +725,16 @@ export function registerAIHandlers(): void {
                 baseMessages: continuationMessages,
                 responseMessagesPromise: Promise.resolve(result.responseMessages),
                 createdAt: Date.now(),
+              });
+
+              // NEW: 推送后续工具审批请求状态到Renderer
+              toolApprovalStateManager.notifyToolApprovalRequested({
+                requestId: pendingApproval.requestId,
+                approvalId: approval.approvalId,
+                toolCallId: approval.toolCallId,
+                toolName: approval.toolName,
+                inputPreview: approval.preview ?? 'Tool input preview',
+                timestamp: Date.now(),
               });
 
               return approval;
@@ -768,6 +817,15 @@ export function registerAIHandlers(): void {
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
+
+        // NEW: 推送工具执行失败状态到Renderer
+        toolApprovalStateManager.notifyToolExecutionError({
+          requestId: pendingApproval.requestId,
+          approvalId: payload.approvalId,
+          toolCallId: pendingApproval.approval.toolCallId,
+          error: msg,
+          timestamp: Date.now(),
+        });
 
         if (runTracker) {
           runTracker.upsertStep({

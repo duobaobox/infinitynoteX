@@ -159,6 +159,12 @@ contextBridge.exposeInMainWorld(
       ipcRenderer.on(IPC_CHANNELS.aiRunUpdate, listener);
       return () => ipcRenderer.removeListener(IPC_CHANNELS.aiRunUpdate, listener);
     },
+    // NEW: 监听工具审批状态变化
+    onApprovalStateChanged: (callback: (data: unknown) => void) => {
+      const listener = (_: unknown, data: unknown) => callback(data);
+      ipcRenderer.on('ai:approval-state-changed', listener);
+      return () => ipcRenderer.removeListener('ai:approval-state-changed', listener);
+    },
   }),
 );
 

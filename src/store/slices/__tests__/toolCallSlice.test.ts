@@ -24,12 +24,13 @@ describe('ToolCallSlice - State Machine Tests', () => {
       _toolCall = result.current.createToolCall('req-123', 'tool-call-1', 'execute_command');
     });
 
+    const toolCall = store.getState().getToolCall('tool-call-1');
     expect(toolCall).toBeDefined();
-    expect(toolCall.id).toBe('tool-call-1');
-    expect(toolCall.requestId).toBe('req-123');
-    expect(toolCall.toolName).toBe('execute_command');
-    expect(toolCall.state.type).toBe('DRAFTING');
-    expect(toolCall.state.input).toBe('');
+    expect(toolCall?.id).toBe('tool-call-1');
+    expect(toolCall?.requestId).toBe('req-123');
+    expect(toolCall?.toolName).toBe('execute_command');
+    expect(toolCall?.state.type).toBe('DRAFTING');
+    expect(toolCall?.state.input).toBe('');
   });
 
   it('应该能在DRAFTING状态下更新参数草稿', () => {

@@ -76,6 +76,24 @@ describe('ToolCallSlice - State Machine Tests', () => {
     expect(completed?.state.preview).toBe(preview);
   });
 
+  it('应该在待审批状态下记录真实 approvalId', () => {
+    const store = createTestStore();
+    const { result } = renderHook(() => store((state) => state));
+
+    act(() => {
+      result.current.createToolCall('req-123', 'tool-call-1', 'execute_command');
+      result.current.completeToolCallDraft('tool-call-1', { command: 'ls' }, '{"command":"ls"}');
+    });
+
+    act(() => {
+      result.current.setToolCallApproval('tool-call-1', 'approval-1');
+    });
+
+    const updated = store.getState().getToolCall('tool-call-1');
+    expect(updated?.approvalId).toBe('approval-1');
+    expect(updated?.state.type).toBe('PENDING_APPROVAL');
+  });
+
   it('应该支持状态转移：PENDING_APPROVAL → EXECUTING', () => {
     const store = createTestStore();
     const { result } = renderHook(() => store((state) => state));

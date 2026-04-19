@@ -53,6 +53,18 @@ describe('AIConversationSlice', () => {
     });
   });
 
+  describe('conversationMessages', () => {
+    it('should return a stable empty array for missing conversations', () => {
+      const store = createTestStore();
+
+      const first = store.getState().getConversationMessages('missing-conversation');
+      const second = store.getState().getConversationMessages('missing-conversation');
+
+      expect(first).toBe(second);
+      expect(first).toEqual([]);
+    });
+  });
+
   describe('setSelectedToolItem', () => {
     it('should set selected item and show editor', () => {
       const store = createTestStore({

@@ -7,6 +7,10 @@ import {
   convertMarkdownToTipTap,
   stripThinkBlocks,
 } from '../../src/shared/utils/tiptapMarkdown';
+import {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  NOTE_TASKS_LIST_ID,
+} from '../../src/shared/constants/todoConstants';
 import { semanticSearch, extractNoteText } from '../knowledge';
 import { storageManager } from '../storage';
 
@@ -51,8 +55,24 @@ function deriveNoteTitle(title: string | undefined, content: string): string {
 }
 
 async function resolveDefaultTodoList() {
-  const lists = await storageManager.todoLists.getAll();
-  return lists.find((list) => list.isDefault) ?? lists[0] ?? null;
+  try {
+    return await storageManager.todoLists.get(DEFAULT_MANUAL_TODO_LIST_ID);
+  } catch {
+    // 兜底自愈：确保 AI 默认任务目标始终可用且固定
+    return await storageManager.todoLists.createDefault();
+  }
+}
+
+async function resolveTargetTodoList(listId?: string) {
+  if (listId) {
+    try {
+      return await storageManager.todoLists.get(listId);
+    } catch {
+      // 无效 listId 不再让 Agent 纠结，回落到固定默认清单
+    }
+  }
+
+  return resolveDefaultTodoList();
 }
 
 export function isApprovalRequiredTool(toolName: string): toolName is ApprovalRequiredToolName {
@@ -105,9 +125,7 @@ export async function buildToolApprovalRequest(args: {
     }
     case 'createManualTask': {
       const payload = input as { listId?: string; text?: string };
-      const todoList = payload.listId
-        ? await storageManager.todoLists.get(payload.listId)
-        : await resolveDefaultTodoList();
+      const todoList = await resolveTargetTodoList(payload.listId);
       return {
         approvalId,
         toolCallId,
@@ -227,9 +245,10 @@ export function createAgentTools(options?: { allowActiveRetrieval?: boolean }): 
       inputSchema: z.object({}),
       execute: async () => {
         const lists = await storageManager.todoLists.getAll();
+        const validLists = lists.filter((list) => list.id !== NOTE_TASKS_LIST_ID);
         return {
-          count: lists.length,
-          lists: lists.map((list) => ({
+          count: validLists.length,
+          lists: validLists.map((list) => ({
             id: list.id,
             name: list.name,
             isDefault: list.isDefault,
@@ -306,15 +325,16 @@ export function createAgentTools(options?: { allowActiveRetrieval?: boolean }): 
     createManualTask: tool({
       description: '创建一条待办任务。适合把结论落成下一步动作时使用。',
       inputSchema: z.object({
-        listId: z.string().optional().describe('任务清单 ID，不传时默认使用默认清单'),
+        listId: z
+          .string()
+          .optional()
+          .describe('任务清单 ID。未提供或无效时，固定写入“默认任务清单”。'),
         text: z.string().min(1).describe('任务内容'),
         dueDate: z.number().optional().describe('截止时间的时间戳（毫秒）'),
       }),
       needsApproval: true,
       execute: async ({ listId, text, dueDate }) => {
-        const targetList = listId
-          ? await storageManager.todoLists.get(listId)
-          : await resolveDefaultTodoList();
+        const targetList = await resolveTargetTodoList(listId);
 
         if (!targetList) {
           throw new Error('未找到可用的任务清单');

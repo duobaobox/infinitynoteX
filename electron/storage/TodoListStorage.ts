@@ -8,12 +8,10 @@ import type { TodoList, TodoListIndex } from './schemas';
 import type { IndexCache } from './core/IndexCache';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
-import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
+import { DEFAULT_MANUAL_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
 
 // 获取 todo-lists 模块配置
 const todoListsConfig = getModuleConfig('todo-lists')!;
-
-export { DEFAULT_TODO_LIST_ID };
 
 export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListIndex> {
   constructor(context: StorageContext, indexCache: IndexCache) {
@@ -44,18 +42,18 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
   }
 
   /**
-   * 初始化默认清单（便签任务）
+   * 初始化默认清单（默认任务清单）
    */
   async initializeDefault(): Promise<void> {
     try {
       // 尝试获取默认清单
-      await this.get(DEFAULT_TODO_LIST_ID);
+      await this.get(DEFAULT_MANUAL_TODO_LIST_ID);
       // 已存在，不再创建
       return;
     } catch {
       // 不存在，创建默认清单
       await this.createDefault();
-      console.log('[TodoListStorage] Initialized default todo list');
+      console.log('[TodoListStorage] Initialized default manual todo list');
     }
   }
 
@@ -65,8 +63,8 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
   async createDefault(): Promise<TodoList> {
     const now = Date.now();
     const defaultList: TodoList = {
-      id: DEFAULT_TODO_LIST_ID,
-      name: '便签任务',
+      id: DEFAULT_MANUAL_TODO_LIST_ID,
+      name: '默认任务清单',
       isDefault: true,
       createdAt: now,
       updatedAt: now,
@@ -75,7 +73,7 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
 
     // 直接写入文件和索引
     await this.writeFile(defaultList);
-    this.addToIndex(defaultList);
+    this.addToIndex(this.toIndex(defaultList));
 
     return defaultList;
   }
@@ -84,8 +82,8 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
    * 防止删除默认清单
    */
   async delete(id: string): Promise<void> {
-    if (id === DEFAULT_TODO_LIST_ID) {
-      throw new Error('Cannot delete default todo list');
+    if (id === DEFAULT_MANUAL_TODO_LIST_ID) {
+      throw new Error('Cannot delete default manual todo list');
     }
     await super.delete(id);
   }

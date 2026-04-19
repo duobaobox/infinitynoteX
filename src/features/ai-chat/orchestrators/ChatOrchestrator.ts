@@ -1,360 +1,701 @@
 /**
  * ChatOrchestrator
- * 协调整个AI对话流程：消息发送→工具调用→审批→保存
- *
- * 职责：
- * - 管理用户消息发送流程
- * - 订阅IPC事件并更新store状态
- * - 协调工具调用和审批
- * - 处理历史消息保存（仅一次）
- *
- * 注意：这是一个初步实现，完整功能需要在Phase 3完成后进一步优化
+ * 协调整个 AI Chat 的请求生命周期、工具审批与历史持久化。
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type { ChatMessage } from '../../../services/aiConfig';
+import type { AIConversationSource, AIToolApproval, NoteReference } from '../../../services/types';
 import type { Message } from '../../../store/slices/aiConversationSlice';
+import type { RagSource } from '../../../store/slices/retrievalSlice';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
-import type { NoteReference } from '../types';
+import { mergeToolApprovals, resolveApprovalContinuationContent } from '../approvalFlow';
+import { splitReasoningContent } from '../utils/messageConverter';
+import {
+  persistedMessagesToStoreMessages,
+  storeMessagesToPersistedMessages,
+} from '../utils/persistenceConverter';
+
+type PersistOptions = {
+  autoSave?: boolean;
+  source?: AIConversationSource;
+  sourceEntityId?: string | null;
+  onTitleChange?: (title: string) => void;
+};
+
+export interface SendMessageOptions extends PersistOptions {
+  conversationId: string;
+  text: string;
+  references?: NoteReference[];
+  allowActiveRetrieval?: boolean;
+  useFallbackRag?: boolean;
+}
+
+interface RequestContext {
+  requestId: string;
+  conversationId: string;
+  assistantMessageId: string;
+  persistOptions: PersistOptions;
+}
 
 export class ChatOrchestrator {
   private store: any;
-  private unsubscribes: Array<() => void> = [];
-  private messageMap: Map<string, Message> = new Map();
+  private requestContexts = new Map<string, RequestContext>();
+  private requestSubscriptions = new Map<string, Array<() => void>>();
 
   constructor(store: any = useWorkspaceStore) {
     this.store = store;
   }
 
-  /**
-   * 用户发送消息入口
-   */
-  async handleSendMessage(
+  private getStore(): any {
+    return typeof this.store?.getState === 'function' ? this.store.getState() : this.store;
+  }
+
+  private generateMessageId(): string {
+    return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private getConversationMessages(conversationId: string): Message[] {
+    return this.getStore().getConversationMessages?.(conversationId) ?? [];
+  }
+
+  private buildHistoryMessages(conversationId: string): ChatMessage[] {
+    return this.getConversationMessages(conversationId)
+      .filter((message) => message.role !== 'assistant' || message.content.trim().length > 0)
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+        references: message.references,
+      }));
+  }
+
+  private createAssistantMessage(
+    requestId: string,
     conversationId: string,
+    initial: Partial<Message> = {},
+  ): string {
+    const assistantMessage: Message = {
+      id: this.generateMessageId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      relatedToolCallIds: [],
+      ...initial,
+    };
+
+    const store = this.getStore();
+    store.appendMessage?.(conversationId, assistantMessage);
+    store.addMessageToRequest?.(requestId, assistantMessage.id);
+    this.requestContexts.set(requestId, {
+      requestId,
+      conversationId,
+      assistantMessageId: assistantMessage.id,
+      persistOptions: {},
+    });
+
+    return assistantMessage.id;
+  }
+
+  private getRequestContext(requestId: string): RequestContext | null {
+    return this.requestContexts.get(requestId) ?? null;
+  }
+
+  private updateContextOptions(requestId: string, persistOptions: PersistOptions): void {
+    const context = this.requestContexts.get(requestId);
+    if (!context) {
+      return;
+    }
+
+    this.requestContexts.set(requestId, {
+      ...context,
+      persistOptions: {
+        ...context.persistOptions,
+        ...persistOptions,
+      },
+    });
+  }
+
+  private updateMessage(
+    conversationId: string,
+    messageId: string,
+    updater: (message: Message) => Partial<Message>,
+  ): void {
+    const current = this.getConversationMessages(conversationId).find(
+      (message) => message.id === messageId,
+    );
+    if (!current) {
+      return;
+    }
+
+    this.getStore().updateMessage?.(conversationId, messageId, updater(current));
+  }
+
+  private updateAssistantMessage(
+    requestId: string,
+    updater: (message: Message) => Partial<Message>,
+  ): void {
+    const context = this.getRequestContext(requestId);
+    if (!context) {
+      return;
+    }
+
+    this.updateMessage(context.conversationId, context.assistantMessageId, updater);
+  }
+
+  private appendAssistantContent(
+    requestId: string,
+    chunk: { delta?: string; reasoningDelta?: string },
+  ): void {
+    this.updateAssistantMessage(requestId, (message) => ({
+      content: `${message.content}${chunk.delta ?? ''}`,
+      reasoning: `${message.reasoning ?? ''}${chunk.reasoningDelta ?? ''}` || undefined,
+    }));
+  }
+
+  private addRelatedToolCallId(requestId: string, toolCallId: string): void {
+    this.updateAssistantMessage(requestId, (message) => ({
+      relatedToolCallIds: Array.from(new Set([...(message.relatedToolCallIds ?? []), toolCallId])),
+    }));
+  }
+
+  private mergeApprovalIntoAssistant(requestId: string, approval: AIToolApproval): void {
+    this.updateAssistantMessage(requestId, (message) => ({
+      toolApprovals: mergeToolApprovals(message.toolApprovals, [approval]),
+      relatedToolCallIds: Array.from(
+        new Set([...(message.relatedToolCallIds ?? []), approval.toolCallId]),
+      ),
+    }));
+  }
+
+  private updateApprovalStateInAssistant(
+    requestId: string,
+    approvalId: string,
+    patch: Partial<AIToolApproval>,
+  ): void {
+    this.updateAssistantMessage(requestId, (message) => ({
+      toolApprovals: (message.toolApprovals ?? []).map((approval) =>
+        approval.approvalId === approvalId ? { ...approval, ...patch } : approval,
+      ),
+    }));
+  }
+
+  private appendApprovalContinuation(
+    requestId: string,
+    latestApproval: AIToolApproval,
+    content?: string,
+  ): void {
+    const parsed = splitReasoningContent(content ?? '');
+
+    this.updateAssistantMessage(requestId, (message) => ({
+      content: resolveApprovalContinuationContent({
+        currentContent: message.content,
+        existingApprovals: message.toolApprovals,
+        latestApproval,
+        continuationContent: parsed.content,
+      }),
+      reasoning:
+        [message.reasoning, parsed.reasoning].filter(Boolean).join('\n').trim() || undefined,
+    }));
+  }
+
+  private normalizeToolApprovalEvent(data: any): AIToolApproval {
+    if (data?.approval) {
+      return data.approval as AIToolApproval;
+    }
+
+    return {
+      approvalId: data.approvalId,
+      toolCallId: data.toolCallId,
+      toolName: data.toolName ?? 'tool',
+      title: data.toolName ? `待审批工具：${data.toolName}` : '待审批工具',
+      description: 'AI 请求执行工具调用，等待用户确认。',
+      status: 'pending',
+      preview: data.inputPreview,
+    };
+  }
+
+  private ensureToolCallForApproval(requestId: string, approval: AIToolApproval): void {
+    const store = this.getStore();
+    const existing = store.getToolCall?.(approval.toolCallId);
+
+    if (!existing) {
+      const toolCall = store.createToolCall?.(requestId, approval.toolCallId, approval.toolName);
+      if (toolCall) {
+        store.addToolCallToRequest?.(requestId, toolCall.id);
+      }
+    }
+
+    const preview = approval.preview ?? approval.description ?? '';
+    store.completeToolCallDraft?.(approval.toolCallId, preview, preview);
+    store.setToolCallApproval?.(approval.toolCallId, approval.approvalId);
+    this.addRelatedToolCallId(requestId, approval.toolCallId);
+  }
+
+  private findToolCallByApprovalId(approvalId: string): any {
+    const toolCalls = Object.values(this.getStore().toolCalls ?? {}) as Array<any>;
+    return toolCalls.find((toolCall) => toolCall.approvalId === approvalId) ?? null;
+  }
+
+  private registerRequestSubscription(requestId: string, unsubscribe: () => void): void {
+    const existing = this.requestSubscriptions.get(requestId) ?? [];
+    existing.push(unsubscribe);
+    this.requestSubscriptions.set(requestId, existing);
+  }
+
+  private clearRequestSubscriptions(requestId: string): void {
+    const unsubscribes = this.requestSubscriptions.get(requestId) ?? [];
+    unsubscribes.forEach((unsubscribe) => unsubscribe());
+    this.requestSubscriptions.delete(requestId);
+  }
+
+  private cleanupRequest(requestId: string): void {
+    this.clearRequestSubscriptions(requestId);
+    this.requestContexts.delete(requestId);
+  }
+
+  private async buildFallbackRagData(
     text: string,
-    references?: NoteReference[],
-  ): Promise<void> {
+    useFallbackRag: boolean,
+  ): Promise<{
+    ragContext?: {
+      results: Array<{
+        noteId: string;
+        noteTitle: string;
+        excerpt: string;
+        score: number;
+      }>;
+    };
+    ragSources?: RagSource[];
+  }> {
+    if (!useFallbackRag || !window.knowledge?.search) {
+      this.getStore().clearRetrievalContext?.();
+      return {};
+    }
+
+    this.getStore().startRetrieval?.(text, 'prefetch');
+
     try {
-      // 1. 创建Request
-      const request = this.store.createRequest?.(conversationId);
-      if (!request) return;
+      const searchResults = await window.knowledge.search(text, 3);
+      if (!searchResults?.length) {
+        this.getStore().completeRetrieval?.([]);
+        return {};
+      }
 
-      // 2. 创建用户消息
-      const userMessage: Message = {
-        id: this.generateMessageId(),
-        role: 'user',
-        content: text,
-        timestamp: Date.now(),
-        references,
+      const ragSources = searchResults.map((result, index) => ({
+        key: index + 1,
+        title: result.noteTitle,
+        description: result.excerpt.slice(0, 100) + (result.excerpt.length > 100 ? '...' : ''),
+        noteId: result.noteId,
+      }));
+
+      this.getStore().completeRetrieval?.(ragSources);
+
+      return {
+        ragContext: {
+          results: searchResults.map((result) => ({
+            noteId: result.noteId,
+            noteTitle: result.noteTitle,
+            excerpt: result.excerpt,
+            score: result.score,
+          })),
+        },
+        ragSources,
       };
-
-      this.store.appendMessage?.(conversationId, userMessage);
-      this.store.addMessageToRequest?.(request.id, userMessage.id);
-      this.messageMap.set(userMessage.id, userMessage);
-
-      // 3. 发送IPC请求
-      await this.sendChatRequest(request.id, text, conversationId, references);
-
-      // 4. 订阅IPC事件
-      this.subscribeToStreamEvents(request.id, conversationId);
     } catch (error) {
-      console.error('[ChatOrchestrator] Error sending message:', error);
+      console.warn('[ChatOrchestrator] Knowledge search failed:', error);
+      this.getStore().cancelRetrieval?.();
+      return {};
+    }
+  }
+
+  async loadConversation(
+    conversationId: string,
+    options?: { onTitleChange?: (title: string) => void },
+  ): Promise<void> {
+    if (!conversationId) {
+      return;
+    }
+
+    const conversation = await window.storage.getAIConversation(conversationId);
+    this.getStore().setConversationMessages?.(
+      conversationId,
+      persistedMessagesToStoreMessages(conversation.messages ?? []),
+    );
+    options?.onTitleChange?.(conversation.title || 'AI 对话');
+  }
+
+  async clearConversation(conversationId: string, options: PersistOptions = {}): Promise<void> {
+    this.getStore().clearConversationMessages?.(conversationId);
+
+    if (!options.autoSave) {
+      return;
+    }
+
+    await this.saveConversation(conversationId, options);
+  }
+
+  async abortRequest(requestId: string): Promise<void> {
+    await window.ai.abortStream(requestId);
+  }
+
+  async handleSendMessage(
+    conversationIdOrOptions: string | SendMessageOptions,
+    text?: string,
+    references?: NoteReference[],
+  ): Promise<{ conversationId: string; requestId: string } | void> {
+    const options: SendMessageOptions =
+      typeof conversationIdOrOptions === 'string'
+        ? {
+            conversationId: conversationIdOrOptions,
+            text: text ?? '',
+            references,
+            autoSave: true,
+            allowActiveRetrieval: true,
+          }
+        : conversationIdOrOptions;
+
+    if (!options.text.trim()) {
+      return;
+    }
+
+    const history = this.buildHistoryMessages(options.conversationId);
+    const { ragContext, ragSources } = await this.buildFallbackRagData(
+      options.text,
+      Boolean(options.useFallbackRag),
+    );
+
+    const store = this.getStore();
+    const fallbackRequestId = this.generateRequestId();
+    const request = store.createRequest?.(options.conversationId) ?? {
+      id: fallbackRequestId,
+      conversationId: options.conversationId,
+    };
+
+    const requestKey = request.id;
+
+    const userMessage: Message = {
+      id: this.generateMessageId(),
+      role: 'user',
+      content: options.text,
+      timestamp: Date.now(),
+      references: options.references,
+    };
+
+    store.appendMessage?.(options.conversationId, userMessage);
+    store.addMessageToRequest?.(requestKey, userMessage.id);
+
+    const assistantMessageId = this.createAssistantMessage(requestKey, options.conversationId, {
+      ragSources,
+    });
+    this.updateContextOptions(requestKey, {
+      autoSave: options.autoSave,
+      source: options.source,
+      sourceEntityId: options.sourceEntityId,
+      onTitleChange: options.onTitleChange,
+    });
+    this.requestContexts.set(requestKey, {
+      requestId: requestKey,
+      conversationId: options.conversationId,
+      assistantMessageId,
+      persistOptions: {
+        autoSave: options.autoSave,
+        source: options.source,
+        sourceEntityId: options.sourceEntityId,
+        onTitleChange: options.onTitleChange,
+      },
+    });
+
+    this.subscribeToStreamEvents(requestKey, options.conversationId);
+
+    try {
+      await window.ai.chatStream({
+        requestId: requestKey,
+        message: options.text,
+        messages: history,
+        references: options.references,
+        allowActiveRetrieval: options.allowActiveRetrieval ?? true,
+        ragContext,
+      });
+      return { conversationId: options.conversationId, requestId: requestKey };
+    } catch (error) {
+      store.setRequestError?.(requestKey, error instanceof Error ? error.message : String(error));
+      this.cleanupRequest(requestKey);
       throw error;
     }
   }
 
-  /**
-   * 发送聊天请求到Main Process
-   */
-  private async sendChatRequest(
-    requestId: string,
-    text: string,
-    conversationId: string,
-    references?: NoteReference[],
-  ): Promise<void> {
-    const messages = this.store.getConversationMessages?.(conversationId) ?? [];
-    const filteredMessages = messages
-      .filter((m: any) => m.role !== 'user' || m.content.length > 0)
-      .map((m: any) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: m.content,
-      }));
-
-    await window.ai.chatStream({
-      requestId,
-      message: text,
-      messages: filteredMessages,
-      references,
-      allowActiveRetrieval: true,
-    } as any);
-  }
-
-  /**
-   * 订阅IPC事件的完整流程
-   */
   private subscribeToStreamEvents(requestId: string, conversationId: string): void {
-    // 清理旧的订阅
-    this.unsubscribes.forEach((u) => u());
-    this.unsubscribes = [];
+    this.clearRequestSubscriptions(requestId);
 
-    let aiMessage: Message | null = null;
-
-    // EVENT 1: 流数据块
-    this.unsubscribes.push(
+    this.registerRequestSubscription(
+      requestId,
       window.ai.onStreamChunk(({ requestId: eventRequestId, chunk }: any) => {
         if (eventRequestId !== requestId) return;
-
-        // 创建或追加AI消息
-        if (!aiMessage) {
-          aiMessage = {
-            id: this.generateMessageId(),
-            role: 'assistant',
-            content: chunk.delta || '',
-            timestamp: Date.now(),
-          };
-          this.store.appendMessage?.(conversationId, aiMessage);
-          this.store.addMessageToRequest?.(requestId, aiMessage.id);
-          this.messageMap.set(aiMessage.id, aiMessage);
-        } else {
-          aiMessage.content += chunk.delta || '';
-          this.store.updateMessage?.(conversationId, aiMessage.id, {
-            content: aiMessage.content,
-          });
-          this.messageMap.set(aiMessage.id, aiMessage);
-        }
+        this.appendAssistantContent(requestId, chunk);
       }),
     );
 
-    // EVENT 2: 工具进度
-    this.unsubscribes.push(
+    this.registerRequestSubscription(
+      requestId,
       window.ai.onToolProgress(({ requestId: eventRequestId, progress }: any) => {
         if (eventRequestId !== requestId) return;
 
+        const store = this.getStore();
         if (progress.phase === 'start') {
-          // 开始构建新工具调用
-          const toolCall = this.store.createToolCall?.(
+          const toolCall = store.createToolCall?.(
             requestId,
             progress.toolCallId,
             progress.toolName,
           );
           if (toolCall) {
-            this.store.addToolCallToRequest?.(requestId, toolCall.id);
+            store.addToolCallToRequest?.(requestId, toolCall.id);
+            this.addRelatedToolCallId(requestId, toolCall.id);
           }
-        } else if (progress.phase === 'delta') {
-          // 接收工具参数delta
-          this.store.updateToolCallDraft?.(progress.toolCallId, progress.inputTextDelta || '');
+          return;
         }
+
+        store.updateToolCallDraft?.(progress.toolCallId, progress.inputTextDelta || '');
       }),
     );
 
-    // EVENT 3: 工具审批请求 (使用现有IPC接口名)
-    this.unsubscribes.push(
-      window.ai.onToolApprovalRequest(({ requestId: eventRequestId, approval }: any) => {
+    this.registerRequestSubscription(
+      requestId,
+      window.ai.onToolApprovalRequest((data: any) => {
+        const eventRequestId = data?.requestId;
         if (eventRequestId !== requestId) return;
 
-        // 工具参数构建完成
-        const toolCall = this.store.getToolCall?.(approval.toolCallId);
-        if (toolCall && toolCall.state.type === 'DRAFTING') {
-          try {
-            const parsedInput = JSON.parse(approval.inputPreview);
-            this.store.completeToolCallDraft?.(
-              approval.toolCallId,
-              parsedInput,
-              approval.inputPreview,
-            );
-          } catch (e) {
-            this.store.completeToolCallDraft?.(
-              approval.toolCallId,
-              approval.inputPreview,
-              approval.inputPreview,
-            );
-          }
-        }
+        const approval = this.normalizeToolApprovalEvent(data);
+        this.ensureToolCallForApproval(requestId, approval);
+        this.mergeApprovalIntoAssistant(requestId, approval);
+        this.getStore().transitionRequest?.(requestId, 'WAITING_APPROVALS');
 
-        // 转移Request到等待审批
-        this.store.transitionRequest?.(requestId, 'WAITING_APPROVALS');
+        const persistOptions = this.getRequestContext(requestId)?.persistOptions;
+        void this.saveConversation(conversationId, persistOptions);
       }),
     );
 
-    // NEW EVENT 4: Main Process推送的审批状态变化
-    this.unsubscribes.push(
-      window.ai.onApprovalStateChanged(
-        ({ requestId: eventRequestId, toolCallId, state, result, error }: any) => {
+    if (window.ai.onRunUpdate) {
+      this.registerRequestSubscription(
+        requestId,
+        window.ai.onRunUpdate(({ requestId: eventRequestId, run }: any) => {
           if (eventRequestId !== requestId) return;
+          this.updateAssistantMessage(requestId, () => ({ runTrace: run }));
+        }),
+      );
+    }
 
-          switch (state) {
-            case 'EXECUTING':
-              // Main Process已开始执行工具
-              this.store.approveToolCall?.(toolCallId);
-              break;
-            case 'SUCCESS':
-              // 工具执行成功
-              this.store.completeToolCall?.(toolCallId, result);
-              break;
-            case 'ERROR':
-              // 工具执行失败
-              this.store.failToolCall?.(toolCallId, error || 'Execution error');
-              break;
-            case 'REJECTED':
-              // Main Process确认用户拒绝
-              this.store.rejectToolCall?.(toolCallId, 'User rejected');
-              break;
-            case 'PENDING_APPROVAL':
-              // Main Process推送了待审批状态（可选处理）
-              break;
-          }
-        },
-      ),
-    );
+    if (window.ai.onApprovalStateChanged) {
+      this.registerRequestSubscription(
+        requestId,
+        window.ai.onApprovalStateChanged(
+          ({ requestId: eventRequestId, toolCallId, approvalId, state, result, error }: any) => {
+            if (eventRequestId !== requestId) return;
 
-    // EVENT 5: 流完成
-    this.unsubscribes.push(
-      window.ai.onStreamDone(({ requestId: eventRequestId }: any) => {
+            const store = this.getStore();
+
+            switch (state) {
+              case 'EXECUTING':
+                store.approveToolCall?.(toolCallId);
+                store.transitionRequest?.(requestId, 'EXECUTING_TOOLS');
+                this.updateApprovalStateInAssistant(requestId, approvalId, {
+                  status: 'processing',
+                });
+                break;
+              case 'SUCCESS':
+                store.completeToolCall?.(toolCallId, result);
+                this.updateApprovalStateInAssistant(requestId, approvalId, { status: 'executed' });
+                break;
+              case 'ERROR':
+                store.failToolCall?.(toolCallId, error || 'Execution error');
+                this.updateApprovalStateInAssistant(requestId, approvalId, {
+                  status: 'failed',
+                  error: error || 'Execution error',
+                });
+                break;
+              case 'REJECTED':
+                store.rejectToolCall?.(toolCallId, 'User rejected');
+                this.updateApprovalStateInAssistant(requestId, approvalId, { status: 'denied' });
+                break;
+              case 'PENDING_APPROVAL':
+                store.transitionRequest?.(requestId, 'WAITING_APPROVALS');
+                break;
+            }
+          },
+        ),
+      );
+    }
+
+    if (window.ai.onStreamError) {
+      this.registerRequestSubscription(
+        requestId,
+        window.ai.onStreamError(({ requestId: eventRequestId, error }: any) => {
+          if (eventRequestId !== requestId) return;
+          this.getStore().setRequestError?.(requestId, error || 'Stream error');
+        }),
+      );
+    }
+
+    this.registerRequestSubscription(
+      requestId,
+      window.ai.onStreamDone(async ({ requestId: eventRequestId }: any) => {
         if (eventRequestId !== requestId) return;
 
-        // 检查是否有待执行的工具
-        const request = this.store.getRequest?.(requestId);
-        const pendingToolCalls =
+        const request = this.getStore().getRequest?.(requestId);
+        const stillPending =
           request?.toolCallIds
-            ?.map((id: string) => this.store.getToolCall?.(id))
-            .filter((tc: any) => tc?.state.type === 'PENDING_APPROVAL') ?? [];
+            ?.map((id: string) => this.getStore().getToolCall?.(id))
+            .some((toolCall: any) => toolCall?.state.type === 'PENDING_APPROVAL') ?? false;
 
-        if (pendingToolCalls.length === 0) {
-          // 没有工具需要审批，直接完成
-          this.store.completeRequest?.(requestId);
-          this.saveConversationHistoryOnce(conversationId);
+        if (stillPending) {
+          this.getStore().transitionRequest?.(requestId, 'WAITING_APPROVALS');
+          await this.saveConversation(
+            conversationId,
+            this.getRequestContext(requestId)?.persistOptions,
+          );
+          return;
         }
-        // 否则保持WAITING_APPROVALS状态，等待用户交互
 
-        // 清理
-        this.cleanup();
+        this.getStore().completeRequest?.(requestId);
+        await this.saveConversation(
+          conversationId,
+          this.getRequestContext(requestId)?.persistOptions,
+        );
+        this.cleanupRequest(requestId);
       }),
     );
   }
 
-  /**
-   * 用户批准工具调用
-   */
   async handleApproveToolCall(
     requestId: string,
     toolCallId: string,
     conversationId: string,
   ): Promise<void> {
-    try {
-      // 1. 立即转移状态到EXECUTING
-      this.store.approveToolCall?.(toolCallId);
-      this.store.transitionRequest?.(requestId, 'EXECUTING_TOOLS');
-
-      // 2. 通知Main Process
-      const result = await window.ai.respondToolApproval({
-        approvalId: toolCallId,
-        approved: true,
-      });
-
-      if (!result.success) {
-        throw new Error(result.error || 'Tool approval failed');
-      }
-
-      // 3. 处理结果
-      if (result.approval) {
-        this.store.completeToolCall?.(toolCallId, (result as any).content);
-      } else {
-        this.store.failToolCall?.(toolCallId, result.error || 'Unknown error');
-      }
-
-      // 4. 检查是否还有待处理的工具
-      const request = this.store.getRequest?.(requestId);
-      const stillPending =
-        request?.toolCallIds
-          ?.map((id: string) => this.store.getToolCall?.(id))
-          .some((tc: any) => tc?.state.type === 'PENDING_APPROVAL') ?? false;
-
-      if (!stillPending) {
-        // 全部工具完成，可能有继续内容
-        this.store.completeRequest?.(requestId);
-        await this.saveConversationHistoryOnce(conversationId);
-      }
-    } catch (error) {
-      console.error('[ChatOrchestrator] Error approving tool:', error);
-      this.store.failToolCall?.(
-        toolCallId,
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+    const toolCall = this.getStore().getToolCall?.(toolCallId);
+    if (!toolCall?.approvalId) {
+      throw new Error(`Missing approvalId for tool call ${toolCallId}`);
     }
+
+    await this.respondToToolApproval({
+      conversationId,
+      approvalId: toolCall.approvalId,
+      approved: true,
+      autoSave: this.getRequestContext(requestId)?.persistOptions.autoSave,
+      source: this.getRequestContext(requestId)?.persistOptions.source,
+      sourceEntityId: this.getRequestContext(requestId)?.persistOptions.sourceEntityId,
+    });
   }
 
-  /**
-   * 用户拒绝工具调用
-   */
   async handleRejectToolCall(toolCallId: string, conversationId: string): Promise<void> {
-    this.store.rejectToolCall?.(toolCallId, 'User rejected');
+    const toolCall = this.getStore().getToolCall?.(toolCallId);
+    if (!toolCall?.approvalId) {
+      throw new Error(`Missing approvalId for tool call ${toolCallId}`);
+    }
 
-    // 检查是否还有其他待批准的工具
-    const toolCall = this.store.getToolCall?.(toolCallId);
-    if (toolCall) {
-      const request = this.store.getRequest?.(toolCall.requestId);
-      const stillPending =
-        request?.toolCallIds
-          ?.map((id: string) => this.store.getToolCall?.(id))
-          .some((tc: any) => tc?.state.type === 'PENDING_APPROVAL') ?? false;
+    await this.respondToToolApproval({
+      conversationId,
+      approvalId: toolCall.approvalId,
+      approved: false,
+      autoSave: true,
+    });
+  }
 
-      if (!stillPending) {
-        this.store.completeRequest?.(toolCall.requestId);
-        this.saveConversationHistoryOnce(conversationId);
+  async respondToToolApproval(options: {
+    conversationId: string;
+    approvalId: string;
+    approved: boolean;
+    autoSave?: boolean;
+    source?: AIConversationSource;
+    sourceEntityId?: string | null;
+  }): Promise<void> {
+    const toolCall = this.findToolCallByApprovalId(options.approvalId);
+    if (!toolCall) {
+      throw new Error(`Unknown approvalId: ${options.approvalId}`);
+    }
+
+    const requestId = toolCall.requestId;
+
+    if (options.approved) {
+      // 主窗口可能因为事件广播缺失而收不到 EXECUTING 状态，这里先在本地推进状态机，
+      // 避免工具已经执行成功但请求仍卡在待审批/加载中。
+      this.getStore().approveToolCall?.(toolCall.id);
+      this.getStore().transitionRequest?.(requestId, 'EXECUTING_TOOLS');
+      this.updateApprovalStateInAssistant(requestId, options.approvalId, {
+        status: 'processing',
+      });
+    }
+
+    const result = await window.ai.respondToolApproval({
+      approvalId: options.approvalId,
+      approved: options.approved,
+    });
+
+    if (!result.success) {
+      this.getStore().failToolCall?.(toolCall.id, result.error || 'Tool approval failed');
+      this.updateApprovalStateInAssistant(requestId, options.approvalId, {
+        status: 'failed',
+        error: result.error || 'Tool approval failed',
+      });
+      await this.saveConversation(options.conversationId, options);
+      throw new Error(result.error || 'Tool approval failed');
+    }
+
+    if (result.approval) {
+      this.mergeApprovalIntoAssistant(requestId, result.approval);
+      this.appendApprovalContinuation(requestId, result.approval, result.content);
+
+      if (result.approval.status === 'executed') {
+        this.getStore().completeToolCall?.(toolCall.id, result.content ?? null);
+      }
+
+      if (result.approval.status === 'denied') {
+        this.getStore().rejectToolCall?.(toolCall.id, 'User rejected');
       }
     }
-  }
 
-  /**
-   * 处理Main Process的审批状态变化
-   */
-  onApprovalStateChanged(data: {
-    requestId: string;
-    toolCallId: string;
-    state: string;
-    timestamp: number;
-  }): void {
-    // 这是Main Process主动推送的状态同步
-    // 用于同步复杂的工具执行过程
-
-    switch (data.state) {
-      case 'EXECUTING':
-        this.store.approveToolCall?.(data.toolCallId);
-        break;
-      case 'SUCCESS':
-        this.store.completeToolCall?.(data.toolCallId, null);
-        break;
-      case 'ERROR':
-        this.store.failToolCall?.(data.toolCallId, 'Main Process error');
-        break;
+    for (const approval of result.followUpApprovals ?? []) {
+      this.ensureToolCallForApproval(requestId, approval);
+      this.mergeApprovalIntoAssistant(requestId, approval);
     }
-  }
 
-  /**
-   * 只保存一次历史
-   */
-  private async saveConversationHistoryOnce(conversationId: string): Promise<void> {
-    try {
-      const messages = this.store.getConversationMessages?.(conversationId) ?? [];
-      await window.storage.saveAIConversationMessages(conversationId, messages);
-    } catch (error) {
-      console.error('[ChatOrchestrator] Error saving conversation:', error);
+    const request = this.getStore().getRequest?.(requestId);
+    const stillPending =
+      request?.toolCallIds
+        ?.map((id: string) => this.getStore().getToolCall?.(id))
+        .some((item: any) => item?.state.type === 'PENDING_APPROVAL') ?? false;
+
+    if (stillPending) {
+      this.getStore().transitionRequest?.(requestId, 'WAITING_APPROVALS');
+    } else {
+      this.getStore().completeRequest?.(requestId);
+      this.cleanupRequest(requestId);
     }
+
+    await this.saveConversation(options.conversationId, options);
   }
 
-  /**
-   * 生成消息ID
-   */
-  private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  private async saveConversation(
+    conversationId: string,
+    options: PersistOptions = {},
+  ): Promise<void> {
+    if (!options.autoSave) {
+      return;
+    }
+
+    const messages = storeMessagesToPersistedMessages(this.getConversationMessages(conversationId));
+    await window.storage.saveAIConversationMessages(conversationId, messages, {
+      source: options.source,
+      sourceEntityId: options.sourceEntityId ?? undefined,
+    });
   }
 
-  /**
-   * 清理资源
-   */
   cleanup(): void {
-    this.unsubscribes.forEach((u) => u());
-    this.unsubscribes = [];
-    this.messageMap.clear();
+    for (const requestId of this.requestSubscriptions.keys()) {
+      this.cleanupRequest(requestId);
+    }
   }
 }

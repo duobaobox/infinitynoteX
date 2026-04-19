@@ -19,6 +19,7 @@ export type ToolCallStateType =
 
 export interface ToolCall {
   id: string;
+  approvalId?: string;
   requestId: string;
   toolName: string;
   state: ToolCallStateType;
@@ -33,6 +34,7 @@ export interface ToolCallSlice {
   createToolCall: (requestId: string, toolCallId: string, toolName: string) => ToolCall;
   updateToolCallDraft: (toolCallId: string, delta: string) => void;
   completeToolCallDraft: (toolCallId: string, input: unknown, preview: string) => void;
+  setToolCallApproval: (toolCallId: string, approvalId: string) => void;
   approveToolCall: (toolCallId: string) => void;
   rejectToolCall: (toolCallId: string, reason?: string) => void;
   completeToolCall: (toolCallId: string, result: unknown) => void;
@@ -106,6 +108,23 @@ export const createToolCallSlice: StateCreator<ToolCallSlice, [], [], ToolCallSl
               input,
               preview,
             },
+          },
+        },
+      };
+    });
+  },
+
+  setToolCallApproval: (toolCallId, approvalId) => {
+    set((state) => {
+      const toolCall = state.toolCalls[toolCallId];
+      if (!toolCall) return state;
+
+      return {
+        toolCalls: {
+          ...state.toolCalls,
+          [toolCallId]: {
+            ...toolCall,
+            approvalId,
           },
         },
       };

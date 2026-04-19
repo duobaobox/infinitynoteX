@@ -139,6 +139,7 @@ export const IPC_CHANNELS = {
   aiToolApprovalRequested: 'ai:tool-approval-requested',
   aiToolProgress: 'ai:tool-progress',
   aiRunUpdate: 'ai:run-update',
+  aiApprovalStateChanged: 'ai:approval-state-changed',
   updaterCheckNow: 'updater:check-now',
   updaterInstallNow: 'updater:install-now',
   updaterLastStatus: 'updater:last-status',

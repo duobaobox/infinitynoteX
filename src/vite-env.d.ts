@@ -266,6 +266,17 @@ declare global {
       onRunUpdate(
         callback: (data: { requestId: string; run: import('./services/types').AIRunTrace }) => void,
       ): () => void;
+      onApprovalStateChanged(
+        callback: (data: {
+          requestId: string;
+          toolCallId: string;
+          approvalId: string;
+          state: 'PENDING_APPROVAL' | 'EXECUTING' | 'SUCCESS' | 'ERROR' | 'REJECTED';
+          result?: unknown;
+          error?: string;
+          timestamp: number;
+        }) => void,
+      ): () => void;
     };
     floatingWindow: {
       // 悬浮窗口操作

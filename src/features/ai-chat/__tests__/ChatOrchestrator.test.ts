@@ -4,6 +4,8 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { vi } from 'vitest';
+
 import { ChatOrchestrator } from '../orchestrators/ChatOrchestrator';
 import type { Message } from '../../../store/slices/aiConversationSlice';
 
@@ -76,6 +78,11 @@ const createMockStore = () => {
         toolCalls[id].state = { type: 'PENDING_APPROVAL', input, preview };
       }
     },
+    setToolCallApproval: (id: string, approvalId: string) => {
+      if (toolCalls[id]) {
+        toolCalls[id].approvalId = approvalId;
+      }
+    },
     approveToolCall: (id: string) => {
       if (toolCalls[id]) {
         toolCalls[id].state = { type: 'EXECUTING' };
@@ -87,12 +94,12 @@ const createMockStore = () => {
       }
     },
     completeToolCall: (id: string, result: unknown) => {
-      if (toolCalls[id]) {
+      if (toolCalls[id]?.state.type === 'EXECUTING') {
         toolCalls[id].state = { type: 'SUCCESS', result };
       }
     },
     failToolCall: (id: string, error: string) => {
-      if (toolCalls[id]) {
+      if (toolCalls[id]?.state.type === 'EXECUTING') {
         toolCalls[id].state = { type: 'ERROR', error };
       }
     },
@@ -152,11 +159,25 @@ describe('ChatOrchestrator - Integration Tests', () => {
   let orchestrator: ChatOrchestrator;
   let mockStore: any;
   let mockIPC: any;
+  let respondToolApprovalMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     mockStore = createMockStore();
     mockIPC = createMockIPCBridge();
     orchestrator = new ChatOrchestrator(mockStore);
+    respondToolApprovalMock = vi.fn(async (payload: any) => {
+      return {
+        success: true,
+        content: 'Tool executed successfully',
+        approval: {
+          approvalId: payload.approvalId,
+          toolCallId: 'tool-1',
+          toolName: 'test-tool',
+          status: payload.approved ? 'executed' : 'denied',
+        },
+        followUpApprovals: [],
+      };
+    });
 
     // Mock window.ai
     (global as any).window = {
@@ -164,19 +185,7 @@ describe('ChatOrchestrator - Integration Tests', () => {
         chatStream: async () => {
           // Simulate successful IPC call
         },
-        respondToolApproval: async (payload: any) => {
-          return {
-            success: true,
-            content: 'Tool executed successfully',
-            approval: {
-              approvalId: payload.approvalId,
-              toolCallId: payload.approvalId,
-              toolName: 'test-tool',
-              status: 'executed',
-            },
-            followUpApprovals: [],
-          };
-        },
+        respondToolApproval: respondToolApprovalMock,
         onStreamChunk: (cb: (data: any) => void) => mockIPC.on('stream:chunk', cb),
         onToolProgress: (cb: (data: any) => void) => mockIPC.on('tool:progress', cb),
         onToolApprovalRequest: (cb: (data: any) => void) => mockIPC.on('tool:approval', cb),
@@ -297,6 +306,7 @@ describe('ChatOrchestrator - Integration Tests', () => {
     mockIPC.trigger('tool:approval', {
       requestId,
       approval: {
+        approvalId: 'approval-1',
         toolCallId: 'tool-1',
         inputPreview: '{"cmd":"ls"}',
       },
@@ -304,6 +314,7 @@ describe('ChatOrchestrator - Integration Tests', () => {
 
     const toolCall = mockStore.getToolCall('tool-1');
     expect(toolCall.state.type).toBe('PENDING_APPROVAL');
+    expect(toolCall.approvalId).toBe('approval-1');
 
     const request = mockStore.getRequest(requestId);
     expect(request.state).toBe('WAITING_APPROVALS');
@@ -337,14 +348,49 @@ describe('ChatOrchestrator - Integration Tests', () => {
 
     mockIPC.trigger('tool:approval', {
       requestId,
-      approval: { toolCallId: 'tool-1', inputPreview: '{}' },
+      approval: { approvalId: 'approval-1', toolCallId: 'tool-1', inputPreview: '{}' },
     });
 
     // 用户批准
     await orchestrator.handleApproveToolCall(requestId, 'tool-1', conversationId);
 
+    expect(respondToolApprovalMock).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      approved: true,
+    });
+
     const toolCall = mockStore.getToolCall('tool-1');
     expect(toolCall.state.type).toBe('SUCCESS');
+  });
+
+  it('应该在缺少审批状态事件时，仍然完成工具调用并结束请求', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Create task', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    mockIPC.trigger('tool:progress', {
+      requestId,
+      progress: { phase: 'start', toolCallId: 'tool-1', toolName: 'createManualTask' },
+    });
+
+    mockIPC.trigger('tool:approval', {
+      requestId,
+      approval: {
+        approvalId: 'approval-1',
+        toolCallId: 'tool-1',
+        toolName: 'createManualTask',
+        inputPreview: '{"text":"整理会议纪要"}',
+      },
+    });
+
+    await orchestrator.handleApproveToolCall(requestId, 'tool-1', conversationId);
+
+    const toolCall = mockStore.getToolCall('tool-1');
+    const request = mockStore.getRequest(requestId);
+
+    expect(toolCall.state.type).toBe('SUCCESS');
+    expect(request.state).toBe('COMPLETED');
   });
 
   it('应该处理用户拒绝工具调用的流程', async () => {
@@ -361,7 +407,7 @@ describe('ChatOrchestrator - Integration Tests', () => {
 
     mockIPC.trigger('tool:approval', {
       requestId,
-      approval: { toolCallId: 'tool-1', inputPreview: '{}' },
+      approval: { approvalId: 'approval-1', toolCallId: 'tool-1', inputPreview: '{}' },
     });
 
     // 用户拒绝

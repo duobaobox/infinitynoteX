@@ -9,7 +9,7 @@ import WelcomeScreen from './components/WelcomeScreen/WelcomeScreen';
 import FloatingNoteWindow from './components/FloatingNoteWindow/FloatingNoteWindow';
 import FloatingTodoWindow from './components/FloatingTodoWindow/FloatingTodoWindow';
 import FloatingNoteTodoWindow from './components/FloatingNoteTodoWindow/FloatingNoteTodoWindow';
-import { DEFAULT_TODO_LIST_ID } from './features/todo/types';
+import { NOTE_TASKS_LIST_ID } from './shared/constants/todoConstants';
 import PillWindow from './components/PillWindow/PillWindow';
 import TodoPillWindow from './components/TodoPillWindow/TodoPillWindow';
 import { AIChatWindow } from './pages/AIChatWindow';
@@ -185,10 +185,10 @@ function App() {
   if (windowType === 'floating-todo') {
     const listId = window.location.hash.replace('#/floating-todo/', '');
     // 便签任务使用专用组件（无添加功能，从便签解析任务）
-    if (listId === DEFAULT_TODO_LIST_ID) {
+    if (listId === NOTE_TASKS_LIST_ID) {
       return <FloatingNoteTodoWindow />;
     }
-    // 自定义任务使用原有组件
+    // 自定义任务或默认手动任务使用原有组件
     return <FloatingTodoWindow listId={listId} />;
   }
 

@@ -18,6 +18,10 @@ const INFINITE_CANVAS_ENABLED_KEY = 'note_infinite_canvas_enabled';
 const AI_MODE_KEY = 'note_ai_mode';
 export type AIMode = 'default' | 'external';
 
+function getStoredAiMode(): AIMode {
+  return localStorage.getItem(AI_MODE_KEY) === 'external' ? 'external' : 'default';
+}
+
 // ============ Slice 类型定义 ============
 export interface AppSlice {
   // 状态
@@ -76,7 +80,7 @@ export const createAppSlice: StateCreator<AppSlice, [], [], AppSlice> = (set) =>
   settingsModalOpenTrigger: 0,
   isSettingsModalOpen: false,
   activeSettingsTab: 'appearance',
-  aiMode: (localStorage.getItem(AI_MODE_KEY) as AIMode) || 'external',
+  aiMode: getStoredAiMode(),
 
   // Actions - 应用信息
   setAppVersion: (version) => set({ appVersion: version }),

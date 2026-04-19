@@ -14,6 +14,7 @@ import TodoListCard, { CardListContext } from '../../../../components/BaseCard/c
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
 import type { TodoList } from '../../types';
+import { NOTE_TASKS_LIST_ID } from '../../../../shared/constants/todoConstants';
 import './TodoCardListView.css';
 
 interface TodoCardListViewProps {
@@ -50,9 +51,27 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
   // ============ 派生数据 ============
 
   const filteredLists = React.useMemo(() => {
+    // 构建便签任务虚拟节点
+    const systemLists: TodoList[] = [
+      {
+        id: NOTE_TASKS_LIST_ID,
+        name: '便签任务',
+        isDefault: true,
+        createdAt: 0,
+        updatedAt: 0,
+        order: -1,
+        color: '#1677ff', // 给定一个默认颜色
+      },
+    ];
+
+    // 过滤掉可能存在的遗留便签任务，避免重复
+    const validTodoLists = todoLists.filter((list) => list.id !== NOTE_TASKS_LIST_ID);
+
+    // 合并虚拟列表和真实存储清单
+    const combined = [...systemLists, ...validTodoLists];
     return searchQuery
-      ? todoLists.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      : todoLists;
+      ? combined.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      : combined;
   }, [todoLists, searchQuery]);
 
   // ============ 事件处理 ============
@@ -143,6 +162,7 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
                   id={list.id}
                   name={list.name}
                   isDefault={list.isDefault}
+                  description={list.id === NOTE_TASKS_LIST_ID ? '来自便签的任务' : undefined}
                   color={list.color}
                   onClick={() => selectTodoList(list.id)}
                   onPin={() => handlePinList(list.id)}

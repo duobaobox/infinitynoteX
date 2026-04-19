@@ -33,6 +33,8 @@ export interface Message {
 // 定义依赖的其他 slice 类型（setSelectedToolItem 需要访问 UISlice.showEditor）
 type AIConversationSliceDeps = UISlice;
 
+const EMPTY_CONVERSATION_MESSAGES: Message[] = [];
+
 function reconcileSelectedAIWorkbenchItem(
   currentItem: AIWorkbenchConversationItem | null,
   fallbackItemId: string | null,
@@ -227,7 +229,8 @@ export const createAIConversationSlice: StateCreator<
       },
     })),
 
-  getConversationMessages: (conversationId) => get().conversationMessages[conversationId] ?? [],
+  getConversationMessages: (conversationId) =>
+    get().conversationMessages[conversationId] ?? EMPTY_CONVERSATION_MESSAGES,
 
   clearConversationMessages: (conversationId) =>
     set((state) => ({

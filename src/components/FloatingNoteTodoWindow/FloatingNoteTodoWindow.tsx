@@ -30,7 +30,7 @@ import {
   sendRendererIpc,
 } from '../../shared/utils/ipcEvents';
 import { loadAllNotes } from '../../shared/utils/noteLoader';
-import { DEFAULT_TODO_LIST_ID } from '../../shared/constants/todoConstants';
+import { NOTE_TASKS_LIST_ID } from '../../shared/constants/todoConstants';
 import './FloatingNoteTodoWindow.css';
 
 // 日期状态类型
@@ -136,7 +136,7 @@ const FloatingNoteTodoWindow: React.FC = () => {
       // 5. 通知其他窗口（便签窗口 + Todo 窗口）
       sendRendererIpc(IPC_CHANNELS.noteChanged, createNoteSyncPayload(task.noteId));
       // 同时通知 Todo 窗口（确保药丸和主页面也能同步）
-      sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, NOTE_TASKS_LIST_ID);
 
       // 注意：这里不需要手动调用 loadData()，因为事件会触发上方监听的 reload
       // 即使不触发，本地状态已经更新了，用户体验是流畅的
@@ -159,11 +159,11 @@ const FloatingNoteTodoWindow: React.FC = () => {
   };
 
   const handleClose = () => {
-    window.floatingTodo?.closeWindow(DEFAULT_TODO_LIST_ID);
+    window.floatingTodo?.closeWindow(NOTE_TASKS_LIST_ID);
   };
 
   const handleMinimize = async () => {
-    await window.floatingTodo?.minimizeWindow(DEFAULT_TODO_LIST_ID);
+    await window.floatingTodo?.minimizeWindow(NOTE_TASKS_LIST_ID);
   };
 
   // 筛选和统计

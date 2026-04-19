@@ -65,7 +65,12 @@ export const MessageList: React.FC<MessageListProps> = ({
           <p style={{ fontSize: '12px', color: '#999' }}>输入你的问题，AI 将为你答疑解惑</p>
         </div>
       ) : (
-        <Bubble.List items={bubbleItems} />
+        <Bubble.List
+          items={bubbleItems}
+          autoScroll
+          rootClassName="ai-chat-bubble-list"
+          classNames={{ scroll: 'ai-chat-bubble-list-scroll' }}
+        />
       )}
     </div>
   );

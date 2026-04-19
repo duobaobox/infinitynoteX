@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  analyzeToolIntent,
   buildUnsupportedToolActionMessage,
   detectRequiredTools,
 } from '../../../../electron/ai/actionIntent';
@@ -16,6 +17,22 @@ describe('actionIntent', () => {
 
   it('detects creating todo tasks', () => {
     expect(detectRequiredTools('把下一步整理成待办任务')).toEqual(['createManualTask']);
+  });
+
+  it('marks explicit execution requests as actionable', () => {
+    const analysis = analyzeToolIntent('请把这段总结保存成便签');
+
+    expect(analysis.requiredTools).toEqual(['saveToNote']);
+    expect(analysis.isActionable).toBe(true);
+    expect(analysis.confidence).toBe('high');
+  });
+
+  it('keeps exploratory or negated prompts non-actionable', () => {
+    const analysis = analyzeToolIntent('如何把会议纪要整理成待办任务？先别执行，只讨论');
+
+    expect(analysis.requiredTools).toEqual([]);
+    expect(analysis.isActionable).toBe(false);
+    expect(analysis.confidence).toBe('none');
   });
 
   it('builds an explicit fallback message for unsupported action models', () => {

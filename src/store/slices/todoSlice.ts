@@ -5,7 +5,10 @@
 
 import type { StateCreator } from 'zustand';
 import type { ParsedTask, TodoList, ManualTaskIndex } from '../../features/todo/types';
-import { DEFAULT_TODO_LIST_ID } from '../../features/todo/types';
+import {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  NOTE_TASKS_LIST_ID,
+} from '../../shared/constants/todoConstants';
 import {
   parseTasksFromNotes,
   updateTaskCheckedStatus,
@@ -76,9 +79,9 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       const lists = await window.storage.listTodoLists();
       set({ todoLists: lists });
 
-      // 默认选中第一个清单（便签任务）
+      // 默认选中
       if (lists.length > 0 && !get().selectedTodoListId) {
-        set({ selectedTodoListId: lists[0].id });
+        set({ selectedTodoListId: NOTE_TASKS_LIST_ID });
       }
     } catch (error) {
       console.error('[TodoSlice] Failed to load todo lists:', error);
@@ -125,7 +128,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
 
       // 如果删除的是当前选中的清单，选中默认清单
       if (get().selectedTodoListId === id) {
-        set({ selectedTodoListId: DEFAULT_TODO_LIST_ID, selectedTaskId: null });
+        set({ selectedTodoListId: DEFAULT_MANUAL_TODO_LIST_ID, selectedTaskId: null });
       }
 
       // 清理已删除清单的手动任务缓存
@@ -181,7 +184,7 @@ export const createTodoSlice: StateCreator<TodoSlice & TodoSliceDeps, [], [], To
       // 重新加载任务列表
       await get().loadParsedTasks();
       // 通知其他窗口同步（药丸、悬浮窗等）
-      sendRendererIpc(IPC_CHANNELS.todoChanged, DEFAULT_TODO_LIST_ID);
+      sendRendererIpc(IPC_CHANNELS.todoChanged, NOTE_TASKS_LIST_ID);
     } catch (error) {
       console.error('[TodoSlice] Failed to toggle parsed task checked:', error);
       throw error;

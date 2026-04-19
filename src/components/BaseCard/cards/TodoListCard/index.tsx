@@ -17,6 +17,7 @@ export interface TodoListCardProps {
   name: string;
   isDefault: boolean;
   color?: string;
+  description?: string;
   onClick?: () => void;
   onPin?: () => void;
   onEdit?: () => void;
@@ -28,6 +29,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
   name,
   isDefault,
   color,
+  description,
   onClick,
   onPin,
   onEdit,
@@ -113,7 +115,7 @@ const TodoListCard: React.FC<TodoListCardProps> = ({
     <BaseCard
       id={id}
       title={name}
-      content={isDefault ? '来自便签的任务' : '自定义清单'}
+      content={description || (isDefault ? '系统保留清单' : '自定义清单')}
       colorable={false}
       renderIcon={renderIcon}
       onClick={onClick}

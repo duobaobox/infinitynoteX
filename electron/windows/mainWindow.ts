@@ -8,6 +8,7 @@ import type { BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { IPC_CHANNELS } from '../../src/shared/types/ipc';
+import { toolApprovalStateManager } from '../ai/toolApprovalStateManager';
 import { readAppConfig, writeAppConfig } from '../config';
 
 // 计算绝对路径（ESM 没有 __dirname）
@@ -107,6 +108,8 @@ export function createMainWindow(): BrowserWindow {
   };
 
   win = new BrowserWindow(windowOptions);
+  const currentWindow = win;
+  toolApprovalStateManager.registerRendererWindow(currentWindow);
 
   // 广播窗口最大化状态，供渲染进程更新 UI
   const emitWindowStateChanged = () => {
@@ -140,7 +143,13 @@ export function createMainWindow(): BrowserWindow {
       return;
     }
     saveWindowState();
-    win = null;
+  });
+
+  win.on('closed', () => {
+    toolApprovalStateManager.unregisterRendererWindow(currentWindow);
+    if (win === currentWindow) {
+      win = null;
+    }
   });
 
   if (VITE_DEV_SERVER_URL) {

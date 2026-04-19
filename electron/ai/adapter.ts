@@ -19,10 +19,10 @@ import type {
 } from '../../src/services/aiConfig';
 import { getProviderCapabilities } from '../../src/services/aiProviders';
 import {
+  analyzeToolIntent,
   buildUnsupportedToolActionMessage,
-  detectRequiredTools,
   type RequiredToolName,
-} from './actionIntent';
+} from './actionIntent.ts';
 import { buildModelMessages, mergeReasoningAndText } from './contextBuilder';
 import { createAgentTools } from './toolRegistry';
 
@@ -60,20 +60,24 @@ export class OpenAICompatibleAdapter {
 
   private resolveToolStrategy(payload: ChatPayload): {
     requiredTools: RequiredToolName[];
+    forcedTools: RequiredToolName[];
     unsupportedToolActionMessage?: string;
   } {
     const capabilities = getProviderCapabilities(this.config);
-    const requiredTools = detectRequiredTools(payload.message);
+    const intent = analyzeToolIntent(payload.message);
+    const forcedTools = intent.isActionable ? intent.requiredTools : [];
 
-    if (!capabilities.toolCalling && requiredTools.length > 0) {
+    if (!capabilities.toolCalling && forcedTools.length > 0) {
       return {
-        requiredTools,
-        unsupportedToolActionMessage: buildUnsupportedToolActionMessage(requiredTools),
+        requiredTools: intent.requiredTools,
+        forcedTools,
+        unsupportedToolActionMessage: buildUnsupportedToolActionMessage(forcedTools),
       };
     }
 
     return {
-      requiredTools,
+      requiredTools: intent.requiredTools,
+      forcedTools,
     };
   }
 
@@ -84,7 +88,7 @@ export class OpenAICompatibleAdapter {
   private buildRuntimeOptionsForMessages(
     messages: ModelMessage[],
     signal?: AbortSignal,
-    requiredTools?: RequiredToolName[],
+    forcedTools?: RequiredToolName[],
     allowActiveRetrieval: boolean = true,
   ) {
     const capabilities = getProviderCapabilities(this.config);
@@ -94,11 +98,11 @@ export class OpenAICompatibleAdapter {
       model: this.createModel(),
       messages,
       tools,
-      activeTools: tools && requiredTools && requiredTools.length > 0 ? requiredTools : undefined,
+      activeTools: tools && forcedTools && forcedTools.length > 0 ? forcedTools : undefined,
       toolChoice: tools
-        ? requiredTools && requiredTools.length > 0
-          ? requiredTools.length === 1
-            ? ({ type: 'tool', toolName: requiredTools[0] } as const)
+        ? forcedTools && forcedTools.length > 0
+          ? forcedTools.length === 1
+            ? ({ type: 'tool', toolName: forcedTools[0] } as const)
             : ('required' as const)
           : undefined
         : undefined,
@@ -115,7 +119,7 @@ export class OpenAICompatibleAdapter {
     return this.buildRuntimeOptionsForMessages(
       this.buildRequestMessages(payload),
       signal,
-      strategy.requiredTools,
+      strategy.forcedTools,
       payload.allowActiveRetrieval ?? false,
     );
   }

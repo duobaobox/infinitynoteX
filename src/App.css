@@ -307,7 +307,7 @@
  * 已包含的组件：
  * - .scrollable-list (侧边栏等列表)
  * - .tiptap-editor-wrapper (编辑器内容区)
- * - .ai-chat-messages, .ant-bubble-list, .canvas-ai-response-content (AI 聊天)
+ * - .ai-chat-bubble-list-scroll, .canvas-ai-response-content (AI 聊天)
  * - .slash-command-menu (斜杠命令菜单)
  * - .floating-todo-list (悬浮 Todo 窗口)
  * - .settings-content (设置弹窗内容区)
@@ -316,8 +316,7 @@
 .custom-scrollbar,
 .scrollable-list,
 .tiptap-editor-wrapper,
-.ai-chat-messages,
-.ai-chat-messages .ant-bubble-list,
+.ai-chat-bubble-list-scroll,
 .canvas-ai-response-content,
 .slash-command-menu,
 .floating-todo-list,
@@ -330,8 +329,7 @@
 .custom-scrollbar::-webkit-scrollbar,
 .scrollable-list::-webkit-scrollbar,
 .tiptap-editor-wrapper::-webkit-scrollbar,
-.ai-chat-messages::-webkit-scrollbar,
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar,
+.ai-chat-bubble-list-scroll::-webkit-scrollbar,
 .canvas-ai-response-content::-webkit-scrollbar,
 .slash-command-menu::-webkit-scrollbar,
 .floating-todo-list::-webkit-scrollbar,
@@ -344,8 +342,7 @@
 .custom-scrollbar::-webkit-scrollbar-thumb,
 .scrollable-list::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper::-webkit-scrollbar-thumb,
-.ai-chat-messages::-webkit-scrollbar-thumb,
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-thumb,
+.ai-chat-bubble-list-scroll::-webkit-scrollbar-thumb,
 .canvas-ai-response-content::-webkit-scrollbar-thumb,
 .slash-command-menu::-webkit-scrollbar-thumb,
 .floating-todo-list::-webkit-scrollbar-thumb,
@@ -359,8 +356,7 @@
 .custom-scrollbar:hover::-webkit-scrollbar-thumb,
 .scrollable-list:hover::-webkit-scrollbar-thumb,
 .tiptap-editor-wrapper:hover::-webkit-scrollbar-thumb,
-.ai-chat-messages:hover::-webkit-scrollbar-thumb,
-.ai-chat-messages .ant-bubble-list:hover::-webkit-scrollbar-thumb,
+.ai-chat-bubble-list-scroll:hover::-webkit-scrollbar-thumb,
 .canvas-ai-response-content:hover::-webkit-scrollbar-thumb,
 .slash-command-menu:hover::-webkit-scrollbar-thumb,
 .floating-todo-list:hover::-webkit-scrollbar-thumb,
@@ -372,8 +368,7 @@
 .custom-scrollbar::-webkit-scrollbar-corner,
 .scrollable-list::-webkit-scrollbar-corner,
 .tiptap-editor-wrapper::-webkit-scrollbar-corner,
-.ai-chat-messages::-webkit-scrollbar-corner,
-.ai-chat-messages .ant-bubble-list::-webkit-scrollbar-corner,
+.ai-chat-bubble-list-scroll::-webkit-scrollbar-corner,
 .canvas-ai-response-content::-webkit-scrollbar-corner,
 .slash-command-menu::-webkit-scrollbar-corner,
 .floating-todo-list::-webkit-scrollbar-corner,

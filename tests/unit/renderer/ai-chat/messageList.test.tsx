@@ -18,8 +18,23 @@ vi.mock('antd', () => ({
 
 vi.mock('@ant-design/x', () => ({
   Bubble: {
-    List: ({ items }: { items: Array<Record<string, unknown>> }) => (
-      <div>
+    List: ({
+      items,
+      autoScroll,
+      rootClassName,
+      classNames,
+    }: {
+      items: Array<Record<string, unknown>>;
+      autoScroll?: boolean;
+      rootClassName?: string;
+      classNames?: { scroll?: string };
+    }) => (
+      <div
+        data-testid="bubble-list"
+        data-auto-scroll={String(Boolean(autoScroll))}
+        data-root-class={rootClassName ?? ''}
+        data-scroll-class={classNames?.scroll ?? ''}
+      >
         {items.map((item) => (
           <div key={String(item.key)}>
             {typeof item.contentRender === 'function'
@@ -142,5 +157,36 @@ describe('MessageList', () => {
     const preview = await screen.findByTestId('markdown-renderer');
     expect(preview).toHaveAttribute('data-content', '# 标题\n\n- 列表项');
     expect(preview).toHaveAttribute('data-streaming', 'true');
+  });
+
+  it('passes Bubble.List auto-scroll classes to the internal scroll container', () => {
+    const items: ChatItem[] = [
+      {
+        key: 'user-1',
+        role: 'user',
+        content: '最新提问',
+        timestamp: Date.now(),
+      },
+    ];
+
+    render(
+      <MessageList
+        isLoadingHistory={false}
+        isInitializing={false}
+        isConfigured={true}
+        hasConversationContext={true}
+        conversationId="conversation-2"
+        items={items}
+        copiedBubbleKey={null}
+        onCopyAnswer={() => undefined}
+        onSaveToNote={() => undefined}
+        onRespondToolApproval={() => undefined}
+      />,
+    );
+
+    const bubbleList = screen.getByTestId('bubble-list');
+    expect(bubbleList).toHaveAttribute('data-auto-scroll', 'true');
+    expect(bubbleList).toHaveAttribute('data-root-class', 'ai-chat-bubble-list');
+    expect(bubbleList).toHaveAttribute('data-scroll-class', 'ai-chat-bubble-list-scroll');
   });
 });

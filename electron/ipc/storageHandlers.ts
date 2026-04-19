@@ -16,7 +16,7 @@ import type {
 import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
 import type { IpcProxyMethod } from '../../src/shared/types/ipc';
 import { storageManager } from '../storage';
-import { emitCreated, emitDeleted } from '../storage/storageEvents';
+import { emitCreated, emitDeleted, emitUpdated } from '../storage/storageEvents';
 
 const storageChannel = (method: IpcProxyMethod<'storage'>) => getIpcProxyChannel('storage', method);
 const browserCardsChannel = (method: IpcProxyMethod<'browserCards'>) =>
@@ -184,14 +184,18 @@ export function registerStorageHandlers(): void {
         sourceEntityId?: string;
       },
     ) => {
-      return await storageManager.ai.saveMessages(id, messages, options);
+      const conversation = await storageManager.ai.saveMessages(id, messages, options);
+      emitUpdated('aiConversation', id);
+      return conversation;
     },
   );
 
   ipcMain.handle(
     storageChannel('updateAIConversationTitle'),
     async (_, id: string, title: string) => {
-      return await storageManager.ai.updateTitle(id, title);
+      const conversation = await storageManager.ai.updateTitle(id, title);
+      emitUpdated('aiConversation', id);
+      return conversation;
     },
   );
 

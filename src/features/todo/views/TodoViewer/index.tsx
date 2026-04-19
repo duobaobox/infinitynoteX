@@ -25,7 +25,7 @@ import { useThemeColor } from '../../../../hooks/useThemeColor';
 import { IPC_CHANNELS } from '../../../../shared/types/ipc';
 import { onRendererIpc } from '../../../../shared/utils/ipcEvents';
 import type { ParsedTask, ManualTaskIndex } from '../../types';
-import { DEFAULT_TODO_LIST_ID } from '../../types';
+import { NOTE_TASKS_LIST_ID } from '../../../../shared/constants/todoConstants';
 import './TodoViewer.css';
 
 type FilterType = 'all' | 'pending' | 'completed';
@@ -93,8 +93,10 @@ export const TodoViewer: React.FC = () => {
   };
 
   // ============ 派生数据 ============
-  const isDefaultList = selectedTodoListId === DEFAULT_TODO_LIST_ID;
-  const currentList = todoLists.find((l) => l.id === selectedTodoListId);
+  const isNoteTasksList = selectedTodoListId === NOTE_TASKS_LIST_ID;
+  const currentList = isNoteTasksList
+    ? { id: NOTE_TASKS_LIST_ID, name: '便签任务', color: '#1677ff' }
+    : todoLists.find((l) => l.id === selectedTodoListId);
   const currentManualTasks = useMemo(
     () => manualTasks[selectedTodoListId || ''] || [],
     [manualTasks, selectedTodoListId],
@@ -104,24 +106,24 @@ export const TodoViewer: React.FC = () => {
 
   // 加载便签任务
   useEffect(() => {
-    if (isDefaultList) {
+    if (isNoteTasksList) {
       loadParsedTasks();
     }
-  }, [isDefaultList, loadParsedTasks]);
+  }, [isNoteTasksList, loadParsedTasks]);
 
   // 加载手动任务
   useEffect(() => {
-    if (selectedTodoListId && !isDefaultList) {
+    if (selectedTodoListId && !isNoteTasksList) {
       loadManualTasks(selectedTodoListId);
     }
-  }, [selectedTodoListId, isDefaultList, loadManualTasks]);
+  }, [selectedTodoListId, isNoteTasksList, loadManualTasks]);
 
   // 监听悬浮窗口的任务变化，同步刷新数据
   useEffect(() => {
     const handleTodoUpdate = async (_event: unknown, updatedListId: string) => {
       // 如果更新的是当前选中的清单，重新加载数据
       if (updatedListId === selectedTodoListId) {
-        if (isDefaultList) {
+        if (isNoteTasksList) {
           await loadParsedTasks();
         } else {
           await loadManualTasks(updatedListId);
@@ -132,7 +134,7 @@ export const TodoViewer: React.FC = () => {
     };
 
     return onRendererIpc(IPC_CHANNELS.todoUpdated, handleTodoUpdate);
-  }, [selectedTodoListId, isDefaultList, loadParsedTasks, loadManualTasks, loadTodoLists]);
+  }, [selectedTodoListId, isNoteTasksList, loadParsedTasks, loadManualTasks, loadTodoLists]);
 
   // ============ 派生数据 ============
 
@@ -182,11 +184,11 @@ export const TodoViewer: React.FC = () => {
 
   // 统计
   const stats = useMemo(() => {
-    const tasks = isDefaultList ? parsedTasks : currentManualTasks;
+    const tasks = isNoteTasksList ? parsedTasks : currentManualTasks;
     const pending = tasks.filter((t: ParsedTask | ManualTaskIndex) => !t.checked).length;
     const completed = tasks.filter((t: ParsedTask | ManualTaskIndex) => t.checked).length;
     return { total: tasks.length, pending, completed };
-  }, [isDefaultList, parsedTasks, currentManualTasks]);
+  }, [isNoteTasksList, parsedTasks, currentManualTasks]);
 
   // ============ 事件处理 ============
 
@@ -282,7 +284,7 @@ export const TodoViewer: React.FC = () => {
         {/* 头部：清单名称 + 筛选 Tab */}
         <div className="todo-viewer__header">
           <div className="todo-viewer__title">
-            {isDefaultList ? (
+            {isNoteTasksList ? (
               <FileTextOutlined style={{ marginRight: 8, color: currentList.color }} />
             ) : (
               <CheckSquareOutlined style={{ marginRight: 8, color: currentList.color }} />
@@ -302,7 +304,7 @@ export const TodoViewer: React.FC = () => {
         </div>
 
         {/* 添加任务输入框（仅自定义清单） */}
-        {!isDefaultList && (
+        {!isNoteTasksList && (
           <div className="todo-viewer__add-task" style={{ display: 'flex', gap: 8 }}>
             <Input
               placeholder="添加新任务"
@@ -337,7 +339,7 @@ export const TodoViewer: React.FC = () => {
 
         {/* 任务列表 */}
         <div className="todo-viewer__list">
-          {isDefaultList ? (
+          {isNoteTasksList ? (
             // 便签任务列表
             filteredParsedTasks.length === 0 ? (
               <Empty

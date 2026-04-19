@@ -19,7 +19,7 @@ import {
 import type { ThoughtChainItemType } from '@ant-design/x';
 
 import type { ChatItem } from '../types';
-import type { AIStepStatus, AIToolApproval } from '../../../services/types';
+import type { AIRunStatus, AIStepStatus, AIToolApproval } from '../../../services/types';
 import { getToolDraftDisplay } from '../approvalFlow';
 
 const MarkdownRenderer = React.lazy(() =>
@@ -140,6 +140,36 @@ function getApprovalStatusMeta(status: AIToolApproval['status']): {
     default:
       return { status: 'abort', label: status };
   }
+}
+
+function getRunStatusMeta(
+  status: AIRunStatus | undefined,
+  isStreaming: boolean,
+): {
+  status: 'loading' | 'success' | 'error' | 'abort';
+  title: string;
+} {
+  if (isStreaming || status === 'running') {
+    return { status: 'loading', title: '正在执行深度思考与操作...' };
+  }
+
+  switch (status) {
+    case 'waiting_approval':
+      return { status: 'loading', title: '等待用户确认后继续执行' };
+    case 'failed':
+      return { status: 'error', title: '执行遭遇意外，流程已中断' };
+    case 'cancelled':
+      return { status: 'abort', title: '本轮执行已取消' };
+    case 'completed':
+    default:
+      return { status: 'success', title: '已完成工具调度操作' };
+  }
+}
+
+function getRootExpandedKeysForStatus(
+  status: ReturnType<typeof getRunStatusMeta>['status'],
+): string[] {
+  return status === 'success' ? [] : ['main_trace'];
 }
 
 function buildThoughtChainItems(args: {
@@ -291,24 +321,44 @@ export const ToolThoughtChain: React.FC<ToolThoughtChainProps> = ({
     [item, onRespondToolApproval],
   );
 
+  const runStatusMeta = getRunStatusMeta(item.runTrace?.status, Boolean(item.isStreaming));
+  const runIdentity = item.runTrace?.runId ?? item.key;
+  const [rootExpandedKeys, setRootExpandedKeys] = React.useState<string[]>(() =>
+    getRootExpandedKeysForStatus(runStatusMeta.status),
+  );
+  const previousRunIdentityRef = React.useRef(runIdentity);
+  const previousRootStatusRef = React.useRef(runStatusMeta.status);
+
+  React.useEffect(() => {
+    const isNewRun = previousRunIdentityRef.current !== runIdentity;
+
+    if (isNewRun) {
+      setRootExpandedKeys(getRootExpandedKeysForStatus(runStatusMeta.status));
+      previousRunIdentityRef.current = runIdentity;
+      previousRootStatusRef.current = runStatusMeta.status;
+      return;
+    }
+
+    const justCompleted =
+      previousRootStatusRef.current !== 'success' && runStatusMeta.status === 'success';
+
+    if (justCompleted) {
+      setRootExpandedKeys([]);
+    }
+
+    previousRootStatusRef.current = runStatusMeta.status;
+  }, [runIdentity, runStatusMeta.status]);
+
   if (!items.length) {
     return null;
   }
-
-  const isError = items.some((i) => i.status === 'error' || i.status === 'abort');
-  const globalStatus = item.isStreaming ? 'loading' : isError ? 'error' : 'success';
-  const rootTitle = item.isStreaming
-    ? '正在执行深度思考与操作...'
-    : isError
-      ? '执行遭遇意外，流程已中断'
-      : '已完成工具调度操作';
 
   const rootItems: ThoughtChainItemType[] = [
     {
       key: 'main_trace',
       icon: <RobotOutlined />,
-      title: rootTitle,
-      status: globalStatus,
+      title: runStatusMeta.title,
+      status: runStatusMeta.status,
       collapsible: true,
       content: (
         <ThoughtChain
@@ -325,7 +375,8 @@ export const ToolThoughtChain: React.FC<ToolThoughtChainProps> = ({
     <div style={{ marginBottom: withBottomSpacing ? 12 : 0 }}>
       <ThoughtChain
         items={rootItems}
-        defaultExpandedKeys={item.isStreaming || isError ? ['main_trace'] : []}
+        expandedKeys={rootExpandedKeys}
+        onExpand={setRootExpandedKeys}
       />
     </div>
   );

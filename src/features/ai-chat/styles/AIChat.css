@@ -62,12 +62,22 @@
  * 使用位置：AIChatPanel.tsx L428
  * 滚动条样式：使用 App.css 中的 .custom-scrollbar 统一样式
  */
-.ai-chat-messages,
-.ai-chat-messages .ant-bubble-list {
+.ai-chat-messages {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.ai-chat-bubble-list {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-chat-bubble-list-scroll {
+  height: 100%;
   padding: 16px;
+  overflow-x: hidden;
 }
 
 /**

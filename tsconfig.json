@@ -22,5 +22,6 @@
     "ignoreDeprecations": "5.0"
   },
   "include": ["src", "electron"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**", "tests/**"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

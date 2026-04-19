@@ -42,7 +42,10 @@ export interface RequestSlice {
   completeRequest: (requestId: string) => void;
   clearRequest: (requestId: string) => void;
   getRequest: (requestId: string) => Request | undefined;
-  hasPendingApprovals: (requestId: string, toolCallGetter: (id: string) => unknown) => boolean;
+  hasPendingApprovals: (
+    requestId: string,
+    toolCallGetter: (id: string) => { state?: { type?: string } } | undefined,
+  ) => boolean;
 }
 
 // ============ Slice 实现 ============

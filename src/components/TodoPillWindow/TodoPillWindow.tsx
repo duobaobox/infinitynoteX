@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
 import type { TodoList, ManualTaskIndex } from '../../services/types';
-import { DEFAULT_TODO_LIST_ID } from '../../features/todo/types';
+import { NOTE_TASKS_LIST_ID } from '../../shared/constants/todoConstants';
 import { parseTasksFromNotes } from '../../features/todo/services/taskParser';
 import { IPC_CHANNELS } from '../../shared/types/ipc';
 import { onRendererIpc } from '../../shared/utils/ipcEvents';
@@ -46,13 +46,13 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
 
         // 2. 获取任务数量
         let pending = 0;
-        if (listId === DEFAULT_TODO_LIST_ID) {
+        if (listId === NOTE_TASKS_LIST_ID) {
           // 便签任务：需要解析所有便签
           const allNotes = await loadAllNotes();
           const parsedTasks = parseTasksFromNotes(allNotes);
           pending = parsedTasks.filter((t) => !t.checked).length;
         } else {
-          // 自定义清单：直接读取存储
+          // 自定义清单或者默认手动清单：直接读取存储
           const tasks = await window.storage.listManualTasks(listId);
           pending = tasks.filter((t: ManualTaskIndex) => !t.checked).length;
         }
@@ -73,7 +73,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
 
   useEffect(() => {
     const handleTodoUpdate = async (_event: unknown, updatedId?: string) => {
-      if (listId === DEFAULT_TODO_LIST_ID) {
+      if (listId === NOTE_TASKS_LIST_ID) {
         await loadData(true);
       } else if (updatedId === listId) {
         await loadData(true);
@@ -81,7 +81,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
     };
 
     const handleNoteUpdate = async () => {
-      if (listId === DEFAULT_TODO_LIST_ID) {
+      if (listId === NOTE_TASKS_LIST_ID) {
         await loadData(true);
       }
     };
@@ -90,7 +90,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
 
     // 如果是便签任务，还需要监听便签更新
     let offNoteUpdated: (() => void) | null = null;
-    if (listId === DEFAULT_TODO_LIST_ID) {
+    if (listId === NOTE_TASKS_LIST_ID) {
       offNoteUpdated = onRendererIpc(IPC_CHANNELS.noteUpdated, handleNoteUpdate);
     }
 
@@ -104,7 +104,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
     await window.floatingTodo?.restoreWindow(listId);
   };
 
-  const bgColor = list?.color || (listId === DEFAULT_TODO_LIST_ID ? '#ffe7ba' : '#b5f5ec');
+  const bgColor = list?.color || (listId === NOTE_TASKS_LIST_ID ? '#ffe7ba' : '#b5f5ec');
 
   if (isLoading) {
     return (

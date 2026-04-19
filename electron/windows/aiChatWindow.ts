@@ -6,6 +6,7 @@
 import { BrowserWindow, ipcMain, screen } from 'electron';
 import path from 'node:path';
 import { IPC_CHANNELS } from '../../src/shared/types/ipc';
+import { toolApprovalStateManager } from '../ai/toolApprovalStateManager';
 import { readAppConfig, writeAppConfig } from '../config';
 import log from '../logger';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST } from './mainWindow';
@@ -136,26 +137,12 @@ export function createAIChatWindow(): void {
     aiChatWindow.on('moved', saveAIChatWindowState);
     aiChatWindow.on('resized', saveAIChatWindowState);
 
-    // NEW: 注册窗口到toolApprovalStateManager以接收审批状态更新
-    import('../ai/toolApprovalStateManager')
-      .then(({ toolApprovalStateManager }) => {
-        toolApprovalStateManager.registerRendererWindow(aiChatWindow);
-      })
-      .catch((error) => {
-        log.error('Failed to register AI chat window with approval manager:', error);
-      });
+    toolApprovalStateManager.registerRendererWindow(aiChatWindow);
 
     // 窗口关闭时清理
     aiChatWindow.on('closed', () => {
       log.info('AI chat window closed');
-      // NEW: 注销窗口从toolApprovalStateManager
-      import('../ai/toolApprovalStateManager')
-        .then(({ toolApprovalStateManager }) => {
-          toolApprovalStateManager.unregisterRendererWindow(aiChatWindow);
-        })
-        .catch((error) => {
-          log.error('Failed to unregister AI chat window from approval manager:', error);
-        });
+      toolApprovalStateManager.unregisterRendererWindow(aiChatWindow);
       aiChatWindow = null;
     });
 

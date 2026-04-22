@@ -13,8 +13,7 @@ import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import TodoListCard, { CardListContext } from '../../../../components/BaseCard/cards/TodoListCard';
 import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
-import type { TodoList } from '../../types';
-import { NOTE_TASKS_LIST_ID } from '../../../../shared/constants/todoConstants';
+import { buildTodoSidebarItems, type TodoSidebarItem } from '../../utils/todoListSidebarItems';
 import './TodoCardListView.css';
 
 interface TodoCardListViewProps {
@@ -50,29 +49,13 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
 
   // ============ 派生数据 ============
 
+  const sidebarItems = React.useMemo(() => buildTodoSidebarItems(todoLists), [todoLists]);
+
   const filteredLists = React.useMemo(() => {
-    // 构建便签任务虚拟节点
-    const systemLists: TodoList[] = [
-      {
-        id: NOTE_TASKS_LIST_ID,
-        name: '便签任务',
-        isDefault: true,
-        createdAt: 0,
-        updatedAt: 0,
-        order: -1,
-        color: '#1677ff', // 给定一个默认颜色
-      },
-    ];
-
-    // 过滤掉可能存在的遗留便签任务，避免重复
-    const validTodoLists = todoLists.filter((list) => list.id !== NOTE_TASKS_LIST_ID);
-
-    // 合并虚拟列表和真实存储清单
-    const combined = [...systemLists, ...validTodoLists];
     return searchQuery
-      ? combined.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      : combined;
-  }, [todoLists, searchQuery]);
+      ? sidebarItems.filter((list) => list.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      : sidebarItems;
+  }, [sidebarItems, searchQuery]);
 
   // ============ 事件处理 ============
 
@@ -98,7 +81,7 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
     }
   };
 
-  const handleOpenEditModal = (list: TodoList) => {
+  const handleOpenEditModal = (list: TodoSidebarItem) => {
     setEditingListId(list.id);
     setEditListName(list.name);
     setIsEditModalOpen(true);
@@ -156,18 +139,18 @@ export const TodoCardListView: React.FC<TodoCardListViewProps> = ({ flex }) => {
                 style={{ marginTop: 40 }}
               />
             ) : (
-              filteredLists.map((list: TodoList) => (
+              filteredLists.map((list) => (
                 <TodoListCard
                   key={list.id}
                   id={list.id}
                   name={list.name}
                   isDefault={list.isDefault}
-                  description={list.id === NOTE_TASKS_LIST_ID ? '来自便签的任务' : undefined}
+                  description={list.description}
                   color={list.color}
                   onClick={() => selectTodoList(list.id)}
                   onPin={() => handlePinList(list.id)}
-                  onEdit={list.isDefault ? undefined : () => handleOpenEditModal(list)}
-                  onDelete={list.isDefault ? undefined : () => handleDeleteList(list.id)}
+                  onEdit={list.isEditable ? () => handleOpenEditModal(list) : undefined}
+                  onDelete={list.isDeletable ? () => handleDeleteList(list.id) : undefined}
                 />
               ))
             )}

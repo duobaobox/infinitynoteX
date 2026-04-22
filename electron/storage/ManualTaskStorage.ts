@@ -73,6 +73,27 @@ export class ManualTaskStorage extends BaseDirectoryStorage<ManualTask, ManualTa
     return Math.max(...tasks.map((t) => t.order)) + 1;
   }
 
+  /**
+   * 将某个清单下的任务整体迁移到另一个清单
+   */
+  async moveTasksToList(sourceListId: string, targetListId: string): Promise<number> {
+    const tasks = await this.getAllByListId(sourceListId);
+    if (tasks.length === 0) {
+      return 0;
+    }
+
+    let nextOrder = await this.getNextOrder(targetListId);
+    for (const task of tasks.sort((a, b) => a.order - b.order)) {
+      await this.update(task.id, {
+        listId: targetListId,
+        order: nextOrder,
+      });
+      nextOrder += 1;
+    }
+
+    return tasks.length;
+  }
+
   // ============ 实现抽象方法 ============
 
   /**

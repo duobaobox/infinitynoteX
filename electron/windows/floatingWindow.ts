@@ -7,7 +7,7 @@ import { BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { IPC_CHANNELS, getIpcProxyChannel } from '../../src/shared/types/ipc';
 import type { IpcProxyMethod, NoteSyncPayload } from '../../src/shared/types/ipc';
-import { DEFAULT_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
+import { NOTE_TASKS_LIST_ID } from '../../src/shared/constants/todoConstants';
 import { VITE_DEV_SERVER_URL, RENDERER_DIST, MAIN_DIST, getMainWindow } from './mainWindow';
 
 // ============ 类型定义 ============
@@ -450,13 +450,13 @@ export function registerFloatingWindowHandlers(): void {
 
     // 仅任务变化时，才触发默认清单刷新
     if (syncPayload.taskChanged) {
-      const todoFloatingWindow = floatingTodoWindows.get(DEFAULT_TODO_LIST_ID);
+      const todoFloatingWindow = floatingTodoWindows.get(NOTE_TASKS_LIST_ID);
       if (todoFloatingWindow && !todoFloatingWindow.isDestroyed()) {
-        todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
+        todoFloatingWindow.webContents.send(IPC_CHANNELS.todoUpdated, NOTE_TASKS_LIST_ID);
       }
-      const todoPill = todoPillWindows.get(DEFAULT_TODO_LIST_ID);
+      const todoPill = todoPillWindows.get(NOTE_TASKS_LIST_ID);
       if (todoPill && !todoPill.isDestroyed()) {
-        todoPill.webContents.send(IPC_CHANNELS.todoUpdated, DEFAULT_TODO_LIST_ID);
+        todoPill.webContents.send(IPC_CHANNELS.todoUpdated, NOTE_TASKS_LIST_ID);
       }
     }
   });

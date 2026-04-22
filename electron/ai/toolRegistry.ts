@@ -9,6 +9,7 @@ import {
 } from '../../src/shared/utils/tiptapMarkdown';
 import {
   DEFAULT_MANUAL_TODO_LIST_ID,
+  DEFAULT_MANUAL_TODO_LIST_NAME,
   NOTE_TASKS_LIST_ID,
 } from '../../src/shared/constants/todoConstants';
 import { semanticSearch, extractNoteText } from '../knowledge';
@@ -131,11 +132,11 @@ export async function buildToolApprovalRequest(args: {
         toolCallId,
         toolName,
         title: `建议创建任务“${truncateText(payload.text?.trim() || '未命名任务', 48)}”`,
-        description: `AI 想把当前结论落成待办，保存到 ${todoList?.name || '默认任务清单'}。`,
+        description: `AI 想把当前结论落成待办，保存到 ${todoList?.name || DEFAULT_MANUAL_TODO_LIST_NAME}。`,
         status: 'pending',
         preview: summarizePreview(payload.text ?? ''),
         targetId: todoList?.id,
-        targetLabel: todoList?.name || '默认任务清单',
+        targetLabel: todoList?.name || DEFAULT_MANUAL_TODO_LIST_NAME,
       };
     }
     default:
@@ -328,7 +329,7 @@ export function createAgentTools(options?: { allowActiveRetrieval?: boolean }): 
         listId: z
           .string()
           .optional()
-          .describe('任务清单 ID。未提供或无效时，固定写入“默认任务清单”。'),
+          .describe(`任务清单 ID。未提供或无效时，固定写入“${DEFAULT_MANUAL_TODO_LIST_NAME}”。`),
         text: z.string().min(1).describe('任务内容'),
         dueDate: z.number().optional().describe('截止时间的时间戳（毫秒）'),
       }),

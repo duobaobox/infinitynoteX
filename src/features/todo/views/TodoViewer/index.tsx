@@ -26,6 +26,7 @@ import { IPC_CHANNELS } from '../../../../shared/types/ipc';
 import { onRendererIpc } from '../../../../shared/utils/ipcEvents';
 import type { ParsedTask, ManualTaskIndex } from '../../types';
 import { NOTE_TASKS_LIST_ID } from '../../../../shared/constants/todoConstants';
+import { buildTodoSidebarItems } from '../../utils/todoListSidebarItems';
 import './TodoViewer.css';
 
 type FilterType = 'all' | 'pending' | 'completed';
@@ -94,9 +95,10 @@ export const TodoViewer: React.FC = () => {
 
   // ============ 派生数据 ============
   const isNoteTasksList = selectedTodoListId === NOTE_TASKS_LIST_ID;
-  const currentList = isNoteTasksList
-    ? { id: NOTE_TASKS_LIST_ID, name: '便签任务', color: '#1677ff' }
-    : todoLists.find((l) => l.id === selectedTodoListId);
+  const currentList = useMemo(
+    () => buildTodoSidebarItems(todoLists).find((list) => list.id === selectedTodoListId),
+    [todoLists, selectedTodoListId],
+  );
   const currentManualTasks = useMemo(
     () => manualTasks[selectedTodoListId || ''] || [],
     [manualTasks, selectedTodoListId],

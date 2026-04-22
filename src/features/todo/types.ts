@@ -4,8 +4,15 @@
 
 import type { TipTapJSONContent } from '../../services/types';
 
-// 默认清单 ID（便签任务）- 单一来源在 src/shared/constants/todoConstants.ts
-export { DEFAULT_TODO_LIST_ID } from '../../shared/constants/todoConstants';
+// Todo 视图 / 默认清单常量 - 单一来源在 src/shared/constants/todoConstants.ts
+export {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  DEFAULT_MANUAL_TODO_LIST_NAME,
+  NOTE_TASKS_LIST_COLOR,
+  NOTE_TASKS_LIST_DESCRIPTION,
+  NOTE_TASKS_LIST_ID,
+  NOTE_TASKS_LIST_NAME,
+} from '../../shared/constants/todoConstants';
 
 /**
  * 从便签解析出的任务项

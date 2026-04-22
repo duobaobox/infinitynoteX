@@ -8,7 +8,10 @@ import type { TodoList, TodoListIndex } from './schemas';
 import type { IndexCache } from './core/IndexCache';
 import { BaseDirectoryStorage } from './core/BaseStorage';
 import { getModuleConfig } from './core/moduleRegistry';
-import { DEFAULT_MANUAL_TODO_LIST_ID } from '../../src/shared/constants/todoConstants';
+import {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  DEFAULT_MANUAL_TODO_LIST_NAME,
+} from '../../src/shared/constants/todoConstants';
 
 // 获取 todo-lists 模块配置
 const todoListsConfig = getModuleConfig('todo-lists')!;
@@ -64,7 +67,7 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
     const now = Date.now();
     const defaultList: TodoList = {
       id: DEFAULT_MANUAL_TODO_LIST_ID,
-      name: '默认任务清单',
+      name: DEFAULT_MANUAL_TODO_LIST_NAME,
       isDefault: true,
       createdAt: now,
       updatedAt: now,
@@ -73,7 +76,7 @@ export class TodoListStorage extends BaseDirectoryStorage<TodoList, TodoListInde
 
     // 直接写入文件和索引
     await this.writeFile(defaultList);
-    this.addToIndex(this.toIndex(defaultList));
+    this.addToIndex(defaultList);
 
     return defaultList;
   }

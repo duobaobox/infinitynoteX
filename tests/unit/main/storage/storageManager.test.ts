@@ -33,8 +33,39 @@ vi.mock('../../../../electron/storage/core/IndexCache', () => {
         if (key.startsWith(`${module}:`)) this.items.delete(key);
       }
     }
-    async rebuildFromFiles(): Promise<{ rebuilt: number; errors: string[] }> {
-      return { rebuilt: 0, errors: [] };
+    async rebuildFromFiles(
+      module: string,
+      directory: string,
+      parser: (filePath: string) => Promise<Record<string, unknown> | null>,
+    ): Promise<{ rebuilt: number; errors: string[] }> {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+
+      this.clearModule(module);
+
+      const errors: string[] = [];
+      let rebuilt = 0;
+
+      try {
+        const files = await fs.readdir(directory);
+        for (const file of files) {
+          if (!file.endsWith('.json')) continue;
+          const filePath = path.join(directory, file);
+          try {
+            const item = await parser(filePath);
+            if (item) {
+              this.upsertItem(item);
+              rebuilt += 1;
+            }
+          } catch (error) {
+            errors.push(String(error));
+          }
+        }
+      } catch (error) {
+        errors.push(String(error));
+      }
+
+      return { rebuilt, errors };
     }
     close() {
       /* no-op */
@@ -59,6 +90,11 @@ vi.mock('electron', () => {
 });
 
 import { StorageManager } from '../../../../electron/storage/StorageManager';
+import { CURRENT_SCHEMA_VERSION } from '../../../../electron/storage/migrations';
+import {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  NOTE_TASKS_LIST_ID,
+} from '../../../../src/shared/constants/todoConstants';
 import { app } from 'electron';
 
 const ensureDir = (p: string) => fs.stat(p).then((s) => s.isDirectory());
@@ -106,6 +142,140 @@ describe('StorageManager', () => {
     await expect(ensureDir(path.join(storageRoot, 'ai-conversations'))).resolves.toBe(true);
     await expect(ensureDir(path.join(storageRoot, 'trash'))).resolves.toBe(true);
     await expect(fs.readFile(path.join(storageRoot, 'meta.json'), 'utf-8')).resolves.toBeTruthy();
+  });
+
+  it('creates the persisted default manual todo list on fresh initialize', async () => {
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const lists = await manager.todoLists.getAll();
+
+    expect(lists.map((list) => list.id)).toContain(DEFAULT_MANUAL_TODO_LIST_ID);
+    expect(lists.map((list) => list.id)).not.toContain(NOTE_TASKS_LIST_ID);
+    expect(lists.find((list) => list.id === DEFAULT_MANUAL_TODO_LIST_ID)).toMatchObject({
+      id: DEFAULT_MANUAL_TODO_LIST_ID,
+      name: '默认任务清单',
+      isDefault: true,
+    });
+  });
+
+  it('migrates legacy default-note-tasks data into the default manual todo list', async () => {
+    await fs.mkdir(path.join(storageRoot, 'todo-lists'), { recursive: true });
+    await fs.mkdir(path.join(storageRoot, 'manual-tasks'), { recursive: true });
+    await fs.writeFile(
+      path.join(storageRoot, 'meta.json'),
+      JSON.stringify(
+        {
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          storageId: 'storage-test',
+          createdAt: 1,
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    await fs.writeFile(
+      path.join(storageRoot, 'todo-lists', `${NOTE_TASKS_LIST_ID}.json`),
+      JSON.stringify(
+        {
+          id: NOTE_TASKS_LIST_ID,
+          name: '便签任务',
+          isDefault: true,
+          createdAt: 1,
+          updatedAt: 1,
+          order: 0,
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+    await fs.writeFile(
+      path.join(storageRoot, 'manual-tasks', 'legacy-task-1.json'),
+      JSON.stringify(
+        {
+          id: 'legacy-task-1',
+          listId: NOTE_TASKS_LIST_ID,
+          text: '迁移前手动任务',
+          checked: false,
+          createdAt: 1,
+          updatedAt: 1,
+          order: 0,
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const lists = await manager.todoLists.getAll();
+    const migratedTasks = await manager.manualTasks.getAllByListId(DEFAULT_MANUAL_TODO_LIST_ID);
+
+    expect(lists.map((list) => list.id)).toContain(DEFAULT_MANUAL_TODO_LIST_ID);
+    expect(lists.map((list) => list.id)).not.toContain(NOTE_TASKS_LIST_ID);
+    expect(migratedTasks).toHaveLength(1);
+    expect(migratedTasks[0]).toMatchObject({
+      id: 'legacy-task-1',
+      listId: DEFAULT_MANUAL_TODO_LIST_ID,
+      text: '迁移前手动任务',
+    });
+    await expect(
+      fs.access(path.join(storageRoot, 'todo-lists', `${NOTE_TASKS_LIST_ID}.json`)),
+    ).rejects.toThrow();
+  });
+
+  it('also migrates orphaned note-task manual tasks when the legacy list file is already gone', async () => {
+    await fs.mkdir(path.join(storageRoot, 'manual-tasks'), { recursive: true });
+    await fs.writeFile(
+      path.join(storageRoot, 'meta.json'),
+      JSON.stringify(
+        {
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          storageId: 'storage-test',
+          createdAt: 1,
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+    await fs.writeFile(
+      path.join(storageRoot, 'manual-tasks', 'orphan-task-1.json'),
+      JSON.stringify(
+        {
+          id: 'orphan-task-1',
+          listId: NOTE_TASKS_LIST_ID,
+          text: '孤儿任务',
+          checked: false,
+          createdAt: 1,
+          updatedAt: 1,
+          order: 0,
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    const manager = new StorageManager();
+
+    await manager.initialize();
+
+    const migratedTasks = await manager.manualTasks.getAllByListId(DEFAULT_MANUAL_TODO_LIST_ID);
+
+    expect(migratedTasks).toHaveLength(1);
+    expect(migratedTasks[0]).toMatchObject({
+      id: 'orphan-task-1',
+      listId: DEFAULT_MANUAL_TODO_LIST_ID,
+      text: '孤儿任务',
+    });
   });
 
   it('resolves a global AI conversation by binding instead of fixed conversation id', async () => {

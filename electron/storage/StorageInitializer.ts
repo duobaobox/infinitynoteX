@@ -20,6 +20,10 @@ import type { ManualTaskStorage } from './ManualTaskStorage';
 import type { StorageMeta } from './types';
 import { readJsonFile, writeJsonFile, fileExists, generateId } from './utils';
 import { CURRENT_SCHEMA_VERSION, needsMigration, getPendingMigrations } from './migrations';
+import {
+  DEFAULT_MANUAL_TODO_LIST_ID,
+  NOTE_TASKS_LIST_ID,
+} from '../../src/shared/constants/todoConstants';
 
 export class StorageInitializer {
   /** 上次是否正常退出（由 checkLastExitStatus 设置，供 HealthChecker 读取） */
@@ -171,36 +175,34 @@ export class StorageInitializer {
    * 将旧的 default-note-tasks 中的手动任务迁移到 default-manual-tasks
    */
   private async migrateDefaultTodoList(): Promise<void> {
-    const NOTE_TASKS_LIST_ID = 'default-note-tasks';
-    const DEFAULT_MANUAL_TODO_LIST_ID = 'default-manual-tasks';
-
     try {
-      // 检查是否有旧的 default-note-tasks 持久化清单
+      let hasLegacyList = false;
       try {
         await this.todoLists.get(NOTE_TASKS_LIST_ID);
-        console.log('[StorageInitializer] Found legacy note tasks list, migrating manual tasks...');
-
-        // 迁移旗下的手动任务
-        const legacyTasks = await this.manualTasks.listByTodoList(NOTE_TASKS_LIST_ID);
-        for (const task of legacyTasks) {
-          const fullTask = await this.manualTasks.get(task.id);
-          if (fullTask) {
-            fullTask.todoListId = DEFAULT_MANUAL_TODO_LIST_ID;
-            fullTask.updatedAt = Date.now();
-            await this.manualTasks.writeFile(fullTask);
-            console.log(`[StorageInitializer] Migrated task ${task.id} to new default list`);
-          }
-        }
-
-        // 确保内存缓存/索引一致性
-        await this.manualTasks.rebuildIndex();
-
-        // 删除旧的遗留清单文件和索引
-        await this.todoLists.delete(NOTE_TASKS_LIST_ID);
-        console.log('[StorageInitializer] Deleted legacy note tasks list');
+        hasLegacyList = true;
       } catch {
-        // 没有遗留文件，无需迁移
+        hasLegacyList = false;
       }
+
+      const legacyTaskCount = (await this.manualTasks.listByListId(NOTE_TASKS_LIST_ID)).length;
+      if (!hasLegacyList && legacyTaskCount === 0) {
+        return;
+      }
+
+      console.log('[StorageInitializer] Found legacy note-task data, migrating manual tasks...');
+      await this.todoLists.initializeDefault();
+
+      const movedCount = await this.manualTasks.moveTasksToList(
+        NOTE_TASKS_LIST_ID,
+        DEFAULT_MANUAL_TODO_LIST_ID,
+      );
+      if (hasLegacyList) {
+        await this.todoLists.delete(NOTE_TASKS_LIST_ID);
+      }
+
+      console.log(
+        `[StorageInitializer] Migrated ${movedCount} legacy manual task(s) to default manual todo list`,
+      );
     } catch (err) {
       console.error('[StorageInitializer] Error during default todo list migration:', err);
     }

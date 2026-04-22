@@ -6,7 +6,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BasePillWindow } from '../BasePillWindow';
 import type { TodoList, ManualTaskIndex } from '../../services/types';
-import { NOTE_TASKS_LIST_ID } from '../../shared/constants/todoConstants';
+import {
+  NOTE_TASKS_LIST_COLOR,
+  NOTE_TASKS_LIST_ID,
+  NOTE_TASKS_LIST_NAME,
+} from '../../shared/constants/todoConstants';
 import { parseTasksFromNotes } from '../../features/todo/services/taskParser';
 import { IPC_CHANNELS } from '../../shared/types/ipc';
 import { onRendererIpc } from '../../shared/utils/ipcEvents';
@@ -38,10 +42,22 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
         if (!silent) setIsLoading(true);
 
         // 1. 获取列表信息
-        const lists = await window.storage.listTodoLists();
-        const currentList = lists.find((l) => l.id === listId);
-        if (currentList) {
-          setList(currentList);
+        if (listId === NOTE_TASKS_LIST_ID) {
+          setList({
+            id: NOTE_TASKS_LIST_ID,
+            name: NOTE_TASKS_LIST_NAME,
+            isDefault: true,
+            createdAt: 0,
+            updatedAt: 0,
+            order: -1,
+            color: NOTE_TASKS_LIST_COLOR,
+          });
+        } else {
+          const lists = await window.storage.listTodoLists();
+          const currentList = lists.find((l) => l.id === listId);
+          if (currentList) {
+            setList(currentList);
+          }
         }
 
         // 2. 获取任务数量
@@ -127,7 +143,7 @@ const TodoPillWindow: React.FC<TodoPillWindowProps> = ({ listId }) => {
       icon={<TodoIcon />}
       onRestore={handleRestore}
       className="todo-pill-window"
-      tooltip={list?.name || '清单'}
+      tooltip={list?.name || NOTE_TASKS_LIST_NAME}
     />
   );
 };

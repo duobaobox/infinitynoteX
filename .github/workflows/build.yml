@@ -79,15 +79,24 @@ jobs:
           else
             gh release create "$TAG_NAME" \
               --repo "$REPO" \
+              --verify-tag \
               --title "$TAG_NAME" \
               --draft \
               --notes ""
           fi
 
           mapfile -t files < <(find dist-artifacts -type f \
-            ! -name '*.blockmap' \
-            ! -name '*.yaml' \
-            ! -name '*.yml')
+            \( -name '*.dmg' \
+            -o -name '*.zip' \
+            -o -name '*.exe' \
+            -o -name '*.AppImage' \
+            -o -name '*.deb' \
+            -o -name '*.rpm' \
+            -o -name '*.snap' \
+            -o -name '*.nupkg' \
+            -o -name '*.yml' \
+            -o -name '*.yaml' \
+            -o -name '*.blockmap' \))
 
           if [[ ${#files[@]} -eq 0 ]]; then
             echo "No release files found."

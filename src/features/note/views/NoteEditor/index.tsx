@@ -72,6 +72,7 @@ export const NoteEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKeyType>('edit');
   const [noteColor, setNoteColor] = useState<NoteColorType>('ffffff');
   const [isContentLoading, setIsContentLoading] = useState(false);
+  const [loadedNoteId, setLoadedNoteId] = useState<string | null>(null);
 
   // 监听无限画布开启状态，如果关闭且当前在画布 Tab，则切回编辑 Tab
   useEffect(() => {
@@ -103,21 +104,37 @@ export const NoteEditor: React.FC = () => {
 
   // 当前便签 ID 引用
   const currentNoteIdRef = useRef<string | null>(null);
+  const noteLoadVersionRef = useRef(0);
 
   const loadNote = useCallback(
     async (id: string) => {
+      const loadVersion = ++noteLoadVersionRef.current;
       setIsContentLoading(true);
       try {
         const note = await window.storage.getNote(id);
+
+        if (noteLoadVersionRef.current !== loadVersion || currentNoteIdRef.current !== id) {
+          return;
+        }
+
+        setLoadedNoteId(id);
         setNoteTitle(note.title);
         setEditorContent(note.content);
         setNoteColor(note.color || 'ffffff');
         syncTaskBaseline(id, note.title, note.content);
         // 延迟重置加载状态，给编辑器一点时间处理内容更新
-        setTimeout(() => setIsContentLoading(false), 50);
+        setTimeout(() => {
+          if (noteLoadVersionRef.current === loadVersion && currentNoteIdRef.current === id) {
+            setIsContentLoading(false);
+          }
+        }, 50);
       } catch (error) {
+        if (noteLoadVersionRef.current !== loadVersion || currentNoteIdRef.current !== id) {
+          return;
+        }
         console.error('Failed to load note:', error);
         message.error('加载便签失败');
+        setLoadedNoteId(null);
         setIsContentLoading(false);
       }
     },
@@ -127,15 +144,25 @@ export const NoteEditor: React.FC = () => {
   // 切换便签时：先保存当前便签，再加载新便签
   useEffect(() => {
     const switchNote = async () => {
-      await flushPendingSave();
+      noteLoadVersionRef.current += 1;
       currentNoteIdRef.current = selectedNoteId;
 
+      await flushPendingSave();
+
       if (!selectedNoteId) {
+        setIsContentLoading(false);
+        setLoadedNoteId(null);
         setNoteTitle('');
         setEditorContent(null);
+        setNoteColor('ffffff');
         return;
       }
 
+      setIsContentLoading(true);
+      setLoadedNoteId(null);
+      setNoteTitle('');
+      setEditorContent(null);
+      setNoteColor('ffffff');
       await loadNote(selectedNoteId);
     };
 
@@ -168,19 +195,11 @@ export const NoteEditor: React.FC = () => {
         }
       }
 
-      try {
-        const note = await window.storage.getNote(noteId);
-        setNoteTitle(note.title);
-        setEditorContent(note.content);
-        setNoteColor(note.color || 'ffffff');
-        syncTaskBaseline(noteId, note.title, note.content);
-      } catch (error) {
-        console.error('Failed to reload note from floating window:', error);
-      }
+      await loadNote(noteId);
     };
 
     return onRendererIpc(IPC_CHANNELS.noteUpdated, handleFloatingNoteUpdate);
-  }, [syncTaskBaseline]);
+  }, [loadNote]);
 
   // 标题变更处理
   const handleTitleChange = useCallback(
@@ -266,6 +285,12 @@ export const NoteEditor: React.FC = () => {
     [enableInfiniteCanvas],
   );
 
+  const hasCurrentNoteContent = selectedNoteId !== null && loadedNoteId === selectedNoteId;
+  const visibleNoteTitle = hasCurrentNoteContent ? noteTitle : '';
+  const visibleEditorContent = hasCurrentNoteContent ? editorContent : null;
+  const visibleNoteColor = hasCurrentNoteContent ? noteColor : 'ffffff';
+  const visibleTaskPath = hasCurrentNoteContent ? noteTaskPath : null;
+
   // 渲染当前 Tab 内容
   const renderTabContent = () => {
     switch (activeTab) {
@@ -273,11 +298,11 @@ export const NoteEditor: React.FC = () => {
         return (
           <EditTab
             noteId={selectedNoteId}
-            noteTitle={noteTitle}
-            editorContent={editorContent}
+            noteTitle={visibleNoteTitle}
+            editorContent={visibleEditorContent}
             onTitleChange={handleTitleChange}
             onContentChange={handleContentChange}
-            taskPath={noteTaskPath}
+            taskPath={visibleTaskPath}
             onTaskLocated={clearNoteTaskPath}
             isLoading={isContentLoading}
           />
@@ -286,7 +311,7 @@ export const NoteEditor: React.FC = () => {
         return (
           <ToolsTab
             noteId={selectedNoteId}
-            noteColor={noteColor}
+            noteColor={visibleNoteColor}
             onColorChange={handleColorChange}
           />
         );
@@ -318,11 +343,11 @@ export const NoteEditor: React.FC = () => {
     return (
       <EditTab
         noteId={selectedNoteId}
-        noteTitle={noteTitle}
-        editorContent={editorContent}
+        noteTitle={visibleNoteTitle}
+        editorContent={visibleEditorContent}
         onTitleChange={handleTitleChange}
         onContentChange={handleContentChange}
-        taskPath={noteTaskPath}
+        taskPath={visibleTaskPath}
         onTaskLocated={clearNoteTaskPath}
         isLoading={isContentLoading}
       />

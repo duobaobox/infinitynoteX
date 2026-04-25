@@ -15,6 +15,7 @@ import { getExtensions } from '../extensions';
 import type { TipTapEditorProps } from '../types';
 import type { TipTapJSONContent } from '../../../services/types';
 import { getThemeColor } from '../../../theme/theme';
+import { normalizeEditorContent } from '../utils/imageContent';
 import { scrollToTask } from '../utils/taskLocator';
 import '../styles/editor.css';
 import '../styles/table.css';
@@ -50,6 +51,10 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   disableSlashCommand = false,
 }) => {
   const [themeColor, setThemeColor] = React.useState(getThemeColor());
+  const normalizedInitialContent = React.useMemo(
+    () => normalizeEditorContent(initialContent),
+    [initialContent],
+  );
 
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -79,7 +84,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   // 使用 useEditor Hook 创建编辑器实例
   const editor = useEditor({
     extensions: getExtensions({ placeholder, disableSlashCommand }),
-    content: initialContent,
+    content: normalizedInitialContent,
     editable,
     autofocus,
     /**
@@ -111,15 +116,13 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const lastContentRef = useRef<unknown>(null);
   const lastIdRef = useRef<string | undefined>(contentId);
 
-  // 编辑器就绪时初始化同步内容快照
-  // 注意：故意不包含 initialContent，只在 editor 初始化时执行一次
+  // 编辑器就绪或外部内容切换时，刷新同步内容快照。
   useEffect(() => {
     if (editor) {
       lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
-      lastContentRef.current = initialContent;
+      lastContentRef.current = normalizedInitialContent;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor]);
+  }, [editor, normalizedInitialContent]);
 
   // 当外部 initialContent 确实与当前内容不同（例如切换笔记）时，才更新编辑器内容
   useEffect(() => {
@@ -131,23 +134,23 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
     if (isNoteSwitch) {
       lastIdRef.current = contentId;
       // 切换笔记时强制更新内容
-      editor.commands.setContent(initialContent || { type: 'doc', content: [] }, {
+      editor.commands.setContent(normalizedInitialContent || { type: 'doc', content: [] }, {
         emitUpdate: false,
       });
       lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
-      lastContentRef.current = initialContent;
+      lastContentRef.current = normalizedInitialContent;
       return;
     }
 
     // 2. 如果是同一个笔记（或者没提供 ID），进行内容比对
     // 如果引用相同，跳过
-    if (initialContent === lastContentRef.current) {
+    if (normalizedInitialContent === lastContentRef.current) {
       return;
     }
 
     // 3. 深度比较 JSON
     type JSONContent = { type?: string; content?: unknown[] };
-    const content = (initialContent ?? { type: 'doc', content: [] }) as JSONContent;
+    const content = (normalizedInitialContent ?? { type: 'doc', content: [] }) as JSONContent;
 
     let contentChanged = false;
     try {
@@ -163,16 +166,18 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       // 只有在非聚焦状态下才进行内容修复式同步，避免干扰用户输入
       setTimeout(() => {
         if (!editor.isDestroyed && !editor.isFocused) {
-          editor.commands.setContent(initialContent as TipTapJSONContent, { emitUpdate: false });
+          editor.commands.setContent(normalizedInitialContent as TipTapJSONContent, {
+            emitUpdate: false,
+          });
           lastSyncedContentRef.current = JSON.stringify(editor.getJSON());
-          lastContentRef.current = initialContent;
+          lastContentRef.current = normalizedInitialContent;
         }
       }, 0);
     } else {
       // 虽然内容“变了”（可能是外部轻微差异），但为了稳定，我们只更新引用记录
-      lastContentRef.current = initialContent;
+      lastContentRef.current = normalizedInitialContent;
     }
-  }, [editor, initialContent, contentId]);
+  }, [editor, normalizedInitialContent, contentId]);
 
   // 任务定位：当 taskPath 参数变化或内容加载完成时，定位到对应任务
   useEffect(() => {
@@ -210,7 +215,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
         clearTimeout(retryTimeout);
       }
     };
-  }, [editor, taskPath, onTaskLocated, initialContent]); // 添加 initialContent 依赖
+  }, [editor, taskPath, onTaskLocated, normalizedInitialContent]); // 添加 initialContent 依赖
 
   // 组件卸载时销毁编辑器实例（官方推荐）
   useEffect(() => {

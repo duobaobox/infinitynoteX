@@ -21,7 +21,7 @@ export const getContentExtensions = (config?: EditorConfig) => {
   return [
     // 使用自定义的可调整大小图片扩展
     ResizableImage.configure({
-      inline: true,
+      inline: false,
       allowBase64: true,
       HTMLAttributes: {
         class: 'editor-image',

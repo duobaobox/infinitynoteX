@@ -5,7 +5,12 @@
  */
 
 import { storageManager } from '../storage';
-import { readKnowledgeConfig, createEmbeddingService, type EmbeddingService } from './embedding';
+import {
+  readKnowledgeConfig,
+  writeKnowledgeConfig,
+  createEmbeddingService,
+  type EmbeddingService,
+} from './embedding';
 import { getVectorStore } from './vectorStore';
 import type {
   VectorMetadata,
@@ -496,27 +501,51 @@ let currentIndexingConfig: IndexingConfig = { ...DEFAULT_INDEXING_CONFIG };
 /**
  * 获取当前索引配置
  */
-export function getIndexingConfig(): IndexingConfig {
+async function loadPersistedIndexingConfig(): Promise<IndexingConfig> {
+  const config = await readKnowledgeConfig();
+  currentIndexingConfig = {
+    ...DEFAULT_INDEXING_CONFIG,
+    ...(config?.indexing ?? {}),
+  };
   return { ...currentIndexingConfig };
+}
+
+/**
+ * 获取当前索引配置
+ */
+export async function getIndexingConfig(): Promise<IndexingConfig> {
+  return await loadPersistedIndexingConfig();
 }
 
 /**
  * 设置索引配置
  */
-export function setIndexingConfig(config: Partial<IndexingConfig>): void {
+export async function setIndexingConfig(config: Partial<IndexingConfig>): Promise<IndexingConfig> {
   currentIndexingConfig = {
     ...currentIndexingConfig,
     ...config,
   };
+  const knowledgeConfig = (await readKnowledgeConfig()) ?? { enabled: false };
+  await writeKnowledgeConfig({
+    ...knowledgeConfig,
+    indexing: currentIndexingConfig,
+  });
   console.log('[KnowledgeIndex] Updated indexing config:', currentIndexingConfig);
+  return { ...currentIndexingConfig };
 }
 
 /**
  * 重置索引配置为默认值
  */
-export function resetIndexingConfig(): void {
+export async function resetIndexingConfig(): Promise<IndexingConfig> {
   currentIndexingConfig = { ...DEFAULT_INDEXING_CONFIG };
+  const knowledgeConfig = (await readKnowledgeConfig()) ?? { enabled: false };
+  await writeKnowledgeConfig({
+    ...knowledgeConfig,
+    indexing: currentIndexingConfig,
+  });
   console.log('[KnowledgeIndex] Reset indexing config to defaults');
+  return { ...currentIndexingConfig };
 }
 
 /**
@@ -539,7 +568,7 @@ export async function indexNote(
   embeddingService: EmbeddingService,
 ): Promise<number> {
   const store = getVectorStore();
-  const config = currentIndexingConfig;
+  const config = await loadPersistedIndexingConfig();
 
   // 删除该笔记的旧向量
   store.deleteByNoteId(noteId);
@@ -741,19 +770,17 @@ export async function semanticSearch(
 /**
  * 获取索引统计
  */
-export function getIndexStats(): {
+export async function getIndexStats(): Promise<{
   enabled: boolean;
   indexedNotes: number;
   totalVectors: number;
-} {
+}> {
   try {
     const store = getVectorStore();
     const stats = store.getStats();
-
-    // 同步读取配置（简化实现）
-    // 这里不再依赖异步读取，直接返回统计
+    const config = await readKnowledgeConfig();
     return {
-      enabled: true, // 调用方会检查配置
+      enabled: !!config?.enabled,
       indexedNotes: stats.uniqueNotes,
       totalVectors: stats.totalVectors,
     };
@@ -819,7 +846,7 @@ export async function smartIndexNote(
   deleted: number;
 }> {
   const store = getVectorStore();
-  const config = currentIndexingConfig;
+  const config = await loadPersistedIndexingConfig();
 
   // 提取文本
   const text = extractNoteText(content);
@@ -913,7 +940,7 @@ export async function smartIndexNote(
             noteId,
             noteTitle: title,
             chunkIndex: chunk.index,
-            content: chunk.text.slice(0, 200),
+            content: chunk.text,
             contentHash: chunk.hash, // 保存 hash
           };
 
@@ -1134,7 +1161,10 @@ export async function runDiagnostics(): Promise<DiagnosticsResult> {
       inconsistentNotes,
     },
     embeddingConfig: {
-      configured: !!config?.embedding?.baseURL && !!config?.embedding?.model,
+      configured:
+        !!config?.embedding?.baseURL &&
+        !!config?.embedding?.model &&
+        !!config?.embedding?.apiKey?.trim(),
       provider: config?.embedding?.provider,
       model: config?.embedding?.model,
       lastTestResult: 'unknown',

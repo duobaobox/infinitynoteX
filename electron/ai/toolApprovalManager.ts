@@ -5,7 +5,13 @@ import type { AIToolApproval } from '../../src/services/types';
 
 const APPROVAL_TTL_MS = 30 * 60 * 1000;
 
-interface PendingToolApprovalEntry {
+export interface PendingToolApprovalDecision {
+  approved: boolean;
+  reason?: string;
+  decidedAt: number;
+}
+
+export interface PendingToolApprovalEntry {
   requestId: string;
   runKey?: string;
   approval: AIToolApproval;
@@ -14,6 +20,7 @@ interface PendingToolApprovalEntry {
   baseMessages: ModelMessage[];
   responseMessagesPromise: Promise<ModelMessage[]>;
   createdAt: number;
+  decision?: PendingToolApprovalDecision;
 }
 
 const pendingApprovals = new Map<string, PendingToolApprovalEntry>();
@@ -45,4 +52,55 @@ export function consumePendingToolApproval(approvalId: string): PendingToolAppro
 export function peekPendingToolApproval(approvalId: string): PendingToolApprovalEntry | null {
   cleanupExpiredApprovals();
   return pendingApprovals.get(approvalId) ?? null;
+}
+
+export function recordPendingToolApprovalDecision(
+  approvalId: string,
+  decision: Omit<PendingToolApprovalDecision, 'decidedAt'>,
+): PendingToolApprovalEntry | null {
+  cleanupExpiredApprovals();
+  const entry = pendingApprovals.get(approvalId) ?? null;
+  if (!entry) {
+    return null;
+  }
+
+  entry.decision = {
+    ...decision,
+    decidedAt: Date.now(),
+  };
+  pendingApprovals.set(approvalId, entry);
+  return entry;
+}
+
+export function getPendingToolApprovalsByIds(approvalIds: string[]): PendingToolApprovalEntry[] {
+  cleanupExpiredApprovals();
+  const entries: PendingToolApprovalEntry[] = [];
+
+  for (const approvalId of approvalIds) {
+    const entry = pendingApprovals.get(approvalId);
+    if (entry) {
+      entries.push(entry);
+    }
+  }
+
+  return entries;
+}
+
+export function consumePendingToolApprovals(approvalIds: string[]): PendingToolApprovalEntry[] {
+  cleanupExpiredApprovals();
+  const entries: PendingToolApprovalEntry[] = [];
+
+  for (const approvalId of approvalIds) {
+    const entry = pendingApprovals.get(approvalId);
+    if (entry) {
+      entries.push(entry);
+      pendingApprovals.delete(approvalId);
+    }
+  }
+
+  return entries;
+}
+
+export function clearPendingToolApprovalsForTest(): void {
+  pendingApprovals.clear();
 }

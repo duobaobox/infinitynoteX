@@ -313,13 +313,14 @@ const AITab: React.FC = () => {
                     placeholder="输入 API Key（仅本地保存）"
                     value={aiConfig.apiKey}
                     onChange={(e) => syncCurrentConfig({ apiKey: e.target.value })}
+                    visibilityToggle
                   />
                   <Button type="primary" onClick={handleSaveConfig} loading={aiLoading}>
                     保存并测试
                   </Button>
                 </Space.Compact>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  Key 仅由主进程保存，渲染层读取到的是脱敏占位符。
+                  Key 保存在本机配置中，可直接查看和修改。
                 </Text>
               </Form.Item>
             </Form>

@@ -6,7 +6,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { app } from 'electron';
-import type { EmbeddingConfig, EmbeddingRequest, EmbeddingResponse } from './types';
+import type {
+  EmbeddingConfig,
+  EmbeddingRequest,
+  EmbeddingResponse,
+  KnowledgeConfig,
+} from './types';
 
 // 重新导出类型
 export type { EmbeddingConfig } from './types';
@@ -18,32 +23,80 @@ function getKnowledgeConfigPath(): string {
   return path.join(app.getPath('userData'), 'knowledge-config.json');
 }
 
+async function backupCorruptedKnowledgeConfig(configPath: string): Promise<void> {
+  try {
+    const backupPath = `${configPath}.corrupted-${Date.now()}`;
+    await fs.rename(configPath, backupPath);
+    console.warn(`[Embedding] Backed up corrupted config to ${backupPath}`);
+  } catch (error) {
+    console.warn('[Embedding] Failed to back up corrupted config:', error);
+  }
+}
+
+async function writeKnowledgeConfigAtomically(
+  configPath: string,
+  config: KnowledgeConfig,
+): Promise<void> {
+  const tempPath = `${configPath}.tmp`;
+  await fs.writeFile(tempPath, JSON.stringify(config, null, 2), 'utf-8');
+  await fs.rename(tempPath, configPath);
+}
+
 /**
  * 读取知识库配置
  */
-export async function readKnowledgeConfig(): Promise<{
-  enabled: boolean;
-  embedding?: EmbeddingConfig;
-} | null> {
+async function readKnowledgeConfigFile(): Promise<KnowledgeConfig | null> {
   try {
     const configPath = getKnowledgeConfigPath();
     const data = await fs.readFile(configPath, 'utf-8');
     return JSON.parse(data);
-  } catch {
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      await backupCorruptedKnowledgeConfig(getKnowledgeConfigPath());
+    }
     return null;
   }
 }
 
 /**
+ * 读取知识库配置
+ */
+export async function readKnowledgeConfig(): Promise<KnowledgeConfig | null> {
+  return await readKnowledgeConfigFile();
+}
+
+function mergeEmbeddingConfig(
+  nextEmbedding: EmbeddingConfig | undefined,
+  existingEmbedding: EmbeddingConfig | undefined,
+): EmbeddingConfig | undefined {
+  if (!nextEmbedding) {
+    return existingEmbedding;
+  }
+
+  const nextApiKey = nextEmbedding.apiKey?.trim();
+
+  return {
+    ...existingEmbedding,
+    ...nextEmbedding,
+    apiKey: nextApiKey ?? existingEmbedding?.apiKey,
+  };
+}
+
+/**
  * 写入知识库配置
  */
-export async function writeKnowledgeConfig(config: {
-  enabled: boolean;
-  embedding?: EmbeddingConfig;
-}): Promise<void> {
+export async function writeKnowledgeConfig(config: KnowledgeConfig): Promise<void> {
   try {
+    const existingConfig = await readKnowledgeConfigFile();
+    const nextConfig: KnowledgeConfig = {
+      ...existingConfig,
+      ...config,
+      embedding: mergeEmbeddingConfig(config.embedding, existingConfig?.embedding),
+      indexing: config.indexing ?? existingConfig?.indexing,
+    };
     const configPath = getKnowledgeConfigPath();
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+    await fs.mkdir(path.dirname(configPath), { recursive: true });
+    await writeKnowledgeConfigAtomically(configPath, nextConfig);
     console.log('[Embedding] Config saved');
   } catch (error) {
     console.error('[Embedding] Failed to save config:', error);

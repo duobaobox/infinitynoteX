@@ -192,6 +192,18 @@ export interface EmbeddingConfig {
 }
 
 /**
+ * 知识库配置文件结构
+ */
+export interface KnowledgeConfig {
+  /** 是否启用知识库 */
+  enabled: boolean;
+  /** Embedding 配置 */
+  embedding?: EmbeddingConfig;
+  /** 索引调优配置 */
+  indexing?: IndexingConfig;
+}
+
+/**
  * Embedding 请求体
  */
 export interface EmbeddingRequest {

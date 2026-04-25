@@ -10,20 +10,13 @@ export interface AIConfig extends Omit<AIProviderConfig, 'apiKey'> {
   providerId?: string; // e.g., 'deepseek', 'alibaba'
 
   /**
-   * API Key（仅主进程持有明文）
-   * 渲染进程拿到的只会是占位符或用户新输入的值
+   * API Key（本地应用直接展示与编辑明文）
    */
   apiKey?: string;
 
   /** 是否启用流式响应 */
   stream?: boolean; // 默认 true
 }
-
-/**
- * API Key 占位符（用于渲染进程显示“已设置”，但不暴露明文）
- * 注意：主进程写入配置时遇到该值应保留旧 key。
- */
-export const API_KEY_PLACEHOLDER = '********';
 
 /**
  * 聊天消息（OpenAI 兼容格式，用于 API 请求）

@@ -229,6 +229,7 @@ declare global {
         success: boolean;
         content?: string;
         approval?: import('./services/types').AIToolApproval;
+        approvals?: import('./services/types').AIToolApproval[];
         followUpApprovals?: import('./services/types').AIToolApproval[];
         error?: string;
       }>;

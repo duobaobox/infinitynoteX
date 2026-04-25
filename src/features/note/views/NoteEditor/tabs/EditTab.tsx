@@ -91,6 +91,7 @@ export const EditTab: React.FC<EditTabProps> = ({
       >
         <TipTapEditor
           key={EDITOR_KEY}
+          contentId={noteId}
           initialContent={editorContent}
           onContentChange={onContentChange}
           title={noteTitle}

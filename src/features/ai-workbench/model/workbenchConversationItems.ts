@@ -6,6 +6,15 @@ export const CANVAS_AI_WORKBENCH_ITEM_ID = 'ai-workbench:canvas';
 
 export type AIWorkbenchConversationFilter = 'all' | AIConversationSource;
 
+export const DEFAULT_AI_WORKBENCH_FILTER: AIWorkbenchConversationFilter = 'workbench';
+export const AI_WORKBENCH_FILTER_ORDER: AIWorkbenchConversationFilter[] = [
+  'workbench',
+  'global',
+  'note',
+  'canvas',
+  'all',
+];
+
 export interface AIWorkbenchConversationItem {
   id: string;
   conversationId: string | null;
@@ -219,6 +228,20 @@ export function resolveAIWorkbenchSelection(
 
 export function getDefaultAIWorkbenchSelectionId(): string {
   return GLOBAL_AI_WORKBENCH_ITEM_ID;
+}
+
+export function resolveInitialAIWorkbenchFilter(
+  storedValue: string | null,
+): AIWorkbenchConversationFilter {
+  if (storedValue === 'all') {
+    return 'all';
+  }
+
+  if (AI_WORKBENCH_SOURCE_ORDER.includes(storedValue as AIConversationSource)) {
+    return storedValue as AIConversationSource;
+  }
+
+  return DEFAULT_AI_WORKBENCH_FILTER;
 }
 
 export function matchesAIWorkbenchQuery(item: AIWorkbenchConversationItem, query: string): boolean {

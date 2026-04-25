@@ -174,15 +174,6 @@ th:hover::after {
   outline: none !important;
 }
 
-/* 边框直接应用在图片上，确保紧贴图片边缘 */
-.node-image.ProseMirror-selectednode .resizable-image-container {
-  overflow: visible; /* 允许边框溢出显示 */
-}
-
-.node-image.ProseMirror-selectednode .resizable-image-container img {
-  box-shadow: 0 0 0 2px var(--theme-color, #1890ff);
-}
-
 .tableWrapper {
   position: relative;
   margin: 1em 0;

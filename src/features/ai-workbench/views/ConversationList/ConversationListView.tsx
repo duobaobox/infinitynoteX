@@ -37,12 +37,14 @@ import { useWorkspaceStore } from '../../../../store/workspaceStore';
 import { useScrollOverflow } from '../../../../hooks/useScrollOverflow';
 import { useThemeColor } from '../../../../hooks/useThemeColor';
 import {
+  AI_WORKBENCH_FILTER_ORDER,
   AI_WORKBENCH_SOURCE_ORDER,
   type AIWorkbenchConversationItem,
   type AIWorkbenchConversationFilter,
   buildAIWorkbenchItems,
   getAIWorkbenchSourceLabel,
   matchesAIWorkbenchQuery,
+  resolveInitialAIWorkbenchFilter,
   resolveAIWorkbenchSelection,
 } from '../../model/workbenchConversationItems';
 
@@ -84,7 +86,7 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
   const [searchQuery, setSearchQuery] = useState('');
   const FILTER_STORAGE_KEY = 'ai_list_source_filter';
   const [sourceFilter, setSourceFilter] = useState<AIWorkbenchConversationFilter>(() => {
-    return (localStorage.getItem(FILTER_STORAGE_KEY) as AIWorkbenchConversationFilter) || 'all';
+    return resolveInitialAIWorkbenchFilter(localStorage.getItem(FILTER_STORAGE_KEY));
   });
 
   const STORAGE_KEY = 'ai_list_sort_order';
@@ -261,22 +263,20 @@ export const ConversationListView: React.FC<ConversationListViewProps> = ({ flex
           className="ai-workbench-icon-segmented"
           value={sourceFilter}
           onChange={handleSourceFilterChange}
-          options={(['all', ...AI_WORKBENCH_SOURCE_ORDER] as AIWorkbenchConversationFilter[]).map(
-            (key) => {
-              const { label, icon: Icon } = FILTER_META[key];
+          options={AI_WORKBENCH_FILTER_ORDER.map((key) => {
+            const { label, icon: Icon } = FILTER_META[key];
 
-              return {
-                value: key,
-                label: (
-                  <Tooltip title={`${label} · ${sourceCounts[key] ?? 0}`}>
-                    <span className="ai-workbench-segmented-icon" aria-label={label}>
-                      <Icon />
-                    </span>
-                  </Tooltip>
-                ),
-              };
-            },
-          )}
+            return {
+              value: key,
+              label: (
+                <Tooltip title={`${label} · ${sourceCounts[key] ?? 0}`}>
+                  <span className="ai-workbench-segmented-icon" aria-label={label}>
+                    <Icon />
+                  </span>
+                </Tooltip>
+              ),
+            };
+          })}
         />
       </div>
 

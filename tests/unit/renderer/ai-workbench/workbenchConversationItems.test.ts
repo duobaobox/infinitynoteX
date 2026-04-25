@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AI_WORKBENCH_FILTER_ORDER,
   CANVAS_AI_WORKBENCH_ITEM_ID,
+  DEFAULT_AI_WORKBENCH_FILTER,
   GLOBAL_AI_WORKBENCH_ITEM_ID,
   buildAIWorkbenchItems,
   getDefaultAIWorkbenchSelectionId,
   normalizeAIWorkbenchSelectionId,
+  resolveInitialAIWorkbenchFilter,
   resolveAIWorkbenchSelection,
 } from '../../../../src/features/ai-workbench/model/workbenchConversationItems';
 
@@ -66,5 +69,16 @@ describe('workbenchConversationItems', () => {
 
   it('uses the global entry as the default AI workbench landing selection', () => {
     expect(getDefaultAIWorkbenchSelectionId()).toBe(GLOBAL_AI_WORKBENCH_ITEM_ID);
+  });
+
+  it('uses workbench as the default source filter when no local preference exists', () => {
+    expect(DEFAULT_AI_WORKBENCH_FILTER).toBe('workbench');
+    expect(resolveInitialAIWorkbenchFilter(null)).toBe('workbench');
+    expect(resolveInitialAIWorkbenchFilter('invalid-filter')).toBe('workbench');
+    expect(resolveInitialAIWorkbenchFilter('all')).toBe('all');
+  });
+
+  it('puts the workbench filter first and keeps all at the end', () => {
+    expect(AI_WORKBENCH_FILTER_ORDER).toEqual(['workbench', 'global', 'note', 'canvas', 'all']);
   });
 });

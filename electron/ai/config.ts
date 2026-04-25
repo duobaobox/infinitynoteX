@@ -1,10 +1,9 @@
 /**
  * AI 配置读写（主进程）
- * 统一基于 app-config.json，渲染进程只能拿到脱敏后的配置。
+ * 统一基于 app-config.json，本地应用直接向渲染进程返回完整配置。
  */
 
 import type { AIConfig as RendererAIConfig } from '../../src/services/aiConfig';
-import { API_KEY_PLACEHOLDER } from '../../src/services/aiConfig';
 import type { AppConfig, AIProviderConfig } from '../../src/shared/types/config';
 import { readAppConfig, writeAppConfig } from '../config';
 
@@ -52,30 +51,7 @@ function resolveActiveProviderId(
   return firstProviderId || DEFAULT_PROVIDER_ID;
 }
 
-function redactProviderConfig(
-  providerId: string,
-  config?: AIProviderConfig,
-): RendererAIConfig | null {
-  if (!config) {
-    return null;
-  }
-
-  return {
-    providerId,
-    provider: config.provider,
-    baseURL: config.baseURL,
-    apiKey: config.apiKey ? API_KEY_PLACEHOLDER : '',
-    model: config.model,
-    temperature: config.temperature,
-    max_tokens: config.max_tokens,
-    timeoutMs: config.timeoutMs,
-    systemPrompt: config.systemPrompt,
-    httpProxy: config.httpProxy,
-    stream: config.stream ?? true,
-  };
-}
-
-function toRuntimeProviderConfig(
+function toRendererProviderConfig(
   providerId: string,
   config?: AIProviderConfig,
 ): RendererAIConfig | null {
@@ -103,15 +79,11 @@ function mergeProviderConfig(
   existing?: AIProviderConfig,
 ): AIProviderConfig {
   const nextApiKey = nextConfig.apiKey?.trim();
-  const mergedApiKey =
-    nextApiKey === undefined || nextApiKey === API_KEY_PLACEHOLDER
-      ? (existing?.apiKey ?? '')
-      : nextApiKey;
 
   return {
     provider: nextConfig.provider?.trim() || existing?.provider || nextConfig.providerId || 'AI',
     baseURL: nextConfig.baseURL?.trim() ?? existing?.baseURL ?? '',
-    apiKey: mergedApiKey,
+    apiKey: nextApiKey ?? existing?.apiKey ?? '',
     model: nextConfig.model?.trim() ?? existing?.model ?? '',
     temperature:
       typeof nextConfig.temperature === 'number' ? nextConfig.temperature : existing?.temperature,
@@ -128,20 +100,21 @@ function mergeProviderConfig(
 function sanitizeAISection(config: AppConfig): AppConfig['ai'] {
   const providerConfigs = normalizeProviderConfigs(config);
   const activeProviderId = resolveActiveProviderId(config, providerConfigs);
-  const sanitizedProviderConfigs = Object.fromEntries(
+  const rendererProviderConfigs = Object.fromEntries(
     Object.entries(providerConfigs)
       .map(([providerId, providerConfig]) => [
         providerId,
-        redactProviderConfig(providerId, providerConfig),
+        toRendererProviderConfig(providerId, providerConfig),
       ])
-      .filter((entry): entry is [string, NonNullable<ReturnType<typeof redactProviderConfig>>] =>
-        Boolean(entry[1]),
+      .filter(
+        (entry): entry is [string, NonNullable<ReturnType<typeof toRendererProviderConfig>>] =>
+          Boolean(entry[1]),
       ),
   );
 
   return {
     activeProviderId,
-    providerConfigs: sanitizedProviderConfigs as AppConfig['ai']['providerConfigs'],
+    providerConfigs: rendererProviderConfigs as AppConfig['ai']['providerConfigs'],
   };
 }
 
@@ -154,12 +127,12 @@ export function sanitizeAppConfigForRenderer(config: AppConfig): AppConfig {
 
 export async function readAIConfig(): Promise<RendererAIConfig | null> {
   const { activeProviderId, activeConfig } = readActiveProviderConfig();
-  return redactProviderConfig(activeProviderId, activeConfig);
+  return toRendererProviderConfig(activeProviderId, activeConfig);
 }
 
 export async function readActiveAIProviderConfig(): Promise<RendererAIConfig | null> {
   const { activeProviderId, activeConfig } = readActiveProviderConfig();
-  return toRuntimeProviderConfig(activeProviderId, activeConfig);
+  return toRendererProviderConfig(activeProviderId, activeConfig);
 }
 
 export async function writeAIConfig(config: RendererAIConfig): Promise<void> {

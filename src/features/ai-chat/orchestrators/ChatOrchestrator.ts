@@ -644,17 +644,30 @@ export class ChatOrchestrator {
       throw new Error(result.error || 'Tool approval failed');
     }
 
+    const completedApprovals = result.approvals ?? (result.approval ? [result.approval] : []);
+
+    for (const approval of completedApprovals) {
+      this.mergeApprovalIntoAssistant(requestId, approval);
+
+      const targetToolCall =
+        this.getStore().getToolCall?.(approval.toolCallId) ??
+        this.findToolCallByApprovalId(approval.approvalId);
+
+      if (approval.status === 'executed' && targetToolCall) {
+        this.getStore().completeToolCall?.(targetToolCall.id, result.content ?? null);
+      }
+
+      if (approval.status === 'denied' && targetToolCall) {
+        this.getStore().rejectToolCall?.(targetToolCall.id, 'User rejected');
+      }
+
+      if (approval.status === 'failed' && targetToolCall) {
+        this.getStore().failToolCall?.(targetToolCall.id, approval.error || 'Tool approval failed');
+      }
+    }
+
     if (result.approval) {
-      this.mergeApprovalIntoAssistant(requestId, result.approval);
       this.appendApprovalContinuation(requestId, result.approval, result.content);
-
-      if (result.approval.status === 'executed') {
-        this.getStore().completeToolCall?.(toolCall.id, result.content ?? null);
-      }
-
-      if (result.approval.status === 'denied') {
-        this.getStore().rejectToolCall?.(toolCall.id, 'User rejected');
-      }
     }
 
     for (const approval of result.followUpApprovals ?? []) {

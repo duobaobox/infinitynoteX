@@ -784,17 +784,17 @@ export class SqliteVectorStore implements IVectorStore {
   getOrphanedVectorCount(existingNoteIds: string[]): number {
     if (existingNoteIds.length === 0) {
       // 如果没有笔记，所有向量都是孤立的
-      const result = this.db
-        .prepare('SELECT COUNT(DISTINCT note_id) as count FROM chunk_metadata')
-        .get() as { count: number };
+      const result = this.db.prepare('SELECT COUNT(*) as count FROM chunk_metadata').get() as {
+        count: number;
+      };
       return result.count;
     }
 
-    // 使用 NOT IN 查询孤立笔记的向量数量
+    // 使用 NOT IN 查询孤立向量数量
     const placeholders = existingNoteIds.map(() => '?').join(',');
     const result = this.db
       .prepare(
-        `SELECT COUNT(DISTINCT note_id) as count FROM chunk_metadata WHERE note_id NOT IN (${placeholders})`,
+        `SELECT COUNT(*) as count FROM chunk_metadata WHERE note_id NOT IN (${placeholders})`,
       )
       .get(...existingNoteIds) as { count: number };
     return result.count;

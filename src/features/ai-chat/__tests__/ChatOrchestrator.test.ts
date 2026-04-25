@@ -393,6 +393,84 @@ describe('ChatOrchestrator - Integration Tests', () => {
     expect(request.state).toBe('COMPLETED');
   });
 
+  it('应该合并同批多个审批的执行结果', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Create two tasks', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    for (const id of ['tool-1', 'tool-2']) {
+      mockIPC.trigger('tool:progress', {
+        requestId,
+        progress: { phase: 'start', toolCallId: id, toolName: 'createManualTask' },
+      });
+
+      mockIPC.trigger('tool:approval', {
+        requestId,
+        approval: {
+          approvalId: id.replace('tool', 'approval'),
+          toolCallId: id,
+          toolName: 'createManualTask',
+          inputPreview: '{}',
+        },
+      });
+    }
+
+    respondToolApprovalMock.mockResolvedValueOnce({
+      success: true,
+      content: '',
+      approval: {
+        approvalId: 'approval-1',
+        toolCallId: 'tool-1',
+        toolName: 'createManualTask',
+        title: '任务 1',
+        description: '任务 1',
+        status: 'processing',
+      },
+      followUpApprovals: [],
+    });
+
+    await orchestrator.handleApproveToolCall(requestId, 'tool-1', conversationId);
+
+    respondToolApprovalMock.mockResolvedValueOnce({
+      success: true,
+      content: '已创建两个任务',
+      approval: {
+        approvalId: 'approval-2',
+        toolCallId: 'tool-2',
+        toolName: 'createManualTask',
+        title: '任务 2',
+        description: '任务 2',
+        status: 'executed',
+      },
+      approvals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'tool-1',
+          toolName: 'createManualTask',
+          title: '任务 1',
+          description: '任务 1',
+          status: 'executed',
+        },
+        {
+          approvalId: 'approval-2',
+          toolCallId: 'tool-2',
+          toolName: 'createManualTask',
+          title: '任务 2',
+          description: '任务 2',
+          status: 'executed',
+        },
+      ],
+      followUpApprovals: [],
+    });
+
+    await orchestrator.handleApproveToolCall(requestId, 'tool-2', conversationId);
+
+    expect(mockStore.getToolCall('tool-1').state.type).toBe('SUCCESS');
+    expect(mockStore.getToolCall('tool-2').state.type).toBe('SUCCESS');
+    expect(mockStore.getRequest(requestId).state).toBe('COMPLETED');
+  });
+
   it('应该处理用户拒绝工具调用的流程', async () => {
     const conversationId = 'conv-1';
     await orchestrator.handleSendMessage(conversationId, 'Execute', []);

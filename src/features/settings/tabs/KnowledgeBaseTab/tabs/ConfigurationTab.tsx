@@ -92,9 +92,9 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
       if (result?.ok) {
         setTestResult({ ok: true, message: result.message });
         message.success('连接成功');
-        // 自动保存
+        const existingConfig = await window.knowledge?.getConfig();
         await window.knowledge?.setConfig({
-          enabled: true,
+          enabled: existingConfig?.enabled ?? false,
           embedding: {
             provider: 'custom',
             baseURL: embeddingConfig.baseURL,
@@ -284,6 +284,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
                 value={embeddingConfig.apiKey}
                 onChange={(e) => setEmbeddingConfig({ ...embeddingConfig, apiKey: e.target.value })}
                 prefix={<SafetyOutlined style={{ color: '#bfbfbf' }} />}
+                visibilityToggle
               />
               <Button type="primary" onClick={handleTestConnection} loading={testing}>
                 保存并测试
@@ -293,7 +294,7 @@ const ConfigurationTab: React.FC<ConfigurationTabProps> = ({ onStatsChange }) =>
 
           <Space style={{ color: '#52c41a', fontSize: 12 }}>
             <SafetyOutlined />
-            <span>密钥将以加密方式存储在本地</span>
+            <span>密钥仅保存在本机配置中，可直接查看和修改</span>
           </Space>
 
           {testResult && (

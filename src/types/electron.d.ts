@@ -26,6 +26,7 @@ declare global {
         success: boolean;
         content?: string;
         approval?: AIToolApproval;
+        approvals?: AIToolApproval[];
         followUpApprovals?: AIToolApproval[];
         error?: string;
       }>;
@@ -117,6 +118,13 @@ declare global {
           model: string;
           dimensions?: number;
         };
+        indexing?: {
+          chunkSize: number;
+          chunkOverlap: number;
+          batchSize: number;
+          batchDelayMs: number;
+          rateLimitRetryMs: number;
+        };
       } | null>;
       /**
        * 设置知识库配置
@@ -130,6 +138,13 @@ declare global {
           apiKey?: string;
           model: string;
           dimensions?: number;
+        };
+        indexing?: {
+          chunkSize: number;
+          chunkOverlap: number;
+          batchSize: number;
+          batchDelayMs: number;
+          rateLimitRetryMs: number;
         };
       }): Promise<void>;
       /**

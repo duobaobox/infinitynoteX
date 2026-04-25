@@ -13,6 +13,7 @@ import Image from '@tiptap/extension-image';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
 import React, { useCallback, useEffect, useRef, useState, memo } from 'react';
+import { DEFAULT_IMAGE_ALIGNMENT, normalizeImageAlignment } from '../utils/imageContent';
 
 /**
  * ResizableImage 组件 - 官方 TipTap Demo 风格
@@ -82,16 +83,13 @@ const ResizableImageComponent: React.FC<NodeViewProps> = memo(
         // 限制最小宽度
         newWidth = Math.max(50, newWidth);
 
-        // 限制最大宽度：取容器宽度和原始图片宽度的最大值（允许放大到原始尺寸或容器宽度）
-        const containerWidth =
-          containerRef.current?.parentElement?.parentElement?.offsetWidth || 800;
-        const originalWidth = originalWidthRef.current || 800;
-        const maxWidth = Math.max(containerWidth, originalWidth);
+        // 块级图片最多不超过编辑器可用宽度，避免溢出文档流。
+        const containerWidth = containerRef.current?.offsetWidth || 800;
+        const maxWidth = Math.max(50, containerWidth);
         newWidth = Math.min(newWidth, maxWidth);
 
         if (imgRef.current) {
-          // 拖拽时设置 maxWidth，允许响应式缩小
-          imgRef.current.style.maxWidth = `${newWidth}px`;
+          imgRef.current.style.width = `${newWidth}px`;
         }
       };
 
@@ -116,10 +114,11 @@ const ResizableImageComponent: React.FC<NodeViewProps> = memo(
       };
     }, [isResizing, resizeSide, updateAttributes]);
 
+    const align = normalizeImageAlignment(node.attrs.align) ?? DEFAULT_IMAGE_ALIGNMENT;
+
     return (
       <NodeViewWrapper
-        as="div"
-        className={`resizable-image-wrapper ${selected ? 'selected' : ''} ${isResizing ? 'resizing' : ''}`}
+        className={`resizable-image-wrapper align-${align} ${selected ? 'selected' : ''} ${isResizing ? 'resizing' : ''}`}
         ref={containerRef}
         data-drag-handle
       >
@@ -137,10 +136,9 @@ const ResizableImageComponent: React.FC<NodeViewProps> = memo(
             alt={node.attrs.alt || ''}
             title={node.attrs.title || ''}
             style={{
-              // 使用 max-width 确保图片不会超过设定宽度，同时允许响应式缩小
-              maxWidth: node.attrs.width ? `${node.attrs.width}px` : '100%',
-              width: '100%', // 让图片填满容器，但受 max-width 限制
-              height: 'auto', // 保持宽高比
+              width: node.attrs.width ? `${node.attrs.width}px` : 'auto',
+              maxWidth: '100%',
+              height: 'auto',
             }}
             draggable={false}
           />
@@ -161,6 +159,7 @@ const ResizableImageComponent: React.FC<NodeViewProps> = memo(
       prevProps.node.attrs.src === nextProps.node.attrs.src &&
       prevProps.node.attrs.width === nextProps.node.attrs.width &&
       prevProps.node.attrs.height === nextProps.node.attrs.height &&
+      prevProps.node.attrs.align === nextProps.node.attrs.align &&
       prevProps.node.attrs.alt === nextProps.node.attrs.alt &&
       prevProps.node.attrs.title === nextProps.node.attrs.title
     );
@@ -179,6 +178,15 @@ export const ResizableImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      align: {
+        default: DEFAULT_IMAGE_ALIGNMENT,
+        parseHTML: (element) =>
+          normalizeImageAlignment(element.getAttribute('data-align')) ?? DEFAULT_IMAGE_ALIGNMENT,
+        renderHTML: (attributes) => {
+          const align = normalizeImageAlignment(attributes.align) ?? DEFAULT_IMAGE_ALIGNMENT;
+          return { 'data-align': align };
+        },
+      },
       width: {
         default: null,
         parseHTML: (element) => element.getAttribute('width'),

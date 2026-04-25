@@ -21,6 +21,11 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
     return null;
   }
 
+  const getCurrentAlign = (): 'left' | 'center' | 'right' => {
+    const align = editor.getAttributes('image')?.align;
+    return align === 'center' || align === 'right' ? align : 'left';
+  };
+
   const getImageSrc = (): string | undefined => {
     const { selection } = editor.state;
     const { node } = selection as unknown as {
@@ -58,8 +63,8 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
       {/* 左对齐 */}
       <button
         type="button"
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        className={editor.isActive({ textAlign: 'left' }) ? 'is-active' : ''}
+        onClick={() => editor.chain().focus().updateAttributes('image', { align: 'left' }).run()}
+        className={getCurrentAlign() === 'left' ? 'is-active' : ''}
         title="左对齐"
       >
         <AlignLeft size={16} />
@@ -68,8 +73,8 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
       {/* 居中 */}
       <button
         type="button"
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        className={editor.isActive({ textAlign: 'center' }) ? 'is-active' : ''}
+        onClick={() => editor.chain().focus().updateAttributes('image', { align: 'center' }).run()}
+        className={getCurrentAlign() === 'center' ? 'is-active' : ''}
         title="居中"
       >
         <AlignCenter size={16} />
@@ -78,8 +83,8 @@ export const ImageBubbleMenu: React.FC<ImageBubbleMenuProps> = ({ editor }) => {
       {/* 右对齐 */}
       <button
         type="button"
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        className={editor.isActive({ textAlign: 'right' }) ? 'is-active' : ''}
+        onClick={() => editor.chain().focus().updateAttributes('image', { align: 'right' }).run()}
+        className={getCurrentAlign() === 'right' ? 'is-active' : ''}
         title="右对齐"
       >
         <AlignRight size={16} />

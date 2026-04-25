@@ -157,7 +157,7 @@ export function registerKnowledgeHandlers(): void {
 
   ipcMain.handle(knowledgeChannel('getIndexingConfig'), async () => {
     const { getIndexingConfig } = await import('../knowledge');
-    return getIndexingConfig();
+    return await getIndexingConfig();
   });
 
   ipcMain.handle(
@@ -173,14 +173,14 @@ export function registerKnowledgeHandlers(): void {
       },
     ) => {
       const { setIndexingConfig } = await import('../knowledge');
-      setIndexingConfig(config);
+      await setIndexingConfig(config);
       return { success: true };
     },
   );
 
   ipcMain.handle(knowledgeChannel('resetIndexingConfig'), async () => {
     const { resetIndexingConfig } = await import('../knowledge');
-    resetIndexingConfig();
+    await resetIndexingConfig();
     return { success: true };
   });
 

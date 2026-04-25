@@ -17,6 +17,7 @@ export type {
   // 知识库搜索
   KnowledgeSearchResult,
   KnowledgeStats,
+  KnowledgeConfig,
   // 专家功能类型
   IndexingConfig,
   DiagnosticsResult,

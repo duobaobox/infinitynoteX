@@ -310,18 +310,32 @@
 
 /* 外层包装器 (NodeViewWrapper) */
 .tiptap-editor .resizable-image-wrapper {
-  display: inline-block;
+  display: flex;
+  width: 100%;
   max-width: 100%;
-  vertical-align: bottom;
   line-height: 0;
+  margin: 0.75em 0;
+}
+
+.tiptap-editor .resizable-image-wrapper.align-left {
+  justify-content: flex-start;
+}
+
+.tiptap-editor .resizable-image-wrapper.align-center {
+  justify-content: center;
+}
+
+.tiptap-editor .resizable-image-wrapper.align-right {
+  justify-content: flex-end;
 }
 
 /* 图片容器 */
 .tiptap-editor .resizable-image-container {
   position: relative;
   display: inline-block;
+  max-width: 100%;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   transition: box-shadow 0.2s ease;
 }
 
@@ -329,21 +343,16 @@
 .tiptap-editor .resizable-image-container img {
   display: block;
   max-width: 100%;
+  margin: 0;
   height: auto;
   border-radius: 8px;
   user-select: none;
   pointer-events: none;
 }
 
-/* 选中状态 - 不显示边框，只显示手柄 */
-/* .tiptap-editor .resizable-image-wrapper.selected .resizable-image-container {
-  box-shadow: 0 0 0 3px #6366f1;
-} */
-
-/* 拖拽调整时的状态 - 不显示边框 */
-/* .tiptap-editor .resizable-image-wrapper.resizing .resizable-image-container {
-  box-shadow: 0 0 0 3px #4f46e5;
-} */
+.tiptap-editor .resizable-image-wrapper.selected .resizable-image-container {
+  box-shadow: 0 0 0 2px var(--theme-color, #1890ff);
+}
 
 /* ===== 左右竖条手柄 - 使用主题色 ===== */
 .tiptap-editor .resize-handle {

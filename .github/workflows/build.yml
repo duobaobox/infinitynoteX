@@ -71,18 +71,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
+          TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          if gh release view "$TAG_NAME" --repo "$REPO" >/dev/null 2>&1; then
+          if gh api "repos/$REPO/releases/tags/$TAG_NAME" >/dev/null 2>&1; then
             echo "Release $TAG_NAME already exists, updating assets..."
           else
-            gh release create "$TAG_NAME" \
-              --repo "$REPO" \
-              --verify-tag \
-              --title "$TAG_NAME" \
-              --draft \
-              --notes ""
+            gh api "repos/$REPO/releases" \
+              --method POST \
+              --field tag_name="$TAG_NAME" \
+              --field target_commitish="$TARGET_SHA" \
+              --field name="$TAG_NAME" \
+              --field draft=true \
+              --field prerelease=false \
+              --field generate_release_notes=false >/dev/null
           fi
 
           mapfile -t files < <(find dist-artifacts -type f \
@@ -93,14 +96,13 @@ jobs:
             -o -name '*.deb' \
             -o -name '*.rpm' \
             -o -name '*.snap' \
-            -o -name '*.nupkg' \
-            -o -name '*.yml' \
-            -o -name '*.yaml' \
-            -o -name '*.blockmap' \))
+            -o -name '*.nupkg' \))
 
           if [[ ${#files[@]} -eq 0 ]]; then
             echo "No release files found."
             exit 1
           fi
 
-          gh release upload "$TAG_NAME" "${files[@]}" --repo "$REPO" --clobber
+          for file in "${files[@]}"; do
+            gh release upload "$TAG_NAME" "$file" --repo "$REPO" --clobber
+          done

@@ -209,4 +209,107 @@ describe('ToolThoughtChain', () => {
 
     expect(screen.getAllByTestId('thought-chain')[0]).toHaveAttribute('data-expanded-keys', '');
   });
+
+  it('treats a completed run trace as final even if the request streaming flag is stale', () => {
+    const item: ChatItem = {
+      key: 'ai-run-4',
+      role: 'ai',
+      content: '已完成',
+      timestamp: Date.now(),
+      isStreaming: true,
+      runTrace: {
+        requestId: 'request-4',
+        runId: 'run-4',
+        status: 'completed',
+        input: '生成任务',
+        startedAt: 1,
+        endedAt: 2,
+        artifacts: [],
+        steps: [
+          {
+            stepId: 'generation',
+            kind: 'generation',
+            title: '生成回答',
+            detail: '回答生成完成。',
+            status: 'completed',
+            startedAt: 1,
+            endedAt: 2,
+          },
+        ],
+      },
+    };
+
+    render(
+      <ToolThoughtChain
+        item={item}
+        onRespondToolApproval={() => undefined}
+        withBottomSpacing={false}
+      />,
+    );
+
+    expect(screen.getByText('已完成工具调度操作')).toBeInTheDocument();
+    expect(screen.queryByText('正在执行深度思考与操作...')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('thought-chain')[0]).toHaveAttribute('data-expanded-keys', '');
+  });
+
+  it('derives completion when a stale running trace only contains finished work', () => {
+    const item: ChatItem = {
+      key: 'ai-run-5',
+      role: 'ai',
+      content: '已为你创建待办任务',
+      timestamp: Date.now(),
+      isStreaming: false,
+      runTrace: {
+        requestId: 'request-5',
+        runId: 'run-5',
+        status: 'running',
+        input: '创建任务',
+        startedAt: 1,
+        artifacts: [],
+        steps: [
+          {
+            stepId: 'planning',
+            kind: 'planning',
+            title: '分析请求并规划执行',
+            detail: '工具调用可用。',
+            status: 'completed',
+            startedAt: 1,
+            endedAt: 2,
+          },
+          {
+            stepId: 'retrieval',
+            kind: 'retrieval',
+            title: '准备检索上下文',
+            detail: '主动检索已关闭。',
+            status: 'skipped',
+            startedAt: 1,
+            endedAt: 2,
+          },
+        ],
+      },
+      toolApprovals: [
+        {
+          approvalId: 'approval-1',
+          toolCallId: 'tool-1',
+          toolName: 'createManualTask',
+          title: '建议创建任务“测试审批后 UI 收尾”',
+          description: 'AI 想把当前结论落成待办。',
+          status: 'executed',
+          resultSummary: '已创建到 默认任务清单',
+        },
+      ],
+    };
+
+    render(
+      <ToolThoughtChain
+        item={item}
+        onRespondToolApproval={() => undefined}
+        withBottomSpacing={false}
+      />,
+    );
+
+    expect(screen.getByText('已完成工具调度操作')).toBeInTheDocument();
+    expect(screen.queryByText('正在执行深度思考与操作...')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('thought-chain')[0]).toHaveAttribute('data-expanded-keys', '');
+  });
 });

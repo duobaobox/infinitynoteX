@@ -21,6 +21,7 @@ import type { ThoughtChainItemType } from '@ant-design/x';
 import type { ChatItem } from '../types';
 import type { AIRunStatus, AIStepStatus, AIToolApproval } from '../../../services/types';
 import { getToolDraftDisplay } from '../approvalFlow';
+import { getEffectiveRunStatus, isChatItemEffectivelyStreaming } from '../utils/streamingState';
 
 const MarkdownRenderer = React.lazy(() =>
   import('./MarkdownRenderer').then((module) => ({
@@ -178,6 +179,7 @@ function buildThoughtChainItems(args: {
 }): ThoughtChainItemType[] {
   const { item, onRespondToolApproval } = args;
   const chainItems: ThoughtChainItemType[] = [];
+  const itemStreaming = isChatItemEffectivelyStreaming(item);
 
   for (const step of item.runTrace?.steps ?? []) {
     if (step.kind === 'approval') {
@@ -259,8 +261,7 @@ function buildThoughtChainItems(args: {
           <MarkdownRenderer
             content={approval.preview}
             streaming={
-              item.isStreaming &&
-              (approval.status === 'pending' || approval.status === 'processing')
+              itemStreaming && (approval.status === 'pending' || approval.status === 'processing')
                 ? { hasNextChunk: true, enableAnimation: true }
                 : undefined
             }
@@ -321,7 +322,9 @@ export const ToolThoughtChain: React.FC<ToolThoughtChainProps> = ({
     [item, onRespondToolApproval],
   );
 
-  const runStatusMeta = getRunStatusMeta(item.runTrace?.status, Boolean(item.isStreaming));
+  const effectiveStreaming = isChatItemEffectivelyStreaming(item);
+  const effectiveRunStatus = getEffectiveRunStatus(item);
+  const runStatusMeta = getRunStatusMeta(effectiveRunStatus, effectiveStreaming);
   const runIdentity = item.runTrace?.runId ?? item.key;
   const [rootExpandedKeys, setRootExpandedKeys] = React.useState<string[]>(() =>
     getRootExpandedKeysForStatus(runStatusMeta.status),

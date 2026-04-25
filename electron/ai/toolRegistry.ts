@@ -157,7 +157,7 @@ export function buildToolExecutionSummary(toolName: string, output: unknown): st
     case 'appendToNote':
       return `已追加到便签《${String(payload.title || '无标题')}》`;
     case 'createManualTask':
-      return `已在 ${String(payload.listName || '任务清单')} 中创建任务`;
+      return `已创建到 ${String(payload.listName || '任务清单')}`;
     default:
       return undefined;
   }
@@ -351,8 +351,6 @@ export function createAgentTools(options?: { allowActiveRetrieval?: boolean }): 
         });
 
         return {
-          taskId: task.id,
-          listId: targetList.id,
           listName: targetList.name,
           text: task.text,
         };

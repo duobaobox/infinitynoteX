@@ -6,7 +6,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { ChatMessage } from '../../../services/aiConfig';
-import type { AIConversationSource, AIToolApproval, NoteReference } from '../../../services/types';
+import type {
+  AIConversationSource,
+  AIRunStatus,
+  AIToolApproval,
+  NoteReference,
+} from '../../../services/types';
 import type { Message } from '../../../store/slices/aiConversationSlice';
 import type { RagSource } from '../../../store/slices/retrievalSlice';
 import { useWorkspaceStore } from '../../../store/workspaceStore';
@@ -23,6 +28,8 @@ type PersistOptions = {
   sourceEntityId?: string | null;
   onTitleChange?: (title: string) => void;
 };
+
+type TerminalRunStatus = Extract<AIRunStatus, 'completed' | 'failed' | 'cancelled'>;
 
 export interface SendMessageOptions extends PersistOptions {
   conversationId: string;
@@ -201,6 +208,35 @@ export class ChatOrchestrator {
       reasoning:
         [message.reasoning, parsed.reasoning].filter(Boolean).join('\n').trim() || undefined,
     }));
+  }
+
+  private finalizeAssistantRunTrace(
+    requestId: string,
+    status: TerminalRunStatus = 'completed',
+    error?: string,
+  ): void {
+    this.updateAssistantMessage(requestId, (message) => {
+      if (!message.runTrace) {
+        return {};
+      }
+
+      if (message.runTrace.status === status && (!error || message.runTrace.error === error)) {
+        return {};
+      }
+
+      return {
+        runTrace: {
+          ...message.runTrace,
+          status,
+          ...(error ? { error } : {}),
+          endedAt: message.runTrace.endedAt ?? Date.now(),
+        },
+      };
+    });
+  }
+
+  private isAbortMessage(message: string): boolean {
+    return /abort|cancel|中止|取消/i.test(message);
   }
 
   private normalizeToolApprovalEvent(data: any): AIToolApproval {
@@ -485,6 +521,23 @@ export class ChatOrchestrator {
         window.ai.onRunUpdate(({ requestId: eventRequestId, run }: any) => {
           if (eventRequestId !== requestId) return;
           this.updateAssistantMessage(requestId, () => ({ runTrace: run }));
+
+          if (
+            run?.status === 'completed' ||
+            run?.status === 'failed' ||
+            run?.status === 'cancelled'
+          ) {
+            this.finalizeAssistantRunTrace(requestId, run.status, run.error);
+            if (run.status === 'failed') {
+              this.getStore().setRequestError?.(requestId, run.error || 'AI run failed');
+            } else {
+              this.getStore().completeRequest?.(requestId);
+            }
+            void this.saveConversation(
+              conversationId,
+              this.getRequestContext(requestId)?.persistOptions,
+            );
+          }
         }),
       );
     }
@@ -535,7 +588,25 @@ export class ChatOrchestrator {
         requestId,
         window.ai.onStreamError(({ requestId: eventRequestId, error }: any) => {
           if (eventRequestId !== requestId) return;
-          this.getStore().setRequestError?.(requestId, error || 'Stream error');
+          const errorMessage = error || 'Stream error';
+          const isAbort = this.isAbortMessage(errorMessage);
+
+          this.finalizeAssistantRunTrace(
+            requestId,
+            isAbort ? 'cancelled' : 'failed',
+            isAbort ? undefined : errorMessage,
+          );
+
+          if (isAbort) {
+            this.getStore().completeRequest?.(requestId);
+          } else {
+            this.getStore().setRequestError?.(requestId, errorMessage);
+          }
+
+          void this.saveConversation(
+            conversationId,
+            this.getRequestContext(requestId)?.persistOptions,
+          ).finally(() => this.cleanupRequest(requestId));
         }),
       );
     }
@@ -560,6 +631,7 @@ export class ChatOrchestrator {
           return;
         }
 
+        this.finalizeAssistantRunTrace(requestId);
         this.getStore().completeRequest?.(requestId);
         await this.saveConversation(
           conversationId,
@@ -684,6 +756,7 @@ export class ChatOrchestrator {
     if (stillPending) {
       this.getStore().transitionRequest?.(requestId, 'WAITING_APPROVALS');
     } else {
+      this.finalizeAssistantRunTrace(requestId);
       this.getStore().completeRequest?.(requestId);
       this.cleanupRequest(requestId);
     }

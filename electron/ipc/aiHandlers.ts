@@ -357,6 +357,7 @@ export function registerAIHandlers(): void {
           const responseMessagesPromise = Promise.resolve(streamResult.response).then(
             (response) => response.messages as ModelMessage[],
           );
+          void responseMessagesPromise.catch(() => undefined);
           const pendingToolCalls = new Map<string, { toolName: string; input: unknown }>();
           const pendingToolInputs = new Map<string, { toolName: string; title?: string }>();
           let hasPendingApprovals = false;

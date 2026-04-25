@@ -7,6 +7,7 @@ import type { ChatItem } from '../types';
 import { stripThinkBlocks } from '../../../shared/utils/tiptapMarkdown';
 import { ChatMessageContent } from '../components/ChatMessageContent';
 import { ToolThoughtChain } from '../components/ToolThoughtChain';
+import { isChatItemEffectivelyStreaming } from '../utils/streamingState';
 
 type BubbleListItem = NonNullable<GetProp<typeof Bubble.List, 'items'>>[number];
 
@@ -23,6 +24,7 @@ export function buildBubbleItems(args: BuildBubbleItemsArgs): BubbleListItem[] {
 
   return items.map((item) => {
     const isCopied = copiedBubbleKey === item.key;
+    const effectiveStreaming = isChatItemEffectivelyStreaming(item);
     const aiExportedContent =
       item.role === 'ai' ? stripThinkBlocks(item.content || '') : item.content;
     const hasCopyableAiText = item.role === 'ai' && aiExportedContent.trim().length > 0;
@@ -62,22 +64,22 @@ export function buildBubbleItems(args: BuildBubbleItemsArgs): BubbleListItem[] {
     if (item.role === 'user') {
       bubbleItem.status = 'local';
     } else {
-      bubbleItem.status = item.isStreaming
+      bubbleItem.status = effectiveStreaming
         ? item.content.trim() || item.toolDrafts?.length || item.toolApprovals?.length
           ? 'updating'
           : 'loading'
         : 'success';
-      bubbleItem.streaming = Boolean(item.isStreaming);
+      bubbleItem.streaming = effectiveStreaming;
     }
 
     if (
       item.role === 'ai' &&
       !item.content.trim() &&
-      item.isStreaming &&
+      effectiveStreaming &&
       !(item.toolDrafts?.length || item.toolApprovals?.length)
     ) {
       bubbleItem.loading = true;
-    } else if (item.role === 'ai' && item.isStreaming && item.content.trim()) {
+    } else if (item.role === 'ai' && effectiveStreaming && item.content.trim()) {
       bubbleItem.typing = { effect: 'typing', step: 5, interval: 50 };
     }
 

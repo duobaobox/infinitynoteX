@@ -159,6 +159,47 @@ describe('MessageList', () => {
     expect(preview).toHaveAttribute('data-streaming', 'true');
   });
 
+  it('does not keep markdown in streaming mode after the run trace is completed', async () => {
+    const items: ChatItem[] = [
+      {
+        key: 'ai-completed-1',
+        role: 'ai',
+        content: '最终回答',
+        timestamp: Date.now(),
+        isStreaming: true,
+        runTrace: {
+          requestId: 'request-completed-1',
+          runId: 'run-completed-1',
+          status: 'completed',
+          input: '生成回答',
+          startedAt: 1,
+          endedAt: 2,
+          artifacts: [],
+          steps: [],
+        },
+      },
+    ];
+
+    render(
+      <MessageList
+        isLoadingHistory={false}
+        isInitializing={false}
+        isConfigured={true}
+        hasConversationContext={true}
+        conversationId="conversation-completed-1"
+        items={items}
+        copiedBubbleKey={null}
+        onCopyAnswer={() => undefined}
+        onSaveToNote={() => undefined}
+        onRespondToolApproval={() => undefined}
+      />,
+    );
+
+    const markdown = await screen.findByTestId('markdown-renderer');
+    expect(markdown).toHaveAttribute('data-content', '最终回答');
+    expect(markdown).toHaveAttribute('data-streaming', 'false');
+  });
+
   it('passes Bubble.List auto-scroll classes to the internal scroll container', () => {
     const items: ChatItem[] = [
       {

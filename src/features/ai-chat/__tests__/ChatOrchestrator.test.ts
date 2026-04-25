@@ -53,7 +53,9 @@ const createMockStore = () => {
     },
     setRequestError: (id: string, error: string) => {
       if (requests[id]) {
+        requests[id].state = 'ERROR';
         requests[id].error = error;
+        requests[id].completedTime = Date.now();
       }
     },
     createToolCall: (requestId: string, toolCallId: string, toolName: string) => {
@@ -190,6 +192,8 @@ describe('ChatOrchestrator - Integration Tests', () => {
         onToolProgress: (cb: (data: any) => void) => mockIPC.on('tool:progress', cb),
         onToolApprovalRequest: (cb: (data: any) => void) => mockIPC.on('tool:approval', cb),
         onStreamDone: (cb: (data: any) => void) => mockIPC.on('stream:done', cb),
+        onStreamError: (cb: (data: any) => void) => mockIPC.on('stream:error', cb),
+        onRunUpdate: (cb: (data: any) => void) => mockIPC.on('run:update', cb),
         onApprovalStateChanged: (cb: (data: any) => void) =>
           mockIPC.on('approval:state-changed', cb),
       },
@@ -334,6 +338,109 @@ describe('ChatOrchestrator - Integration Tests', () => {
     expect(request.completedTime).toBeDefined();
   });
 
+  it('应该在运行链路完成事件到达时收尾请求', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Run agent', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    mockIPC.trigger('approval:state-changed', {
+      requestId,
+      toolCallId: 'tool-1',
+      approvalId: 'approval-1',
+      state: 'SUCCESS',
+      result: {},
+    });
+
+    mockIPC.trigger('run:update', {
+      requestId,
+      run: {
+        requestId,
+        runId: 'run-1',
+        status: 'completed',
+        input: 'Run agent',
+        startedAt: 1,
+        endedAt: 2,
+        steps: [],
+        artifacts: [],
+      },
+    });
+
+    const request = mockStore.getRequest(requestId);
+    expect(request.state).toBe('COMPLETED');
+  });
+
+  it('应该在运行链路失败事件到达时结束请求', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Run agent', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    mockIPC.trigger('run:update', {
+      requestId,
+      run: {
+        requestId,
+        runId: 'run-failed-1',
+        status: 'failed',
+        input: 'Run agent',
+        startedAt: 1,
+        endedAt: 2,
+        error: 'Cannot connect to API',
+        steps: [],
+        artifacts: [],
+      },
+    });
+
+    const request = mockStore.getRequest(requestId);
+    expect(request.state).toBe('ERROR');
+    expect(request.error).toBe('Cannot connect to API');
+  });
+
+  it('应该在流错误时标记运行失败并结束请求', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Run agent', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    mockIPC.trigger('run:update', {
+      requestId,
+      run: {
+        requestId,
+        runId: 'run-error-1',
+        status: 'running',
+        input: 'Run agent',
+        startedAt: 1,
+        steps: [
+          {
+            stepId: 'generation',
+            kind: 'generation',
+            title: '生成回答',
+            status: 'running',
+            startedAt: 1,
+          },
+        ],
+        artifacts: [],
+      },
+    });
+
+    mockIPC.trigger('stream:error', {
+      requestId,
+      error: 'Cannot connect to API',
+    });
+
+    const request = mockStore.getRequest(requestId);
+    const assistantMessage = mockStore
+      .getConversationMessages(conversationId)
+      .find((message: Message) => message.role === 'assistant');
+
+    expect(request.state).toBe('ERROR');
+    expect(request.error).toBe('Cannot connect to API');
+    expect(assistantMessage?.runTrace).toMatchObject({
+      status: 'failed',
+      error: 'Cannot connect to API',
+    });
+  });
+
   it('应该处理用户批准工具调用的流程', async () => {
     const conversationId = 'conv-1';
     await orchestrator.handleSendMessage(conversationId, 'Execute', []);
@@ -369,6 +476,29 @@ describe('ChatOrchestrator - Integration Tests', () => {
 
     const requestId = Object.keys(mockStore.requests)[0];
 
+    mockIPC.trigger('run:update', {
+      requestId,
+      run: {
+        requestId,
+        runId: 'run-approval-1',
+        status: 'running',
+        input: 'Create task',
+        startedAt: 1,
+        steps: [
+          {
+            stepId: 'generation',
+            kind: 'generation',
+            title: '生成回答',
+            detail: '回答生成完成。',
+            status: 'completed',
+            startedAt: 1,
+            endedAt: 2,
+          },
+        ],
+        artifacts: [],
+      },
+    });
+
     mockIPC.trigger('tool:progress', {
       requestId,
       progress: { phase: 'start', toolCallId: 'tool-1', toolName: 'createManualTask' },
@@ -391,6 +521,81 @@ describe('ChatOrchestrator - Integration Tests', () => {
 
     expect(toolCall.state.type).toBe('SUCCESS');
     expect(request.state).toBe('COMPLETED');
+
+    const assistantMessage = mockStore
+      .getConversationMessages(conversationId)
+      .find((message: Message) => message.role === 'assistant');
+    expect(assistantMessage?.runTrace?.status).toBe('completed');
+  });
+
+  it('运行完成事件先于审批结果返回时，仍然合并最终审批结果', async () => {
+    const conversationId = 'conv-1';
+    await orchestrator.handleSendMessage(conversationId, 'Create task', []);
+
+    const requestId = Object.keys(mockStore.requests)[0];
+
+    mockIPC.trigger('tool:progress', {
+      requestId,
+      progress: { phase: 'start', toolCallId: 'tool-1', toolName: 'createManualTask' },
+    });
+
+    mockIPC.trigger('tool:approval', {
+      requestId,
+      approval: {
+        approvalId: 'approval-1',
+        toolCallId: 'tool-1',
+        toolName: 'createManualTask',
+        title: '建议创建任务“整理会议纪要”',
+        description: 'AI 想把当前结论落成待办。',
+        inputPreview: '{"text":"整理会议纪要"}',
+        status: 'pending',
+      },
+    });
+
+    respondToolApprovalMock.mockImplementationOnce(async (payload: any) => {
+      mockIPC.trigger('run:update', {
+        requestId,
+        run: {
+          requestId,
+          runId: 'run-approval-completed-1',
+          status: 'completed',
+          input: 'Create task',
+          startedAt: 1,
+          endedAt: 2,
+          steps: [],
+          artifacts: [],
+        },
+      });
+
+      return {
+        success: true,
+        content: '你可以在默认任务清单里继续安排下一步。',
+        approval: {
+          approvalId: payload.approvalId,
+          toolCallId: 'tool-1',
+          toolName: 'createManualTask',
+          title: '建议创建任务“整理会议纪要”',
+          description: 'AI 想把当前结论落成待办。',
+          status: 'executed',
+          resultSummary: '已创建到 默认任务清单',
+        },
+        followUpApprovals: [],
+      };
+    });
+
+    await orchestrator.handleApproveToolCall(requestId, 'tool-1', conversationId);
+
+    const assistantMessage = mockStore
+      .getConversationMessages(conversationId)
+      .find((message: Message) => message.role === 'assistant');
+
+    expect(assistantMessage?.runTrace?.status).toBe('completed');
+    expect(assistantMessage?.content).toContain('继续安排下一步');
+    expect(assistantMessage?.toolApprovals?.[0]).toMatchObject({
+      approvalId: 'approval-1',
+      status: 'executed',
+      resultSummary: '已创建到 默认任务清单',
+    });
   });
 
   it('应该合并同批多个审批的执行结果', async () => {

@@ -4,6 +4,7 @@ import { FileCard } from '@ant-design/x';
 import type { ChatItem, NoteReference } from '../types';
 import { stripThinkBlocks } from '../../../shared/utils/tiptapMarkdown';
 import { isApprovalPlaceholderContent } from '../approvalFlow';
+import { isChatItemEffectivelyStreaming } from '../utils/streamingState';
 
 const MarkdownRenderer = React.lazy(() =>
   import('./MarkdownRenderer').then((module) => ({
@@ -60,11 +61,13 @@ export const ChatMessageContent: React.FC<ChatMessageContentProps> = ({ item }) 
     return null;
   }
 
+  const effectiveStreaming = isChatItemEffectivelyStreaming(item);
+
   return (
     <React.Suspense fallback={<div style={{ whiteSpace: 'pre-wrap' }}>{aiFallbackContent}</div>}>
       <MarkdownRenderer
         content={aiDisplayContent}
-        streaming={item.isStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
+        streaming={effectiveStreaming ? { hasNextChunk: true, enableAnimation: true } : undefined}
         sources={item.ragSources}
       />
     </React.Suspense>

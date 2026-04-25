@@ -1,8 +1,15 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { todoListGetMock, todoListCreateDefaultMock } = vi.hoisted(() => ({
+const {
+  todoListGetMock,
+  todoListCreateDefaultMock,
+  manualTaskGetNextOrderMock,
+  manualTaskCreateMock,
+} = vi.hoisted(() => ({
   todoListGetMock: vi.fn(),
   todoListCreateDefaultMock: vi.fn(),
+  manualTaskGetNextOrderMock: vi.fn(),
+  manualTaskCreateMock: vi.fn(),
 }));
 
 vi.mock('electron', () => ({
@@ -22,8 +29,8 @@ vi.mock('../../../../electron/storage', () => ({
       get: vi.fn(),
     },
     manualTasks: {
-      getNextOrder: vi.fn(async () => 0),
-      create: vi.fn(),
+      getNextOrder: manualTaskGetNextOrderMock,
+      create: manualTaskCreateMock,
       getAllByListId: vi.fn(async () => []),
     },
   },
@@ -39,6 +46,8 @@ describe('toolRegistry', () => {
   beforeEach(() => {
     todoListGetMock.mockReset();
     todoListCreateDefaultMock.mockReset();
+    manualTaskGetNextOrderMock.mockReset();
+    manualTaskCreateMock.mockReset();
 
     todoListGetMock.mockImplementation(async (id: string) => {
       if (id === 'default-manual-tasks') {
@@ -59,6 +68,16 @@ describe('toolRegistry', () => {
       id: 'default-manual-tasks',
       name: '默认任务清单',
       isDefault: true,
+      order: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    manualTaskGetNextOrderMock.mockResolvedValue(0);
+    manualTaskCreateMock.mockResolvedValue({
+      id: 'task-id-1',
+      listId: 'default-manual-tasks',
+      text: '整理会议纪要',
+      checked: false,
       order: 0,
       createdAt: 1,
       updatedAt: 1,
@@ -106,7 +125,7 @@ describe('toolRegistry', () => {
       toolRegistry.buildToolExecutionSummary('createManualTask', {
         listName: '今天',
       }),
-    ).toBe('已在 今天 中创建任务');
+    ).toBe('已创建到 今天');
   });
 
   it('defaults createManualTask approval target to 默认任务清单 when listId is omitted', async () => {
@@ -139,5 +158,20 @@ describe('toolRegistry', () => {
     expect(todoListGetMock).toHaveBeenCalledWith('default-manual-tasks');
     expect(approval?.targetId).toBe('default-manual-tasks');
     expect(approval?.targetLabel).toBe('默认任务清单');
+  });
+
+  it('returns user-facing manual task output without internal ids', async () => {
+    const tools = toolRegistry.createAgentTools({ allowActiveRetrieval: false });
+    const createManualTask = tools.createManualTask as {
+      execute: (input: { text: string }) => Promise<unknown>;
+    };
+    const result = await createManualTask.execute({
+      text: '整理会议纪要',
+    });
+
+    expect(result).toEqual({
+      listName: '默认任务清单',
+      text: '整理会议纪要',
+    });
   });
 });

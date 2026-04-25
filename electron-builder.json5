@@ -12,7 +12,7 @@
     {
       provider: 'github',
       owner: 'duobaobox',
-      repo: 'duobaobox-infinitynotex-releases',
+      repo: 'infinitynotex',
       releaseType: 'draft',
     },
   ],

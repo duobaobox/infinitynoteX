@@ -7,6 +7,7 @@
  */
 
 import { app, Menu, shell } from 'electron';
+import { PROJECT_LINKS } from '../src/shared/constants/projectLinks';
 
 /**
  * 创建 macOS 最小化菜单
@@ -85,9 +86,9 @@ function createMacOSMenu(): Electron.MenuItemConstructorOptions[] {
       label: '帮助',
       submenu: [
         {
-          label: '访问官网',
+          label: '访问项目主页',
           click: async () => {
-            await shell.openExternal('https://github.com/user/infinitynotex');
+            await shell.openExternal(PROJECT_LINKS.repository);
           },
         },
       ],

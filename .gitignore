@@ -22,6 +22,28 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local AI assistant/runtime configs
+.claude/
+.agent/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Common private keys/certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
+*.keystore
+
 # 忽略 release 文件夹下所有内容
 release/
 dist-electron/

@@ -7,6 +7,7 @@ import { Space, Typography, Button, Progress, Modal, message, Select, Input, Too
 import { ReloadOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useSettingsStore } from '../../../../store/settingsStore';
 import { useAutoUpdater } from '../../../../hooks/useAutoUpdater';
+import { PROJECT_LINKS } from '../../../../shared/constants/projectLinks';
 import logo from '../../../../assets/logo.svg';
 import './AboutTab.css';
 
@@ -263,12 +264,7 @@ const AboutTab: React.FC = () => {
                 <Button
                   size="small"
                   type="link"
-                  onClick={() =>
-                    window.open(
-                      'https://github.com/duobaobox/duobaobox-infinitynotex-releases/releases',
-                      '_blank',
-                    )
-                  }
+                  onClick={() => window.open(PROJECT_LINKS.releases, '_blank')}
                 >
                   手动下载最新版
                 </Button>
@@ -297,12 +293,12 @@ const AboutTab: React.FC = () => {
         <div className="about-link-list">
           {[
             {
-              label: '官网',
-              url: 'https://static-mp-4094b1b4-6fff-464e-9fda-00833a0fe87d.next.bspapp.com/?spm=5176.12768285.0.0.156c9482KtPvn0',
+              label: '开源仓库',
+              url: PROJECT_LINKS.repository,
             },
-            { label: '用户手册', url: 'https://www.kdocs.cn/l/co3mE4HmvfgO' },
-            { label: '提交需求和反馈', url: 'https://f.kdocs.cn/g/Fif2v3te/' },
-            { label: '联系作者', url: 'https://www.kdocs.cn/l/ciyIxzZq9t8n' },
+            { label: '发布下载', url: PROJECT_LINKS.releases },
+            { label: '提交问题', url: PROJECT_LINKS.issues },
+            { label: '参与讨论', url: PROJECT_LINKS.discussions },
           ].map((item) => (
             <div
               key={item.label}
@@ -337,7 +333,7 @@ const AboutTab: React.FC = () => {
 
         {/* 底部版权 */}
         <div className="about-footer">
-          <p>© 2026 InfinityNoteX. 保留所有权利。</p>
+          <p>© 2026 InfinityNoteX Contributors.</p>
         </div>
       </div>
 

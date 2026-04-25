@@ -1,7 +1,18 @@
 {
   "name": "infinitynotex",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
+  "description": "InfinityNoteX - Electron + React + TypeScript local-first note app",
+  "author": "InfinityNoteX Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/duobaobox/infinitynotex",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duobaobox/infinitynotex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/duobaobox/infinitynotex/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

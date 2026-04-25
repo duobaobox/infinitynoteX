@@ -48,4 +48,4 @@ jobs:
         # 核心改动：使用 --publish always 直接推送到发布仓库，绕过 Artifacts 500MB 限制
         run: npx electron-builder --${{ matrix.platform }} --publish always
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

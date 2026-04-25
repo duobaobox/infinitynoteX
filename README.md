@@ -238,7 +238,8 @@ Renderer UI (src/)
 
 1. 发布渠道
    - 默认使用 GitHub Releases
-   - 打包发布时可通过 `GH_TOKEN=<your-token>` 上传
+   - GitHub Actions 发布默认使用 `secrets.GITHUB_TOKEN`
+   - 本地手动发布可通过 `GH_TOKEN=<your-token>` 上传
    - 如需自建源，可通过 `INFINITY_UPDATER_URL=https://your-domain/path` 覆盖
 2. 版本号
    - 每次发版前需要更新 `package.json` 中的 `version`
@@ -308,6 +309,17 @@ npm run test:coverage
 - 同步 / 知识库 / 编辑器扩展落点
 - 常见漏改项与提交前检查清单
 
+## 开源协作
+
+开源协作相关文档：
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- [SECURITY.md](./SECURITY.md)
+- [SUPPORT.md](./SUPPORT.md)
+
+首次贡献建议先阅读 `CONTRIBUTING.md`，并在提交前完成其中的自检项。
+
 ## 常见问题
 
 ### `npm install` 后原生模块报错怎么办？
@@ -336,4 +348,4 @@ npm run rebuild
 
 ## License
 
-如仓库后续补充许可证文件，请以仓库根目录的 LICENSE 为准。
+本项目采用 [MIT License](./LICENSE)。

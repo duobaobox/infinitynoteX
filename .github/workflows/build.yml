@@ -74,16 +74,16 @@ jobs:
         with:
           name: release-${{ matrix.artifact }}
           path: |
-            release/**/*.dmg
-            release/**/*.zip
-            release/**/*.exe
-            release/**/*.AppImage
-            release/**/*.deb
-            release/**/*.rpm
-            release/**/*.snap
-            release/**/*.nupkg
-            release/**/*.yml
-            release/**/*.blockmap
+            release/*/*.dmg
+            release/*/*.zip
+            release/*/*.exe
+            release/*/*.AppImage
+            release/*/*.deb
+            release/*/*.rpm
+            release/*/*.snap
+            release/*/*.nupkg
+            release/*/latest*.yml
+            release/*/*.blockmap
           if-no-files-found: error
 
   publish:
@@ -102,22 +102,23 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
 
           files=(
-            dist-artifacts/**/*.dmg
-            dist-artifacts/**/*.zip
-            dist-artifacts/**/*.exe
-            dist-artifacts/**/*.AppImage
-            dist-artifacts/**/*.deb
-            dist-artifacts/**/*.rpm
-            dist-artifacts/**/*.snap
-            dist-artifacts/**/*.nupkg
-            dist-artifacts/**/*.yml
-            dist-artifacts/**/*.blockmap
+            dist-artifacts/release-*/*/*.dmg
+            dist-artifacts/release-*/*/*.zip
+            dist-artifacts/release-*/*/*.exe
+            dist-artifacts/release-*/*/*.AppImage
+            dist-artifacts/release-*/*/*.deb
+            dist-artifacts/release-*/*/*.rpm
+            dist-artifacts/release-*/*/*.snap
+            dist-artifacts/release-*/*/*.nupkg
+            dist-artifacts/release-*/*/latest*.yml
+            dist-artifacts/release-*/*/*.blockmap
           )
 
           if [[ ${#files[@]} -eq 0 ]]; then
@@ -129,15 +130,17 @@ jobs:
           printf 'Release files:\n'
           printf ' - %s\n' "${files[@]}"
 
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          if gh release view "$TAG_NAME" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release edit "$TAG_NAME" \
+              --repo "$GH_REPO" \
               --title "$TAG_NAME" \
               --draft=false \
               --prerelease=false \
               --latest
-            gh release upload "$TAG_NAME" "${files[@]}" --clobber
+            gh release upload "$TAG_NAME" "${files[@]}" --repo "$GH_REPO" --clobber
           else
             gh release create "$TAG_NAME" "${files[@]}" \
+              --repo "$GH_REPO" \
               --title "$TAG_NAME" \
               --generate-notes \
               --verify-tag \

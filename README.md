@@ -104,6 +104,31 @@ bash scripts/build-all.sh --all
 release/<version>/
 ```
 
+## 云端发布正式版本
+
+GitHub Actions 会在推送版本 tag 时云端构建多端安装包，并发布到 GitHub Releases。
+当前发布矩阵包括：
+
+- macOS x64 + arm64
+- Windows x64
+- Linux x64
+
+```bash
+npm version <version> --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "chore: release <version>"
+git tag v<version>
+git push origin main
+git push origin v<version>
+```
+
+注意事项：
+
+- tag 必须与 `package.json` 版本一致，例如 `package.json` 为 `1.2.0` 时只能推送 `v1.2.0`。
+- tag 构建完成后会创建正式 Release，不再保持为草稿。
+- Release 会上传安装包以及自动更新所需的 `*.yml`、`*.blockmap` 元数据。
+- 本地调试安装包时可先运行 `npm run web:build` 和 `npx electron-builder --mac --dir --publish never`。
+
 ## 项目结构
 
 ```text
@@ -245,6 +270,8 @@ Renderer UI (src/)
    - 每次发版前需要更新 `package.json` 中的 `version`
 3. 签名
    - macOS / Windows 仍需配置对应签名参数
+   - 当前 macOS 安装包未配置 Apple 官方签名，应用会提示手动下载覆盖安装，不会自动覆盖更新
+   - 如果后续启用 macOS 签名，可设置 `INFINITY_MAC_AUTO_UPDATE=1` 允许 macOS 自动下载安装
 4. 调试限制
    - 开发模式下自动更新不会完整生效，需要在打包产物中验证
 

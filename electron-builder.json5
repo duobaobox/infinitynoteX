@@ -13,7 +13,7 @@
       provider: 'github',
       owner: 'duobaobox',
       repo: 'infinitynotex',
-      releaseType: 'draft',
+      releaseType: 'release',
     },
   ],
   directories: {

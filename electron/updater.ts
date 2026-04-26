@@ -7,6 +7,20 @@ let lastStatus: UpdateStatusPayload = { state: app.isPackaged ? 'idle' : 'disabl
 let isInitialized = false;
 let isChecking = false;
 
+const RELEASES_URL = 'https://github.com/duobaobox/infinitynotex/releases';
+const MAC_MANUAL_UPDATE_MESSAGE =
+  '当前 macOS 安装包未配置 Apple 官方签名，系统不允许应用自动覆盖安装。请从发布页下载最新版并手动覆盖安装。';
+
+const getReleaseUrl = (version?: string) => {
+  if (!version) return RELEASES_URL;
+  return `${RELEASES_URL}/tag/v${version}`;
+};
+
+const canInstallAutomatically = () => {
+  if (process.platform !== 'darwin') return true;
+  return process.env.INFINITY_MAC_AUTO_UPDATE === '1';
+};
+
 const sanitizeReleaseNotes = (notes: UpdateDownloadedEvent['releaseNotes']) => {
   if (Array.isArray(notes)) {
     return notes
@@ -111,11 +125,19 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null) {
   });
 
   autoUpdater.on('update-available', (info) => {
+    const version = info?.version;
+    const supportsAutomaticInstall = canInstallAutomatically();
+
     sendStatus({
       state: 'available',
-      version: info?.version,
+      version,
       releaseNotes: sanitizeReleaseNotes(info?.releaseNotes),
+      canInstallAutomatically: supportsAutomaticInstall,
+      manualDownloadUrl: supportsAutomaticInstall ? undefined : getReleaseUrl(version),
+      message: supportsAutomaticInstall ? undefined : MAC_MANUAL_UPDATE_MESSAGE,
     });
+
+    if (!supportsAutomaticInstall) return;
 
     autoUpdater.downloadUpdate().catch((error) => {
       sendStatus({
@@ -162,6 +184,17 @@ export function initAutoUpdater(getWindow: () => BrowserWindow | null) {
   ipcMain.handle(IPC_CHANNELS.updaterCheckNow, async () => checkForUpdates());
 
   ipcMain.handle(IPC_CHANNELS.updaterInstallNow, async () => {
+    if (!canInstallAutomatically()) {
+      sendStatus({
+        ...lastStatus,
+        state: 'available',
+        canInstallAutomatically: false,
+        manualDownloadUrl: getReleaseUrl(lastStatus.version),
+        message: MAC_MANUAL_UPDATE_MESSAGE,
+      });
+      return { skipped: true, reason: 'manual-update-required' } as const;
+    }
+
     setImmediate(() => {
       autoUpdater.quitAndInstall(true, true);
     });

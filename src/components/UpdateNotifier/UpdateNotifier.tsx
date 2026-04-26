@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Alert, Button, Progress, Tooltip } from 'antd';
 import type { UpdateStatusPayload } from '../../services/types';
 import { useAutoUpdater } from '../../hooks/useAutoUpdater';
@@ -21,6 +21,13 @@ function UpdateNotifier() {
   const { status, checking, installing, supportsUpdater, checkForUpdates, installUpdate } =
     useAutoUpdater();
 
+  const openReleasePage = useCallback(() => {
+    window.open(
+      status?.manualDownloadUrl ?? 'https://github.com/duobaobox/infinitynotex/releases',
+      '_blank',
+    );
+  }, [status?.manualDownloadUrl]);
+
   const bannerContent = useMemo(() => {
     if (!status) return null;
 
@@ -32,7 +39,19 @@ function UpdateNotifier() {
           <Alert
             type="info"
             showIcon
-            title={`发现新版本${status.version ? ` ${status.version}` : ''}，正在准备下载`}
+            title={`发现新版本${status.version ? ` ${status.version}` : ''}`}
+            description={
+              status.canInstallAutomatically === false ? (
+                <div className="update-notifier__actions">
+                  <span>{status.message ?? '请前往发布页手动下载最新版。'}</span>
+                  <Button size="small" type="primary" onClick={openReleasePage}>
+                    手动下载
+                  </Button>
+                </div>
+              ) : (
+                '正在准备下载'
+              )
+            }
           />
         );
       case 'downloading':
@@ -92,7 +111,7 @@ function UpdateNotifier() {
       default:
         return null;
     }
-  }, [status, installing, installUpdate]);
+  }, [status, installing, installUpdate, openReleasePage]);
 
   if (!supportsUpdater) {
     return null;

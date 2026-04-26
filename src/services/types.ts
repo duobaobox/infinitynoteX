@@ -379,6 +379,9 @@ export interface UpdateStatusPayload {
   transferredBytes?: number;
   totalBytes?: number;
   errorMessage?: string;
+  message?: string;
+  manualDownloadUrl?: string;
+  canInstallAutomatically?: boolean;
 }
 
 // ============ Todo 相关类型 ============

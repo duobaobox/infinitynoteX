@@ -106,18 +106,14 @@ fi
 if ! command -v node >/dev/null 2>&1; then err "node not found"; exit 1; fi
 if ! command -v npm >/dev/null 2>&1; then err "npm not found"; exit 1; fi
 
-if ! npx --yes electron-builder -V >/dev/null 2>&1; then
+if ! npx --yes electron-builder --version >/dev/null 2>&1; then
   warn "electron-builder not found in local deps. Installing dev dependency may be required."
 fi
 
 # Assets build
 if [[ $SKIP_ASSETS -eq 0 ]]; then
   info "Building renderer/main assets (tsc + vite)..."
-  npm run -s assets || {
-    warn "npm run assets failed or script missing. Falling back to tsc && vite build"
-    npm run -s tsc || npx --yes tsc
-    npx --yes vite build
-  }
+  npm run -s web:build
   ok "Assets built"
 else
   info "Skipping assets build as requested"

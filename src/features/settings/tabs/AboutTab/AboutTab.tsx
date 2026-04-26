@@ -173,6 +173,9 @@ const AboutTab: React.FC = () => {
       case 'checking':
         return '正在检查更新…';
       case 'available':
+        if (updaterStatus?.canInstallAutomatically === false) {
+          return updaterStatus.message ?? '发现新版本，请前往发布页手动下载最新版';
+        }
         return `发现新版本${updaterStatus?.version ? ` ${updaterStatus.version}` : ''}，正在准备下载`;
       case 'downloading':
         return `正在下载更新${updaterStatus?.percent ? ` (${updaterStatus.percent.toFixed(1)}%)` : ''}`;
@@ -186,6 +189,10 @@ const AboutTab: React.FC = () => {
         return '已是最新版本';
     }
   }, [supportsUpdater, updaterStatus]);
+
+  const openReleasePage = useCallback(() => {
+    window.open(updaterStatus?.manualDownloadUrl ?? PROJECT_LINKS.releases, '_blank');
+  }, [updaterStatus?.manualDownloadUrl]);
 
   const renderDownloadProgress = () => {
     if (updaterStatus?.state !== 'downloading') return null;
@@ -261,24 +268,27 @@ const AboutTab: React.FC = () => {
                 检查更新
               </Button>
               {updaterStatus?.state === 'error' && (
-                <Button
-                  size="small"
-                  type="link"
-                  onClick={() => window.open(PROJECT_LINKS.releases, '_blank')}
-                >
+                <Button size="small" type="link" onClick={openReleasePage}>
                   手动下载最新版
                 </Button>
               )}
-              {updaterStatus?.state === 'downloaded' && (
-                <Button
-                  type="primary"
-                  size="small"
-                  loading={updaterInstalling}
-                  onClick={triggerInstallUpdate}
-                >
-                  立即重启更新
-                </Button>
-              )}
+              {updaterStatus?.state === 'available' &&
+                updaterStatus.canInstallAutomatically === false && (
+                  <Button size="small" type="link" onClick={openReleasePage}>
+                    打开发布页下载
+                  </Button>
+                )}
+              {updaterStatus?.state === 'downloaded' &&
+                updaterStatus.canInstallAutomatically !== false && (
+                  <Button
+                    type="primary"
+                    size="small"
+                    loading={updaterInstalling}
+                    onClick={triggerInstallUpdate}
+                  >
+                    立即重启更新
+                  </Button>
+                )}
             </Space>
           </Space>
         </div>
